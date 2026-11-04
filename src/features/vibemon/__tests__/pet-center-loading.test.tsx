@@ -1,11 +1,11 @@
 import {
-  createPetAssets,
+  createVibemonAssets,
   type GachaPoolDetailResponse,
   type GachaPoolSummary,
-  type PetAssetsHost
-} from "@alwith/module-auth/pets"
-import { configureVibemon, initializeSettings, type VibemonHost } from "@alwith/module-auth/pets/core"
-import { PetCenter } from "@alwith/module-auth/pets/react"
+  type VibemonAssetsHost
+} from "@alwith/module-auth/vibemon"
+import { configureVibemon, initializeSettings, type VibemonHost } from "@alwith/module-auth/vibemon/core"
+import { VibemonCenter } from "@alwith/module-auth/vibemon/react"
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 
@@ -92,10 +92,10 @@ test("cached entry waits for Wish images once and preserves server ordering", as
     if (path.includes("points")) return Promise.resolve({ available_points: 100 })
     throw new Error(`Unexpected request: ${path}`)
   })
-  const assets = createPetAssets({
+  const assets = createVibemonAssets({
     account: () => ({ apiHost: "api.test", userId: "user", revision: 1 }),
     storage,
-    request: request as PetAssetsHost["request"],
+    request: request as VibemonAssetsHost["request"],
     download: vi.fn(() => Promise.reject(new Error("Unexpected download"))),
     resources: {
       exists: () => Promise.resolve(false),
@@ -156,7 +156,7 @@ test("cached entry waits for Wish images once and preserves server ordering", as
         callbacks.forEach((callback) => callback(time))
       }
     })
-  render(<PetCenter />)
+  render(<VibemonCenter />)
   await waitFor(() => expect(resolve).toHaveBeenCalledTimes(4))
   await waitFor(() =>
     expect(decode.mock.contexts.some((image) => image.src === "https://local.test/v3/background.png")).toBe(true)

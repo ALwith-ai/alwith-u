@@ -26,7 +26,7 @@ vi.mock("@/bindings", () => ({
     isAppRunning: mocks.running
   }
 }))
-vi.mock("@/features/vibemon/display-error", () => ({ reportPetError: mocks.error }))
+vi.mock("@/features/vibemon/display-error", () => ({ reportVibemonError: mocks.error }))
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()

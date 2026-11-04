@@ -14,12 +14,12 @@ import {
 } from "@/components/ui/dialog"
 import { requestChatSurface } from "@/lib/chat-window"
 
-import { petErrorMessage } from "./display-error"
-import { collapseChatToPet } from "./window-client"
+import { vibemonErrorMessage } from "./display-error"
+import { collapseChatToVibemon } from "./window-client"
 
 type Notice = { type: "setup"; view: "pull" | "equip"; error?: string } | { type: "error"; error: string }
 
-export function ChatWindowPetButton({ sessionId }: { sessionId: string | null }) {
+export function ChatWindowVibemonButton({ sessionId }: { sessionId: string | null }) {
   const { t } = useTranslation()
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState<Notice | null>(null)
@@ -42,14 +42,14 @@ export function ChatWindowPetButton({ sessionId }: { sessionId: string | null })
     operation.current = controller
     setBusy(true)
     try {
-      const result = await collapseChatToPet(sessionId, controller.signal)
+      const result = await collapseChatToVibemon(sessionId, controller.signal)
       if (!controller.signal.aborted) {
         if (result.type === "setup") setNotice(result)
         setNoticeOpen(result.type === "setup")
       }
     } catch (failure) {
       if (!controller.signal.aborted) {
-        setNotice({ type: "error", error: petErrorMessage(failure) })
+        setNotice({ type: "error", error: vibemonErrorMessage(failure) })
         setNoticeOpen(true)
       }
     } finally {
@@ -68,7 +68,7 @@ export function ChatWindowPetButton({ sessionId }: { sessionId: string | null })
       await requestChatSurface("main", { type: "vibemon", view })
       if (!controller.signal.aborted) setNoticeOpen(false)
     } catch (failure) {
-      if (!controller.signal.aborted) setNotice({ type: "setup", view, error: petErrorMessage(failure) })
+      if (!controller.signal.aborted) setNotice({ type: "setup", view, error: vibemonErrorMessage(failure) })
     } finally {
       if (operation.current === controller) {
         operation.current = null
@@ -91,10 +91,10 @@ export function ChatWindowPetButton({ sessionId }: { sessionId: string | null })
       <Dialog open={noticeOpen} onOpenChange={(open) => !busy && setNoticeOpen(open)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t(notice?.type === "setup" ? "pet.setupTitle" : "common:petMode.failed")}</DialogTitle>
+            <DialogTitle>{t(notice?.type === "setup" ? "pet.setupTitle" : "common:vibemonMode.failed")}</DialogTitle>
             <DialogDescription>
               {notice?.type === "setup"
-                ? t(notice.view === "pull" ? "common:petMode.drawHint" : "common:petMode.equipHint")
+                ? t(notice.view === "pull" ? "common:vibemonMode.drawHint" : "common:vibemonMode.equipHint")
                 : notice?.error}
             </DialogDescription>
           </DialogHeader>
@@ -109,7 +109,7 @@ export function ChatWindowPetButton({ sessionId }: { sessionId: string | null })
             </Button>
             {notice?.type === "setup" && (
               <Button disabled={busy} onClick={() => void openSetup(notice.view)}>
-                {t(notice.view === "pull" ? "common:petMode.goDraw" : "common:petMode.goEquip")}
+                {t(notice.view === "pull" ? "common:vibemonMode.goDraw" : "common:vibemonMode.goEquip")}
               </Button>
             )}
           </DialogFooter>

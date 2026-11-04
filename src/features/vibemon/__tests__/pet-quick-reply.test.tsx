@@ -1,5 +1,5 @@
-import { configureVibemon, type PetObservation, type VibemonHost } from "@alwith/module-auth/pets/core"
-import { PetModeButton, PetQuickReply } from "@alwith/module-auth/pets/react"
+import { configureVibemon, type VibemonHost, type VibemonObservation } from "@alwith/module-auth/vibemon/core"
+import { VibemonModeButton, VibemonQuickReply } from "@alwith/module-auth/vibemon/react"
 import { SessionStateDot } from "@alwith/module-chat/session-list"
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
@@ -29,9 +29,9 @@ async function type(view: ReturnType<typeof render>, value: string) {
   const input = view.getByRole("textbox")
   await act(() => Promise.try(() => inputHandler(input, "onChange", { target: { value } })))
 }
-async function fixture(patch: Partial<PetObservation> = {}) {
+async function fixture(patch: Partial<VibemonObservation> = {}) {
   await initI18n("en")
-  let value: PetObservation = {
+  let value: VibemonObservation = {
     binding: {
       connectionEpoch: "epoch",
       agentId: "codex",
@@ -58,7 +58,7 @@ async function fixture(patch: Partial<PetObservation> = {}) {
     prompt: null,
     ...patch
   }
-  const listeners = new Set<(value: PetObservation | null) => void>()
+  const listeners = new Set<(value: VibemonObservation | null) => void>()
   const pending = Promise.withResolvers<void>()
   const send = vi.fn(() => pending.promise)
   const answer = vi.fn(async () => {})
@@ -96,8 +96,8 @@ async function fixture(patch: Partial<PetObservation> = {}) {
         call(action, payload).then((value) => value as T),
       geometry: () => Promise.resolve(() => {}),
       moved: () => Promise.resolve(() => {}),
-      openPet: () => Promise.resolve("shown"),
-      closePet: async () => {},
+      openVibemon: () => Promise.resolve("shown"),
+      closeVibemon: async () => {},
       openRecharge: async () => {},
       commands: () => () => {}
     },
@@ -115,7 +115,7 @@ async function fixture(patch: Partial<PetObservation> = {}) {
     answer,
     openChat,
     call,
-    async update(patch: Partial<PetObservation>) {
+    async update(patch: Partial<VibemonObservation>) {
       await act(() => {
         return Promise.try(() => {
           value = { ...value, ...patch }
@@ -127,7 +127,7 @@ async function fixture(patch: Partial<PetObservation> = {}) {
 }
 test("the input hides historical replies and submission acceptance does not show completion", async () => {
   const f = await fixture()
-  const view = render(<PetQuickReply />)
+  const view = render(<VibemonQuickReply />)
   expect(view.queryByText("Previous answer")).toBeNull()
   await type(view, "New request")
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Send" }))))
@@ -161,7 +161,7 @@ test("approval detail and once-only buttons use the existing answer path without
       options: [{ id: "allow", label: "Allow once" }]
     }
   })
-  const view = render(<PetQuickReply />)
+  const view = render(<VibemonQuickReply />)
   expect(view.getByText("command: ls")).not.toBeNull()
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Allow once" }))))
   expect(f.answer).toHaveBeenCalledTimes(1)
@@ -172,7 +172,7 @@ test("complex questions and read-only ownership use the full conversation", asyn
     state: "requires_action",
     prompt: { kind: "question", token: "q", title: "Question", detail: "More context", options: [] }
   })
-  const view = render(<PetQuickReply />)
+  const view = render(<VibemonQuickReply />)
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Open conversation to answer" }))))
   expect(f.openChat).toHaveBeenCalledTimes(1)
   expect(f.answer).not.toHaveBeenCalled()
@@ -186,7 +186,7 @@ test("complex questions and read-only ownership use the full conversation", asyn
 })
 test("an in-flight reply cannot update a newly bound conversation", async () => {
   const f = await fixture()
-  const view = render(<PetQuickReply />)
+  const view = render(<VibemonQuickReply />)
   await type(view, "Old draft")
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Send" }))))
   await f.update({
@@ -206,7 +206,7 @@ test("an in-flight reply cannot update a newly bound conversation", async () => 
 })
 test("IME confirmation never sends a message and Shift+Enter retains multiline editing", async () => {
   const f = await fixture()
-  const view = render(<PetQuickReply />)
+  const view = render(<VibemonQuickReply />)
   const input = view.getByRole("textbox")
   await type(view, "你好")
   await act(() => {
@@ -227,10 +227,10 @@ test("IME confirmation never sends a message and Shift+Enter retains multiline e
 test("the collapse icon and loading state match Desktop and use the current language", async () => {
   await fixture()
   await initI18n("zh-CN")
-  const view = render(<PetModeButton busy={false} onClick={() => {}} />)
+  const view = render(<VibemonModeButton busy={false} onClick={() => {}} />)
   const button = view.getByRole("button", { name: "收起到 Vibémon" })
   expect(button.querySelector(".lucide-minimize-2")).not.toBeNull()
-  view.rerender(<PetModeButton busy={true} onClick={() => {}} />)
+  view.rerender(<VibemonModeButton busy={true} onClick={() => {}} />)
   expect((button as HTMLButtonElement).disabled).toBe(true)
   expect(button.querySelector(".animate-spin")).not.toBeNull()
 })
@@ -240,7 +240,7 @@ test("task panel expands a stack and routes stopping and dismissal to the clicke
   const first = { ...f.value, state: "running" as const }
   const second = { ...first, title: "Second", binding: { ...first.binding, sessionId: "two" }, order: 2 }
   await f.update({ taskFeed: { tasks: [first, second], panel: "stacked", mainMinimized: false } })
-  const view = render(<PetQuickReply />)
+  const view = render(<VibemonQuickReply />)
   fireEvent.click(view.getByRole("button", { name: "Expand tasks" }))
   expect(f.panel).toHaveBeenCalledWith("expanded")
   await f.update({ taskFeed: { tasks: [first, second], panel: "expanded", mainMinimized: false } })
@@ -270,7 +270,7 @@ test("restoring the main window removes authorization buttons while retaining it
     }
   }
   await f.update({ taskFeed: { tasks: [first], panel: "expanded", mainMinimized: true } })
-  const view = render(<PetQuickReply />)
+  const view = render(<VibemonQuickReply />)
   expect(view.getByRole("button", { name: "Allow" })).toBeInTheDocument()
   await f.update({ taskFeed: { tasks: [first], panel: "expanded", mainMinimized: false } })
   expect(view.queryByRole("button", { name: "Allow" })).not.toBeInTheDocument()
@@ -296,7 +296,7 @@ test.each([
   async (language, allow, reject, title) => {
     const f = await fixture()
     await initI18n(language)
-    const task: PetObservation = {
+    const task: VibemonObservation = {
       ...f.value,
       state: "requires_action",
       prompt: {
@@ -312,7 +312,7 @@ test.each([
       }
     }
     await f.update({ taskFeed: { tasks: [task], panel: "hidden", mainMinimized: true } })
-    const view = render(<PetQuickReply />)
+    const view = render(<VibemonQuickReply />)
     expect(view.getByText(title)).toBeVisible()
     expect(view.getByText("printf %s VIBEMON-TEST")).toBeVisible()
     expect(view.getByText("/project")).toBeVisible()
@@ -332,18 +332,18 @@ test("opening a hidden task panel measures populated content without resize or a
   const bounds = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (
     this: HTMLElement
   ) {
-    const height = this.matches(".pet-task-card") || this.querySelector(".pet-task-card") ? 180 : 0
+    const height = this.matches(".vibemon-task-card") || this.querySelector(".vibemon-task-card") ? 180 : 0
     return { x: 0, y: 0, top: 0, left: 0, width: 328, height, right: 328, bottom: height, toJSON() {} }
   })
   const styles = document.createElement("style")
   styles.textContent =
-    ".pet-task-panel { padding-bottom: 6px } .pet-task-content, .pet-task-card { border-top-left-radius: 28px }"
+    ".vibemon-task-panel { padding-bottom: 6px } .vibemon-task-content, .vibemon-task-card { border-top-left-radius: 28px }"
   document.head.append(styles)
   // A hidden WKWebView does not promise animation frames or ResizeObserver deliveries.
   const frame = vi.spyOn(window, "requestAnimationFrame").mockReturnValue(1)
   try {
     await f.update({ taskFeed: { tasks: [task], panel: "hidden", mainMinimized: false } })
-    const view = render(<PetQuickReply />)
+    const view = render(<VibemonQuickReply />)
     expect(view.queryByRole("region", { name: "First" })).toBeNull()
     f.call.mockClear()
     await f.update({ taskFeed: { tasks: [task], panel: "expanded", mainMinimized: false } })
@@ -377,7 +377,7 @@ test("task stages wait for native sizing and identical sizes do not re-present t
   const first = { ...f.value, state: "done" as const }
   const second = { ...first, title: "Second", binding: { ...first.binding, sessionId: "two" } }
   await f.update({ taskFeed: { tasks: [first, second], panel: "stacked", mainMinimized: false } })
-  const view = render(<PetQuickReply />)
+  const view = render(<VibemonQuickReply />)
   expect(view.getByRole("button", { name: "Expand tasks" })).not.toBeVisible()
   expect(f.call.mock.calls.filter(([action]) => action === "bubble-size")).toHaveLength(1)
   await act(() => Promise.resolve(sized.resolve()))
@@ -392,7 +392,7 @@ test("completed task capsules show a concise summary and clear collapsed reply d
   const f = await fixture()
   const task = { ...f.value, state: "done" as const }
   await f.update({ taskFeed: { tasks: [task], panel: "expanded", mainMinimized: false } })
-  const view = render(<PetQuickReply />)
+  const view = render(<VibemonQuickReply />)
   expect(view.getByText("Previous answer")).toBeInTheDocument()
   expect(view.queryByText("Completed")).not.toBeInTheDocument()
   expect(view.queryByRole("button", { name: "Collapse tasks" })).not.toBeInTheDocument()
@@ -423,7 +423,7 @@ test("task capsules display their own latest request instead of a shared convers
     userMessage: { messageId: "two", text: "Review the changes", timestamp: 2 }
   }
   await f.update({ taskFeed: { tasks: [first, second], panel: "expanded", mainMinimized: false } })
-  const view = render(<PetQuickReply />)
+  const view = render(<VibemonQuickReply />)
   expect(view.getByRole("region", { name: "Summarize the report" })).toBeInTheDocument()
   expect(view.getByRole("region", { name: "Review the changes" })).toBeInTheDocument()
   expect(view.queryByText("Test")).not.toBeInTheDocument()
@@ -450,7 +450,7 @@ test("the collapsed float shows only its task and replies to that binding after 
     focusedSessionId: first.binding.sessionId
   }
   await f.update({ taskFeed: feed })
-  const view = render(<PetQuickReply />)
+  const view = render(<VibemonQuickReply />)
   expect(view.getByRole("region", { name: "First" })).toBeInTheDocument()
   expect(view.queryByRole("region", { name: "Other" })).not.toBeInTheDocument()
   expect(view.getByRole("button", { name: "Continue conversation" })).toBeDisabled()
@@ -471,7 +471,7 @@ test("sidebar and task capsules share yellow running pulses and solid green unre
   const view = render(
     <>
       <SessionStateDot state="running" title="Sidebar status" />
-      <PetQuickReply />
+      <VibemonQuickReply />
     </>
   )
   const sidebar = view.getByTitle("Sidebar status")

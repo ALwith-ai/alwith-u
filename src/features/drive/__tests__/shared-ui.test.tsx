@@ -1,3 +1,4 @@
+import { CONTRACT_VERSION } from "@alwith/module-drive"
 import type { DriveController, DriveRequest, DriveResponse, RootInfo, Snapshot } from "@alwith/module-drive"
 import { type DriveControls, type DriveHost, DrivePanel, DriveSharing } from "@alwith/module-drive/react"
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
@@ -65,7 +66,7 @@ function fixture(
   respond?: (request: DriveRequest) => Promise<DriveResponse>
 ): { controller: DriveController; host: DriveHost; requests: DriveRequest[] } {
   const snapshot: Snapshot = {
-    version: 1,
+    version: CONTRACT_VERSION,
     generation: 1,
     sequence: 0,
     configured: true,

@@ -253,7 +253,7 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
     allowed(&window)?;
     let app = window.app_handle();
     match action.as_str() {
-        "create-pet" | "create-bubble" => {
+        "create-vibemon" | "create-bubble" => {
             crate::window::ensure_open(app)?;
             if window.label() != "main" {
                 return Err("Only main creates Vibemon windows".into());
@@ -262,7 +262,7 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
                 return Err("Vibemon native windows are not supported on Linux".into());
             }
             let (label, url, width, height) = match action.as_str() {
-                "create-pet" => ("vibemon", "vibemon.html", 200., 200.),
+                "create-vibemon" => ("vibemon", "vibemon.html", 200., 200.),
                 _ => ("bubble-menu-vibemon", "vibemon-bubble.html", 320., 220.),
             };
             if app.get_webview_window(label).is_some() {
@@ -450,7 +450,7 @@ pub async fn vibemon_window(window: WebviewWindow, action: String, payload: Valu
             if let Some(bubble) = app.get_webview_window("bubble-menu-vibemon") {
                 window_action(&bubble, "hide", None, Value::Null).await?;
             }
-            app.emit_to("vibemon", "vibemon:command", json!({"type":"bubble-close","petId":"","requestId":""}))
+            app.emit_to("vibemon", "vibemon:command", json!({"type":"bubble-close","vibemonId":"","requestId":""}))
                 .map_err(|e| e.to_string())?;
             app.emit_to("bubble-menu-vibemon", "vibemon:dismiss", ()).map_err(|e| e.to_string())?;
             Ok(Value::Null)

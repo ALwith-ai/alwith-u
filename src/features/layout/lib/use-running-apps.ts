@@ -3,7 +3,7 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { useEffect, useRef, useState } from "react"
 
 import { type AppInfo, commands } from "@/bindings"
-import { reportPetError } from "@/features/vibemon/display-error"
+import { reportVibemonError } from "@/features/vibemon/display-error"
 
 /** Share installed-app discovery and activation with the native module. */
 export function useRunningApps(active: boolean): AppInfo[] {
@@ -33,7 +33,7 @@ export function useRunningApps(active: boolean): AppInfo[] {
         const running = await Promise.all(candidates.map((app) => commands.isAppRunning({ bundleId: app.bundle_id })))
         if (!disposed) setApps(candidates.filter((_, index) => running[index]))
       } catch (error) {
-        if (!disposed) reportPetError(error)
+        if (!disposed) reportVibemonError(error)
       } finally {
         checking = false
       }
@@ -46,7 +46,7 @@ export function useRunningApps(active: boolean): AppInfo[] {
     return () => {
       disposed = true
       clearInterval(timer)
-      void unlisten.then((stop) => stop()).catch(reportPetError)
+      void unlisten.then((stop) => stop()).catch(reportVibemonError)
     }
   }, [active])
   return apps

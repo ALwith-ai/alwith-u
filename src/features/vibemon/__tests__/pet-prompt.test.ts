@@ -2,7 +2,7 @@ import { expect, test } from "vitest"
 
 import type { PendingAction } from "@/agent/client"
 
-import { petAnswer, petPrompt } from "../pet-prompt"
+import { vibemonAnswer, vibemonPrompt } from "../pet-prompt"
 
 function question(properties: Record<string, unknown>): PendingAction {
   return {
@@ -26,7 +26,7 @@ const choices = {
 }
 test("simple single-choice questions reuse the original form property and token", () => {
   const action = question({ direction: choices })
-  expect(petPrompt(action)).toEqual({
+  expect(vibemonPrompt(action)).toEqual({
     kind: "question",
     token: "question-token",
     title: "Choose a direction",
@@ -36,7 +36,7 @@ test("simple single-choice questions reuse the original form property and token"
       { id: "right", label: "Right" }
     ]
   })
-  expect(petAnswer(action, "right")).toEqual({ action: "accept", content: { direction: "right" } })
+  expect(vibemonAnswer(action, "right")).toEqual({ action: "accept", content: { direction: "right" } })
 })
 test("multiple questions, multiple selection and text stay in the full conversation", () => {
   for (const fields of [
@@ -45,8 +45,8 @@ test("multiple questions, multiple selection and text stay in the full conversat
     { direction: { type: "string" } }
   ]) {
     const action = question(fields)
-    expect(petPrompt(action)?.options).toEqual([])
-    expect(() => petAnswer(action, "left")).toThrow("unavailable")
+    expect(vibemonPrompt(action)?.options).toEqual([])
+    expect(() => vibemonAnswer(action, "left")).toThrow("unavailable")
   }
 })
 test("option previews and descriptions are never discarded for a quick answer", () => {
@@ -55,8 +55,8 @@ test("option previews and descriptions are never discarded for a quick answer", 
     { const: "left", title: "Left", _meta: { alwith: { preview: "patch" } } }
   ]) {
     const action = question({ direction: { ...choices, oneOf: [option] } })
-    expect(petPrompt(action)?.options).toEqual([])
-    expect(() => petAnswer(action, "left")).toThrow("unavailable")
+    expect(vibemonPrompt(action)?.options).toEqual([])
+    expect(() => vibemonAnswer(action, "left")).toThrow("unavailable")
   }
 })
 test("permission bubbles expose once-only options and preserve their operation context", () => {
@@ -75,14 +75,14 @@ test("permission bubbles expose once-only options and preserve their operation c
       ]
     }
   }
-  const prompt = petPrompt(action, { command: "ls", cwd: "/project" })
+  const prompt = vibemonPrompt(action, { command: "ls", cwd: "/project" })
   expect(prompt?.command).toEqual({ text: "ls", cwd: "/project" })
   expect(prompt?.detail).toBe("Run in this project")
-  expect(petPrompt(action, { command: ["git", "status"] })?.command).toEqual({ text: "git status" })
-  expect(petPrompt(action, { path: "/project/file" })?.detail).toContain("/project/file")
-  expect(petPrompt(action)?.options.map((option) => option.id)).toEqual(["yes", "no"])
-  expect(petAnswer(action, "yes")).toEqual({ outcome: { outcome: "selected", optionId: "yes" } })
-  expect(() => petAnswer(action, "always")).toThrow("unavailable")
+  expect(vibemonPrompt(action, { command: ["git", "status"] })?.command).toEqual({ text: "git status" })
+  expect(vibemonPrompt(action, { path: "/project/file" })?.detail).toContain("/project/file")
+  expect(vibemonPrompt(action)?.options.map((option) => option.id)).toEqual(["yes", "no"])
+  expect(vibemonAnswer(action, "yes")).toEqual({ outcome: { outcome: "selected", optionId: "yes" } })
+  expect(() => vibemonAnswer(action, "always")).toThrow("unavailable")
 })
 test("URL questions open their complete UI rather than fabricating a response", () => {
   const action: PendingAction = {
@@ -97,6 +97,6 @@ test("URL questions open their complete UI rather than fabricating a response", 
       url: "https://example.test/auth"
     }
   }
-  expect(petPrompt(action)?.options).toEqual([])
-  expect(() => petAnswer(action, "accept")).toThrow("unavailable")
+  expect(vibemonPrompt(action)?.options).toEqual([])
+  expect(() => vibemonAnswer(action, "accept")).toThrow("unavailable")
 })

@@ -17,13 +17,9 @@ import { join, resolve } from "node:path"
 
 import { stageChromeBridge } from "@alwith/module-browser/stage"
 import { stageChatAdapter } from "@alwith/module-chat/stage"
-import { stageNative as stageNativeAuth } from "@alwith/native-auth/stage"
 import { stageNative as stageNativeComputer } from "@alwith/native-computer/stage"
 import { stageNative as stageNativeDevice } from "@alwith/native-device/stage"
-import { stageNative as stageNativeDrive } from "@alwith/native-drive/stage"
-import { stageNative as stageNativeEditor } from "@alwith/native-editor/stage"
 import { stageNative as stageNativeExtension } from "@alwith/native-extension/stage"
-import { stageNative as stageNativeFs } from "@alwith/native-fs/stage"
 import { stageNative as stageNativeGamepad } from "@alwith/native-gamepad/stage"
 import { stageNative as stageNativeInstalledApps } from "@alwith/native-installed-apps/stage"
 import { stageNative as stageNativeMobile } from "@alwith/native-mobile/stage"
@@ -33,6 +29,7 @@ import { $ } from "bun"
 
 import manifest from "../package.json"
 import { stageComputer } from "./lib/computer-artifact"
+import { stageDriveNative, stageModuleNative } from "./lib/drive-artifact"
 import { runtimeBuildArtifact, runtimeSource, stageTarget } from "./lib/runtime-artifact"
 import { assertVersion, BUN_PACKAGES, CODEX_WINDOWS_HELPERS, codexSidecars, toolchainVersions } from "./lib/toolchain"
 import { stageWorkBuddy } from "./lib/workbuddy-artifact"
@@ -121,18 +118,18 @@ for (const entry of readdirSync(licenses)) {
     rmSync(join(licenses, entry), { recursive: true, force: true })
 }
 const nativeLibraries = [
-  stageNativeEditor,
   stageNativeMobile,
-  stageNativeAuth,
   stageNativeInstalledApps,
   stageNativeVoice,
-  stageNativeFs,
   stageNativeGamepad,
   stageNativeComputer,
-  stageNativeDrive,
   stageNativeExtension,
   stageNativeDevice
 ].map((stage) => stage(triple, join(root, "src-tauri/resources/native"), licenses))
+nativeLibraries.push(stageDriveNative(root, triple, join(root, "src-tauri/resources/native"), licenses))
+nativeLibraries.push(stageModuleNative("auth", 2, root, triple, join(root, "src-tauri/resources/native"), licenses))
+for (const module of ["editor", "fs"] as const)
+  nativeLibraries.push(stageModuleNative(module, 1, root, triple, join(root, "src-tauri/resources/native"), licenses))
 // @alwith/native-device 0.5.4 stages its iOS helper without the execute bit npm dropped; restore it until the next
 // native release carries the fix.
 const stagedDeviceHelper = join(root, "src-tauri/resources/native/alwith-device-helper")

@@ -1,4 +1,4 @@
-import { PetLounge } from "@alwith/module-auth/pets/react"
+import { VibemonLounge } from "@alwith/module-auth/vibemon/react"
 import { DesktopCanvasContext as CanvasContext } from "@alwith/module-desktop-shell/react"
 import { ChatRoundDotsIcon as MessageSquareIcon } from "@solar-icons/react/bold-duotone/chat-round-dots"
 import { GamepadIcon as Gamepad2Icon } from "@solar-icons/react/bold-duotone/gamepad"
@@ -13,9 +13,9 @@ import { useTranslation } from "react-i18next"
 
 import { commands } from "@/bindings"
 import { usePlatformAuth } from "@/features/auth/store"
-import { reportPetError } from "@/features/vibemon/display-error"
+import { reportVibemonError } from "@/features/vibemon/display-error"
 import { initializeVibemonMain } from "@/features/vibemon/main-host"
-import { requestPet } from "@/features/vibemon/transport"
+import { requestVibemon } from "@/features/vibemon/transport"
 import { useLoungeDrop } from "@/features/vibemon/use-lounge-drop"
 import { openChatWindow } from "@/lib/chat-window"
 
@@ -66,7 +66,7 @@ export function TrailingBoard({ onOpenVibemon }: { onOpenVibemon: () => void }) 
         const next = await refresh()
         if (!disposed) setWindows(next)
       } catch (error) {
-        if (!disposed) reportPetError(error)
+        if (!disposed) reportVibemonError(error)
       } finally {
         checking = false
       }
@@ -82,7 +82,7 @@ export function TrailingBoard({ onOpenVibemon }: { onOpenVibemon: () => void }) 
     return () => {
       disposed = true
       clearInterval(timer)
-      for (const stop of stops) void stop.then((unlisten) => unlisten()).catch(reportPetError)
+      for (const stop of stops) void stop.then((unlisten) => unlisten()).catch(reportVibemonError)
     }
   }, [active, refresh])
   useEffect(() => {
@@ -92,12 +92,12 @@ export function TrailingBoard({ onOpenVibemon }: { onOpenVibemon: () => void }) 
         .then(() => {
           if (!disposed) setReady(true)
         })
-        .catch(reportPetError)
+        .catch(reportVibemonError)
     return () => {
       disposed = true
     }
   }, [user])
-  const send = async (petId: string, center?: { x: number; y: number }) => {
+  const send = async (vibemonId: string, center?: { x: number; y: number }) => {
     const origin = center ? await getCurrentWebviewWindow().innerPosition() : null
     const dropCenter =
       center && origin
@@ -106,8 +106,8 @@ export function TrailingBoard({ onOpenVibemon }: { onOpenVibemon: () => void }) 
             y: Math.round(origin.y + center.y * devicePixelRatio)
           }
         : undefined
-    const result = await requestPet<"shown" | "unavailable">("open-from-lounge", { petId, dropCenter })
-    if (result !== "shown") throw new Error(t("common:petMode.failed"))
+    const result = await requestVibemon<"shown" | "unavailable">("open-from-lounge", { vibemonId, dropCenter })
+    if (result !== "shown") throw new Error(t("common:vibemonMode.failed"))
   }
   return (
     <div
@@ -122,7 +122,7 @@ export function TrailingBoard({ onOpenVibemon }: { onOpenVibemon: () => void }) 
           ) : (
             <GlobeIcon className="size-12" />
           )
-          const onOpen = () => void commands.openAppById({ bundleId: app.bundle_id }).catch(reportPetError)
+          const onOpen = () => void commands.openAppById({ bundleId: app.bundle_id }).catch(reportVibemonError)
           return /chrome/i.test(`${app.bundle_id} ${app.name}`) ? (
             <BrowserBridgeCard key={app.bundle_id} title={app.name} icon={icon} onOpen={onOpen} active={active} />
           ) : (
@@ -146,15 +146,15 @@ export function TrailingBoard({ onOpenVibemon }: { onOpenVibemon: () => void }) 
                     await item.window.show()
                     await item.window.setFocus()
                   }
-                })().catch(reportPetError)
+                })().catch(reportVibemonError)
               }}
-              onClose={() => void item.window.close().then(refresh).then(setWindows).catch(reportPetError)}
+              onClose={() => void item.window.close().then(refresh).then(setWindows).catch(reportVibemonError)}
             />
           )
         })}
       </div>
       {ready && user !== null && (
-        <PetLounge
+        <VibemonLounge
           key={user.user_uuid}
           active={active}
           onOpenCenter={onOpenVibemon}

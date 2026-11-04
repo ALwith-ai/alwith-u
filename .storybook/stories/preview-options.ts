@@ -46,8 +46,8 @@ export const productPreviewArgTypes = {
       "floating",
       "guide",
       "gamepad",
-      "petWindow",
-      "petBubble"
+      "vibemonWindow",
+      "vibemonBubble"
     ]
   },
   chatCase: { control: "select", options: [...chatCases] },
@@ -127,7 +127,7 @@ export const productPreviewArgTypes = {
     ]
   },
   computerCase: { control: "select", options: ["enabled", "disabled", "permissions", "unavailable"] },
-  petCase: {
+  vibemonCase: {
     control: "select",
     options: [
       "home",

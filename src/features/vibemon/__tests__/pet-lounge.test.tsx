@@ -1,5 +1,5 @@
-import { configureVibemon, initializeSettings, type VibemonHost } from "@alwith/module-auth/pets/core"
-import { PetLounge } from "@alwith/module-auth/pets/react"
+import { configureVibemon, initializeSettings, type VibemonHost } from "@alwith/module-auth/vibemon/core"
+import { VibemonLounge } from "@alwith/module-auth/vibemon/react"
 import { cleanup, fireEvent, render } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 
@@ -15,8 +15,8 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-async function setup(pet: string, owned = true) {
-  const getMyVibemons = vi.fn(() => Promise.resolve(owned ? [{ vibemon_uuid: pet }] : []))
+async function setup(vibemon: string, owned = true) {
+  const getMyVibemons = vi.fn(() => Promise.resolve(owned ? [{ vibemon_uuid: vibemon }] : []))
   const ensureResource = vi.fn()
   const sound = vi.fn(async () => {})
   const host = {
@@ -25,14 +25,17 @@ async function setup(pet: string, owned = true) {
     storage: {
       get: (key: string) =>
         Promise.resolve(
-          key === "vibemon.accounts" ? { "test/user": { pet, enabled: false, position: null } } : undefined
+          key === "vibemon.accounts" ? { "test/user": { vibemon, enabled: false, position: null } } : undefined
         )
     },
     subscribeStorage: () => () => {},
     assets: {
       getMyVibemons,
       ensureResource,
-      resources: { cached: () => Promise.resolve({ name: "pet", sheet: null }), preview: () => Promise.resolve(null) }
+      resources: {
+        cached: () => Promise.resolve({ name: "vibemon", sheet: null }),
+        preview: () => Promise.resolve(null)
+      }
     },
     onError: vi.fn()
   } as unknown as VibemonHost
@@ -42,13 +45,13 @@ async function setup(pet: string, owned = true) {
   const open = vi.fn()
   const view = render(
     <div>
-      <PetLounge active nest={{ size: 100, bottom: 24, inlineEnd: 71 }} onOpenCenter={open} onSend={send} />
+      <VibemonLounge active nest={{ size: 100, bottom: 24, inlineEnd: 71 }} onOpenCenter={open} onSend={send} />
     </div>
   )
   return { ...view, send, open, getMyVibemons, ensureResource, sound }
 }
 
-test("the empty nest opens the pet center without requesting inventory or downloading", async () => {
+test("the empty nest opens the vibemon center without requesting inventory or downloading", async () => {
   const view = await setup("")
   fireEvent.click(view.getByRole("button", { name: "Vibémon" }))
   expect(view.open).toHaveBeenCalledOnce()
@@ -56,8 +59,8 @@ test("the empty nest opens the pet center without requesting inventory or downlo
   expect(view.ensureResource).not.toHaveBeenCalled()
 })
 
-test("clicking a cached lounge pet does not open the desktop or the pet center", async () => {
-  const view = await setup("pet")
+test("clicking a cached lounge vibemon does not open the desktop or the vibemon center", async () => {
+  const view = await setup("vibemon")
   const button = await view.findByRole("button", { name: "Vibémon" })
   button.setPointerCapture = vi.fn()
   button.releasePointerCapture = vi.fn()
@@ -73,14 +76,14 @@ test("clicking a cached lounge pet does not open the desktop or the pet center",
 })
 
 test("an unowned selection cannot be sent to the desktop", async () => {
-  const view = await setup("pet", false)
+  const view = await setup("vibemon", false)
   expect(await view.findByRole("alert")).toHaveTextContent("does not own")
   expect(view.queryByRole("button", { name: "Vibémon" })).toBeNull()
   expect(view.ensureResource).not.toHaveBeenCalled()
 })
 
-test("dragging out grows the pet, plays the burst sound once and hands off at the release center", async () => {
-  const view = await setup("pet")
+test("dragging out grows the vibemon, plays the burst sound once and hands off at the release center", async () => {
+  const view = await setup("vibemon")
   const button = await view.findByRole("button", { name: "Vibémon" })
   button.setPointerCapture = vi.fn()
   button.releasePointerCapture = vi.fn()
@@ -91,15 +94,15 @@ test("dragging out grows the pet, plays the burst sound once and hands off at th
   vi.spyOn(parent, "getBoundingClientRect").mockReturnValue(new DOMRect(450, 0, 300, 700))
   fireEvent.pointerDown(button, { button: 0, pointerId: 1, clientX: 550, clientY: 550 })
   fireEvent.pointerMove(button, { pointerId: 1, clientX: 300, clientY: 550 })
-  expect(view.getByTestId("pet-lounge-drop")).toBeInTheDocument()
+  expect(view.getByTestId("vibemon-lounge-drop")).toBeInTheDocument()
   fireEvent.pointerUp(button, { pointerId: 1, clientX: 300, clientY: 550 })
-  expect(view.send).toHaveBeenCalledExactlyOnceWith("pet", { x: 300, y: 550 })
+  expect(view.send).toHaveBeenCalledExactlyOnceWith("vibemon", { x: 300, y: 550 })
   expect(view.sound).toHaveBeenCalledExactlyOnceWith("sound")
-  expect(view.getByTestId("pet-lounge-burst")).toBeInTheDocument()
+  expect(view.getByTestId("vibemon-lounge-burst")).toBeInTheDocument()
 })
 
-test("releasing a short drag returns to the nest without opening a desktop pet or playing a sound", async () => {
-  const view = await setup("pet")
+test("releasing a short drag returns to the nest without opening a desktop vibemon or playing a sound", async () => {
+  const view = await setup("vibemon")
   const button = await view.findByRole("button", { name: "Vibémon" })
   button.setPointerCapture = vi.fn()
   button.releasePointerCapture = vi.fn()
@@ -111,5 +114,5 @@ test("releasing a short drag returns to the nest without opening a desktop pet o
   expect(view.send).not.toHaveBeenCalled()
   expect(view.sound).not.toHaveBeenCalled()
   expect(button).toHaveStyle({ opacity: "0" })
-  expect(view.getByTestId("pet-lounge-drop")).toBeInTheDocument()
+  expect(view.getByTestId("vibemon-lounge-drop")).toBeInTheDocument()
 })

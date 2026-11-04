@@ -1,11 +1,11 @@
-import { getVibemonState, refreshSettings } from "@alwith/module-auth/pets/core"
+import { getVibemonState, refreshSettings } from "@alwith/module-auth/vibemon/core"
 
 import { commands } from "@/bindings"
 import { reportBackgroundError } from "@/lib/background-errors"
 import i18n from "@/lib/i18n"
 
-/** Only a login launch overrides the previous enabled state of an equipped pet. */
-export async function restorePetOnStartup(
+/** Only a login launch overrides the previous enabled state of an equipped vibemon. */
+export async function restoreVibemonOnStartup(
   present: () => Promise<unknown>,
   account: () => string | null
 ): Promise<boolean> {
@@ -13,13 +13,13 @@ export async function restorePetOnStartup(
   if (expected === null) return false
   await refreshSettings()
   const state = await getVibemonState()
-  if (!state.pet || (!state.enabled && !(await commands.autostartLaunch())) || account() !== expected) return false
+  if (!state.vibemon || (!state.enabled && !(await commands.autostartLaunch())) || account() !== expected) return false
   await present()
   return account() === expected
 }
 
 /** Report a failed automatic restoration once; stale account work must never notify or retry. */
-export async function runPetRestoration(
+export async function runVibemonRestoration(
   work: () => Promise<unknown>,
   account: () => string | null,
   retry: () => void
@@ -30,7 +30,7 @@ export async function runPetRestoration(
     await work()
   } catch (error) {
     if (account() !== expected) return
-    reportBackgroundError("pet-startup", error, {
+    reportBackgroundError("vibemon-startup", error, {
       message: i18n.t("pet.restoreFailed"),
       action: {
         label: i18n.t("pet.retry"),

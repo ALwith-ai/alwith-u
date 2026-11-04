@@ -13,8 +13,12 @@ import { DRAFT_SESSION_ID, DraftChat } from "@/features/chat/draft-chat"
 import { chooseFolder } from "@/features/chat/draft-project-picker"
 import { newChatDirectory } from "@/features/chat/new-chat-directory"
 import { ChatProjectMenu } from "@/features/chat/project-session-popover"
-import { ChatWindowPetButton } from "@/features/vibemon/chat-window-pet-button"
-import { registerPetSurface, restorePetAfterChat, suspendPetForChat } from "@/features/vibemon/window-client"
+import { ChatWindowVibemonButton } from "@/features/vibemon/chat-window-pet-button"
+import {
+  registerVibemonSurface,
+  restoreVibemonAfterChat,
+  suspendVibemonForChat
+} from "@/features/vibemon/window-client"
 import { useVoiceHandoff } from "@/features/voice/use-voice-handoff"
 import {
   announceChatReady,
@@ -85,8 +89,8 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
     // Native hiding keeps the draft mounted so pending replacements still bind
     // their new session and carry the input forward while the window is hidden.
     if (usePlatformAuth.getState().user !== null) {
-      await registerPetSurface("chat", current.current.selectedId, false)
-      if (restore) await restorePetAfterChat()
+      await registerVibemonSurface("chat", current.current.selectedId, false)
+      if (restore) await restoreVibemonAfterChat()
     }
   }, [])
   const returnToMain = useCallback(() => {
@@ -201,8 +205,8 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
               await presentChatWindow()
               await publishChatWindowSurface(current.current.selectedId, true)
               if (usePlatformAuth.getState().user !== null) {
-                await registerPetSurface("chat", current.current.selectedId, true)
-                await suspendPetForChat()
+                await registerVibemonSurface("chat", current.current.selectedId, true)
+                await suspendVibemonForChat()
               }
               return null
             }
@@ -259,7 +263,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
       if (disposed || revision !== surfaceRevision.current || current.current.selectedId !== selectedId) return
       await publishChatWindowSurface(current.current.selectedId, visible)
       if (usePlatformAuth.getState().user !== null)
-        await registerPetSurface("chat", current.current.selectedId, visible)
+        await registerVibemonSurface("chat", current.current.selectedId, visible)
     }
     void refresh().catch(report)
     const stop = Promise.all([
@@ -310,7 +314,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
       <WindowResizeEdges />
       <header className="flex h-11 shrink-0 items-center gap-1 border-b border-border px-3" data-tauri-drag-region>
         <div ref={setHeaderTarget} className="flex min-w-0 flex-1 items-center gap-1" data-tauri-drag-region />
-        <ChatWindowPetButton sessionId={selectedId} />
+        <ChatWindowVibemonButton sessionId={selectedId} />
       </header>
       {ready &&
         (connection === "disconnected" || connection === "failed" || (selectedId !== null && session === null)) && (

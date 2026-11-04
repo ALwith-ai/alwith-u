@@ -26,7 +26,7 @@ const config: StorybookConfig = {
   staticDirs: [
     "../public",
     { from: "./assets", to: "/storybook-fixtures" },
-    { from: "../node_modules/@alwith/module-auth/assets/pets", to: "/storybook-pets" }
+    { from: "../node_modules/@alwith/module-auth/assets/vibemon", to: "/storybook-pets" }
   ],
   addons: ["@storybook/addon-docs", "@storybook/addon-a11y", "@storybook/addon-themes", "@storybook/addon-vitest"],
   framework: {

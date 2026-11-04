@@ -1,4 +1,4 @@
-import { configureVibemon, createSpriteConfig, VibemonEngine, type VibemonHost } from "@alwith/module-auth/pets/core"
+import { configureVibemon, createSpriteConfig, VibemonEngine, type VibemonHost } from "@alwith/module-auth/vibemon/core"
 import { afterEach, expect, test, vi } from "vitest"
 
 let engine: VibemonEngine | undefined
@@ -11,7 +11,7 @@ afterEach(() => {
 function fixture() {
   vi.useFakeTimers()
   const frames: string[] = []
-  const config = createSpriteConfig("pet", "sheet.png", {
+  const config = createSpriteConfig("vibemon", "sheet.png", {
     frameWidth: 64,
     frameHeight: 64,
     states: ["empty", "working", "done", "wait", "error", "hover", "drag"].map((id, row) => ({ id, row, frames: 7 }))
@@ -87,8 +87,8 @@ test("drag interrupts celebration and resumes the latest task state without repl
       geometry: () => Promise.resolve(() => {}),
       moved: () => Promise.resolve(() => {}),
       commands: () => () => {},
-      openPet: () => Promise.resolve("shown"),
-      closePet: async () => {},
+      openVibemon: () => Promise.resolve("shown"),
+      closeVibemon: async () => {},
       openRecharge: async () => {}
     },
     onError: (error: unknown) => {
@@ -110,7 +110,7 @@ test("drag interrupts celebration and resumes the latest task state without repl
   expect(frames.filter((state) => state === "done")).toHaveLength(1)
 })
 
-test("hidden pets do not celebrate or resume a historical completion when presented again", () => {
+test("hidden vibemon do not celebrate or resume a historical completion when presented again", () => {
   const { engine, frames } = fixture()
   engine.setSessionState("tasks", "running", false)
   engine.suspend()

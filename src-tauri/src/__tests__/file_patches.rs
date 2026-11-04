@@ -1,4 +1,4 @@
-use alwith_fs::patch::{FilePatch, apply_patches};
+use alwith_fs::{FilePatch, apply_patches};
 use std::fs;
 use std::path::Path;
 use std::process::Command;

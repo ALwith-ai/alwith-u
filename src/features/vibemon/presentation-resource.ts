@@ -1,6 +1,6 @@
-import type { CachedPetResource, PetAssets } from "@alwith/module-auth/pets"
+import type { CachedVibemonResource, VibemonAssets } from "@alwith/module-auth/vibemon"
 
-export function petResourceIdentity(resource: CachedPetResource): string {
+export function vibemonResourceIdentity(resource: CachedVibemonResource): string {
   return JSON.stringify([
     resource.directory,
     resource.format,
@@ -12,7 +12,7 @@ export function petResourceIdentity(resource: CachedPetResource): string {
 }
 
 /** Validate local bytes before presenting; only a cache miss blocks on the network. */
-export async function preparePetResource(assets: PetAssets, petId: string) {
-  const cached = await assets.resources.cached(petId)
-  return { resource: cached ?? (await assets.ensureResource(petId)), needsRefresh: cached !== null }
+export async function prepareVibemonResource(assets: VibemonAssets, vibemonId: string) {
+  const cached = await assets.resources.cached(vibemonId)
+  return { resource: cached ?? (await assets.ensureResource(vibemonId)), needsRefresh: cached !== null }
 }

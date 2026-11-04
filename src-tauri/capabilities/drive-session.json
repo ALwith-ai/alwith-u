@@ -1,0 +1,11 @@
+{
+  "identifier": "drive-session",
+  "description": "Drive session credentials and collaborative editing in the main workspace",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "alwith-drive:allow-session-request",
+    "alwith-drive:allow-collaborative-write"
+  ]
+}

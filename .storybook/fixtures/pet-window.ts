@@ -1,22 +1,22 @@
-import { vibemonHost } from "@alwith/module-auth/pets/core"
-import type { PetWindowHost } from "@alwith/module-auth/pets/core"
+import { vibemonHost } from "@alwith/module-auth/vibemon/core"
+import type { VibemonWindowHost } from "@alwith/module-auth/vibemon/core"
 
-import type { PetCollapseResult } from "../../src/features/vibemon/collapse"
-export async function registerPetSurface() {}
-export async function restorePetAfterChat() {}
-export async function suspendPetForChat() {}
-export async function collapseChatToPet(): Promise<PetCollapseResult> {
+import type { VibemonCollapseResult } from "../../src/features/vibemon/collapse"
+export async function registerVibemonSurface() {}
+export async function restoreVibemonAfterChat() {}
+export async function suspendVibemonForChat() {}
+export async function collapseChatToVibemon(): Promise<VibemonCollapseResult> {
   const owned = await vibemonHost().assets.getMyVibemons()
   return { type: "setup", view: owned.length > 0 ? "equip" : "pull" }
 }
-export function petWindowCall<T>(): Promise<T> {
+export function vibemonWindowCall<T>(): Promise<T> {
   return Promise.resolve(undefined as T)
 }
-export function createPetWindowClient(): PetWindowHost {
+export function createVibemonWindowClient(): VibemonWindowHost {
   return {
-    call: petWindowCall,
-    openPet: () => Promise.resolve("unavailable"),
-    closePet: async () => {},
+    call: vibemonWindowCall,
+    openVibemon: () => Promise.resolve("unavailable"),
+    closeVibemon: async () => {},
     openRecharge: async () => {},
     geometry: () => Promise.resolve(() => {}),
     moved: () => Promise.resolve(() => {}),

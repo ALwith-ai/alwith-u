@@ -16,7 +16,7 @@ for (const base of ["/", "./"]) {
       await writeFile(join(root, "vibemon.html"), html)
       await writeFile(
         join(root, "main.js"),
-        'import { PetCenter, PetWindow } from "@alwith/module-auth/pets/react"; import "@alwith/module-auth/pets/styles.css"; window.components = { PetCenter, PetWindow };'
+        'import { VibemonCenter, VibemonWindow } from "@alwith/module-auth/vibemon/react"; import "@alwith/module-auth/vibemon/styles.css"; window.components = { VibemonCenter, VibemonWindow };'
       )
       const result = await build({
         root,

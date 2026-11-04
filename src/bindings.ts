@@ -117,7 +117,7 @@ export const commands = {
    *  Every explicit main-window open cancels the pending login-launch exit.
    */
   showMainWindow: (): Promise<null> => __t3Invoke<null>("show_main_window"),
-  trayPetReady: (): Promise<null> => __t3Invoke<null>("tray_pet_ready"),
+  trayVibemonReady: (): Promise<null> => __t3Invoke<null>("tray_pet_ready"),
   extensionInboxScan: (): Promise<Scan_Serialize> => __t3Invoke<Scan_Serialize>("extension_inbox_scan"),
   extensionInboxScanExtension: (args: { extensionId: string }): Promise<Scan_Serialize> =>
     __t3Invoke<Scan_Serialize>("extension_inbox_scan_extension", args),
@@ -182,23 +182,10 @@ export const commands = {
   chatWritePastedFile: (args: { name: string; data: number[] }): Promise<string> =>
     __t3Invoke<string>("chat_write_pasted_file", args),
   /**
-   *  Opening a project in the main window establishes its scoped filesystem session.
-   */
-  workspaceOpen: (args: { path: string }): Promise<string> => __t3Invoke<string>("workspace_open", args),
-  workspaceListFiles: (args: { path: string }): Promise<Value> => __t3Invoke<Value>("workspace_list_files", args),
-  /**
    *  Import only the explicitly confirmed source paths; never grant their parents to the webview.
    */
   workspaceImport: (args: { root: string; destination: string; paths: string[] }): Promise<null> =>
     __t3Invoke<null>("workspace_import", args),
-  workspaceFile: (args: { request: Value }): Promise<Value> => __t3Invoke<Value>("workspace_file", args),
-  /**
-   *  Apply only the patches explicitly selected in a conversation, coordinated with Drive writes.
-   */
-  workspaceApplyPatches: (args: { root: string; patches: Value; reverse: boolean }): Promise<Value> =>
-    __t3Invoke<Value>("workspace_apply_patches", args),
-  workspaceWatch: (args: { path: string; enabled: boolean }): Promise<null> =>
-    __t3Invoke<null>("workspace_watch", args),
   workspaceDirty: (args: { dirty: boolean }): Promise<null> => __t3Invoke<null>("workspace_dirty", args),
   workspaceExit: (): Promise<null> => __t3Invoke<null>("workspace_exit"),
   htmlPreviewOpen: (args: { root: string; path: string; source: string }): Promise<PreviewLocation> =>
@@ -413,7 +400,7 @@ export type CommandErrors = {
   autostartLaunch: never
   autostartComplete: string
   showMainWindow: string
-  trayPetReady: string
+  trayVibemonReady: string
   extensionInboxScan: string
   extensionInboxScanExtension: string
   extensionInboxFinish: string
@@ -442,12 +429,7 @@ export type CommandErrors = {
   chatReadDroppedFile: string
   chatClipboardFilePaths: string
   chatWritePastedFile: string
-  workspaceOpen: string
-  workspaceListFiles: string
   workspaceImport: string
-  workspaceFile: string
-  workspaceApplyPatches: string
-  workspaceWatch: string
   workspaceDirty: string
   workspaceExit: string
   htmlPreviewOpen: string

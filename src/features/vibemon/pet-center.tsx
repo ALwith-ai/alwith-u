@@ -1,5 +1,5 @@
-import { resourceSyncStatus, subscribeResourceSync, syncVibemonResources } from "@alwith/module-auth/pets/core"
-import { PetCenter } from "@alwith/module-auth/pets/react"
+import { resourceSyncStatus, subscribeResourceSync, syncVibemonResources } from "@alwith/module-auth/vibemon/core"
+import { VibemonCenter as SharedVibemonCenter } from "@alwith/module-auth/vibemon/react"
 import { useSyncExternalStore } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -24,7 +24,7 @@ export function VibemonCenter() {
         </Alert>
       )}
       <div className="vibemon-content relative min-h-0 w-full min-w-0 flex-1 overflow-hidden">
-        <PetCenter key={user?.user_uuid} />
+        <SharedVibemonCenter key={user?.user_uuid} />
       </div>
     </main>
   )

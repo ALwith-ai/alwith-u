@@ -39,7 +39,7 @@ export const Equip: Story = {
 }
 export const Draw: Story = {
   name: "卡池 → 单次抽取 → 结果",
-  args: { petCase: "pull" },
+  args: { vibemonCase: "pull" },
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(await canvas.findByRole("button", { name: "Pull once" }))
     await waitFor(() => expect(document.querySelector("video")).not.toBeNull())
@@ -49,7 +49,7 @@ export const Draw: Story = {
 }
 export const DrawMulti: Story = {
   name: "卡池 → 多次抽取 → 结果",
-  args: { petCase: "pull" },
+  args: { vibemonCase: "pull" },
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(await canvas.findByRole("button", { name: "Pull ten times" }))
     await waitFor(() => expect(document.querySelector("video")).not.toBeNull())

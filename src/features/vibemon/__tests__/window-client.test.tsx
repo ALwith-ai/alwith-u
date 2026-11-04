@@ -5,7 +5,7 @@ import { afterEach, expect, test, vi } from "vitest"
 
 import i18n, { initI18n } from "@/lib/i18n"
 
-import { createPetWindowClient, petWindowCall } from "../window-client"
+import { createVibemonWindowClient, vibemonWindowCall } from "../window-client"
 
 const native = vi.hoisted(() => ({ onMoved: vi.fn() }))
 vi.mock("@tauri-apps/api/webviewWindow", () => ({
@@ -27,7 +27,7 @@ test("native window moves reach the shared drag controller without pointer event
     })
   })
   const listener = vi.fn()
-  const unsubscribe = await createPetWindowClient().moved(listener)
+  const unsubscribe = await createVibemonWindowClient().moved(listener)
   expect(listener).toHaveBeenCalledWith(position)
   unsubscribe()
   expect(stop).toHaveBeenCalledTimes(1)
@@ -41,9 +41,9 @@ test("native context menus use the dedicated return-to-lounge label in the curre
     return null
   })
   await initI18n("zh-CN")
-  await petWindowCall("menu")
+  await vibemonWindowCall("menu")
   await i18n.changeLanguage("en")
-  await petWindowCall("menu")
+  await vibemonWindowCall("menu")
   expect(requests).toEqual([
     { action: "menu", payload: { closeLabel: "叫回休息室" } },
     { action: "menu", payload: { closeLabel: "Return to lounge" } }

@@ -1,4 +1,4 @@
-/** Disable browser image dragging without intercepting the pet's native window drag gestures. */
+/** Disable browser image dragging without intercepting the vibemon's native window drag gestures. */
 export function preventVibemonImageDragging(): () => void {
   document.documentElement.setAttribute("data-vibemon-window", "")
   const preventDrag = (event: DragEvent) => {

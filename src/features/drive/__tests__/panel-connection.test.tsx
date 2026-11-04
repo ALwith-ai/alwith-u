@@ -1,4 +1,4 @@
-import { createDriveController, type DriveResponse, type Snapshot } from "@alwith/module-drive"
+import { CONTRACT_VERSION, createDriveController, type DriveResponse, type Snapshot } from "@alwith/module-drive"
 import { DrivePanel } from "@alwith/module-drive/react"
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, expect, test } from "vitest"
@@ -10,7 +10,7 @@ afterEach(cleanup)
 test("settings connection failure can retry through progress into the login form", async () => {
   const ready = Promise.withResolvers<DriveResponse>()
   const snapshot: Snapshot = {
-    version: 1,
+    version: CONTRACT_VERSION,
     generation: 1,
     sequence: 0,
     configured: false,

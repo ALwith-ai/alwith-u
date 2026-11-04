@@ -1,18 +1,12 @@
-use alwith_fs::FileSystem;
-use alwith_fs::workspace::{Request, execute};
-use alwith_fs::workspace::{WorkspaceWatcher, watch};
-use serde_json::Value;
-use std::collections::{HashMap, HashSet};
+//! U's coordination of the shared filesystem plugin: every workspace mutation runs inside a Drive
+//! transaction, cross-project moves go through Drive, and conversation patches wait for unsaved
+//! editor buffers. Opening, reading, watching and patching are the plugin's commands.
+use alwith_drive::Drive;
+use alwith_fs::{Change, ChangeKind, FileSystem, NativeError, Operation, Workspace};
 use std::path::{Path, PathBuf};
-use std::sync::{Mutex, OnceLock};
 use tauri::{Emitter, Manager};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
 
-pub(crate) static OPERATIONS: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
-static ROOTS: OnceLock<Mutex<HashSet<PathBuf>>> = OnceLock::new();
-fn roots() -> &'static Mutex<HashSet<PathBuf>> {
-    ROOTS.get_or_init(|| Mutex::new(HashSet::new()))
-}
 fn main_window(window: &tauri::WebviewWindow) -> Result<(), String> {
     if window.label() != "main" {
         return Err("Workspace access is limited to the main window".into());
@@ -20,141 +14,58 @@ fn main_window(window: &tauri::WebviewWindow) -> Result<(), String> {
     Ok(())
 }
 
-fn workspace_root(path: &Path) -> Result<PathBuf, String> {
-    let root = path.canonicalize().map_err(|error| error.to_string())?;
-    if !root.is_dir() {
-        return Err("Workspace must be a directory".into());
-    }
-    Ok(root)
+/// The canonical root, only if the main window opened it through the filesystem plugin.
+pub(crate) fn authorize_preview_root(app: &tauri::AppHandle, path: &Path) -> Result<PathBuf, String> {
+    app.state::<Workspace>().root(path).map_err(|error| error.message)
 }
 
-pub(crate) fn authorize_preview_root(path: &Path) -> Result<PathBuf, String> {
-    let root = workspace_root(path)?;
-    if !roots().lock().map_err(|error| error.to_string())?.contains(&root) {
-        return Err("Workspace root has not been authorized".into());
-    }
-    Ok(root)
-}
+const UNSAVED: &str = "Save or close unsaved editor files before changing conversation patches";
 
-/// Opening a project in the main window establishes its scoped filesystem session.
-#[tauri3_specta::command]
-pub async fn workspace_open(window: tauri::WebviewWindow, path: PathBuf) -> Result<String, String> {
-    main_window(&window)?;
-    let root = workspace_root(&path)?;
-    let name = root.to_str().ok_or("Workspace path is not UTF-8")?.to_owned();
-    roots().lock().map_err(|error| error.to_string())?.insert(root);
-    Ok(name)
-}
-
-#[tauri3_specta::command]
-pub async fn workspace_list_files(window: tauri::WebviewWindow, path: PathBuf) -> Result<Value, String> {
-    main_window(&window)?;
-    let (root, fs) = tokio::task::spawn_blocking(move || {
-        let root = workspace_root(&path)?;
-        let fs = FileSystem::new([root.clone()])?;
-        roots().lock().map_err(|error| error.to_string())?.insert(root.clone());
-        Ok::<_, String>((root, fs))
-    })
-    .await
-    .map_err(|error| error.to_string())??;
-    let paths = fs.list_files(root.clone(), 100_000).await?;
-    Ok(serde_json::json!({"root": root.to_string_lossy().replace('\\', "/"), "paths": paths}))
-}
-
-#[tauri3_specta::command]
-pub async fn workspace_file(window: tauri::WebviewWindow, request: Value) -> Result<Value, String> {
-    main_window(&window)?;
-    let collaboration_owner = request.get("collaborationOwnerId").and_then(Value::as_str).map(str::to_owned);
-    let mut request: Request = serde_json::from_value(request).map_err(|error| error.to_string())?;
-    let root = request.root.canonicalize().map_err(|error| error.to_string())?;
-    if !roots().lock().map_err(|error| error.to_string())?.contains(&root) {
-        return Err("Workspace root has not been authorized".into());
-    }
-    request.root = root.clone();
-    let fs = FileSystem::new([root])?;
-    execute_workspace_request(
-        &fs,
-        request,
-        collaboration_owner,
-        window.app_handle().state::<crate::drive::DriveState>().service()?,
-    )
-    .await
-}
-
-async fn execute_workspace_request(
-    fs: &FileSystem, request: Request, collaboration_owner: Option<String>, drive: &alwith_drive::service::DriveService,
-) -> Result<Value, String> {
-    // Preview reads must not queue behind mutations waiting for a whole Drive sync round.
-    // The filesystem still enforces the authorized root; writes keep their existing coordination.
-    if matches!(request.operation.as_str(), "stat" | "readFile" | "readDirectory") {
-        return execute(fs, request).await;
-    }
-    let _operation = OPERATIONS.lock().await;
-    let mut writes = Vec::new();
-    let mut removed = Vec::new();
-    match request.operation.as_str() {
-        "writeFile" | "createDirectory" | "remove" => writes.push(fs.authorize_path(&request.path)?),
-        "move" | "copy" => {
-            writes.push(fs.authorize_path(request.to.as_ref().ok_or("Destination is required")?)?);
-            if request.operation == "move" {
-                writes.push(fs.authorize_path(&request.path)?);
+/// Wraps each plugin mutation in U's Drive coordination.
+pub struct Coordinator;
+impl alwith_fs::Coordinator for Coordinator {
+    fn coordinate(&self, app: &tauri::AppHandle, change: Change, operation: Operation) -> Operation {
+        let app = app.clone();
+        Box::pin(async move {
+            let drive = app.state::<Drive>();
+            let service = drive.service()?;
+            match &change.kind {
+                ChangeKind::Move { .. } => {
+                    // The plugin authorized [destination, source] as the move's writes.
+                    let [to, from] = change.writes.as_slice() else {
+                        return Err(NativeError::new("invalidParams", "A move names its source and destination"));
+                    };
+                    if service.move_between_projects(from, to).await? {
+                        return Ok(());
+                    }
+                }
+                ChangeKind::WriteFile => {
+                    if let (Some(owner), [path]) = (&change.collaboration_owner, change.writes.as_slice()) {
+                        return service.with_collaborative_filesystem(path, owner, operation).await;
+                    }
+                }
+                ChangeKind::Patches { .. } => {
+                    if is_dirty() {
+                        return Err(NativeError::new("dirty", UNSAVED));
+                    }
+                    let guarded = async move {
+                        // Buffers may have changed while Drive held synchronization.
+                        if is_dirty() {
+                            return Err(NativeError::new("dirty", UNSAVED));
+                        }
+                        operation.await
+                    };
+                    return service.with_filesystem(&change.writes, &change.removed, guarded).await;
+                }
+                _ => {}
             }
-        }
-        _ => {}
+            service.with_filesystem(&change.writes, &change.removed, operation).await
+        })
     }
-    if matches!(request.operation.as_str(), "remove" | "move") {
-        removed.push(request.path.clone());
-    }
-    if request.operation == "move"
-        && drive
-            .move_between_projects(
-                &fs.authorize_path(&request.path)?,
-                &fs.authorize_path(request.to.as_ref().ok_or("Destination is required")?)?,
-            )
-            .await?
-    {
-        return Ok(Value::Null);
-    }
-    if request.operation == "writeFile"
-        && let Some(owner) = collaboration_owner
-    {
-        let path = fs.authorize_path(&request.path)?;
-        return drive.with_collaborative_filesystem(&path, &owner, execute(fs, request)).await;
-    }
-    drive.with_filesystem(&writes, &removed, execute(fs, request)).await
 }
 
-static WATCHERS: OnceLock<Mutex<HashMap<PathBuf, WorkspaceWatcher>>> = OnceLock::new();
-#[tauri3_specta::command]
-pub async fn workspace_watch(window: tauri::WebviewWindow, path: PathBuf, enabled: bool) -> Result<(), String> {
-    main_window(&window)?;
-    let root = path.canonicalize().map_err(|error| error.to_string())?;
-    if !roots().lock().map_err(|error| error.to_string())?.contains(&root) {
-        return Err("Workspace root has not been authorized".into());
-    }
-    let mut watchers = WATCHERS.get_or_init(|| Mutex::new(HashMap::new())).lock().map_err(|error| error.to_string())?;
-    if !enabled {
-        watchers.remove(&root);
-        return Ok(());
-    }
-    if watchers.contains_key(&root) {
-        return Ok(());
-    }
-    let fs = FileSystem::new([root.clone()])?;
-    let event_root = root.to_string_lossy().replace('\\', "/");
-    let watcher = watch(fs, root.clone(), move |result| {
-        let payload = match result {
-            Ok(paths) => {
-                serde_json::json!({ "root": event_root, "paths": paths.iter().map(|path| path.to_string_lossy().replace('\\', "/")).collect::<Vec<_>>(), "error": null })
-            }
-            Err(error) => serde_json::json!({ "root": event_root, "paths": [], "error": error }),
-        };
-        if let Err(error) = window.emit("workspace:change", payload) {
-            log::error!("Workspace notification failed: {error}");
-        }
-    })?;
-    watchers.insert(root, watcher);
-    Ok(())
+fn is_dirty() -> bool {
+    DIRTY.load(std::sync::atomic::Ordering::Acquire)
 }
 
 static DIRTY: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
@@ -192,10 +103,7 @@ pub async fn workspace_import(
     window: tauri::WebviewWindow, root: PathBuf, destination: PathBuf, paths: Vec<PathBuf>,
 ) -> Result<(), String> {
     main_window(&window)?;
-    let root = root.canonicalize().map_err(|error| error.to_string())?;
-    if !roots().lock().map_err(|error| error.to_string())?.contains(&root) {
-        return Err("Workspace root has not been authorized".into());
-    }
+    let root = authorize_preview_root(window.app_handle(), &root)?;
     let destination = destination.canonicalize().map_err(|error| error.to_string())?;
     if !destination.starts_with(&root) || !destination.is_dir() {
         return Err("Import destination must be a directory inside the workspace".into());
@@ -228,7 +136,10 @@ pub async fn workspace_import(
     if !receiver.await.map_err(|error| error.to_string())? {
         return Ok(());
     }
-    let _operation = OPERATIONS.lock().await;
+    let workspace = window.app_handle().state::<Workspace>();
+    let _operation = workspace.lock().await;
+    let drive = window.app_handle().state::<Drive>();
+    let drive = drive.service().map_err(|error| error.message)?;
     for source in sources {
         let parent = source.parent().ok_or("Import source has no parent")?;
         let name = source.file_name().ok_or("Import source has no name")?.to_str().ok_or("Import name is not UTF-8")?;
@@ -248,183 +159,14 @@ pub async fn workspace_import(
             target = destination.join(format!("{stem}{suffix}{extension}"));
             counter += 1;
         }
-        let fs = FileSystem::new([root.clone(), parent.to_path_buf()])?;
-        let request = Request {
-            root: root.clone(),
-            operation: "copy".into(),
-            path: source.clone(),
-            to: Some(target),
-            data: None,
-            mode: None,
-            expected_version: None,
-            show_hidden: None,
-            show_ignored: None,
-        };
-        let writes = [fs.authorize_path(request.to.as_ref().ok_or("Import destination missing")?)?];
-        window
-            .app_handle()
-            .state::<crate::drive::DriveState>()
-            .service()?
-            .with_filesystem(&writes, &[], execute(&fs, request))
+        let fs = FileSystem::new([root.clone(), parent.to_path_buf()]).map_err(|error| error.message)?;
+        let writes = [fs.authorize_path(&target).map_err(|error| error.message)?];
+        drive
+            .with_filesystem(&writes, &[], fs.workspace_copy(&root, &source, &target))
             .await
             .map_err(|error| format!("Import stopped at {}: {error}", source.display()))?;
     }
     Ok(())
-}
-
-#[cfg(test)]
-mod workspace_tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn preview_reads_do_not_wait_for_drive_or_queued_mutations() {
-        use alwith_drive::service::{DriveService, ServiceOptions};
-        use std::sync::Arc;
-        use std::time::Duration;
-        use tokio::time::timeout;
-
-        let directory = tempfile::tempdir().unwrap();
-        let root = directory.path().canonicalize().unwrap();
-        let path = root.join("note.txt");
-        std::fs::write(&path, "preview").unwrap();
-        let fs = FileSystem::new([root.clone()]).unwrap();
-        let drive = DriveService::new(ServiceOptions {
-            data_directory: root.join("data"),
-            ownership_directory: root.join("owners"),
-            default_root: root.join("drive"),
-            reserved_roots: vec![],
-            device_name: "test".into(),
-            client_version: "test".into(),
-            open_url: Arc::new(|_| Err("No browser in tests".into())),
-        })
-        .unwrap();
-        let request = |operation: &str, path: &Path| {
-            serde_json::from_value::<Request>(serde_json::json!({
-                "root": root, "operation": operation, "path": path,
-                "showHidden": false, "showIgnored": false
-            }))
-            .unwrap()
-        };
-        // Hold the Drive coordinator as a slow sync round would, then queue a host mutation.
-        let mut sync = Box::pin(drive.with_filesystem(&[], &[], std::future::pending::<Result<(), String>>()));
-        assert!(timeout(Duration::from_millis(10), &mut sync).await.is_err());
-        let mutation_guard = OPERATIONS.lock().await;
-        for (operation, target) in [("stat", &path), ("readFile", &path), ("readDirectory", &root)] {
-            let value = timeout(
-                Duration::from_millis(100),
-                execute_workspace_request(&fs, request(operation, target), None, &drive),
-            )
-            .await
-            .expect("Preview reads must not wait for synchronization")
-            .unwrap();
-            match operation {
-                "stat" => assert_eq!(value["kind"], "file"),
-                "readFile" => assert_eq!(value, serde_json::json!(b"preview")),
-                "readDirectory" => assert!(value.as_array().unwrap().iter().any(|entry| entry["name"] == "note.txt")),
-                _ => unreachable!(),
-            }
-        }
-        assert!(execute_workspace_request(&fs, request("stat", root.parent().unwrap()), None, &drive).await.is_err());
-        let destination = root.join("created");
-        let mut mutation =
-            Box::pin(execute_workspace_request(&fs, request("createDirectory", &destination), None, &drive));
-        assert!(timeout(Duration::from_millis(10), &mut mutation).await.is_err());
-        drop(mutation_guard);
-        assert!(timeout(Duration::from_millis(10), &mut mutation).await.is_err());
-        assert!(!destination.exists());
-        drop(sync);
-        timeout(Duration::from_millis(100), mutation).await.unwrap().unwrap();
-        assert!(destination.is_dir());
-    }
-
-    #[test]
-    fn opening_a_workspace_requires_an_existing_directory() {
-        let directory = tempfile::tempdir().unwrap();
-        assert_eq!(workspace_root(directory.path()).unwrap(), directory.path().canonicalize().unwrap());
-        assert!(workspace_root(&directory.path().join("missing")).is_err());
-        let file = directory.path().join("file.txt");
-        std::fs::write(&file, "content").unwrap();
-        assert!(workspace_root(&file).unwrap_err().contains("must be a directory"));
-    }
-
-    #[test]
-    fn an_open_workspace_does_not_allow_parent_or_sibling_access() {
-        let directory = tempfile::tempdir().unwrap();
-        let project = directory.path().join("project");
-        let sibling = directory.path().join("project-other");
-        std::fs::create_dir(&project).unwrap();
-        std::fs::create_dir(&sibling).unwrap();
-        let root = workspace_root(&project).unwrap();
-        let fs = FileSystem::new([root.clone()]).unwrap();
-        assert!(fs.authorize_path(&root).is_ok());
-        assert!(fs.authorize_path(&directory.path().canonicalize().unwrap()).is_err());
-        assert!(fs.authorize_path(&sibling.canonicalize().unwrap()).is_err());
-    }
-}
-
-/// Apply only the patches explicitly selected in a conversation, coordinated with Drive writes.
-#[tauri3_specta::command]
-pub async fn workspace_apply_patches(
-    window: tauri::WebviewWindow, root: PathBuf, patches: Value, reverse: bool,
-) -> Result<Value, String> {
-    if !matches!(window.label(), "main" | "chat") {
-        return Err("Patch access is limited to conversation windows".into());
-    }
-    if DIRTY.load(std::sync::atomic::Ordering::Acquire) {
-        return Err("Save or close unsaved editor files before changing conversation patches".into());
-    }
-    let root = workspace_root(&root)?;
-    let patches: Vec<alwith_fs::patch::FilePatch> = serde_json::from_value(patches).map_err(|e| e.to_string())?;
-    let mut writes = Vec::new();
-    let mut removed = Vec::new();
-    for patch in &patches {
-        for path in patch.old_path.iter().chain(patch.new_path.iter()) {
-            writes.push(alwith_fs::patch::validate_path(&root, path)?);
-        }
-        if let Some(path) = (if reverse { &patch.new_path } else { &patch.old_path })
-            .as_ref()
-            .filter(|_| patch.old_path != patch.new_path)
-        {
-            removed.push(alwith_fs::patch::validate_path(&root, path)?);
-        }
-    }
-    let _operation = OPERATIONS.lock().await;
-    let drive_state = window.app_handle().state::<crate::drive::DriveState>();
-    let drive = drive_state.service()?;
-    let operation_root = root.clone();
-    let performed = std::sync::Arc::new(Mutex::new(None));
-    let observed = performed.clone();
-    let coordinated = drive
-        .with_filesystem(&writes, &removed, async move {
-            if DIRTY.load(std::sync::atomic::Ordering::Acquire) {
-                return Err("Save or close unsaved editor files before changing conversation patches".into());
-            }
-            let result = tokio::task::spawn_blocking(move || {
-                alwith_fs::patch::apply_patches(&operation_root, &patches, reverse)
-            })
-            .await
-            .map_err(|e| e.to_string())??;
-            *observed.lock().map_err(|e| e.to_string())? = Some(result.clone());
-            Ok(result)
-        })
-        .await;
-    // A Drive bookkeeping error after the write cannot erase completed patch receipts.
-    let result = match coordinated {
-        Ok(result) => result,
-        Err(error) => {
-            let Some(mut result) = performed.lock().map_err(|e| e.to_string())?.take() else {
-                return Err(error);
-            };
-            result.warning = Some(error);
-            result
-        }
-    };
-    let payload = serde_json::json!({ "root": root.to_string_lossy().replace('\\', "/"),
-        "paths": writes.iter().map(|p| p.to_string_lossy().replace('\\', "/")).collect::<Vec<_>>(), "error": null });
-    if let Err(error) = window.app_handle().emit("workspace:change", payload) {
-        log::error!("Patch applied but workspace notification failed: {error}");
-    }
-    serde_json::to_value(result).map_err(|e| e.to_string())
 }
 
 #[cfg(test)]

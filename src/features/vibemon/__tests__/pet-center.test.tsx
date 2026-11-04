@@ -1,14 +1,14 @@
-import { observeResourceSync, syncVibemonResources } from "@alwith/module-auth/pets/core"
+import { observeResourceSync, syncVibemonResources } from "@alwith/module-auth/vibemon/core"
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 
 import { VibemonCenter } from "../pet-center"
 
-vi.mock("@alwith/module-auth/pets/core", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@alwith/module-auth/pets/core")>()),
+vi.mock("@alwith/module-auth/vibemon/core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@alwith/module-auth/vibemon/core")>()),
   syncVibemonResources: vi.fn(async () => {})
 }))
-vi.mock("@alwith/module-auth/pets/react", () => ({ PetCenter: () => <div>Pets</div> }))
+vi.mock("@alwith/module-auth/vibemon/react", () => ({ VibemonCenter: () => <div>Vibemon</div> }))
 vi.mock("@/features/auth/store", () => ({ usePlatformAuth: () => ({ user_uuid: "account" }) }))
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
 afterEach(() => {
@@ -17,7 +17,7 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
-test("a background sync failure stays in the pet center with a retry action", async () => {
+test("a background sync failure stays in the vibemon center with a retry action", async () => {
   observeResourceSync("error")
   render(<VibemonCenter />)
   expect(screen.getByRole("alert")).toHaveTextContent("pet.syncFailed")

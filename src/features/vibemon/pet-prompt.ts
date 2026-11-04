@@ -1,5 +1,5 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
-import type { PetPrompt } from "@alwith/module-auth/pets/core"
+import type { VibemonPrompt } from "@alwith/module-auth/vibemon/core"
 import {
   elicitationFields,
   elicitationLabels,
@@ -11,7 +11,7 @@ import { isFormElicitation, isToolCallSubject } from "@alwith/module-chat/client
 import type { PendingAction } from "@/agent/client"
 
 /** Mirrors Desktop's quick-answer boundary; complex forms retain their full context. */
-export function petPrompt(action: PendingAction | undefined, rawInput?: unknown): PetPrompt | null {
+export function vibemonPrompt(action: PendingAction | undefined, rawInput?: unknown): VibemonPrompt | null {
   if (action === undefined) return null
   if (action.kind === "permission") {
     const subject = action.params.subject
@@ -69,12 +69,12 @@ export function petPrompt(action: PendingAction | undefined, rawInput?: unknown)
   }
 }
 
-export function petAnswer(
+export function vibemonAnswer(
   action: PendingAction,
   optionId: string
 ): acp.RequestPermissionResponse | acp.CreateElicitationResponse {
-  if (!petPrompt(action)?.options.some((option) => option.id === optionId))
-    throw new Error("This question or permission choice is unavailable in the pet bubble")
+  if (!vibemonPrompt(action)?.options.some((option) => option.id === optionId))
+    throw new Error("This question or permission choice is unavailable in the vibemon bubble")
   if (action.kind === "permission") return { outcome: { outcome: "selected", optionId } }
   if (!isFormElicitation(action.params)) throw new Error("Open this question in the full conversation")
   const [field] = elicitationFields(action.params.requestedSchema)

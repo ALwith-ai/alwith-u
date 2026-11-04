@@ -9,7 +9,7 @@ const meta = {
   component: ProductPreview,
   argTypes: productPreviewArgTypes,
   loaders: [preparePreview],
-  args: { page: "petBubble", width: 360, height: 320 },
+  args: { page: "vibemonBubble", width: 360, height: 320 },
   parameters: { layout: "fullscreen", productPage: true, a11y: { test: "todo" } }
 } satisfies Meta<typeof ProductPreview>
 export default meta

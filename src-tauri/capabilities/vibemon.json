@@ -15,7 +15,7 @@
     "log:default",
     "os:default",
     "alwith-module-store:default",
-    "alwith-auth-client:default",
+    "alwith-auth:default",
     {
       "identifier": "http:default",
       "allow": [

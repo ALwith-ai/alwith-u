@@ -1,39 +1,39 @@
 import {
   accountKey,
-  createPetAssets,
+  createVibemonAssets,
   type MyVibemonItem,
-  type PetAccount,
+  type VibemonAccount,
   type VibemonCatalogItem
-} from "@alwith/module-auth/pets"
+} from "@alwith/module-auth/vibemon"
 import {
   configureVibemon,
   initializeSettings,
   observeResourceSync,
   requestVibemonView
-} from "@alwith/module-auth/pets/core"
+} from "@alwith/module-auth/vibemon/core"
 
-import spriteConfig from "../../node_modules/@alwith/module-auth/assets/pets/vibemon/dino-sena-m/config.json"
-import { type BubbleCase, petSessions, petWindows, resetPetSession } from "./pet-session"
+import spriteConfig from "../../node_modules/@alwith/module-auth/assets/vibemon/vibemon/dino-sena-m/config.json"
+import { type BubbleCase, resetVibemonSession, vibemonSessions, vibemonWindows } from "./pet-session"
 
-const account: PetAccount = { apiHost: "api.example.test", userId: "storybook-user", revision: 1 }
+const account: VibemonAccount = { apiHost: "api.example.test", userId: "storybook-user", revision: 1 }
 const listeners = new Set<() => void>()
 let stop = () => {}
 let stopSettings = () => {}
 let storageValues: Record<string, unknown> = {}
 const image = new URL(
-  "../../node_modules/@alwith/module-auth/assets/pets/card-draw/placeholder-card.png",
+  "../../node_modules/@alwith/module-auth/assets/vibemon/card-draw/placeholder-card.png",
   import.meta.url
 ).href
 const equipBackground = new URL(
-  "../../node_modules/@alwith/module-auth/assets/pets/vibemon/equip/page-bg.webp",
+  "../../node_modules/@alwith/module-auth/assets/vibemon/vibemon/equip/page-bg.webp",
   import.meta.url
 ).href
 const pullBackground = new URL(
-  "../../node_modules/@alwith/module-auth/assets/pets/card-draw/pull-page-background.png",
+  "../../node_modules/@alwith/module-auth/assets/vibemon/card-draw/pull-page-background.png",
   import.meta.url
 ).href
 const spriteUrl = new URL(
-  "../../node_modules/@alwith/module-auth/assets/pets/vibemon/dino-sena-m/sprite-sheet.png",
+  "../../node_modules/@alwith/module-auth/assets/vibemon/vibemon/dino-sena-m/sprite-sheet.png",
   import.meta.url
 ).href
 const storage = {
@@ -44,7 +44,7 @@ const storage = {
     return Promise.resolve()
   }
 }
-export type PetCase =
+export type VibemonCase =
   | "home"
   | "pull"
   | "album"
@@ -56,14 +56,18 @@ export type PetCase =
   | "drawError"
   | "insufficient"
   | "desktop"
-export async function resetPets(kind: PetCase = "home", bubbleCase?: BubbleCase): Promise<void> {
+export async function resetVibemon(kind: VibemonCase = "home", bubbleCase?: BubbleCase): Promise<void> {
   stopSettings()
   stop()
-  resetPetSession(bubbleCase)
+  resetVibemonSession(bubbleCase)
   const scope = accountKey(account)
   storageValues = {
     "vibemon.accounts": {
-      [scope]: { pet: kind === "desktop" ? "pet-0" : "", enabled: kind === "desktop", position: { x: 300, y: 300 } }
+      [scope]: {
+        vibemon: kind === "desktop" ? "vibemon-0" : "",
+        enabled: kind === "desktop",
+        position: { x: 300, y: 300 }
+      }
     },
     "vibemon.introSeen": { [scope]: kind !== "firstVisit" },
     "vibemon.onboardingStep": {},
@@ -73,9 +77,9 @@ export async function resetPets(kind: PetCase = "home", bubbleCase?: BubbleCase)
     kind === "empty"
       ? []
       : ["小森", "阿洛", "墨墨"].map((name, index) => ({
-          vibemon_uuid: `pet-${index}`,
+          vibemon_uuid: `vibemon-${index}`,
           name,
-          description: "用于展示的模拟宠物资料。",
+          description: "用于展示的模拟Vibémon资料。",
           rarity_code: index === 0 ? "SSR" : "SR",
           rarity_name: index === 0 ? "传说" : "稀有",
           rarity_color: "#aa8844",
@@ -99,12 +103,12 @@ export async function resetPets(kind: PetCase = "home", bubbleCase?: BubbleCase)
     frameHeight: spriteConfig.frameSize,
     states: spriteConfig.states
   }
-  const catalog: VibemonCatalogItem[] = owned.map((pet) => ({
-    ...pet,
-    uuid: pet.vibemon_uuid,
+  const catalog: VibemonCatalogItem[] = owned.map((vibemon) => ({
+    ...vibemon,
+    uuid: vibemon.vibemon_uuid,
     rarity_uuid: "demo-rarity",
     category_uuid: "demo-category",
-    resource_url: "/storybook-pets/vibemon/dino-sena-m",
+    resource_url: "/storybook-vibemon/vibemon/dino-sena-m",
     resource_version: 1,
     sheet_url: spriteUrl,
     layout: JSON.stringify(layout),
@@ -112,7 +116,7 @@ export async function resetPets(kind: PetCase = "home", bubbleCase?: BubbleCase)
     gacha_url: image,
     multi_draw_url: image
   }))
-  const assets = createPetAssets({
+  const assets = createVibemonAssets({
     account: () => account,
     storage,
     request: <T>(path: string, _method: string, data?: unknown): Promise<T> => {
@@ -159,7 +163,7 @@ export async function resetPets(kind: PetCase = "home", bubbleCase?: BubbleCase)
           items: [
             {
               uuid: "demo-item",
-              vibemon_uuid: "pet-0",
+              vibemon_uuid: "vibemon-0",
               reward_type: "VIBEMON",
               status: 1,
               rarity_code: "SSR",
@@ -197,7 +201,7 @@ export async function resetPets(kind: PetCase = "home", bubbleCase?: BubbleCase)
             duplicate_value: 0,
             is_pity_hit: false,
             exchange_points: null,
-            vibemon_uuid: "pet-0",
+            vibemon_uuid: "vibemon-0",
             vibemon_name: "小森",
             cover_url: image,
             gacha_url: image,
@@ -220,7 +224,7 @@ export async function resetPets(kind: PetCase = "home", bubbleCase?: BubbleCase)
             total_draw_count: count
           }
         }
-      } else return Promise.reject(new Error(`Unimplemented Storybook pet endpoint: ${path}`))
+      } else return Promise.reject(new Error(`Unimplemented Storybook vibemon endpoint: ${path}`))
       return Promise.resolve(value as T)
     },
     resources: {
@@ -231,7 +235,7 @@ export async function resetPets(kind: PetCase = "home", bubbleCase?: BubbleCase)
       remove: async () => {}
     },
     download: () => {
-      return Promise.reject(new Error("No remote pet resource in Storybook"))
+      return Promise.reject(new Error("No remote vibemon resource in Storybook"))
     }
   })
   const localResource = async () => ({
@@ -252,8 +256,8 @@ export async function resetPets(kind: PetCase = "home", bubbleCase?: BubbleCase)
       listeners.add(listener)
       return () => listeners.delete(listener)
     },
-    sessions: petSessions,
-    windows: petWindows,
+    sessions: vibemonSessions,
+    windows: vibemonWindows,
     onError: (error) => console.error(error)
   })
   stopSettings = await initializeSettings()

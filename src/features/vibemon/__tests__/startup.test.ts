@@ -1,12 +1,12 @@
-import { getVibemonState, refreshSettings } from "@alwith/module-auth/pets/core"
+import { getVibemonState, refreshSettings } from "@alwith/module-auth/vibemon/core"
 import { beforeEach, expect, test, vi } from "vitest"
 
 import { commands } from "@/bindings"
 import { reportBackgroundError } from "@/lib/background-errors"
 
-import { restorePetOnStartup, runPetRestoration } from "../startup"
+import { restoreVibemonOnStartup, runVibemonRestoration } from "../startup"
 
-vi.mock("@alwith/module-auth/pets/core", () => ({ getVibemonState: vi.fn(), refreshSettings: vi.fn() }))
+vi.mock("@alwith/module-auth/vibemon/core", () => ({ getVibemonState: vi.fn(), refreshSettings: vi.fn() }))
 vi.mock("@/bindings", () => ({ commands: { autostartLaunch: vi.fn() } }))
 vi.mock("@/lib/background-errors", () => ({ reportBackgroundError: vi.fn() }))
 vi.mock("@/lib/i18n", () => ({ default: { t: (key: string) => key } }))
@@ -16,33 +16,33 @@ test.each([
   [true, false, true],
   [false, true, true],
   [false, false, false]
-])("restores an equipped pet with enabled=%s and login launch=%s", async (enabled, autostart, expected) => {
-  vi.mocked(getVibemonState).mockResolvedValue({ pet: "pet", enabled, position: null })
+])("restores an equipped vibemon with enabled=%s and login launch=%s", async (enabled, autostart, expected) => {
+  vi.mocked(getVibemonState).mockResolvedValue({ vibemon: "vibemon", enabled, position: null })
   vi.mocked(commands.autostartLaunch).mockResolvedValue(autostart)
   const present = vi.fn()
-  expect(await restorePetOnStartup(present, () => "account")).toBe(expected)
+  expect(await restoreVibemonOnStartup(present, () => "account")).toBe(expected)
   expect(present).toHaveBeenCalledTimes(expected ? 1 : 0)
 })
 
-test("logged out or unequipped startup never opens a pet or a setup dialog", async () => {
+test("logged out or unequipped startup never opens a vibemon or a setup dialog", async () => {
   const present = vi.fn()
-  expect(await restorePetOnStartup(present, () => null)).toBe(false)
+  expect(await restoreVibemonOnStartup(present, () => null)).toBe(false)
   expect(refreshSettings).not.toHaveBeenCalled()
-  vi.mocked(getVibemonState).mockResolvedValue({ pet: "", enabled: true, position: null })
-  expect(await restorePetOnStartup(present, () => "account")).toBe(false)
+  vi.mocked(getVibemonState).mockResolvedValue({ vibemon: "", enabled: true, position: null })
+  expect(await restoreVibemonOnStartup(present, () => "account")).toBe(false)
   expect(commands.autostartLaunch).not.toHaveBeenCalled()
   expect(present).not.toHaveBeenCalled()
 })
 
 test("an account change during the launch query cancels restoration", async () => {
   let account = "first"
-  vi.mocked(getVibemonState).mockResolvedValue({ pet: "pet", enabled: false, position: null })
+  vi.mocked(getVibemonState).mockResolvedValue({ vibemon: "vibemon", enabled: false, position: null })
   vi.mocked(commands.autostartLaunch).mockImplementation(() => {
     account = "second"
     return Promise.resolve(true)
   })
   const present = vi.fn()
-  await restorePetOnStartup(present, () => account)
+  await restoreVibemonOnStartup(present, () => account)
   expect(present).not.toHaveBeenCalled()
 })
 
@@ -50,7 +50,7 @@ test("automatic restoration reports one actionable notice and retries only for t
   let account = "first"
   const retry = vi.fn()
   const error = new Error("download failed")
-  await runPetRestoration(
+  await runVibemonRestoration(
     () => {
       return Promise.try(() => {
         throw error
@@ -59,7 +59,7 @@ test("automatic restoration reports one actionable notice and retries only for t
     () => account,
     retry
   )
-  expect(reportBackgroundError).toHaveBeenCalledExactlyOnceWith("pet-startup", error, {
+  expect(reportBackgroundError).toHaveBeenCalledExactlyOnceWith("vibemon-startup", error, {
     message: "pet.restoreFailed",
     action: { label: "pet.retry", onClick: expect.any(Function) as () => void }
   })
@@ -74,7 +74,7 @@ test("automatic restoration reports one actionable notice and retries only for t
 
 test("account cancellation and successful restoration do not notify", async () => {
   let account: string | null = "first"
-  await runPetRestoration(
+  await runVibemonRestoration(
     () => {
       return Promise.try(() => {
         account = null
@@ -84,7 +84,7 @@ test("account cancellation and successful restoration do not notify", async () =
     () => account,
     vi.fn()
   )
-  await runPetRestoration(
+  await runVibemonRestoration(
     async () => {},
     () => "second",
     vi.fn()

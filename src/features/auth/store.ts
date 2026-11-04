@@ -11,7 +11,6 @@ import {
 } from "@alwith/module-auth"
 import { createTauriAuthRefresh } from "@alwith/module-auth/tauri"
 import { createAuthTransport } from "@alwith/module-auth/transport"
-import { invoke } from "@tauri-apps/api/core"
 import { emit, emitTo, listen } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { fetch } from "@tauri-apps/plugin-http"
@@ -39,7 +38,7 @@ const storage = createTokenStorage({
 })
 const expiredListeners = new Set<() => void>()
 const stateListeners = new Set<(event: AuthStateEvent) => void>()
-const refreshTokens = createTauriAuthRefresh(invoke)
+const refreshTokens = createTauriAuthRefresh()
 const transport = createAuthTransport({
   baseUrl: API_BASE_URL,
   fetch,

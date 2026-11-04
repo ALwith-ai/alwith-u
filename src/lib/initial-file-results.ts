@@ -1,6 +1,6 @@
 import type { FuzzyFileSearchResult } from "@alwith/module-chat/client"
 import { filterFiles } from "@alwith/module-chat/completion-filter"
-import { invoke } from "@tauri-apps/api/core"
+import { commands as fsCommands } from "@alwith/module-fs/commands"
 
 interface ProjectFiles {
   root: string
@@ -11,7 +11,7 @@ let snapshot: { cwd: string; pending: Promise<ProjectFiles> } | undefined
 /** Match Desktop: reuse the current project's list until the project changes. */
 export async function initialFileResults(cwd: string, query = ""): Promise<FuzzyFileSearchResult[]> {
   if (snapshot?.cwd !== cwd) {
-    const pending = invoke<ProjectFiles>("workspace_list_files", { path: cwd })
+    const pending = fsCommands.workspaceListFiles({ path: cwd })
     snapshot = { cwd, pending }
     // Retain the in-flight request as well as its result, including an empty project.
     void pending.catch(() => {

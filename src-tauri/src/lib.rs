@@ -75,7 +75,16 @@ pub fn run() {
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_alwith_desktop_shell::init_native())
         .plugin(alwith_module_store::tauri::init())
-        .plugin(alwith_auth_client::tauri::init(native::development_directory()))
+        .plugin(alwith_auth::init(alwith_auth::Config {
+            development_directory: native::development_directory(),
+            vibemon: None,
+        }))
+        .plugin(drive::plugin())
+        .plugin(alwith_editor::init(alwith_editor::Config { development_directory: native::development_directory() }))
+        .plugin(alwith_fs::init(alwith_fs::Config {
+            coordinator: Some(std::sync::Arc::new(workspace::Coordinator)),
+            development_directory: native::development_directory(),
+        }))
         .manage(login_launch)
         .register_asynchronous_uri_scheme_protocol("preview-html", html_preview::handle_protocol)
         .runtime(tauri_runtime_wry::Wry::default())
@@ -202,7 +211,6 @@ pub fn run() {
             settings::initialize(app.handle())?;
             voice::initialize(app.handle())?;
             app.manage(providers::Providers::load(app.handle())?);
-            drive::initialize(app.handle())?;
             gamepad::initialize(app.handle())?;
             computer::initialize(app.handle())?;
             device::initialize(app.handle())?;
@@ -387,12 +395,7 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 chat_files::chat_read_dropped_file,
                 chat_files::chat_clipboard_file_paths,
                 chat_files::chat_write_pasted_file,
-                workspace::workspace_open,
-                workspace::workspace_list_files,
                 workspace::workspace_import,
-                workspace::workspace_file,
-                workspace::workspace_apply_patches,
-                workspace::workspace_watch,
                 workspace::workspace_dirty,
                 workspace::workspace_exit,
                 html_preview::html_preview_open,

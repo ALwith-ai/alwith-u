@@ -5,14 +5,16 @@ import {
 } from "@alwith/module-desktop-shell/react"
 import type { TextEditorProps } from "@alwith/module-editor"
 import { type FsAdapter, normalizePath, type WriteOptions } from "@alwith/module-fs"
-import type { NativeRequest } from "@alwith/module-fs/tauri"
 import { createMemoryAdapter } from "@alwith/module-fs/testing"
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { type ReactNode, StrictMode, useLayoutEffect, useState } from "react"
+import { toast } from "sonner"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
+import { projectContext } from "@/agent/__tests__/project-context"
 import { ChatHeader } from "@/features/chat/chat-header"
 import { openGuideWindow } from "@/features/guide/guide-window"
+import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
 
 import { useWorkspace, WorkspaceHeaderContext } from "../context"
@@ -47,7 +49,7 @@ vi.mock("@tauri-apps/api/window", () => ({
     }
   })
 }))
-vi.mock("@tauri-apps/api/event", () => ({ listen: native.listen, emit: vi.fn() }))
+vi.mock("@tauri-apps/api/event", () => ({ listen: native.listen, emit: vi.fn(), emitTo: vi.fn() }))
 vi.mock("@/features/chat/codex/markdown-renderer", () => ({
   CodexMarkdownRenderer: ({ text }: { text: string }) => <article>{text}</article>
 }))
@@ -60,6 +62,20 @@ vi.mock("../monaco-editor", () => ({
 function required<T>(value: T | undefined | null): T {
   if (value === undefined || value === null) throw new Error("Missing native request field")
   return value
+}
+/** Commands of the shared filesystem plugin, with their flat named arguments. */
+const FS = "plugin:alwith-fs|"
+type NativeArgs = {
+  cwd?: string
+  root?: string
+  path?: string
+  to?: string
+  enabled?: boolean
+  showHidden?: boolean
+  showIgnored?: boolean
+  data?: number[]
+  mode?: WriteOptions["mode"]
+  expectedVersion?: string | null
 }
 let adapter: FsAdapter
 let authorize: ((path: string) => Promise<string>) | null
@@ -77,40 +93,44 @@ beforeEach(async () => {
   native.close = null
   await initI18n("en")
   authorize = null
+  vi.spyOn(client, "refreshProjectContext").mockResolvedValue({ ...projectContext(), chatDirectory: "/a" })
   adapter = createMemoryAdapter({ "/a/one.txt": "first", "/b/two.txt": "second" })
-  native.invoke.mockImplementation(
-    async (command: string, args: { cwd?: string; path?: string; request?: NativeRequest }): Promise<unknown> => {
-      if (command === "draft_directory") return args.cwd
-      if (command === "workspace_open") return authorize === null ? args.path : authorize(required(args.path))
-      if (command === "workspace_watch" || command === "workspace_dirty" || command === "workspace_exit") return null
-      if (command !== "workspace_file" || !args.request) throw new Error(`Unexpected native command: ${command}`)
-      const r = args.request
-      switch (r.operation) {
-        case "stat":
-          return adapter.stat(r.path)
-        case "readDirectory":
-          return adapter.readDirectory(r.path, {
-            showHidden: required(r.showHidden),
-            showIgnored: required(r.showIgnored)
-          })
-        case "readFile":
-          return [...(await adapter.readFile(r.path))]
-        case "writeFile":
-          return adapter.writeFile(r.path, new Uint8Array(required(r.data)), {
-            mode: r.mode as WriteOptions["mode"],
-            expectedVersion: r.expectedVersion
-          })
-        case "move":
-          return adapter.move(r.path, required(r.to))
-        case "createDirectory":
-          return adapter.createDirectory(r.path)
-        case "remove":
-          return adapter.remove(r.path)
-        default:
-          throw new Error(`Unexpected operation: ${r.operation}`)
-      }
+  native.invoke.mockImplementation(async (command: string, args: NativeArgs): Promise<unknown> => {
+    if (command === "draft_directory") {
+      if (args.cwd == null) throw new Error("A project directory is required")
+      return args.cwd
     }
-  )
+    if (command === "workspace_dirty" || command === "workspace_exit") return null
+    const operation = command.startsWith(FS) ? command.slice(FS.length) : null
+    switch (operation) {
+      case "workspace_open":
+        return authorize === null ? args.path : authorize(required(args.path))
+      case "workspace_watch":
+        return null
+      case "workspace_stat":
+        return adapter.stat(required(args.path))
+      case "workspace_read_directory":
+        return adapter.readDirectory(required(args.path), {
+          showHidden: required(args.showHidden),
+          showIgnored: required(args.showIgnored)
+        })
+      case "workspace_read_file":
+        return [...(await adapter.readFile(required(args.path)))]
+      case "workspace_write_file":
+        return adapter.writeFile(required(args.path), new Uint8Array(required(args.data)), {
+          mode: required(args.mode),
+          expectedVersion: args.expectedVersion ?? undefined
+        })
+      case "workspace_move":
+        return adapter.move(required(args.path), required(args.to))
+      case "workspace_create_directory":
+        return adapter.createDirectory(required(args.path))
+      case "workspace_remove":
+        return adapter.remove(required(args.path))
+      default:
+        throw new Error(`Unexpected native command: ${command}`)
+    }
+  })
 })
 
 test("remount restores pinned files, active file and expanded folders without draft persistence", async () => {
@@ -164,7 +184,7 @@ function Surface({
   chatRevealRequest = 0,
   children
 }: {
-  cwd: string
+  cwd: string | null
   chatRevealRequest?: number
   children?: ReactNode
 }) {
@@ -182,6 +202,79 @@ function Surface({
     </WorkspaceHeaderContext.Provider>
   )
 }
+
+test("opening a projectless workspace uses the adapter's default chat directory", async () => {
+  const reportError = vi.spyOn(toast, "error")
+  render(<Surface cwd={null} />)
+  fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
+  expect(await screen.findByRole("treeitem", { name: "one.txt" })).toBeVisible()
+  expect(native.invoke).not.toHaveBeenCalledWith("draft_directory", { cwd: null })
+  expect(reportError).not.toHaveBeenCalled()
+})
+
+test("a project switch through a projectless state opens the target without errors", async () => {
+  const reportError = vi.spyOn(toast, "error")
+  const view = render(<Surface cwd="/a" />)
+  fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
+  await screen.findByRole("treeitem", { name: "one.txt" })
+  view.rerender(<Surface cwd={null} />)
+  await screen.findByRole("treeitem", { name: "one.txt" })
+  view.rerender(<Surface cwd="/b" />)
+  expect(await screen.findByRole("treeitem", { name: "two.txt" })).toBeVisible()
+  expect(screen.queryByRole("treeitem", { name: "one.txt" })).toBeNull()
+  expect(reportError).not.toHaveBeenCalled()
+})
+
+test("a superseded directory failure cannot interrupt the current project", async () => {
+  const reportError = vi.spyOn(toast, "error")
+  const pending = Promise.withResolvers<string>()
+  const view = render(<Surface cwd="/a" />)
+  fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
+  await screen.findByRole("treeitem", { name: "one.txt" })
+  authorize = (path) => (path === "/missing" ? pending.promise : Promise.resolve(path))
+  view.rerender(<Surface cwd="/missing" />)
+  await waitFor(() => expect(native.invoke).toHaveBeenCalledWith(`${FS}workspace_open`, { path: "/missing" }))
+  view.rerender(<Surface cwd="/b" />)
+  await screen.findByRole("treeitem", { name: "two.txt" })
+  await act(async () => {
+    pending.reject(new Error("Project directory is unavailable"))
+    await expect(pending.promise).rejects.toThrow("Project directory is unavailable")
+  })
+  expect(screen.getByRole("treeitem", { name: "two.txt" })).toBeVisible()
+  expect(reportError).not.toHaveBeenCalled()
+})
+
+test("a delayed default directory cannot replace a newly selected project", async () => {
+  const reportError = vi.spyOn(toast, "error")
+  const pending = Promise.withResolvers<Awaited<ReturnType<typeof client.refreshProjectContext>>>()
+  const view = render(<Surface cwd="/a" />)
+  fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
+  await screen.findByRole("treeitem", { name: "one.txt" })
+  vi.mocked(client.refreshProjectContext).mockReturnValueOnce(pending.promise)
+  view.rerender(<Surface cwd={null} />)
+  view.rerender(<Surface cwd="/b" />)
+  await screen.findByRole("treeitem", { name: "two.txt" })
+  await act(async () => {
+    pending.resolve({ ...projectContext(), chatDirectory: "/a" })
+    await pending.promise
+  })
+  expect(screen.getByRole("treeitem", { name: "two.txt" })).toBeVisible()
+  expect(screen.queryByRole("treeitem", { name: "one.txt" })).toBeNull()
+  expect(reportError).not.toHaveBeenCalled()
+})
+
+test("a current directory failure remains visible to the user", async () => {
+  const reportError = vi.spyOn(toast, "error")
+  const view = render(<Surface cwd="/a" />)
+  fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
+  await screen.findByRole("treeitem", { name: "one.txt" })
+  authorize = async () => {
+    throw new Error("Project directory is unavailable")
+  }
+  view.rerender(<Surface cwd="/missing" />)
+  await waitFor(() => expect(reportError).toHaveBeenCalledWith("Project directory is unavailable"))
+  expect(screen.queryByRole("treeitem", { name: "one.txt" })).toBeNull()
+})
 
 test.each(["tree", "tab"])("copies the %s file path without browser clipboard access", async (surface) => {
   clipboardText = ""
@@ -237,9 +330,10 @@ test.each([String.raw`\\?\C:\projects\alwith-u`, String.raw`\\?\UNC\server\share
     native.invoke.mockClear()
     fireEvent.click(within(breadcrumbs).getByRole("button", { name: "folder" }))
     await waitFor(() =>
-      expect(native.invoke).toHaveBeenCalledWith("workspace_file", {
-        request: expect.objectContaining({ operation: "readDirectory", root, path: normalizedRoot }) as unknown
-      })
+      expect(native.invoke).toHaveBeenCalledWith(
+        `${FS}workspace_read_directory`,
+        expect.objectContaining({ root, path: normalizedRoot })
+      )
     )
     await waitFor(() =>
       expect(screen.getByRole("treeitem", { name: /folder/ })).toHaveAttribute("aria-selected", "true")
@@ -281,7 +375,7 @@ test("an old authorization response cannot open another chat's workspace", async
     })
   const view = render(<Surface cwd="/a" />)
   fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
-  await waitFor(() => expect(native.invoke).toHaveBeenCalledWith("workspace_open", { path: "/a" }))
+  await waitFor(() => expect(native.invoke).toHaveBeenCalledWith(`${FS}workspace_open`, { path: "/a" }))
   view.rerender(<Surface cwd="/b" />)
   await act(() => {
     return Promise.try(() => {
@@ -446,7 +540,7 @@ test("reopening the preview reuses the authorized workspace", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Close workspace" }))
   fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
   await screen.findByRole("treeitem", { name: /one.txt/ })
-  expect(native.invoke.mock.calls.filter(([command]) => command === "workspace_open")).toHaveLength(1)
+  expect(native.invoke.mock.calls.filter(([command]) => command === `${FS}workspace_open`)).toHaveLength(1)
 })
 
 test("rapid preview clicks share one pending authorization", async () => {
@@ -460,7 +554,7 @@ test("rapid preview clicks share one pending authorization", async () => {
   fireEvent.click(open)
   fireEvent.click(open)
   await waitFor(() =>
-    expect(native.invoke.mock.calls.filter(([command]) => command === "workspace_open")).toHaveLength(1)
+    expect(native.invoke.mock.calls.filter(([command]) => command === `${FS}workspace_open`)).toHaveLength(1)
   )
   await act(() => {
     return Promise.try(() => {
@@ -468,7 +562,7 @@ test("rapid preview clicks share one pending authorization", async () => {
     })
   })
   await screen.findByRole("treeitem", { name: /one.txt/ })
-  expect(native.invoke.mock.calls.filter(([command]) => command === "workspace_open")).toHaveLength(1)
+  expect(native.invoke.mock.calls.filter(([command]) => command === `${FS}workspace_open`)).toHaveLength(1)
 })
 
 // A drag suppresses its trailing click, but must not swallow the next root click.
@@ -651,7 +745,7 @@ test("unmount releases a watch that finishes after workspace creation is cancell
   })
   const originalInvoke = required(native.invoke.getMockImplementation())
   native.invoke.mockImplementation(async (command: string, args: { enabled?: boolean }) => {
-    if (command === "workspace_watch" && args.enabled) {
+    if (command === `${FS}workspace_watch` && args.enabled) {
       await pendingWatch
       return null
     }
@@ -663,13 +757,15 @@ test("unmount releases a watch that finishes after workspace creation is cancell
     </StrictMode>
   )
   fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
-  await waitFor(() => expect(native.invoke).toHaveBeenCalledWith("workspace_watch", { path: "/a", enabled: true }))
+  await waitFor(() => expect(native.invoke).toHaveBeenCalledWith(`${FS}workspace_watch`, { root: "/a", enabled: true }))
   view.unmount()
   await act(async () => {
     required(completeWatch)()
     await pendingWatch
   })
-  await waitFor(() => expect(native.invoke).toHaveBeenCalledWith("workspace_watch", { path: "/a", enabled: false }))
+  await waitFor(() =>
+    expect(native.invoke).toHaveBeenCalledWith(`${FS}workspace_watch`, { root: "/a", enabled: false })
+  )
   expect(localStorage.getItem("workspace:/a")).toBeNull()
   expect(native.invoke.mock.calls.filter(([command]) => command === "workspace_dirty")).toHaveLength(0)
 
@@ -789,7 +885,7 @@ test("project tree shortcut ignores a response belonging to a previous project",
     })
   const view = render(<Surface cwd="/a" />)
   fireEvent.keyDown(window, { key: "E", ctrlKey: true, shiftKey: true })
-  await waitFor(() => expect(native.invoke).toHaveBeenCalledWith("workspace_open", { path: "/a" }))
+  await waitFor(() => expect(native.invoke).toHaveBeenCalledWith(`${FS}workspace_open`, { path: "/a" }))
   view.rerender(<Surface cwd="/b" />)
   await act(() => Promise.try(() => finish("/a")))
   expect(screen.queryByRole("tree")).toBeNull()

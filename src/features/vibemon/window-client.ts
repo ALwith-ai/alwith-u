@@ -1,9 +1,9 @@
 import {
-  type PetBinding,
-  type PetSessionChoice,
-  type PetWindowHost,
-  sessionIconSvg
-} from "@alwith/module-auth/pets/core"
+  sessionIconSvg,
+  type VibemonBinding,
+  type VibemonSessionChoice,
+  type VibemonWindowHost
+} from "@alwith/module-auth/vibemon/core"
 import { invoke } from "@tauri-apps/api/core"
 import { emitTo, listen } from "@tauri-apps/api/event"
 import { Image as TauriImage } from "@tauri-apps/api/image"
@@ -13,15 +13,15 @@ import { LogicalPosition } from "@tauri-apps/api/window"
 
 import i18n from "@/lib/i18n"
 
-import type { PetCollapseResult } from "./collapse"
+import type { VibemonCollapseResult } from "./collapse"
 import { sessionIcons } from "./session-icons"
 import { fitSessionMenuLabel } from "./session-menu-label"
-import { requestPet } from "./transport"
+import { requestVibemon } from "./transport"
 
 let sessionMenu: Menu | null = null
 async function chooseSession(payload: {
-  binding: PetBinding
-  candidates: PetSessionChoice[]
+  binding: VibemonBinding
+  candidates: VibemonSessionChoice[]
   position: { x: number; y: number }
   onSelect: (id: string) => Promise<void>
 }) {
@@ -67,13 +67,13 @@ async function chooseSession(payload: {
   } finally {
     await Promise.all(icons.map((icon) => icon.close()))
   }
-  await petWindowCall("focus")
+  await vibemonWindowCall("focus")
   await sessionMenu.popup(new LogicalPosition(payload.position.x, payload.position.y), window)
 }
 
-export function petWindowCall<T>(action: string, payload: Record<string, unknown> = {}): Promise<T> {
+export function vibemonWindowCall<T>(action: string, payload: Record<string, unknown> = {}): Promise<T> {
   if (action === "session-menu") return chooseSession(payload as Parameters<typeof chooseSession>[0]) as Promise<T>
-  if (action === "bubble-interact" || action === "dismiss-result") return requestPet(action, payload)
+  if (action === "bubble-interact" || action === "dismiss-result") return requestVibemon(action, payload)
   if (action === "menu") payload = { ...payload, closeLabel: i18n.t("pet.recall") }
   if (action === "drag")
     return (async () => {
@@ -86,12 +86,12 @@ export function petWindowCall<T>(action: string, payload: Record<string, unknown
     })()
   return invoke<T>("vibemon_window", { action, payload })
 }
-export function createPetWindowClient(): PetWindowHost {
+export function createVibemonWindowClient(): VibemonWindowHost {
   return {
-    call: petWindowCall,
-    openPet: (options = {}) => requestPet("open-pet", options),
-    closePet: () => requestPet("close-pet"),
-    openRecharge: () => requestPet("recharge"),
+    call: vibemonWindowCall,
+    openVibemon: (options = {}) => requestVibemon("open-vibemon", options),
+    closeVibemon: () => requestVibemon("close-vibemon"),
+    openRecharge: () => requestVibemon("recharge"),
     async geometry(listener) {
       const window = getCurrentWebviewWindow()
       const stops = await Promise.all([window.onScaleChanged(listener), window.onResized(listener)])
@@ -123,20 +123,23 @@ export function createPetWindowClient(): PetWindowHost {
     }
   }
 }
-export async function registerPetSurface(
+export async function registerVibemonSurface(
   label: "main" | "chat",
   sessionId: string | null,
   visible: boolean
 ): Promise<void> {
-  await requestPet("surface", { label, sessionId, visible })
+  await requestVibemon("surface", { label, sessionId, visible })
 }
-export async function collapseChatToPet(sessionId: string | null, signal?: AbortSignal): Promise<PetCollapseResult> {
-  return requestPet("collapse", { sessionId }, signal)
+export async function collapseChatToVibemon(
+  sessionId: string | null,
+  signal?: AbortSignal
+): Promise<VibemonCollapseResult> {
+  return requestVibemon("collapse", { sessionId }, signal)
 }
-export async function restorePetAfterChat(): Promise<void> {
-  await requestPet("restore-pet")
+export async function restoreVibemonAfterChat(): Promise<void> {
+  await requestVibemon("restore-vibemon")
 }
 
-export async function suspendPetForChat(): Promise<void> {
-  await requestPet("hide-pet")
+export async function suspendVibemonForChat(): Promise<void> {
+  await requestVibemon("hide-vibemon")
 }

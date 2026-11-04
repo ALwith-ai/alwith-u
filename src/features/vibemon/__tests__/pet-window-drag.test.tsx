@@ -1,11 +1,11 @@
-import { createPetAssets, type PetAssetsHost } from "@alwith/module-auth/pets"
+import { createVibemonAssets, type VibemonAssetsHost } from "@alwith/module-auth/vibemon"
 import {
   configureVibemon,
   initializeSettings,
-  type PetObservation,
-  type VibemonHost
-} from "@alwith/module-auth/pets/core"
-import { PetWindow } from "@alwith/module-auth/pets/react"
+  type VibemonHost,
+  type VibemonObservation
+} from "@alwith/module-auth/vibemon/core"
+import { VibemonWindow } from "@alwith/module-auth/vibemon/react"
 import { act, cleanup, fireEvent, render } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 
@@ -20,7 +20,7 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-test("the packaged pet preserves drag animation and resumes its renderer after closing", async () => {
+test("the packaged vibemon preserves drag animation and resumes its renderer after closing", async () => {
   vi.useFakeTimers()
   const images: { onload: (() => void) | null }[] = []
   vi.stubGlobal(
@@ -41,14 +41,14 @@ test("the packaged pet preserves drag animation and resumes its renderer after c
     drawImage,
     imageSmoothingEnabled: false
   } as unknown as CanvasRenderingContext2D)
-  vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:pet")
+  vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:vibemon")
   vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {})
   const account = { apiHost: "api.test", userId: "account", revision: 1 }
   const storage = {
     get<T>(key: string): Promise<T | undefined> {
       return Promise.resolve(
         (key === "vibemon.accounts"
-          ? { "api.test/account": { pet: "pet", enabled: true, position: { x: 100, y: 100 } } }
+          ? { "api.test/account": { vibemon: "vibemon", enabled: true, position: { x: 100, y: 100 } } }
           : undefined) as T | undefined
       )
     },
@@ -57,7 +57,7 @@ test("the packaged pet preserves drag animation and resumes its renderer after c
   const encoder = new TextEncoder()
   const files = new Map([
     [
-      "vibemon/catalog/api.test/pet/resource.json",
+      "vibemon/catalog/api.test/vibemon/resource.json",
       encoder.encode(
         JSON.stringify({
           version: 1,
@@ -73,19 +73,19 @@ test("the packaged pet preserves drag animation and resumes its renderer after c
         })
       )
     ],
-    ["vibemon/catalog/api.test/pet/sprite-sheet.png", new Uint8Array([137, 80])]
+    ["vibemon/catalog/api.test/vibemon/sprite-sheet.png", new Uint8Array([137, 80])]
   ])
-  const assetsHost: PetAssetsHost = {
+  const assetsHost: VibemonAssetsHost = {
     account: () => account,
     storage,
     request: () => {
       return Promise.try(() => {
-        throw new Error("Cached pet must not request the server")
+        throw new Error("Cached vibemon must not request the server")
       })
     },
     download: () => {
       return Promise.try(() => {
-        throw new Error("Cached pet must not download")
+        throw new Error("Cached vibemon must not download")
       })
     },
     resources: {
@@ -105,11 +105,11 @@ test("the packaged pet preserves drag animation and resumes its renderer after c
   const nativeActions: string[] = []
   const bubbleVisibility: boolean[] = []
   const bubbleFocus: boolean[] = []
-  let observation: PetObservation | null = null
-  let observe: ((value: PetObservation | null) => void) | undefined
+  let observation: VibemonObservation | null = null
+  let observe: ((value: VibemonObservation | null) => void) | undefined
   const host: VibemonHost = {
     account: () => account,
-    assets: createPetAssets(assetsHost),
+    assets: createVibemonAssets(assetsHost),
     storage,
     subscribeStorage: () => () => {},
     sessions: {
@@ -157,22 +157,22 @@ test("the packaged pet preserves drag animation and resumes its renderer after c
         }
       },
       geometry: () => Promise.resolve(() => {}),
-      openPet: () => Promise.resolve("shown"),
-      closePet: vi.fn(),
+      openVibemon: () => Promise.resolve("shown"),
+      closeVibemon: vi.fn(),
       openRecharge: vi.fn()
     },
     onError: errors
   }
   disposeHost = configureVibemon(host)
   disposeSettings = await initializeSettings()
-  const view = render(<PetWindow />)
+  const view = render(<VibemonWindow />)
   await act(async () => {})
   expect(images).toHaveLength(1)
   await act(() => Promise.try(() => images[0].onload?.()))
   const canvas = view.container.querySelector("canvas")
-  if (canvas === null) throw new Error("The pet canvas did not render")
+  if (canvas === null) throw new Error("The vibemon canvas did not render")
   const sprite = canvas.parentElement
-  if (sprite === null) throw new Error("The pet sprite container is missing")
+  if (sprite === null) throw new Error("The vibemon sprite container is missing")
   const initialTransform = sprite.style.transform
   expect(initialTransform).toBe("translateY(-36px)")
   drawImage.mockClear()
@@ -197,11 +197,11 @@ test("the packaged pet preserves drag animation and resumes its renderer after c
   expect(drawImage.mock.calls.at(-1)?.slice(1, 3)).toEqual([0, 0])
   expect(stop).toHaveBeenCalledOnce()
   expect(errors).not.toHaveBeenCalled()
-  if (onCommand === undefined) throw new Error("Pet command listener missing")
+  if (onCommand === undefined) throw new Error("Vibemon command listener missing")
   const command = onCommand
   let closed!: Promise<void>
   await act(async () => {
-    closed = command({ type: "close", petId: "pet", requestId: "close" })
+    closed = command({ type: "close", vibemonId: "vibemon", requestId: "close" })
     await vi.advanceTimersByTimeAsync(500)
     await closed
   })
@@ -211,7 +211,7 @@ test("the packaged pet preserves drag animation and resumes its renderer after c
   expect(drawImage).toHaveBeenCalledTimes(framesWhileHidden)
   let presented!: Promise<void>
   await act(async () => {
-    presented = command({ type: "present", petId: "pet", requestId: "present" })
+    presented = command({ type: "present", vibemonId: "vibemon", requestId: "present" })
     await Promise.resolve()
   })
   await act(async () => {
@@ -222,7 +222,7 @@ test("the packaged pet preserves drag animation and resumes its renderer after c
   expect(images).toHaveLength(1)
   expect(drawImage.mock.calls.length).toBeGreaterThan(framesWhileHidden)
   expect(errors).not.toHaveBeenCalled()
-  const task: PetObservation = {
+  const task: VibemonObservation = {
     binding: { connectionEpoch: "epoch", agentId: "codex", sessionId: "one", incarnation: "one", bindingRevision: 1 },
     source: "event",
     revision: 1,

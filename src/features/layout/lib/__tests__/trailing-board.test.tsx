@@ -5,7 +5,7 @@ import { TrailingBoard } from "../../components/trailing-board"
 
 const open = vi.hoisted(() => vi.fn(() => Promise.resolve()))
 vi.mock("@/lib/chat-window", () => ({ openChatWindow: vi.fn() }))
-vi.mock("@/features/vibemon/transport", () => ({ requestPet: vi.fn() }))
+vi.mock("@/features/vibemon/transport", () => ({ requestVibemon: vi.fn() }))
 vi.mock("@/bindings", () => ({
   commands: {
     openAppById: open,

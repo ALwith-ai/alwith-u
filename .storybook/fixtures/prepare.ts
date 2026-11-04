@@ -21,7 +21,7 @@ import { type FileCase, resetFiles } from "./filesystem"
 import { type GamepadCase, resetGamepad } from "./gamepad"
 import { installNativeMock, resetNative, setComputerStatus } from "./native"
 import type { BubbleCase } from "./pet-session"
-import { type PetCase, resetPets } from "./pets"
+import { resetVibemons, type VibemonCase } from "./pets"
 import { disposePlaybackClock } from "./playback-clock"
 import { type PluginCase, type PluginOperation, resetPlugins } from "./plugins"
 import { type AccountCase, resetAccount } from "./settings-bridge"
@@ -73,7 +73,7 @@ export interface PreviewState {
   file?: string | null
   emptyFiles?: boolean
   computerCase?: "enabled" | "disabled" | "permissions" | "unavailable"
-  petCase?: PetCase
+  vibemonCase?: VibemonCase
   settingsSection?: string
 }
 let stopPlugins = () => {}
@@ -102,7 +102,7 @@ export const preparePreview: LoaderFunction = async ({ args, globals }) => {
   )
   resetClient({ connection: state.connection, response: state.response, draftFailure: state.draftFailure })
   resetAuth(state.authenticated ?? state.page !== "login", state.authError, state.authCase)
-  await resetPets(state.petCase, state.bubbleCase)
+  await resetVibemons(state.vibemonCase, state.bubbleCase)
   if (state.companyAccount === false)
     usePlatformAuth.setState({ user: { ...demoUser, login_email: "lin.ran@example.test" } })
   for (const key of Object.keys(localStorage)) if (key.startsWith("workspace:")) localStorage.removeItem(key)

@@ -1,0 +1,11 @@
+{
+  "identifier": "drive",
+  "description": "Drive panels and workspace content in the main and settings windows",
+  "windows": [
+    "main",
+    "settings"
+  ],
+  "permissions": [
+    "alwith-drive:default"
+  ]
+}

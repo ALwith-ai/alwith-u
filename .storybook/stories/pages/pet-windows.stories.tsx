@@ -10,7 +10,7 @@ const meta = {
   component: ProductPreview,
   loaders: [preparePreview],
   argTypes: productPreviewArgTypes,
-  args: { page: "petBubble", width: 360, height: 320 },
+  args: { page: "vibemonBubble", width: 360, height: 320 },
   parameters: { layout: "fullscreen", productPage: true, a11y: { test: "todo" } }
 } satisfies Meta<typeof ProductPreview>
 export default meta
@@ -24,7 +24,7 @@ export const ReadOnly: Story = { name: "快捷回复 · 只读", args: { bubbleC
 export const Unavailable: Story = { name: "快捷回复 · 无会话", args: { bubbleCase: "unavailable" } }
 export const Desktop: Story = {
   name: "桌面宠物 · 空闲",
-  args: { page: "petWindow", petCase: "desktop", width: 200, height: 200 },
+  args: { page: "vibemonWindow", vibemonCase: "desktop", width: 200, height: 200 },
   play: async ({ canvasElement }) => {
     await waitFor(() => expect(canvasElement.querySelector("canvas")).not.toBeNull(), { timeout: 15000 })
   }

@@ -8,7 +8,7 @@ afterEach(() => {
   document.body.replaceChildren()
 })
 
-test("images added after pet startup cannot start a browser drag while pointer gestures remain available", () => {
+test("images added after vibemon startup cannot start a browser drag while pointer gestures remain available", () => {
   stop = preventVibemonImageDragging()
   const image = document.createElement("img")
   document.body.append(image)

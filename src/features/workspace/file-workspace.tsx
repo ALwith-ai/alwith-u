@@ -24,6 +24,7 @@ import {
   type FileTreeLabels
 } from "@alwith/module-file-tree"
 import { containsPath, createFileSystem, dirname, type FileSystem, normalizePath } from "@alwith/module-fs"
+import { commands as fsCommands, nativeErrorMessage } from "@alwith/module-fs/commands"
 import { createTauriAdapter } from "@alwith/module-fs/tauri"
 import { writeText } from "@tauri-apps/plugin-clipboard-manager"
 import { confirm } from "@tauri-apps/plugin-dialog"
@@ -41,6 +42,7 @@ import { prepareWorkspaceFile } from "@/features/drive/files"
 import { driveFileSystem } from "@/features/drive/filesystem"
 import { rebaseDrivePins } from "@/features/drive/pinned"
 import { DriveTreeActions } from "@/features/drive/tree-actions"
+import { client } from "@/lib/client"
 import { openExternal } from "@/lib/open"
 import "@alwith/module-file-tree/styles.css"
 import "@alwith/module-editor/styles.css"
@@ -117,7 +119,7 @@ interface Workspace {
 const emptyEditorSnapshot = (): null => null
 const noEditorSubscription = (): (() => void) => () => {}
 function report(error: unknown): void {
-  toast.error(error instanceof Error ? error.message : String(error))
+  toast.error(nativeErrorMessage(error))
 }
 export function FileWorkspace({
   cwd,
@@ -312,14 +314,17 @@ export function FileWorkspace({
     async (directory: string | null): Promise<Workspace> => {
       const signal = lifecycle.current.signal
       signal.throwIfAborted()
-      const requested = await invoke<string>("draft_directory", { cwd: directory })
+      const requested =
+        directory === null
+          ? (await client.refreshProjectContext(true)).chatDirectory
+          : await invoke<string>("draft_directory", { cwd: directory })
       signal.throwIfAborted()
       const existing = workspaces.current.get(requested)
       if (existing) return existing
       const inFlight = opening.current.get(requested)
       if (inFlight) return inFlight
       const create = Effect.gen(function* () {
-        const root = yield* workspaceTask(() => invoke<string>("workspace_open", { path: requested }))
+        const root = yield* workspaceTask(() => fsCommands.workspaceOpen({ path: requested }))
         signal.throwIfAborted()
         const saved = yield* workspaceTask(() => stateStore.load(root)).pipe(
           Effect.catch((error) =>
@@ -331,40 +336,7 @@ export function FileWorkspace({
         )
         signal.throwIfAborted()
         const fs = createFileSystem({
-          adapter: createTauriAdapter({
-            root,
-            transport: {
-              invoke: (request) =>
-                invoke("workspace_file", {
-                  request: {
-                    ...request,
-                    ...(request.operation === "writeFile"
-                      ? { collaborationOwnerId: collaborationOwner(request.path) }
-                      : {})
-                  }
-                })
-            },
-            watch: async (path, changed, onError) => {
-              const stop = await listen<{ root: string; paths: string[]; error: string | null }>(
-                "workspace:change",
-                (event) => {
-                  if (event.payload.root !== root) return
-                  if (event.payload.error !== null) onError(new Error(event.payload.error))
-                  else changed(event.payload.paths)
-                }
-              )
-              try {
-                await invoke("workspace_watch", { path, enabled: true })
-              } catch (error) {
-                stop()
-                throw error
-              }
-              return () => {
-                stop()
-                void invoke("workspace_watch", { path, enabled: false }).catch(report)
-              }
-            }
-          }),
+          adapter: createTauriAdapter({ root, collaborationOwner }),
           reportError: report
         })
         const editor = yield* Effect.acquireRelease(
@@ -629,7 +601,9 @@ export function FileWorkspace({
       .then((value) => {
         if (!cancelled) setWorkspace(value)
       })
-      .catch(report)
+      .catch((error: unknown) => {
+        if (!cancelled) report(error)
+      })
     return () => {
       cancelled = true
     }

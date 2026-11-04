@@ -28,19 +28,7 @@ impl Native {
         let directory = app.path().resource_dir()?.join("native");
         let _ = app;
         alwith_native_client::configure(&directory)?;
-        for module in [
-            "editor",
-            "mobile",
-            "auth",
-            "installed-apps",
-            "voice",
-            "fs",
-            "gamepad",
-            "computer",
-            "drive",
-            "extension",
-            "device",
-        ] {
+        for module in ["mobile", "installed-apps", "voice", "gamepad", "computer", "extension", "device"] {
             alwith_native_client::Library::module(module).map_err(|error| {
                 format!("Cannot load native module '{module}' from {}: {error}", directory.display())
             })?;

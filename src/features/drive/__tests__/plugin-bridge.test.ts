@@ -1,3 +1,4 @@
+import { CONTRACT_VERSION } from "@alwith/module-drive"
 import type { DriveRequest, DriveResponse } from "@alwith/module-drive"
 import type { DataSnapshot, ExtensionData, Json } from "@alwith/module-extension"
 import { expect, test, vi } from "vitest"
@@ -32,7 +33,7 @@ function fixture() {
         return {
           type: "snapshot",
           data: {
-            version: 1,
+            version: CONTRACT_VERSION,
             generation: state.generation,
             sequence: 0,
             configured: state.configured,

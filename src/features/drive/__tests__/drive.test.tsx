@@ -1,4 +1,5 @@
 import {
+  CONTRACT_VERSION,
   createDriveController,
   type DriveRequest,
   type DriveResponse,
@@ -37,7 +38,7 @@ const root: RootInfo = {
 }
 function snapshot(configured = true): Snapshot {
   return {
-    version: 1,
+    version: CONTRACT_VERSION,
     generation: 1,
     sequence: 0,
     configured,

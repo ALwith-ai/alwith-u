@@ -8,4 +8,4 @@ const meta = {
 }
 export default meta
 
-export const PetImagesDoNotDrag = { ...source.PetImagesDoNotDrag, name: "宠物图片禁止拖动" }
+export const VibemonImagesDoNotDrag = { ...source.VibemonImagesDoNotDrag, name: "宠物图片禁止拖动" }

@@ -1,18 +1,18 @@
-import type { PetObservation, PetSessionHost, PetWindowHost } from "@alwith/module-auth/pets/core"
+import type { VibemonObservation, VibemonSessionHost, VibemonWindowHost } from "@alwith/module-auth/vibemon/core"
 
 import { PROJECT_DIRECTORY } from "./catalog"
 import { resetChatWindow } from "./chat-window"
 import { navigatePreview } from "./native"
 
 export type BubbleCase = "idle" | "running" | "permission" | "question" | "error" | "readOnly" | "unavailable"
-let current: PetObservation | null = null
-const listeners = new Set<(value: PetObservation | null) => void>()
+let current: VibemonObservation | null = null
+const listeners = new Set<(value: VibemonObservation | null) => void>()
 let completion: ReturnType<typeof setTimeout> | undefined
-function publish(value: PetObservation | null) {
+function publish(value: VibemonObservation | null) {
   current = value
   for (const listener of listeners) listener(value)
 }
-export function resetPetSession(kind: BubbleCase = "idle") {
+export function resetVibemonSession(kind: BubbleCase = "idle") {
   clearTimeout(completion)
   publish(
     kind === "unavailable"
@@ -44,12 +44,14 @@ export function resetPetSession(kind: BubbleCase = "idle") {
           error: kind === "error" ? "模拟连接中断，请打开聊天窗口重试。" : null,
           reply: null,
           userMessage:
-            kind === "running" ? { messageId: "pet-user", text: "请继续检查项目文件。", timestamp: Date.now() } : null,
+            kind === "running"
+              ? { messageId: "vibemon-user", text: "请继续检查项目文件。", timestamp: Date.now() }
+              : null,
           prompt:
             kind === "permission" || kind === "question"
               ? {
                   kind,
-                  token: "pet-request",
+                  token: "vibemon-request",
                   title: kind === "permission" ? "允许更新项目文件？" : "需要覆盖哪些交付内容？",
                   detail: "产品工作台 / docs/交付清单.md",
                   options:
@@ -67,7 +69,7 @@ export function resetPetSession(kind: BubbleCase = "idle") {
         }
   )
 }
-export const petSessions: PetSessionHost = {
+export const vibemonSessions: VibemonSessionHost = {
   snapshot: () => current,
   subscribe: (listener) => {
     listeners.add(listener)
@@ -76,13 +78,13 @@ export const petSessions: PetSessionHost = {
     }
   },
   send: (_binding, _requestId, text) => {
-    if (!current) return Promise.reject(new Error("Pet conversation unavailable"))
+    if (!current) return Promise.reject(new Error("Vibemon conversation unavailable"))
     publish({
       ...current,
       source: "event",
       state: "running",
       since: Date.now(),
-      userMessage: { messageId: "pet-user", text, timestamp: Date.now() }
+      userMessage: { messageId: "vibemon-user", text, timestamp: Date.now() }
     })
     completion = setTimeout(() => {
       if (current)
@@ -90,7 +92,7 @@ export const petSessions: PetSessionHost = {
           ...current,
           state: "done",
           since: Date.now(),
-          reply: { messageId: "pet-answer", text: "已更新交付清单，可以继续打开项目查看。" }
+          reply: { messageId: "vibemon-answer", text: "已更新交付清单，可以继续打开项目查看。" }
         })
     }, 450)
     return Promise.resolve()
@@ -101,7 +103,7 @@ export const petSessions: PetSessionHost = {
         ...current,
         state: "done",
         prompt: null,
-        reply: { messageId: "pet-confirmed", text: "已收到确认，继续处理项目任务。" }
+        reply: { messageId: "vibemon-confirmed", text: "已收到确认，继续处理项目任务。" }
       })
     return Promise.resolve()
   },
@@ -116,7 +118,7 @@ export const petSessions: PetSessionHost = {
   },
   select: async () => {}
 }
-export const petWindows: PetWindowHost = {
+export const vibemonWindows: VibemonWindowHost = {
   call: <T>(action: string): Promise<T> => {
     let value: unknown
     if (action === "monitors")
@@ -127,8 +129,8 @@ export const petWindows: PetWindowHost = {
     else if (action === "session-menu") value = null
     return Promise.resolve(value as T)
   },
-  openPet: () => Promise.resolve("shown"),
-  closePet: async () => {},
+  openVibemon: () => Promise.resolve("shown"),
+  closeVibemon: async () => {},
   openRecharge: async () => {},
   geometry: () => Promise.resolve(() => {}),
   moved: () => Promise.resolve(() => {}),

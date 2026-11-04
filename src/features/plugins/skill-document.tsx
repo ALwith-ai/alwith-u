@@ -1,7 +1,7 @@
 import { CodexMarkdownRenderer } from "@alwith/module-chat/markdown"
 import { dirname, normalizePath } from "@alwith/module-fs"
+import { commands as fsCommands, nativeErrorMessage } from "@alwith/module-fs/commands"
 import { createTauriAdapter } from "@alwith/module-fs/tauri"
-import { invoke } from "@tauri-apps/api/core"
 import { writeText } from "@tauri-apps/plugin-clipboard-manager"
 import { openPath, revealItemsInDir } from "@tauri-apps/plugin-opener"
 import { MoreHorizontalIcon } from "lucide-react"
@@ -19,11 +19,8 @@ import { openExternal } from "@/lib/open"
 import "./skill-document.css"
 
 export async function readSkillDocument(path: string): Promise<string> {
-  const root = await invoke<string>("workspace_open", { path: dirname(path) })
-  const fs = createTauriAdapter({
-    root,
-    transport: { invoke: (request) => invoke("workspace_file", { request }) }
-  })
+  const root = await fsCommands.workspaceOpen({ path: dirname(path) })
+  const fs = createTauriAdapter({ root, watch: false })
   return new TextDecoder("utf-8", { fatal: true }).decode(await fs.readFile(path))
 }
 
@@ -55,14 +52,15 @@ export function SkillDocument({
         if (!cancelled) setDocument(value)
       },
       (reason: unknown) => {
-        if (!cancelled) setError(String(reason))
+        if (!cancelled) setError(nativeErrorMessage(reason))
       }
     )
     return () => {
       cancelled = true
     }
   }, [path, description, attempt])
-  const report = (action: Promise<unknown>) => void action.catch((reason: unknown) => toast.error(String(reason)))
+  const report = (action: Promise<unknown>) =>
+    void action.catch((reason: unknown) => toast.error(nativeErrorMessage(reason)))
   const actions =
     path === null ? null : (
       <DropdownMenu>

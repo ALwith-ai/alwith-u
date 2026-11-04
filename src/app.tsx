@@ -1,4 +1,4 @@
-import { requestVibemonView } from "@alwith/module-auth/pets/core"
+import { requestVibemonView } from "@alwith/module-auth/vibemon/core"
 import { hasAccount, isFormElicitation } from "@alwith/module-chat/client"
 import { exportDraft, type FormAction, importDraft, setComposerDraft } from "@alwith/module-chat/conversation"
 import { isTauri } from "@tauri-apps/api/core"
@@ -48,7 +48,7 @@ import { selectSession } from "@/features/sessions/select-session"
 import { SessionSidebar } from "@/features/sessions/session-sidebar"
 import { HotkeysDialog } from "@/features/settings/hotkeys-dialog"
 import { StoryPage } from "@/features/story/story-page"
-import { updateMainPetSurface } from "@/features/vibemon/main-host"
+import { updateMainVibemonSurface } from "@/features/vibemon/main-host"
 import { VibemonCenter } from "@/features/vibemon/pet-center"
 import { useVoiceHandoff } from "@/features/voice/use-voice-handoff"
 import { WorkspaceHeaderContext, WorkspaceSessionContext } from "@/features/workspace/context"
@@ -202,7 +202,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       if (!cancelled) {
         setMainVisible(visible)
         useMainWindowSurface.setState({ sessionId: selectedId, visible: visible && view === "chat" && chatForeground })
-        await updateMainPetSurface(selectedId, visible && view === "chat" && chatForeground)
+        await updateMainVibemonSurface(selectedId, visible && view === "chat" && chatForeground)
       }
     })().catch((error) => toast.error(describe(error)))
     return () => {
