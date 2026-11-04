@@ -1,11 +1,4 @@
-import {
-  CONTRACT_VERSION,
-  type DriveController,
-  type DriveRequest,
-  type DriveResponse,
-  type Job,
-  type Snapshot
-} from "@alwith/module-drive"
+import type { DriveController, DriveRequest, DriveResponse, Job, Snapshot } from "@alwith/module-drive"
 import { DriveCondense, DriveMoveDialog } from "@alwith/module-drive/content"
 import {
   DriveBadge,
@@ -65,7 +58,7 @@ function fixture(
   handle?: (request: DriveRequest) => Promise<DriveResponse>
 ): { controller: DriveController; requests: DriveRequest[]; update: (patch: Partial<Snapshot>) => void } {
   const snapshot: Snapshot = {
-    version: CONTRACT_VERSION,
+    version: 1,
     generation: 1,
     sequence: 0,
     configured: true,
@@ -371,8 +364,9 @@ test("status panel exposes conflicts immediately and keeps re-check available fo
       confirm={() => Promise.resolve(true)}
     />
   )
-  expect(screen.getByText("Sync unavailable", { exact: false })).toBeVisible()
-  expect(screen.getByText("report.md", { exact: false })).toBeVisible()
+  // Synchronization issues sit in the status view's collapsible details.
+  expect(screen.getByText("Sync unavailable", { exact: false })).toBeInTheDocument()
+  for (const element of screen.getAllByText("report.md", { exact: false })) expect(element).toBeVisible()
   fireEvent.click(screen.getByRole("button", { name: "Reveal" }))
   await waitFor(() => expect(reveal).toHaveBeenCalledWith("/drive/report.conflict.md"))
   fireEvent.click(screen.getByRole("button", { name: "Re-check" }))
@@ -777,8 +771,8 @@ test("cancel acknowledgement is not completion and terminal cancellation is not 
   }
 })
 
-test("launcher keeps synchronization errors out of navigation while status retains them", async () => {
-  const f = fixture({ error: "Conflict: /drive/report.md" })
+test("launcher keeps synchronization errors out of navigation and toasts while status retains them", async () => {
+  const f = fixture({ error: "Sync unavailable" })
   const props = {
     controller: f.controller,
     controls,
@@ -792,10 +786,14 @@ test("launcher keeps synchronization errors out of navigation while status retai
     </DriveNotificationProvider>
   )
   await act(async () => {})
-  expect(screen.queryByText("Conflict: /drive/report.md")).not.toBeInTheDocument()
-  expect(notify.error).toHaveBeenCalledWith("Conflict: /drive/report.md")
-  view.rerender(<DrivePanel {...props} mode="status" />)
-  expect(screen.getByText("Conflict: /drive/report.md")).toBeInTheDocument()
+  expect(screen.queryByText("Sync unavailable", { exact: false })).not.toBeInTheDocument()
+  expect(notify.error).not.toHaveBeenCalled()
+  view.rerender(
+    <DriveNotificationProvider notify={notify}>
+      <DrivePanel {...props} mode="status" />
+    </DriveNotificationProvider>
+  )
+  expect(screen.getByText("Sync unavailable", { exact: false })).toBeInTheDocument()
 })
 
 test("a conflict during preflight stays in the dialog and does not include another project", async () => {
@@ -924,8 +922,8 @@ test("a rejected knowledge source remains actionable inside the dialog", async (
   expect(screen.getByRole("button", { name: "重试" })).toBeEnabled()
 })
 
-test("repeated background synchronization errors produce one toast", async () => {
-  const f = fixture({ error: "Conflict: report.md" })
+test("repeated background synchronization errors never toast from the launcher", async () => {
+  const f = fixture({ error: "Sync unavailable" })
   const notify = { error: vi.fn(), success: vi.fn() }
   render(
     <DriveNotificationProvider notify={notify}>
@@ -940,7 +938,7 @@ test("repeated background synchronization errors produce one toast", async () =>
   )
   await act(async () => {})
   act(() => f.update({ error: null }))
-  act(() => f.update({ error: "Conflict: report.md" }))
-  expect(notify.error).toHaveBeenCalledTimes(1)
+  act(() => f.update({ error: "Sync unavailable" }))
+  expect(notify.error).not.toHaveBeenCalled()
   expect(screen.queryByRole("alert")).not.toBeInTheDocument()
 })

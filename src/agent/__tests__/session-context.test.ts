@@ -200,14 +200,15 @@ test("native ownership binds returned identities and forking never revokes the s
 })
 
 test.each([false, true])(
-  "tool preflight reconnects once before dispatch (persistent failure: %s)",
+  "tool preflight preserves the conversation for explicit retry (persistent failure: %s)",
   async (persistent) => {
     const fake = createFakeAgent()
     const port = new FakeHubPort(() => fake.app)
     const request = vi.spyOn(port, "acpRequest")
+    const failure = new Error("Computer MCP initialization timed out")
     const prepare = vi.fn((_id: string) => {
       return Promise.try(() => {
-        if (persistent || prepare.mock.calls.length === 1) throw new Error("MCP unavailable")
+        if (persistent || prepare.mock.calls.length === 1) throw failure
       })
     })
     const client = new CodexClient(() => Promise.resolve(port), {
@@ -218,19 +219,23 @@ test.each([false, true])(
     try {
       await client.connect()
       const id = await client.newSession("/a")
-      await client.newSession("/b")
+      const sibling = await client.newSession("/b")
       request.mockClear()
-      const sent = client.prompt(id, [{ type: "text", text: "Verify computer" }])
-      if (persistent) await expect(sent).rejects.toThrow("MCP unavailable")
-      else await sent
+      const prompt = [{ type: "text" as const, text: "Verify computer" }]
+      await expect(client.prompt(id, prompt)).rejects.toBe(failure)
+      expect(client.session(id)).toMatchObject({ attached: true, restoring: false, items: [] })
+      expect(client.session(sibling).attached).toBe(true)
+      expect(request).not.toHaveBeenCalled()
+      const retry = client.prompt(id, prompt)
+      if (persistent) await expect(retry).rejects.toBe(failure)
+      else await retry
       expect(prepare.mock.calls).toEqual([[id], [id]])
       const calls = request.mock.calls.filter((call) =>
         ["session/close", "session/resume", "session/prompt"].includes(call[1])
       )
-      expect(calls.map((call) => call[1])).toEqual(
-        persistent ? ["session/close", "session/resume"] : ["session/close", "session/resume", "session/prompt"]
-      )
+      expect(calls.map((call) => call[1])).toEqual(persistent ? [] : ["session/prompt"])
       expect(calls.every((call) => (call[2] as { sessionId: string }).sessionId === id)).toBe(true)
+      expect(client.session(id).attached).toBe(true)
     } finally {
       client.disconnect()
     }
