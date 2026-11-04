@@ -414,3 +414,36 @@ fn native_network_projection_rejects_private_and_unbounded_fields() {
         assert!(native_network_context(&format!("[alwith-native-network] {invalid}")).is_none(), "accepted {field}");
     }
 }
+
+#[test]
+fn native_capacity_rejection_survives_export_with_bounded_counts() {
+    let mut value: Value =
+        serde_json::from_str(native_network_line().strip_prefix("[alwith-native-network] ").unwrap()).unwrap();
+    value["stage"] = json!("admit_request");
+    value["errorKind"] = json!("capacity");
+    value["errorCode"] = json!("NATIVE_NETWORK_BUSY");
+    value["status"] = json!(503);
+    value["activeRequests"] = json!(128);
+    value["requestLimit"] = json!(128);
+    let context = native_network_context(&format!("[alwith-native-network] {value}")).unwrap();
+    let directory = tempfile::tempdir().unwrap();
+    let collector = Collector::new(directory.path().to_path_buf());
+    collector.record("native_network", "failed", context);
+    let report = collector.report();
+    let network = &report["events"][0]["context"]["network"];
+    assert_eq!(network["stage"], "admit_request");
+    assert_eq!(network["errorCode"], "NATIVE_NETWORK_BUSY");
+    assert_eq!(network["activeRequests"], 128);
+    assert_eq!(network["requestLimit"], 128);
+    for (active, limit) in [
+        (json!(129), json!(128)),
+        (json!(1), json!(0)),
+        (json!(1), json!(65537)),
+        (json!(null), json!(128)),
+        (json!(-1), json!(128)),
+    ] {
+        value["activeRequests"] = active;
+        value["requestLimit"] = limit;
+        assert!(native_network_context(&format!("[alwith-native-network] {value}")).is_none());
+    }
+}
