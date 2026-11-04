@@ -1904,3 +1904,16 @@ test("selecting the default folder explicitly does not reuse a projectless draft
   expect(explicit).not.toBe(quick)
   expect(fake.deleted.has(quick)).toBe(true)
 })
+
+test("explicit native draft recovery bypasses a saved unavailable account model", async () => {
+  const resolve = vi.fn(async (model: string | null) => {
+    if (model?.startsWith("gateway:finture-enterprise:")) throw new Error("Account model unavailable")
+    return "gateway:deepseek:deepseek-flash"
+  })
+  const { client, fake } = await make(undefined, undefined, resolve)
+  client.setModelSelections({ main: "gateway:finture-enterprise:company", chat: null })
+  await expect(client.prepareDraft("main", "/tmp/recovery")).rejects.toThrow("Account model unavailable")
+  const id = await client.prepareDraft("main", "/tmp/recovery", null, true)
+  expect(fake.modelHints.get(id)).toBeNull()
+  expect(resolve).toHaveBeenCalledTimes(1)
+})

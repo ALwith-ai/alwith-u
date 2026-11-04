@@ -47,7 +47,7 @@ export function presentModelCatalog(groups: ModelGroup[]): ModelGroup[] {
         shortLabel: model.shortLabel ?? presentation[model.api_id]?.shortLabel,
         icon: native ? (
           <img src={openaiLogo} alt="" className="size-4 shrink-0 dark:invert" />
-        ) : group.id === "litellm" ? (
+        ) : group.id === "litellm" || group.id === "finture-enterprise" ? (
           <img src={alwithLogo} alt="" className="size-4 shrink-0" />
         ) : (
           <Logo aria-hidden="true" className="size-4 shrink-0" />

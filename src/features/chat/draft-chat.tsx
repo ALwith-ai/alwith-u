@@ -26,10 +26,6 @@ import { DraftProjectPicker } from "./draft-project-picker"
 
 export const DRAFT_SESSION_ID = "draft"
 
-function isAuthError(error: unknown): boolean {
-  return typeof error === "object" && error !== null && (error as { code?: unknown }).code === -32000
-}
-
 export function DraftChat({
   owner,
   cwd,
@@ -127,7 +123,12 @@ export function DraftChat({
       // prompt has materialized its session. Keep that conversation selected.
       if (current !== null && client.state.sessions[current]?.cwd === directory && !client.state.draftSessions[current])
         return current
-      const next = await client.prepareDraft(owner, cwd === null ? undefined : directory, model)
+      const next = await client.prepareDraft(
+        owner,
+        cwd === null ? undefined : directory,
+        model === "" ? null : model,
+        model === ""
+      )
       const previous = currentId.current
       if (previous !== next) {
         const input = drafts.get(previous ?? DRAFT_SESSION_ID)
@@ -226,14 +227,19 @@ export function DraftChat({
             <Button variant="outline" size="sm" onClick={() => setAttempt((value) => value + 1)}>
               {t("actions.retry")}
             </Button>
-            {isAuthError(error) && (
-              <>
-                <Button variant="outline" size="sm" onClick={onAuthRequired}>
-                  {t("chat.draft.configureProvider")}
-                </Button>
-                <DraftModelSelect snapshot={providerSnapshot} model={model} onChange={setModel} />
-              </>
-            )}
+            <>
+              <Button variant="outline" size="sm" onClick={onAuthRequired}>
+                {t("chat.draft.configureProvider")}
+              </Button>
+              <DraftModelSelect
+                snapshot={providerSnapshot}
+                model={model}
+                onChange={(value) => {
+                  setPreparing(true)
+                  setModel(value)
+                }}
+              />
+            </>
           </div>
         )}
         {id !== null && <SessionActions sessionId={id} />}

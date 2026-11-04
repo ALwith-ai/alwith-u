@@ -1286,3 +1286,61 @@ test("a collection draft is saved only after its first send is accepted", async 
     env.restore()
   }
 })
+
+test.each(["gateway", "native"] as const)(
+  "unavailable account models recover through %s selection without losing draft input",
+  async (choice) => {
+    const { real, fake, restore } = await environment()
+    fake.gateways.set("deepseek", {
+      providerId: "openai",
+      apiType: "openai",
+      baseUrl: "https://example.test",
+      _meta: {
+        codex: { id: "deepseek", name: "DeepSeek" },
+        alwith: { models: [{ id: "gateway:deepseek:deepseek-flash" }] }
+      }
+    })
+    importDraft(DRAFT_SESSION_ID, { text: "keep this draft", mentions: [], attachments: [], modelId: null })
+    const failure = vi
+      .spyOn(client, "prepareDraft")
+      .mockRejectedValueOnce(
+        Object.assign(
+          new Error("The selected ALwith account model is unavailable. Select another model before sending."),
+          { code: "account_model_unavailable" }
+        )
+      )
+    const configure = vi.fn()
+    let selected: string | null = null
+    const view = render(
+      <DraftChat
+        owner="main"
+        cwd="/tmp/recovery"
+        onCwdChange={() => {}}
+        onCreated={(id) => {
+          selected = id
+        }}
+        onSendingChange={() => {}}
+        onAuthRequired={configure}
+        onNewChat={() => {}}
+        providerSnapshot={{ ...providers, providers: { deepseek: { configured: true, region: null, base_url: null } } }}
+      />
+    )
+    try {
+      await waitFor(() => expect(view.getByRole("button", { name: "Configure provider" })).toBeTruthy())
+      expect(fake.modelHints.size).toBe(0)
+      fireEvent.click(view.getByRole("button", { name: "Configure provider" }))
+      expect(configure).toHaveBeenCalledOnce()
+      fireEvent.click(view.getByText("ChatGPT"))
+      fireEvent.click(await view.findByRole("menuitemradio", { name: choice === "native" ? "ChatGPT" : "Flash" }))
+      await waitFor(() => expect(view.getByRole("button", { name: "Send" })).not.toBeDisabled())
+      const id = must<string>(selected, "recovered draft")
+      expect(fake.modelHints.get(id)).toBe(choice === "native" ? null : "gateway:deepseek:deepseek-flash")
+      expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("keep this draft")
+      expect(real.state.sessionList).toEqual([])
+    } finally {
+      await act(() => Promise.try(() => view.unmount()))
+      failure.mockRestore()
+      restore()
+    }
+  }
+)

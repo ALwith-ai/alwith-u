@@ -483,7 +483,12 @@ export class CodexClient extends CodexAcpClient<AppState> {
     return next
   }
 
-  prepareDraft(owner: DraftOwner, cwd: string | undefined, model: string | null = null): Promise<string> {
+  prepareDraft(
+    owner: DraftOwner,
+    cwd: string | undefined,
+    model: string | null = null,
+    nativeDefault = false
+  ): Promise<string> {
     const version = ++this.slotVersions[owner]
     return this.changeDraft([owner], async () => {
       const directory = cwd ?? (await this.refreshProjectContext(true)).chatDirectory
@@ -493,6 +498,7 @@ export class CodexClient extends CodexAcpClient<AppState> {
         existing &&
         this.session(existing).cwd === directory &&
         (!this.draftDirectoryIntents.has(existing) || this.draftDirectoryIntents.get(existing) === cwd) &&
+        !nativeDefault &&
         (model === null || selectedModel(this.session(existing).configOptions) === model)
       ) {
         this.activateSlot(owner, existing, version)
@@ -505,12 +511,15 @@ export class CodexClient extends CodexAcpClient<AppState> {
       // Prepare the replacement before retiring the previous draft: failures preserve the user's input.
       const id = await this.createNativeSession(
         cwd,
-        await this.resolveModel(
-          model ??
-            (existing
-              ? selectedModel(this.session(existing).configOptions)
-              : (this.savedModels[owner] ?? this.slotModels[owner]))
-        ),
+        // Explicit native recovery must bypass saved account selections and provider defaults.
+        nativeDefault
+          ? null
+          : await this.resolveModel(
+              model ??
+                (existing
+                  ? selectedModel(this.session(existing).configOptions)
+                  : (this.savedModels[owner] ?? this.slotModels[owner]))
+            ),
         owner
       )
       try {
@@ -544,7 +553,7 @@ export class CodexClient extends CodexAcpClient<AppState> {
         throw error
       }
       this.activateSlot(owner, id, version)
-      if (model !== null) this.confirmModel(owner, this.session(id))
+      if (model !== null || nativeDefault) this.confirmModel(owner, this.session(id))
       return id
     })
   }
