@@ -175,14 +175,17 @@ test("reapply after partial undo touches only confirmed reverted batches", async
   expect(args.patches.map((patch) => patch.newPath)).toEqual(["/project/b"])
 })
 
-test("transport failures keep the previous action state and allow retry", async () => {
-  vi.mocked(invoke).mockRejectedValue(new Error("Git is unavailable"))
-  mount([item("transport")])
-  fireEvent.click(screen.getByRole("button", { name: "Undo" }))
-  await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Git is unavailable"))
-  expect(screen.getByRole("button", { name: "Undo" })).toBeEnabled()
-  expect(screen.queryByRole("button", { name: "Reapply" })).toBeNull()
-})
+test.each([new Error("Git is unavailable"), { code: "failed", message: "Git is unavailable" }])(
+  "transport failures keep the previous action state and allow retry: %j",
+  async (error) => {
+    vi.mocked(invoke).mockRejectedValue(error)
+    mount([item("transport")])
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }))
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Git is unavailable"))
+    expect(screen.getByRole("button", { name: "Undo" })).toBeEnabled()
+    expect(screen.queryByRole("button", { name: "Reapply" })).toBeNull()
+  }
+)
 
 test("rejects mutation when the session disappears and keeps other cards independent", async () => {
   vi.mocked(invoke).mockResolvedValue({ applied: [0], failed: null })

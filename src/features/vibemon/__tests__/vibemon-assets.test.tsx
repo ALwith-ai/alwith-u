@@ -9,7 +9,7 @@ test("a failed save restores the store's memory before selection refresh and pub
   const data = new Map<string, unknown>([["vibemon.accounts", { vibemon: "old" }]])
   let fail = true
   let changes = 0
-  // 命名存储(store_*)的内存替身:set 失败即什么都没写,和 Rust 侧语义一致。
+  // A failed named-store write preserves both memory and disk state.
   mockIPC((command, args) => {
     const { key, value } = args as { key: string; value: unknown }
     if (command === "plugin:alwith-store|store_entries") return Object.fromEntries(data)
@@ -80,6 +80,33 @@ test("a later failed write preserves the preceding successful selection", async 
     expect(await host.storage.get("vibemon.accounts")).toEqual({ vibemon: "first" })
   } finally {
     release()
+    host.dispose()
+    await Promise.resolve()
+  }
+})
+
+test("legacy selections preserve account settings without overwriting newer choices or disk", async () => {
+  const legacy = {
+    first: { pet: "selected-old", enabled: true, position: { x: 12, y: 34 } },
+    second: { pet: "stale", vibemon: "", enabled: false, position: null },
+    third: { vibemon: "selected-new", enabled: true, position: null }
+  }
+  const writes: unknown[] = []
+  mockIPC((command, args) => {
+    if (command === "plugin:alwith-store|store_entries") return { "vibemon.accounts": legacy }
+    if (command === "plugin:alwith-store|store_set") writes.push(args)
+    if (command === "plugin:event|listen") return 1
+    return null
+  })
+  const host = createPlatformVibemonAssets()
+  try {
+    expect(await host.storage.get("vibemon.accounts")).toEqual({
+      ...legacy,
+      first: { ...legacy.first, vibemon: "selected-old" }
+    })
+    expect(legacy.first).not.toHaveProperty("vibemon")
+    expect(writes).toEqual([])
+  } finally {
     host.dispose()
     await Promise.resolve()
   }

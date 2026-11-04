@@ -30,18 +30,11 @@ test("defaults off, persists an enabled value and follows cross-window settings"
     </>
   )
   const toggle = view.getByRole("switch", {
-    name: "Three-finger horizontal swipe"
+    name: "Enable three-finger horizontal swipe"
   })
   expect(toggle).not.toBeChecked()
   expect(view.getByRole("status")).toHaveTextContent("false")
-  const master = view.getByRole("switch", { name: "Enable trackpad gestures" })
-  expect(master).not.toBeChecked()
-  expect(toggle).toHaveAttribute("aria-disabled", "true")
-  fireEvent.click(master)
-  await waitFor(() => {
-    expect(master).toBeChecked()
-    expect(toggle).not.toHaveAttribute("aria-disabled", "true")
-  })
+  expect(view.getAllByRole("switch")).toHaveLength(1)
   fireEvent.click(toggle)
   await waitFor(() => expect(toggle).toBeChecked())
   expect(fixture.values.get("appearance.threeFingerSwipe")).toBe(true)
@@ -61,7 +54,7 @@ test("Linux cannot enable gestures even when a synced preference is enabled", ()
     </>
   )
   expect(view.getByText(/Not supported on Linux/)).toBeInTheDocument()
-  const toggle = view.getByRole("switch", { name: "Three-finger horizontal swipe" })
+  const toggle = view.getByRole("switch", { name: "Enable three-finger horizontal swipe" })
   expect(toggle).toHaveAttribute("aria-disabled", "true")
   expect(toggle).not.toBeChecked()
   fireEvent.click(toggle)
@@ -84,30 +77,24 @@ test("failed persistence reports the error and keeps the saved state", async () 
   fixture.write.mockRejectedValue(new Error("Cannot save settings"))
   const error = vi.spyOn(toast, "error").mockImplementation(() => "error")
   const view = render(<TrackpadRow />)
-  fireEvent.click(view.getByRole("switch", { name: "Three-finger horizontal swipe" }))
+  fireEvent.click(view.getByRole("switch", { name: "Enable three-finger horizontal swipe" }))
   await waitFor(() => expect(error).toHaveBeenCalledWith("Cannot save settings"))
-  expect(view.getByRole("switch", { name: "Three-finger horizontal swipe" })).not.toBeChecked()
+  expect(view.getByRole("switch", { name: "Enable three-finger horizontal swipe" })).not.toBeChecked()
 })
 
-test("the master switch suspends input without losing the gesture selection", async () => {
-  const fixture = settingsFixture({ "appearance.threeFingerSwipe": true, "appearance.trackpadEnabled": true })
+test("a saved disabled master preference does not block the gesture", async () => {
+  const fixture = settingsFixture({ "appearance.threeFingerSwipe": true, "appearance.trackpadEnabled": false })
   const view = render(
     <>
       <TrackpadRow />
       <Consumer />
     </>
   )
-  const master = view.getByRole("switch", { name: "Enable trackpad gestures" })
-  const gesture = view.getByRole("switch", { name: "Three-finger horizontal swipe" })
-  fireEvent.click(master)
-  await waitFor(() => expect(master).not.toBeChecked())
-  expect(gesture).toBeChecked()
-  expect(gesture).toHaveAttribute("aria-disabled", "true")
-  expect(view.getByRole("status")).toHaveTextContent("false")
-  expect(fixture.values.get("appearance.threeFingerSwipe")).toBe(true)
-  expect(fixture.values.get("appearance.trackpadEnabled")).toBe(false)
-  fireEvent.click(master)
-  await waitFor(() => expect(master).toBeChecked())
+  const gesture = view.getByRole("switch", { name: "Enable three-finger horizontal swipe" })
   expect(gesture).toBeChecked()
   expect(view.getByRole("status")).toHaveTextContent("true")
+  fireEvent.click(gesture)
+  await waitFor(() => expect(gesture).not.toBeChecked())
+  expect(fixture.values.get("appearance.threeFingerSwipe")).toBe(false)
+  expect(view.getByRole("status")).toHaveTextContent("false")
 })

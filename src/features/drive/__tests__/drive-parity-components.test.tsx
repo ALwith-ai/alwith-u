@@ -1,3 +1,4 @@
+import { CONTRACT_VERSION } from "@alwith/module-drive"
 import type { DriveController, DriveRequest, DriveResponse, Job, Snapshot } from "@alwith/module-drive"
 import { DriveCondense, DriveMoveDialog } from "@alwith/module-drive/content"
 import {
@@ -58,7 +59,7 @@ function fixture(
   handle?: (request: DriveRequest) => Promise<DriveResponse>
 ): { controller: DriveController; requests: DriveRequest[]; update: (patch: Partial<Snapshot>) => void } {
   const snapshot: Snapshot = {
-    version: 1,
+    version: CONTRACT_VERSION,
     generation: 1,
     sequence: 0,
     configured: true,
@@ -364,11 +365,12 @@ test("status panel exposes conflicts immediately and keeps re-check available fo
       confirm={() => Promise.resolve(true)}
     />
   )
-  // Synchronization issues sit in the status view's collapsible details.
-  expect(screen.getByText("Sync unavailable", { exact: false })).toBeInTheDocument()
-  for (const element of screen.getAllByText("report.md", { exact: false })) expect(element).toBeVisible()
+  expect(screen.getByText("Sync unavailable", { exact: false })).not.toBeVisible()
+  expect(screen.getByText("report.md", { selector: ".alwith-drive-status-filename" })).toBeVisible()
   fireEvent.click(screen.getByRole("button", { name: "Reveal" }))
   await waitFor(() => expect(reveal).toHaveBeenCalledWith("/drive/report.conflict.md"))
+  fireEvent.click(screen.getByText("View details"))
+  expect(screen.getByText("Sync unavailable", { exact: false })).toBeVisible()
   fireEvent.click(screen.getByRole("button", { name: "Re-check" }))
   await waitFor(() => expect(f.requests).toContainEqual({ type: "reconcile", projectId: null }))
 })
@@ -771,8 +773,8 @@ test("cancel acknowledgement is not completion and terminal cancellation is not 
   }
 })
 
-test("launcher keeps synchronization errors out of navigation and toasts while status retains them", async () => {
-  const f = fixture({ error: "Sync unavailable" })
+test("launcher keeps synchronization errors out of navigation while status retains them", async () => {
+  const f = fixture({ error: "Conflict: /drive/report.md" })
   const props = {
     controller: f.controller,
     controls,
@@ -786,14 +788,12 @@ test("launcher keeps synchronization errors out of navigation and toasts while s
     </DriveNotificationProvider>
   )
   await act(async () => {})
-  expect(screen.queryByText("Sync unavailable", { exact: false })).not.toBeInTheDocument()
+  expect(screen.queryByText("Conflict: /drive/report.md")).not.toBeInTheDocument()
   expect(notify.error).not.toHaveBeenCalled()
-  view.rerender(
-    <DriveNotificationProvider notify={notify}>
-      <DrivePanel {...props} mode="status" />
-    </DriveNotificationProvider>
-  )
-  expect(screen.getByText("Sync unavailable", { exact: false })).toBeInTheDocument()
+  view.rerender(<DrivePanel {...props} mode="status" />)
+  expect(screen.getByText("Conflict: /drive/report.md")).not.toBeVisible()
+  fireEvent.click(screen.getByText("View details"))
+  expect(screen.getByText("Conflict: /drive/report.md")).toBeVisible()
 })
 
 test("a conflict during preflight stays in the dialog and does not include another project", async () => {
@@ -922,8 +922,8 @@ test("a rejected knowledge source remains actionable inside the dialog", async (
   expect(screen.getByRole("button", { name: "重试" })).toBeEnabled()
 })
 
-test("repeated background synchronization errors never toast from the launcher", async () => {
-  const f = fixture({ error: "Sync unavailable" })
+test("repeated background synchronization errors never produce a toast", async () => {
+  const f = fixture({ error: "Conflict: report.md" })
   const notify = { error: vi.fn(), success: vi.fn() }
   render(
     <DriveNotificationProvider notify={notify}>
@@ -938,7 +938,102 @@ test("repeated background synchronization errors never toast from the launcher",
   )
   await act(async () => {})
   act(() => f.update({ error: null }))
-  act(() => f.update({ error: "Sync unavailable" }))
+  act(() => f.update({ error: "Conflict: report.md" }))
   expect(notify.error).not.toHaveBeenCalled()
   expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+})
+
+test("sync status deduplicates raw errors and reveals them only on request", () => {
+  const message = "Cannot move /drive/Department/Risk/reports/strategy.md: Directory not empty"
+  const f = fixture({
+    error: message,
+    status: {
+      state: { kind: "error", message },
+      downloading: 0,
+      uploading: 0,
+      pending: 0,
+      synced: 2,
+      failed: 0,
+      lastSyncAt: null,
+      pushConnected: false,
+      conflicts: [],
+      errors: [{ projectId: 1, path: null, message, at: "2026-11-03T00:00:00Z" }]
+    }
+  })
+  render(
+    <DrivePanel
+      controller={f.controller}
+      controls={controls}
+      mode="status"
+      locale="en"
+      onOpenProject={async () => {}}
+      confirm={async () => false}
+    />
+  )
+  expect(screen.getAllByText(message)).toHaveLength(1)
+  expect(screen.getByText(message)).not.toBeVisible()
+  expect(screen.getByRole("status")).toHaveTextContent(/^Error$/)
+  fireEvent.click(screen.getByText("View details"))
+  expect(screen.getByText(message)).toBeVisible()
+  expect(screen.getByRole("button", { name: "Re-check" })).toBeVisible()
+})
+
+test("failed transfer keeps retry visible while paths and diagnostics are collapsed", async () => {
+  const message = "Local operation failed: /drive/Department/Risk/reports/strategy.md: Directory not empty"
+  const path = "Department/Risk/reports/strategy.md"
+  const f = fixture(
+    {
+      status: {
+        state: { kind: "idle" },
+        downloading: 0,
+        uploading: 0,
+        pending: 0,
+        synced: 2,
+        failed: 1,
+        lastSyncAt: null,
+        pushConnected: false,
+        conflicts: [],
+        errors: []
+      }
+    },
+    async (request) => {
+      if (request.type === "failedUploads")
+        return {
+          type: "failedUploads",
+          data: [
+            {
+              projectId: 1,
+              path,
+              name: "strategy.md",
+              localPath: `/drive/${path}`,
+              state: "error",
+              direction: "download",
+              message,
+              attempts: 2,
+              retryable: true,
+              firstAt: "2026-11-03T00:00:00Z",
+              lastAt: "2026-11-03T00:00:01Z",
+              nextAttemptAt: "2026-11-03T00:00:02Z"
+            }
+          ]
+        }
+      return { type: "done" }
+    }
+  )
+  render(
+    <DrivePanel
+      controller={f.controller}
+      controls={controls}
+      mode="status"
+      locale="en"
+      onOpenProject={async () => {}}
+      confirm={async () => false}
+    />
+  )
+  expect(await screen.findByRole("button", { name: "Retry" })).toBeVisible()
+  expect(screen.getByText(message)).not.toBeVisible()
+  expect(screen.getByText(path)).not.toBeVisible()
+  fireEvent.click(screen.getByText("View details"))
+  expect(screen.getByText(message)).toBeVisible()
+  expect(screen.getByText(path)).toBeVisible()
 })

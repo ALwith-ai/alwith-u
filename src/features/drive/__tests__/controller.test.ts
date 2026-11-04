@@ -1,4 +1,5 @@
-import { CONTRACT_VERSION, type DriveRequest, type DriveResponse, type Snapshot } from "@alwith/module-drive"
+import { CONTRACT_VERSION } from "@alwith/module-drive"
+import type { DriveRequest, DriveResponse, Snapshot } from "@alwith/module-drive"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
 const mocks = vi.hoisted(() => ({
@@ -84,4 +85,33 @@ test("failed configuration saves propagate the error without a success toast", a
 test("background configuration reads do not show save notifications", async () => {
   await drive.request({ type: "configuration" })
   expect(mocks.success).not.toHaveBeenCalled()
+})
+
+test("Drive uses plugin commands and the separate session credential permission", async () => {
+  await drive.request({ type: "roots" })
+  expect(mocks.invoke).toHaveBeenCalledWith("plugin:alwith-drive|request", { request: { type: "roots" } })
+  await drive.request({ type: "mcpSessionConfig" })
+  expect(mocks.invoke).toHaveBeenCalledWith("plugin:alwith-drive|session_request", {
+    request: { type: "mcpSessionConfig" }
+  })
+  expect(mocks.invoke).not.toHaveBeenCalledWith("plugin:alwith-drive|request", {
+    request: { type: "mcpSessionConfig" }
+  })
+})
+
+test("structured native failures retain their message and original error", async () => {
+  const failure = { code: "failed", message: "Drive directory unavailable", module: "drive" }
+  mocks.invoke.mockRejectedValueOnce(failure)
+  await expect(drive.request({ type: "roots" })).rejects.toMatchObject({
+    message: failure.message,
+    cause: failure
+  })
+  expect(mocks.success).not.toHaveBeenCalled()
+})
+
+test("structured startup failures stay readable in controller state", async () => {
+  drive.dispose()
+  mocks.invoke.mockRejectedValueOnce({ code: "load", message: "Drive library unavailable" })
+  await expect(drive.attach()).rejects.toThrow("Drive library unavailable")
+  expect(drive.getSnapshot().error).toBe("Drive library unavailable")
 })

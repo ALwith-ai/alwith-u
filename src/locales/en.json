@@ -481,7 +481,7 @@
     "editor": "Editor",
     "voice": "Voice",
     "computer": "Computer use",
-    "threeFingerSwipe": "Three-finger horizontal swipe",
+    "threeFingerSwipe": "Enable three-finger horizontal swipe",
     "threeFingerSwipeGuidance": {
       "mac": "Swipe between pages with three fingers. macOS Mission Control or App Exposé gestures can interrupt swiping; adjust them in System Settings.",
       "windows": "Swipe between pages with three fingers on a Precision Touchpad. System gestures may also run; set three-finger swipes to Nothing in Windows Settings > Bluetooth & devices > Touchpad.",

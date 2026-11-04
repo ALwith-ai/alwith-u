@@ -42,6 +42,7 @@ import { prepareWorkspaceFile } from "@/features/drive/files"
 import { driveFileSystem } from "@/features/drive/filesystem"
 import { rebaseDrivePins } from "@/features/drive/pinned"
 import { DriveTreeActions } from "@/features/drive/tree-actions"
+import { client } from "@/lib/client"
 import { openExternal } from "@/lib/open"
 import "@alwith/module-file-tree/styles.css"
 import "@alwith/module-editor/styles.css"
@@ -313,7 +314,10 @@ export function FileWorkspace({
     async (directory: string | null): Promise<Workspace> => {
       const signal = lifecycle.current.signal
       signal.throwIfAborted()
-      const requested = await invoke<string>("draft_directory", { cwd: directory })
+      const requested =
+        directory === null
+          ? (await client.refreshProjectContext(true)).chatDirectory
+          : await invoke<string>("draft_directory", { cwd: directory })
       signal.throwIfAborted()
       const existing = workspaces.current.get(requested)
       if (existing) return existing
@@ -597,7 +601,9 @@ export function FileWorkspace({
       .then((value) => {
         if (!cancelled) setWorkspace(value)
       })
-      .catch(report)
+      .catch((error: unknown) => {
+        if (!cancelled) report(error)
+      })
     return () => {
       cancelled = true
     }

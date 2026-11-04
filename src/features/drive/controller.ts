@@ -2,19 +2,30 @@ import {
   createDriveController,
   type DriveController,
   type DriveRequest,
-  type DriveResponse,
-  type DriveTransport
+  type DriveResponse
 } from "@alwith/module-drive"
 import { createTauriDriveTransport } from "@alwith/module-drive/tauri"
 import { emitTo } from "@tauri-apps/api/event"
 import i18n from "i18next"
 import { toast } from "sonner"
 
-const transport = createTauriDriveTransport()
-export const driveTransport: DriveTransport = {
-  ...transport,
-  async request(request) {
-    const response = await transport.request(request)
+const nativeTransport = createTauriDriveTransport()
+export const driveTransport = {
+  ...nativeTransport,
+  async request(request: DriveRequest): Promise<DriveResponse> {
+    const response = await nativeTransport.request(request).catch((error: unknown) => {
+      // Plugin rejections carry coded objects; UI consumers require readable Error messages.
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "code" in error &&
+        typeof error.code === "string" &&
+        "message" in error &&
+        typeof error.message === "string"
+      )
+        throw new Error(error.message, { cause: error })
+      throw error
+    })
     if (["login", "ssoLogin", "logout", "start", "setPreferences"].includes(request.type)) {
       await emitTo("main", "drive:policy-changed", null)
     }

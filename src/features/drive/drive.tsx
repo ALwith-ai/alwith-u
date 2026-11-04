@@ -1,4 +1,4 @@
-import { reportBackgroundError } from "@/lib/background-errors"
+import { logBackgroundError } from "@/lib/background-errors"
 
 import { drive } from "./controller"
 
@@ -51,7 +51,7 @@ export function useDriveConnection(start = true): void {
         }
       })
       .catch((error: unknown) => {
-        if (!disposed) reportBackgroundError("drive-startup", error)
+        if (!disposed) logBackgroundError("drive-startup", error)
       })
     return () => {
       disposed = true
@@ -268,7 +268,7 @@ export function DriveStatus(): ReactNode {
   const { i18n } = useTranslation()
   const locale = i18n.language.startsWith("zh") ? "zh-CN" : "en"
   const t = driveTranslator(locale)
-  const { connected, snapshot } = useDrive(drive)
+  const { connected, snapshot, error: connectionError } = useDrive(drive)
   const [failures, setFailures] = useState<FailedUpload[]>([])
   useEffect(() => {
     let active = true
@@ -283,7 +283,7 @@ export function DriveStatus(): ReactNode {
         if (active) setFailures(response.data)
       })
       .catch((error: unknown) => {
-        if (active) toast.error(String(error))
+        if (active) logBackgroundError("drive-status", error)
       })
     return () => {
       active = false
@@ -291,13 +291,14 @@ export function DriveStatus(): ReactNode {
   }, [connected, snapshot?.running, snapshot?.status])
   if (!visible || !snapshot?.configured) return null
   const summary = summarize(snapshot.status, failures)
+  const summaryKey = connectionError || snapshot.error ? "drive.summary.error" : summary.key
   return (
     <Popover>
       <PopoverTrigger
         render={
           <Button variant="ghost" size="sm" className="pointer-events-auto h-6 text-xs" aria-label={t("title")}>
             <CloudIcon />
-            {t(summary.key, { count: summary.count })}
+            {t(summaryKey, { count: summary.count })}
           </Button>
         }
       />

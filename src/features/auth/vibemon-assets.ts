@@ -7,7 +7,7 @@ import { openStore } from "@/lib/store"
 
 import { API_BASE_URL, platformApiRequest, usePlatformAuth } from "./store"
 
-// 同一个 `appDataDir/vibemon.json`;set 失败时内存与磁盘都不变,不需要手工回滚。
+// Failed writes preserve memory and disk state in the shared vibemon store.
 const store = openStore("vibemon")
 let writes = Promise.resolve()
 const CHANGED = "vibemon:assets-changed"
@@ -70,7 +70,24 @@ export function createPlatformVibemonAssets() {
   }
   const listeners = new Set<() => void>()
   const storage = {
-    get: <T>(key: string) => store.get<T>(key),
+    async get<T>(key: string): Promise<T | undefined> {
+      const value = await store.get<T>(key)
+      if (key !== "vibemon.accounts" || typeof value !== "object" || value === null || Array.isArray(value))
+        return value
+      // Adapt legacy selections on read, preserving explicit newer choices and all other account settings.
+      return Object.fromEntries(
+        Object.entries(value).map(([account, entry]: [string, unknown]) => {
+          if (typeof entry !== "object" || entry === null || Array.isArray(entry)) return [account, entry]
+          const saved = entry as Record<string, unknown>
+          return [
+            account,
+            typeof saved.vibemon !== "string" && typeof saved.pet === "string"
+              ? { ...saved, vibemon: saved.pet }
+              : saved
+          ]
+        })
+      ) as T
+    },
     set(key: string, value: unknown) {
       const write = writes
         .catch(() => {})

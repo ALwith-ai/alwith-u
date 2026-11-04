@@ -8,10 +8,13 @@ import { type FsAdapter, normalizePath, type WriteOptions } from "@alwith/module
 import { createMemoryAdapter } from "@alwith/module-fs/testing"
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { type ReactNode, StrictMode, useLayoutEffect, useState } from "react"
+import { toast } from "sonner"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
+import { projectContext } from "@/agent/__tests__/project-context"
 import { ChatHeader } from "@/features/chat/chat-header"
 import { openGuideWindow } from "@/features/guide/guide-window"
+import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
 
 import { useWorkspace, WorkspaceHeaderContext } from "../context"
@@ -47,7 +50,7 @@ vi.mock("@tauri-apps/api/window", () => ({
     }
   })
 }))
-vi.mock("@tauri-apps/api/event", () => ({ listen: native.listen, emit: vi.fn() }))
+vi.mock("@tauri-apps/api/event", () => ({ listen: native.listen, emit: vi.fn(), emitTo: vi.fn() }))
 vi.mock("@/features/chat/codex/markdown-renderer", () => ({
   CodexMarkdownRenderer: ({ text }: { text: string }) => <article>{text}</article>
 }))
@@ -90,6 +93,7 @@ beforeEach(async () => {
   native.nativeMode = false
   native.close = null
   await initI18n("en")
+  vi.spyOn(client, "refreshProjectContext").mockResolvedValue({ ...projectContext(), chatDirectory: "/a" })
   authorize = null
   adapter = createMemoryAdapter({ "/a/one.txt": "first", "/b/two.txt": "second" })
   native.invoke.mockImplementation(async (command: string, args: NativeArgs): Promise<unknown> => {
@@ -125,6 +129,66 @@ beforeEach(async () => {
         throw new Error(`Unexpected native command: ${command}`)
     }
   })
+})
+
+test("opening a projectless workspace uses the adapter's default chat directory", async () => {
+  const reportError = vi.spyOn(toast, "error")
+  render(<Surface cwd={null} />)
+  fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
+  expect(await screen.findByRole("treeitem", { name: "one.txt" })).toBeVisible()
+  expect(native.invoke).not.toHaveBeenCalledWith("draft_directory", { cwd: null })
+  expect(reportError).not.toHaveBeenCalled()
+})
+
+test("a project switch through a projectless state opens the target without errors", async () => {
+  const reportError = vi.spyOn(toast, "error")
+  const view = render(<Surface cwd="/a" />)
+  fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
+  await screen.findByRole("treeitem", { name: "one.txt" })
+  view.rerender(<Surface cwd={null} />)
+  await screen.findByRole("treeitem", { name: "one.txt" })
+  view.rerender(<Surface cwd="/b" />)
+  expect(await screen.findByRole("treeitem", { name: "two.txt" })).toBeVisible()
+  expect(screen.queryByRole("treeitem", { name: "one.txt" })).toBeNull()
+  expect(reportError).not.toHaveBeenCalled()
+})
+
+test("a superseded directory failure cannot interrupt the current project", async () => {
+  const reportError = vi.spyOn(toast, "error")
+  const pending = Promise.withResolvers<string>()
+  const view = render(<Surface cwd="/a" />)
+  fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
+  await screen.findByRole("treeitem", { name: "one.txt" })
+  authorize = (path) => (path === "/missing" ? pending.promise : Promise.resolve(path))
+  view.rerender(<Surface cwd="/missing" />)
+  await waitFor(() => expect(native.invoke).toHaveBeenCalledWith(`${FS}workspace_open`, { path: "/missing" }))
+  view.rerender(<Surface cwd="/b" />)
+  await screen.findByRole("treeitem", { name: "two.txt" })
+  await act(async () => {
+    pending.reject(new Error("Project directory is unavailable"))
+    await expect(pending.promise).rejects.toThrow("Project directory is unavailable")
+  })
+  expect(screen.getByRole("treeitem", { name: "two.txt" })).toBeVisible()
+  expect(reportError).not.toHaveBeenCalled()
+})
+
+test("a delayed default directory cannot replace a newly selected project", async () => {
+  const reportError = vi.spyOn(toast, "error")
+  const pending = Promise.withResolvers<Awaited<ReturnType<typeof client.refreshProjectContext>>>()
+  const view = render(<Surface cwd="/a" />)
+  fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
+  await screen.findByRole("treeitem", { name: "one.txt" })
+  vi.mocked(client.refreshProjectContext).mockReturnValueOnce(pending.promise)
+  view.rerender(<Surface cwd={null} />)
+  view.rerender(<Surface cwd="/b" />)
+  await screen.findByRole("treeitem", { name: "two.txt" })
+  await act(async () => {
+    pending.resolve({ ...projectContext(), chatDirectory: "/a" })
+    await pending.promise
+  })
+  expect(screen.getByRole("treeitem", { name: "two.txt" })).toBeVisible()
+  expect(screen.queryByRole("treeitem", { name: "one.txt" })).toBeNull()
+  expect(reportError).not.toHaveBeenCalled()
 })
 
 test("remount restores pinned files, active file and expanded folders without draft persistence", async () => {
@@ -178,7 +242,7 @@ function Surface({
   chatRevealRequest = 0,
   children
 }: {
-  cwd: string
+  cwd: string | null
   chatRevealRequest?: number
   children?: ReactNode
 }) {

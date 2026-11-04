@@ -1,3 +1,4 @@
+import { CommentSurface, type DriveContentHost, DriveContentProvider } from "@alwith/module-drive/content"
 import { desktopDefaults } from "@nyssance/atlas/layout"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { type ReactNode, useState } from "react"
@@ -9,7 +10,44 @@ import { ChatHeader } from "../../../src/features/chat/chat-header"
 import { PreviewSurface } from "../../../src/features/workspace/preview-surface"
 import { WorkspacePanels } from "../../../src/features/workspace/workspace-panels"
 
-function WorkspaceExample({ width = 1200 }: { width?: number }): ReactNode {
+const commentHost: DriveContentHost = {
+  transport: {
+    request: async (request) => {
+      if (request.type === "commentContext")
+        return { type: "commentContext", data: { fileId: 1, currentUserId: 1, isOwner: true } }
+      if (request.type === "comments") return { type: "comments", data: [] }
+      if (request.type === "commentWatch") return { type: "done" }
+      throw new Error(`Unexpected comment request: ${request.type}`)
+    },
+    subscribe: async () => () => {}
+  },
+  userName: "Reviewer",
+  language: "en",
+  pushConnected: true,
+  translate: (key) => key,
+  onError: (error) => {
+    throw error
+  },
+  saveDocument: async () => {},
+  collaborationOwner: () => {},
+  notify: {
+    error: (message) => {
+      throw new Error(message)
+    },
+    success: () => {}
+  },
+  searchUsers: async () => [],
+  controls: {
+    Button: ({ variant: _variant, size: _size, ...props }) => <button {...props} />,
+    Input: (props) => <input {...props} />,
+    Textarea: (props) => <textarea {...props} />,
+    Checkbox: ({ checked, onCheckedChange }) => (
+      <input type="checkbox" checked={checked} onChange={(event) => onCheckedChange(event.target.checked)} />
+    )
+  }
+}
+
+function WorkspaceExample({ width = 1200, comments = false }: { width?: number; comments?: boolean }): ReactNode {
   const [visible, setVisible] = useState(true)
   const [maximized, setMaximized] = useState(false)
   const [treeVisible, setTreeVisible] = useState(true)
@@ -46,19 +84,28 @@ function WorkspaceExample({ width = 1200 }: { width?: number }): ReactNode {
                 <p className="p-4">Project / notes.md</p>
               </div>
             }
-            editor={({ leading, trailing }) => (
-              <div className="alwith-editor">
-                <div className="alwith-workspace-tabbar">
-                  {leading}
-                  <div className="alwith-workspace-tab-scroll">notes.md</div>
-                  {trailing}
+            editor={({ leading, trailing }) => {
+              const editor = (
+                <div className="alwith-editor">
+                  <div className="alwith-workspace-tabbar">
+                    {leading}
+                    <div className="alwith-workspace-tab-scroll">notes.md</div>
+                    {trailing}
+                  </div>
+                  <label className="p-4">
+                    Document
+                    <textarea aria-label="Document" defaultValue="Retained draft" />
+                  </label>
                 </div>
-                <label className="p-4">
-                  Document
-                  <textarea aria-label="Document" defaultValue="Retained draft" />
-                </label>
-              </div>
-            )}
+              )
+              return comments ? (
+                <DriveContentProvider host={commentHost}>
+                  <CommentSurface path="/drive/notes.md">{editor}</CommentSurface>
+                </DriveContentProvider>
+              ) : (
+                editor
+              )
+            }}
           />
         }
       />
@@ -183,5 +230,47 @@ export const WindowResize: Story = {
         canvasElement.querySelector<HTMLElement>(".file-workspace-slide")!.getBoundingClientRect().width
       ).toBe(layout.clientWidth - draggedWidth)
     })
+  }
+}
+
+export const CommentDrawerOverlay: Story = {
+  name: "评论收起占位，展开覆盖",
+  args: { comments: true },
+  play: async ({ canvasElement, canvas, userEvent }) => {
+    const editor = canvasElement.querySelector<HTMLElement>(".alwith-editor")!
+    const pane = canvasElement.querySelector<HTMLElement>(".file-workspace-editor")!
+    const assertSeparate = async (sidebar: HTMLElement): Promise<void> => {
+      const document = editor.getBoundingClientRect()
+      const comments = sidebar.getBoundingClientRect()
+      const bounds = pane.getBoundingClientRect()
+      await expect(document.width).toBeGreaterThan(0)
+      await expect(document.right).toBeLessThanOrEqual(comments.left)
+      await expect(comments.right).toBeLessThanOrEqual(bounds.right)
+      await expect(comments.top).toBe(bounds.top)
+      await expect(comments.height).toBe(bounds.height)
+    }
+    const assertOverlay = async (drawer: HTMLElement): Promise<void> => {
+      const document = editor.getBoundingClientRect()
+      const comments = drawer.getBoundingClientRect()
+      const bounds = pane.getBoundingClientRect()
+      await expect(getComputedStyle(drawer).position).toBe("absolute")
+      await expect(comments.left).toBeLessThan(document.right)
+      await expect(comments.right).toBe(bounds.right)
+      await expect(comments.top).toBe(bounds.top)
+      await expect(comments.height).toBe(bounds.height)
+    }
+    const rail = await canvas.findByTestId("comment-rail")
+    await waitFor(() => assertSeparate(rail))
+    const collapsedWidth = editor.getBoundingClientRect().width
+    await userEvent.click(rail)
+    const drawer = await canvas.findByTestId("comment-drawer")
+    await waitFor(() => assertOverlay(drawer))
+    await expect(editor.getBoundingClientRect().width).toBe(collapsedWidth)
+    canvasElement.querySelector<HTMLElement>(".file-workspace-layout")!.parentElement!.style.width = "650px"
+    await waitFor(() => assertOverlay(drawer))
+    await userEvent.click(canvas.getByRole("button", { name: "drive.comments.collapse" }))
+    await waitFor(() => assertSeparate(canvas.getByTestId("comment-rail")))
+    await userEvent.click(canvas.getByRole("button", { name: "Hide tree" }))
+    await waitFor(() => assertSeparate(canvas.getByTestId("comment-rail")))
   }
 }

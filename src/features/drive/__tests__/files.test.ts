@@ -6,11 +6,12 @@ const mocks = vi.hoisted(() => ({
   snapshot: vi.fn(() => ({ snapshot: { generation: 1, webBaseUrl: "https://drive.example.test" } })),
   external: vi.fn(async (_url: string) => {}),
   read: vi.fn(),
+  stat: vi.fn(),
   info: vi.fn()
 }))
 vi.mock("@alwith/module-drive", () => ({ prepareDriveFile: mocks.prepare }))
 vi.mock("../controller", () => ({ drive: { request: mocks.request, getSnapshot: mocks.snapshot } }))
-vi.mock("../filesystem", () => ({ driveFileSystem: () => Promise.resolve({ readFile: mocks.read }) }))
+vi.mock("../filesystem", () => ({ driveFileSystem: () => Promise.resolve({ readFile: mocks.read, stat: mocks.stat }) }))
 vi.mock("@/lib/open", () => ({ openExternal: mocks.external }))
 vi.mock("@tauri-apps/plugin-dialog", () => ({ confirm: vi.fn() }))
 vi.mock("sonner", () => ({ toast: { info: mocks.info } }))
@@ -25,6 +26,139 @@ beforeEach(() => {
   mocks.snapshot.mockReturnValue({ snapshot: { generation: 1, webBaseUrl: "https://drive.example.test" } })
   mocks.read.mockResolvedValue(shortcut(7))
   mocks.request.mockResolvedValue({ type: "path", data: null })
+  mocks.stat.mockResolvedValue(null)
+})
+
+test.each(["report.md", "image.png", "report.html"])(
+  "opens a local Drive file without waiting for synchronization: %s",
+  async (name) => {
+    mocks.snapshot.mockImplementation(() => ({
+      snapshot: {
+        generation: 1,
+        webBaseUrl: "https://drive.example.test",
+        configured: true,
+        localRoot: "/drive",
+        files: []
+      }
+    }))
+    mocks.stat.mockResolvedValue({ kind: "file", size: 123, version: "1" })
+    mocks.prepare.mockRejectedValue(new Error("Drive synchronization is unavailable"))
+    expect(await prepareWorkspaceFile(`/drive/${name}`)).toBe(`/drive/${name}`)
+    expect(mocks.prepare).not.toHaveBeenCalled()
+  }
+)
+
+test("a missing local file still uses Drive preparation", async () => {
+  mocks.snapshot.mockImplementation(() => ({
+    snapshot: {
+      generation: 1,
+      webBaseUrl: "https://drive.example.test",
+      configured: true,
+      localRoot: "/drive",
+      files: []
+    }
+  }))
+  expect(await prepareWorkspaceFile("/drive/missing.md")).toBe("/drive/missing.md")
+  expect(mocks.prepare).toHaveBeenCalled()
+})
+
+test("paused synchronization and a stale download state do not block an existing local file", async () => {
+  mocks.snapshot.mockImplementation(() => ({
+    snapshot: {
+      generation: 1,
+      webBaseUrl: "https://drive.example.test",
+      configured: true,
+      running: false,
+      localRoot: "/drive",
+      files: [{ localPath: "/drive/report.md", state: "notDownloaded" }]
+    }
+  }))
+  mocks.stat.mockResolvedValue({ kind: "file", size: 123, version: "1" })
+  expect(await prepareWorkspaceFile("/drive/report.md")).toBe("/drive/report.md")
+  expect(mocks.prepare).not.toHaveBeenCalled()
+})
+
+test("switching profiles during local inspection rejects the old file", async () => {
+  mocks.snapshot.mockImplementation(() => ({
+    snapshot: {
+      generation: 1,
+      webBaseUrl: "https://drive.example.test",
+      configured: true,
+      localRoot: "/drive",
+      files: []
+    }
+  }))
+  mocks.stat.mockImplementation(async () => {
+    mocks.snapshot.mockReturnValue({ snapshot: { generation: 2, webBaseUrl: "https://other.example.test" } })
+    return { kind: "file", size: 123, version: "1" }
+  })
+  await expect(prepareWorkspaceFile("/drive/report.md")).rejects.toThrow("profile changed")
+  expect(mocks.prepare).not.toHaveBeenCalled()
+  expect(mocks.external).not.toHaveBeenCalled()
+})
+
+test("local filesystem errors are reported instead of falling back to synchronization", async () => {
+  mocks.snapshot.mockImplementation(() => ({
+    snapshot: {
+      generation: 1,
+      webBaseUrl: "https://drive.example.test",
+      configured: true,
+      localRoot: "/drive",
+      files: []
+    }
+  }))
+  mocks.stat.mockRejectedValue(new Error("Permission denied"))
+  await expect(prepareWorkspaceFile("/drive/report.md")).rejects.toThrow("Permission denied")
+  expect(mocks.prepare).not.toHaveBeenCalled()
+})
+
+test("large local files retain the external application size limit", async () => {
+  mocks.snapshot.mockImplementation(() => ({
+    snapshot: {
+      generation: 1,
+      webBaseUrl: "https://drive.example.test",
+      configured: true,
+      localRoot: "/drive",
+      files: []
+    }
+  }))
+  mocks.stat.mockResolvedValue({ kind: "file", size: 16 * 1024 * 1024 + 1, version: "1" })
+  expect(await prepareWorkspaceFile("/drive/large.pdf")).toBeNull()
+  expect(mocks.external).toHaveBeenCalledWith("/drive/large.pdf")
+  expect(mocks.prepare).not.toHaveBeenCalled()
+})
+
+test.each(["forbidden", "cloudOnly"])("local files retain the indexed %s restriction", async (state) => {
+  mocks.snapshot.mockImplementation(() => ({
+    snapshot: {
+      generation: 1,
+      webBaseUrl: "https://drive.example.test",
+      configured: true,
+      localRoot: "/drive",
+      files: [{ localPath: "/drive/report.md", state }]
+    }
+  }))
+  mocks.stat.mockResolvedValue({ kind: "file", size: 123, version: "1" })
+  await expect(prepareWorkspaceFile("/drive/report.md")).rejects.toThrow("available only in the cloud")
+  expect(mocks.stat).not.toHaveBeenCalled()
+  expect(mocks.external).not.toHaveBeenCalled()
+})
+
+test("cloud placeholders do not bypass download preparation", async () => {
+  mocks.snapshot.mockImplementation(() => ({
+    snapshot: {
+      generation: 1,
+      webBaseUrl: "https://drive.example.test",
+      configured: true,
+      localRoot: "/drive",
+      files: []
+    }
+  }))
+  mocks.stat.mockResolvedValue({ kind: "file", size: 123, version: "1" })
+  mocks.prepare.mockResolvedValue(null)
+  expect(await prepareWorkspaceFile("/drive/report.md.yupcloud")).toBeNull()
+  expect(mocks.prepare).toHaveBeenCalled()
+  expect(mocks.stat).not.toHaveBeenCalled()
 })
 
 test("ordinary files keep the existing preparation flow", async () => {

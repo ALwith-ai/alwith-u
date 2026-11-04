@@ -1,5 +1,6 @@
 import { prepareDriveFile } from "@alwith/module-drive"
 import { driveFileWebUrl, isYuplinkName, parseYuplink } from "@alwith/module-drive/content"
+import { containsPath } from "@alwith/module-fs/core"
 import { confirm } from "@tauri-apps/plugin-dialog"
 import { toast } from "sonner"
 
@@ -7,6 +8,8 @@ import { openExternal } from "@/lib/open"
 
 import { drive } from "./controller"
 import { driveFileSystem } from "./filesystem"
+
+const maxEditorBytes = 16 * 1024 * 1024
 
 export interface WorkspaceFileHost {
   readFile: (path: string) => Promise<Uint8Array>
@@ -26,30 +29,55 @@ export async function prepareWorkspaceFile(path: string, host?: WorkspaceFileHos
   const generation = drive.getSnapshot().snapshot?.generation
   const checkProfile = (): void => {
     if (drive.getSnapshot().snapshot?.generation !== generation) {
-      throw new Error("Drive profile changed while opening the shortcut")
+      throw new Error("Drive profile changed while opening the file")
     }
   }
   const visitedPaths = new Set<string>()
   const visitedIds = new Set<string>()
   let redirected = false
   for (let hops = 0; hops < 16; hops++) {
-    const local = await prepareDriveFile(drive, path, {
-      maxEditorBytes: 16 * 1024 * 1024,
-      confirmDownload: async (name, bytes) => {
-        const accepted = await confirm(
-          `Download ${name} (${bytes} bytes)? Files larger than 16 MiB open in the system application.`,
-          {
-            title: "Drive"
-          }
-        )
-        checkProfile()
-        return accepted
-      },
-      openExternal: async (destination) => {
-        checkProfile()
-        await openExternal(destination)
+    const snapshot = drive.getSnapshot().snapshot
+    let availableLocally = false
+    if (
+      snapshot?.configured &&
+      containsPath(snapshot.localRoot, path) &&
+      !path.endsWith(".yupcloud") &&
+      !isYuplinkName(path)
+    ) {
+      const indexed = snapshot.files.find((file) => file.localPath === path)
+      if (indexed?.state === "forbidden" || indexed?.state === "cloudOnly")
+        throw new Error("This file is available only in the cloud")
+      // Local previews must not wait for synchronization or a potentially blocked index request.
+      const fs = await driveFileSystem(path)
+      const stat = await fs.stat(path)
+      checkProfile()
+      if (stat?.kind === "file") {
+        if (stat.size > maxEditorBytes) {
+          await openExternal(path)
+          return null
+        }
+        availableLocally = true
       }
-    })
+    }
+    const local = availableLocally
+      ? path
+      : await prepareDriveFile(drive, path, {
+          maxEditorBytes,
+          confirmDownload: async (name, bytes) => {
+            const accepted = await confirm(
+              `Download ${name} (${bytes} bytes)? Files larger than 16 MiB open in the system application.`,
+              {
+                title: "Drive"
+              }
+            )
+            checkProfile()
+            return accepted
+          },
+          openExternal: async (destination) => {
+            checkProfile()
+            await openExternal(destination)
+          }
+        })
     if (local === null) return null
     if (redirected || isYuplinkName(local)) checkProfile()
     if (!isYuplinkName(local)) {

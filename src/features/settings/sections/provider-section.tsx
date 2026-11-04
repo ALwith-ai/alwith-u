@@ -585,7 +585,7 @@ export function ProviderRow({
           </InputGroup>
         </Field>
         <Collapsible className="space-y-2">
-          <CollapsibleTrigger render={<Button variant="ghost" size="sm" className="group px-2.5" />}>
+          <CollapsibleTrigger className="group inline-flex items-center gap-1 bg-none! p-0 text-sm leading-snug font-medium">
             {t("provider.baseUrl")}
             <ChevronDownIcon
               className="size-4 transition-transform group-aria-expanded:rotate-180"
