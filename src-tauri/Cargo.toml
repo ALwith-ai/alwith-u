@@ -24,7 +24,7 @@ alwith-browser = { path = "../node_modules/@alwith/module-browser/rust" }
 alwith-mobile = { path = "../node_modules/@alwith/module-mobile/rust", features = ["tauri"] }
 atlas-tauri = { version = "0.1", features = ["specta"] }
 alwith-module-store = { path = "../node_modules/@alwith/module-store/rust", features = ["tauri"] }
-alwith-enterprise-core = { git = "https://ai-gitlab.finture.id/alwith/alwith-enterprise-gateway.git", rev = "8b147dae20fbc1c2a5a775c2cd9e967c64430589" }
+alwith-enterprise-client = { path = "../node_modules/@alwith/enterprise-client/rust" }
 alwith-auth-client = { path = "../node_modules/@alwith/module-auth/rust", features = ["tauri"] }
 alwith-native-client = { path = "../node_modules/@alwith/native-kit/rust" }
 alwith-computer = { path = "../node_modules/@alwith/module-computer/rust" }

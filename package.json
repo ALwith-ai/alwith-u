@@ -28,6 +28,7 @@
   "dependencies": {
     "@agentclientprotocol/sdk": "^2.4.0",
     "@alwith/api": "~0.5.4",
+    "@alwith/enterprise-client": "~0.5.0",
     "@alwith/module-auth": "~0.5.14",
     "@alwith/module-browser": "^0.5.1",
     "@alwith/module-chat": "^0.5.28",
@@ -117,6 +118,7 @@
     "@alwith/native-computer": "^0.5.4",
     "@alwith/native-drive": "^0.5.1",
     "@alwith/native-editor": "0.5.1",
+    "@alwith/native-enterprise": "~0.5.0",
     "@alwith/native-extension": "^0.5.1",
     "@alwith/native-fs": "^0.5.1",
     "@alwith/native-gamepad": "^0.5.1",

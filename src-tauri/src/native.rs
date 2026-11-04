@@ -40,6 +40,7 @@ impl Native {
             "drive",
             "extension",
             "device",
+            "enterprise",
         ] {
             alwith_native_client::Library::module(module).map_err(|error| {
                 format!("Cannot load native module '{module}' from {}: {error}", directory.display())

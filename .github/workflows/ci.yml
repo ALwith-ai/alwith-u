@@ -45,10 +45,6 @@ jobs:
       # Cargo resolves alwith-api from node_modules/@alwith/api/rust, so the npm
       # install must precede anything that reads the Cargo manifest.
       - run: bun install --frozen-lockfile
-      - name: Configure enterprise source access
-        run: bun scripts/enterprise-git-auth.ts
-        env:
-          ENTERPRISE_GIT_READ_TOKEN: ${{ secrets.ENTERPRISE_GIT_READ_TOKEN }}
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri

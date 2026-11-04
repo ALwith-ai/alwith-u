@@ -1,31 +1,34 @@
-//! Application integration for the shared enterprise source library.
+//! Application integration for the shared enterprise native module.
 use super::*;
-use alwith_enterprise_core::{Host, Protocol};
+use alwith_enterprise_client::{EnterpriseClient, Protocol};
 use std::sync::Arc;
 use tauri::Emitter;
 use tokio::sync::{Mutex, OnceCell};
 
-fn enterprise_error(error: impl std::fmt::Display) -> Value {
-    json!({"message":error.to_string()})
-}
-
 #[derive(Default)]
 pub(crate) struct Enterprise {
-    host: OnceCell<Arc<Host>>,
+    host: OnceCell<Arc<EnterpriseClient>>,
+    closing: Arc<std::sync::atomic::AtomicBool>,
     binding: Mutex<Option<(managed::Account, u64, u64, String)>>,
     pub revision: std::sync::atomic::AtomicU64,
 }
 
 impl Enterprise {
-    async fn host(&self, app: &AppHandle) -> Result<&Arc<Host>, Value> {
+    async fn host(&self, app: &AppHandle) -> Result<&Arc<EnterpriseClient>, Value> {
         self.host.get_or_try_init(|| async {
             let path = app.path().app_data_dir().map_err(|_| json!({"message":"Enterprise storage unavailable"}))?.join("enterprise-settings.json");
-            let host = Arc::new(Host::new(path));
-            let mut events = host.subscribe();
+            let directory = match crate::native::development_directory() {
+                Some(directory) => directory,
+                None => app.path().resource_dir().map_err(|_| json!({"message":"Enterprise resources unavailable"}))?.join("native"),
+            };
+            let host = Arc::new(EnterpriseClient::open(&directory, &path).await?);
+            let events = host.clone();
+            let closing = self.closing.clone();
             let app = app.clone();
             tauri::async_runtime::spawn(async move {
                 loop {
-                    match events.recv().await {
+                    match events.next_event().await {
+                        Ok(Value::Null) => break,
                         Ok(value) => {
                             if value["type"] == "enterpriseRequestTools" {
                                 log::info!("Enterprise request tools: model={} tools={} remoteReferenceTypes={}", value["model"], value["tools"], value["remoteReferenceTypes"]);
@@ -33,14 +36,20 @@ impl Enterprise {
                             }
                             if let Err(error) = app.emit("enterprise:event", value) { log::error!("Enterprise event delivery failed: {error}"); }
                         }
-                        Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {
+                        Err(error) => {
+                            if closing.load(std::sync::atomic::Ordering::Acquire) {
+                                break;
+                            }
+                            log::error!("Enterprise event stream interrupted: {error}");
                             let providers = app.state::<Providers>();
                             let binding = providers.enterprise.binding.lock().await;
                             if let Some((account, generation, _, _)) = binding.as_ref() {
                                 let _ = app.emit("enterprise:event", json!({"type":"enterpriseEventStreamInterrupted","accountId":account.user_uuid,"generation":generation}));
                             }
+                            if error["kind"] != "event_lagged" {
+                                break;
+                            }
                         }
-                        Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
                     }
                 }
             });
@@ -49,8 +58,9 @@ impl Enterprise {
     }
 
     pub async fn close(&self) -> Result<(), String> {
+        self.closing.store(true, std::sync::atomic::Ordering::Release);
         if let Some(host) = self.host.get() {
-            host.close().await?;
+            host.close().await.map_err(|error| error.to_string())?;
         }
         Ok(())
     }
@@ -80,19 +90,13 @@ impl Enterprise {
         &self, app: &AppHandle, generation: u64, mut provider: CustomProvider,
     ) -> Result<Option<CustomProvider>, Value> {
         let client = self.host(app).await?;
-        let account = client.account(generation).await.map_err(enterprise_error)?;
-        account.ensure().await.map_err(enterprise_error)?;
-        let status = client.status(generation).await.map_err(enterprise_error)?;
+        let status = client.ensure(generation).await?;
         if status["automatic_renewal"] != true {
             return Ok(None);
         }
         let relay = client.relay(generation, provider.base_url, Protocol::Responses).await?;
-        provider.base_url =
-            relay["baseUrl"].as_str().ok_or_else(|| json!({"message":"Invalid enterprise relay URL"}))?.to_owned();
-        provider.api_key = relay["apiKey"]
-            .as_str()
-            .ok_or_else(|| json!({"message":"Invalid enterprise relay capability"}))?
-            .to_owned();
+        provider.base_url = relay.base_url;
+        provider.api_key = relay.api_key;
         Ok(Some(provider))
     }
 
@@ -148,7 +152,7 @@ impl Enterprise {
         Ok(())
     }
 
-    async fn current(&self, app: &AppHandle) -> Result<(Arc<Host>, u64), Value> {
+    async fn current(&self, app: &AppHandle) -> Result<(Arc<EnterpriseClient>, u64), Value> {
         let providers = app.state::<Providers>();
         let account = providers.managed.gate.lock().unwrap().account.clone();
         let binding = self.binding.lock().await;
@@ -170,7 +174,7 @@ pub async fn enterprise_status(window: tauri::WebviewWindow) -> Result<Value, Va
         return Ok(json!({"automatic_renewal":false,"requires_login":false,"error":null}));
     }
     let (client, generation) = providers.enterprise.current(app).await?;
-    client.status(generation).await.map_err(enterprise_error)
+    client.status(generation).await
 }
 
 #[tauri3_specta::command]
@@ -184,7 +188,7 @@ pub async fn enterprise_begin(window: tauri::WebviewWindow, generation: u64) -> 
     if generation != current_generation {
         return Err(json!({"message":"Enterprise account changed"}));
     }
-    client.begin_browser(generation).await.map_err(enterprise_error)
+    client.begin_browser(generation).await
 }
 
 #[tauri3_specta::command]
@@ -198,7 +202,7 @@ pub async fn enterprise_cancel(window: tauri::WebviewWindow, generation: u64, st
     if generation != current_generation {
         return Err(json!({"message":"Enterprise account changed"}));
     }
-    client.cancel(generation, &state).await.map_err(enterprise_error)
+    client.cancel(generation, state).await
 }
 
 #[tauri3_specta::command]

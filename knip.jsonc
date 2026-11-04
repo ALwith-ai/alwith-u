@@ -11,6 +11,8 @@
   ],
   "project": ["src/**/*.{ts,tsx,css,less,mdx}", "scripts/**/*.ts"],
   "ignoreDependencies": [
+    // Rust-only transport consumed by src-tauri/Cargo.toml.
+    "@alwith/enterprise-client",
     // Bundled into the app by scripts/stage.ts from the pinned package versions
     "@openai/codex",
     "@alwith/module-mobile",

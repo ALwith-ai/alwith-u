@@ -51,14 +51,13 @@ Install the candidate's dependencies first. This development override does not
 change U's production dependency manifest or lockfile.
 
 
-### Enterprise source builds
+### Enterprise native module
 
-The enterprise integration is compiled from the Git commit pinned in
-`src-tauri/Cargo.toml` and `Cargo.lock`. Local builds use your Git credential
-helper to read the enterprise repository. No enterprise npm package or separately
-staged native library is needed.
+Enterprise authentication and gateway access use `@alwith/enterprise-client`
+and the independently built `@alwith/native-enterprise` platform artifacts.
+`bun run stage` verifies and copies the native library and its license notices;
+release builds sign the staged macOS library with the application's identity.
 
-Desktop CI builds require the `ENTERPRISE_GIT_READ_TOKEN` Actions secret, with
-`read_repository` access to the pinned enterprise source project. The build
-helper supplies this credential only to that Git host. Configure this secret in
-repository settings; do not put it in the Cargo URL or source files.
+Install dependencies before running Cargo: the Rust transport comes from
+`node_modules/@alwith/enterprise-client/rust`. Application builds require no
+access to the private enterprise implementation repository.
