@@ -11,3 +11,5 @@ export default meta
 export const EqualPanels = { ...source.EqualPanels, name: "等宽面板" }
 export const ResizeBoundaries = { ...source.ResizeBoundaries, name: "面板尺寸边界" }
 export const WindowResize = { ...source.WindowResize, name: "调整窗口大小" }
+
+export const CommentDrawerOverlay = { ...source.CommentDrawerOverlay, name: "评论收起占位，展开覆盖" }

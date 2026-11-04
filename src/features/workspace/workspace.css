@@ -83,6 +83,24 @@
   min-width: 0;
   min-height: 0;
 }
+.file-workspace-editor {
+  display: flex;
+}
+.file-workspace-editor > .alwith-editor {
+  flex: 1;
+  overflow: hidden;
+}
+/* Reserve the rail's space while the expanded drawer overlays the preview. */
+.file-workspace-editor > [data-testid="comment-rail"] {
+  position: static;
+  flex-shrink: 0;
+}
+.file-workspace-editor:has(> [data-testid="comment-drawer"]) {
+  padding-right: 32px;
+}
+.file-workspace-editor > [data-testid="comment-drawer"] {
+  max-width: 100%;
+}
 .file-workspace-panel {
   --separator-border: var(--border);
   --focus-border: var(--ring);
