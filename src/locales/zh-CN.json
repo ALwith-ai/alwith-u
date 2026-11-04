@@ -124,6 +124,7 @@
     "chooseFolder": "选择文件夹"
   },
   "chat": {
+    "accountCreditError": "账户额度不足，请充值。",
     "filePreview": {
       "readOnly": "只读预览",
       "reveal": "在文件管理器中显示",

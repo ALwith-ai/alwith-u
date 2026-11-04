@@ -19,6 +19,7 @@ import { useTheme } from "@/components/theme-provider"
 import { computerActionKey, privateComputerAction } from "@/features/computer/action-label"
 import { client } from "@/lib/client"
 
+import { AccountCreditError, isAccountCreditError } from "./account-credit-error"
 import { ForkOriginDivider, ForkTurnButton } from "./chat-branches"
 import { useChatActivityHost } from "./codex/activity-host"
 import {
@@ -37,7 +38,7 @@ function reportError(error: unknown) {
 }
 
 /** U's host for the package conversation: activity host, theme, tool labels, files and errors. */
-export function useChatHost(sessionId?: string): ConversationHost {
+export function useChatHost(sessionId?: string, model?: string | null): ConversationHost {
   const activity = useChatActivityHost(sessionId)
   const { t } = useTranslation()
   const { resolvedTheme } = useTheme()
@@ -45,6 +46,7 @@ export function useChatHost(sessionId?: string): ConversationHost {
     () => ({
       ...activity,
       theme: resolvedTheme,
+      renderTurnError: (message: string) => (isAccountCreditError(model, message) ? <AccountCreditError /> : undefined),
       // Computer-use tools are private actions; show what they did, not the tool name.
       toolBlock: (block) => {
         const action = privateComputerAction(block.name) ?? privateComputerAction(block.title)
@@ -64,7 +66,7 @@ export function useChatHost(sessionId?: string): ConversationHost {
       reportError,
       writeTextAttachment: (name, text) => commands.chatWriteTextAttachment({ name, text })
     }),
-    [activity, resolvedTheme, t, sessionId]
+    [activity, resolvedTheme, t, sessionId, model]
   )
 }
 

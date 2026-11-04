@@ -1,5 +1,5 @@
 import type { Session } from "@alwith/module-chat/client"
-import { nativeTurnId } from "@alwith/module-chat/client"
+import { isSelectOption, nativeTurnId } from "@alwith/module-chat/client"
 import { ConversationView } from "@alwith/module-chat/conversation"
 import { type ReactNode, type RefObject, useCallback, useRef } from "react"
 import { useTranslation } from "react-i18next"
@@ -46,7 +46,11 @@ function Conversation({
   rootRef
 }: ChatViewProps & { rootRef: RefObject<HTMLDivElement | null> }) {
   const { t } = useTranslation()
-  const host = useChatHost(session.id)
+  const modelOption = session.configOptions.find(
+    (option) => isSelectOption(option) && (option.category === "model" || option.configId === "model")
+  )
+  const model = modelOption && isSelectOption(modelOption) ? modelOption.currentValue : null
+  const host = useChatHost(session.id, model)
   const timeline = useTimelineSlots()
   const lastNativeItem = session.items.findLast((item) => nativeTurnId(item) !== null)
   return (
