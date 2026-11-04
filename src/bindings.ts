@@ -61,7 +61,8 @@ export const commands = {
   deviceAttachments: (): Promise<AttachmentInfo_Serialize[]> =>
     __t3Invoke<AttachmentInfo_Serialize[]>("device_attachments"),
   /**
-   *  The panel attaches on behalf of its conversation so the agent's tools see the same device.
+   *  The panel opens a device for its conversation so the agent's tools see the same one; a device another
+   *  conversation holds moves to this one.
    */
   deviceAttach: (args: {
     sessionId: string
@@ -331,6 +332,13 @@ export const commands = {
   bridgeTrustedRevoke: (args: { deviceId: string }): Promise<null> => __t3Invoke<null>("bridge_trusted_revoke", args),
   providersAccountBind: (args: { account: Account }): Promise<number> =>
     __t3Invoke<number>("providers_account_bind", args),
+  enterpriseStatus: (): Promise<Value> => __t3Invoke<Value>("enterprise_status"),
+  enterpriseBegin: (args: { generation: number }): Promise<Value> => __t3Invoke<Value>("enterprise_begin", args),
+  enterpriseCancel: (args: { generation: number; state: string }): Promise<null> =>
+    __t3Invoke<null>("enterprise_cancel", args),
+  enterpriseUpdateAccount: (args: { generation: number; requestId: string; accessToken: string }): Promise<null> =>
+    __t3Invoke<null>("enterprise_update_account", args),
+  enterpriseLogout: (args: { generation: number }): Promise<null> => __t3Invoke<null>("enterprise_logout", args),
   providersRefreshManaged: (args: { generation: number; accessToken: string }): Promise<Snapshot_Serialize> =>
     __t3Invoke<Snapshot_Serialize>("providers_refresh_managed", args),
   providersClearManaged: (): Promise<null> => __t3Invoke<null>("providers_clear_managed"),
@@ -493,6 +501,11 @@ export type CommandErrors = {
   bridgeTrustedList: string
   bridgeTrustedRevoke: string
   providersAccountBind: string
+  enterpriseStatus: Value
+  enterpriseBegin: Value
+  enterpriseCancel: Value
+  enterpriseUpdateAccount: Value
+  enterpriseLogout: Value
   providersRefreshManaged: Value
   providersClearManaged: string
   providersRead: string

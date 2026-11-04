@@ -4,7 +4,12 @@ use std::sync::Mutex;
 use std::time::Duration;
 
 pub const ID: &str = "litellm";
+pub const ENTERPRISE_ID: &str = "finture-enterprise";
 const MODEL_PREFIX: &str = "gateway:litellm:";
+pub(super) const ENTERPRISE_PREFIX: &str = "gateway:finture-enterprise:";
+fn account_model(model: &str) -> bool {
+    model.starts_with(MODEL_PREFIX) || model.starts_with(ENTERPRISE_PREFIX)
+}
 
 #[derive(Clone, Serialize, specta::Type, tauri3_specta::Event)]
 #[serde(rename_all = "camelCase")]
@@ -17,6 +22,13 @@ pub struct RevokedSessions {
 pub(super) struct Cache {
     pub account: Account,
     pub provider: Option<CustomProvider>,
+    #[serde(skip)]
+    pub enterprise: Option<CustomProvider>,
+}
+impl Cache {
+    pub fn providers(&self) -> impl Iterator<Item = &CustomProvider> {
+        self.provider.iter().chain(self.enterprise.iter())
+    }
 }
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, specta::Type)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -38,6 +50,7 @@ pub(super) struct Route {
     pub model: String,
     pub agent: String,
     pub generation: u64,
+    pub revoked: bool,
 }
 impl Gate {
     fn invalidate(&mut self) -> Result<(), String> {
@@ -48,13 +61,16 @@ impl Gate {
     }
     fn check_selection(&self, requested: Option<&str>, session: Option<&str>) -> Result<(), String> {
         if let Some(model) = requested
-            && model.starts_with(MODEL_PREFIX)
+            && account_model(model)
             && (self.account.is_none() || !self.models.contains(model))
         {
             return Err("The selected ALwith account model is unavailable".into());
         }
         if let Some(route) = session.and_then(|session| self.routes.get(session))
-            && (self.account.is_none() || route.generation != self.generation || !self.models.contains(&route.model))
+            && (route.revoked
+                || self.account.is_none()
+                || route.generation != self.generation
+                || !self.models.contains(&route.model))
         {
             return Err("The ALwith account changed. Select a model before sending".into());
         }
@@ -64,12 +80,15 @@ impl Gate {
 fn model_ids(provider: Option<&CustomProvider>) -> BTreeSet<String> {
     provider
         .into_iter()
-        .flat_map(|provider| provider.models.iter())
-        .map(|model| {
+        .flat_map(|provider| provider.models.iter().map(move |model| (provider, model)))
+        .map(|(provider, model)| {
             let encoded: String = url_model_id(&model.api_id);
-            format!("{MODEL_PREFIX}{encoded}")
+            format!("gateway:{}:{encoded}", provider.id)
         })
         .collect()
+}
+fn account_model_ids(cache: Option<&Cache>) -> BTreeSet<String> {
+    cache.into_iter().flat_map(Cache::providers).flat_map(|provider| model_ids(Some(provider))).collect()
 }
 fn url_model_id(id: &str) -> String {
     // encodeURIComponent's unescaped bytes, matching gatewayModelId in the adapter.
@@ -95,6 +114,7 @@ pub(super) struct State {
 struct IssuedProvider {
     name: String,
     base_url: String,
+    #[serde(default)]
     api_key: String,
     #[serde(default)]
     hidden: bool,
@@ -109,13 +129,22 @@ struct IssuedModel {
 }
 
 pub(super) fn parse_catalog(body: &str) -> Result<Option<CustomProvider>, String> {
+    parse_provider(body, ID)
+}
+pub(super) fn parse_enterprise_catalog(body: &str) -> Result<Option<CustomProvider>, String> {
+    parse_provider(body, ENTERPRISE_ID)
+}
+fn parse_provider(body: &str, id: &str) -> Result<Option<CustomProvider>, String> {
     let rows: Vec<Value> = serde_json::from_str(body).map_err(|_| "Invalid ALwith provider response")?;
-    let mut selected = rows.into_iter().filter(|row| row["provider_id"] == ID);
+    let mut selected = rows.into_iter().filter(|row| row["provider_id"] == id);
     let Some(value) = selected.next() else { return Ok(None) };
     if selected.next().is_some() {
         return Err("Duplicate ALwith provider".into());
     }
-    if value["api_key"].as_str().is_none_or(|key| key.trim().is_empty()) {
+    if id == ENTERPRISE_ID && value["auth_type"] != "enterprise_session" {
+        return Err("Invalid enterprise authentication type".into());
+    }
+    if id != ENTERPRISE_ID && value["api_key"].as_str().is_none_or(|key| key.trim().is_empty()) {
         return Ok(None);
     }
     let provider: IssuedProvider = serde_json::from_value(value).map_err(|_| "Invalid ALwith provider metadata")?;
@@ -149,9 +178,13 @@ pub(super) fn parse_catalog(body: &str) -> Result<Option<CustomProvider>, String
         return Err("Missing ALwith provider name".into());
     }
     Ok(Some(CustomProvider {
-        id: ID.into(),
+        id: id.into(),
         name: provider.name,
-        base_url: responses_base_url(&provider.base_url)?,
+        base_url: if id == ENTERPRISE_ID {
+            provider.base_url.trim_end_matches('/').into()
+        } else {
+            responses_base_url(&provider.base_url)?
+        },
         models,
         api_key: provider.api_key,
     }))
@@ -213,11 +246,8 @@ pub async fn providers_account_bind(window: tauri::WebviewWindow, account: Accou
         gate.generation
     };
     inner.managed_active = inner.saved.managed.as_ref().is_some_and(|cache| cache.account == account);
-    state.managed.gate.lock().unwrap().models = if inner.managed_active {
-        model_ids(inner.saved.managed.as_ref().and_then(|cache| cache.provider.as_ref()))
-    } else {
-        BTreeSet::new()
-    };
+    state.managed.gate.lock().unwrap().models =
+        if inner.managed_active { account_model_ids(inner.saved.managed.as_ref()) } else { BTreeSet::new() };
     inner.applied_revision = None;
     if let Err(error) = inner.snapshot().emit(app) {
         log::error!("Cannot emit event: {error}");
@@ -243,7 +273,31 @@ pub async fn providers_refresh_managed(
     if access_token.trim().is_empty() {
         return Err(json!({"message":"Missing ALwith access token"}));
     }
-    let result = fetch_catalog(&account.api_base_url, &access_token).await;
+    let enterprise_revision = state.enterprise.revision.load(std::sync::atomic::Ordering::SeqCst);
+    let native = state.enterprise.prepare(app, &account, generation, access_token.clone()).await;
+    let enterprise_generation = native.as_ref().ok().copied();
+    let body = fetch_catalog(&account.api_base_url, &access_token).await;
+    let result = body
+        .as_ref()
+        .map_err(Clone::clone)
+        .and_then(|body| parse_catalog(body).map_err(|message| json!({"message":message})));
+    let enterprise = match (&body, native) {
+        (Ok(body), Ok(native_generation)) => match parse_enterprise_catalog(body) {
+            Ok(Some(provider)) => state.enterprise.provider(app, native_generation, provider).await,
+            Ok(None) => Ok(None),
+            Err(message) => Err(json!({"message":message})),
+        },
+        (_, Err(error)) => Err(error),
+        (Err(_), _) => Ok(None),
+    };
+    let enterprise = match enterprise {
+        Ok(provider) => provider,
+        Err(_) => {
+            use tauri::Emitter;
+            let _ = app.emit("enterprise:event", json!({"type":"enterpriseConfigurationFailed","generation":enterprise_generation,"accountId":account.user_uuid,"error":"enterprise_configuration_failed"}));
+            None
+        }
+    };
     let mut inner = state.inner.lock().await;
     {
         let mut gate = state.managed.gate.lock().unwrap();
@@ -261,11 +315,22 @@ pub async fn providers_refresh_managed(
             }
         };
         let mut next = inner.saved.clone();
-        next.managed = Some(Cache { account, provider });
+        let enterprise = if state.enterprise.revision.load(std::sync::atomic::Ordering::SeqCst) == enterprise_revision {
+            enterprise
+        } else {
+            None
+        };
+        next.managed = Some(Cache { account, provider, enterprise });
         next.revision = next.revision.checked_add(1).ok_or_else(|| json!({"message":"Provider revision exhausted"}))?;
         persist(&state.path, &next)
             .map_err(|error| json!({"message": format!("Cannot save ALwith model configuration: {error}")}))?;
-        gate.models = model_ids(next.managed.as_ref().and_then(|cache| cache.provider.as_ref()));
+        gate.models = account_model_ids(next.managed.as_ref());
+        let models = gate.models.clone();
+        for route in gate.routes.values_mut() {
+            if route.model.starts_with(ENTERPRISE_PREFIX) && !models.contains(&route.model) {
+                route.revoked = true;
+            }
+        }
         let _ = RevokedSessions {
             session_ids: gate
                 .routes
@@ -284,11 +349,12 @@ pub async fn providers_refresh_managed(
         log::error!("Cannot emit event: {error}");
     }
     drop(inner);
+    state.enterprise.cleanup_revoked(app).await?;
     schedule_apply(app);
     Ok(snapshot)
 }
 
-async fn fetch_catalog(base: &str, token: &str) -> Result<Option<CustomProvider>, Value> {
+async fn fetch_catalog(base: &str, token: &str) -> Result<String, Value> {
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(20))
         .redirect(reqwest::redirect::Policy::none())
@@ -304,7 +370,7 @@ async fn fetch_catalog(base: &str, token: &str) -> Result<Option<CustomProvider>
         return Err(json!({"status":response.status().as_u16(),"message":"ALwith configuration request rejected"}));
     }
     let body = response.text().await.map_err(|_| json!({"message":"Cannot read ALwith configuration response"}))?;
-    parse_catalog(&body).map_err(|message| json!({"message":message}))
+    Ok(body)
 }
 
 #[tauri3_specta::command]
@@ -323,6 +389,7 @@ pub(super) async fn clear(app: &AppHandle) -> Result<(), String> {
             log::error!("Cannot emit event: {error}");
         }
     }
+    state.enterprise.clear().await.map_err(|_| "Enterprise cleanup failed")?;
     let _transition = tokio::time::timeout(Duration::from_secs(10), state.managed.transition.lock())
         .await
         .map_err(|_| "ALwith account transition did not settle; cleanup is incomplete")?;
@@ -424,19 +491,21 @@ async fn cleanup_inner(app: &AppHandle) -> Result<(), String> {
     for target in targets {
         let live = client.agents().await.map_err(|error| format!("ALwith Runtime cleanup failed ({})", error.code))?;
         if live.iter().any(|agent| agent["agentId"] == target) {
-            let removed = tokio::time::timeout(
-                Duration::from_secs(10),
-                client.acp_request(
-                    &target,
-                    "providers/disable",
-                    json!({"providerId":"openai","_meta":{"codex":{"id":ID}}}),
-                    None,
-                    None,
-                ),
-            )
-            .await;
-            if !matches!(removed, Ok(Ok(_))) && !stop_dedicated(&client, &target).await {
-                return Err("ALwith provider cleanup is incomplete; wait for active sessions and retry".into());
+            for id in [ID, ENTERPRISE_ID] {
+                let removed = tokio::time::timeout(
+                    Duration::from_secs(10),
+                    client.acp_request(
+                        &target,
+                        "providers/disable",
+                        json!({"providerId":"openai","_meta":{"codex":{"id":id}}}),
+                        None,
+                        None,
+                    ),
+                )
+                .await;
+                if !matches!(removed, Ok(Ok(_))) && !stop_dedicated(&client, &target).await {
+                    return Err("ALwith provider cleanup is incomplete; wait for active sessions and retry".into());
+                }
             }
         }
         // A stale Runtime cannot acknowledge cleanup for its replacement.
@@ -447,6 +516,7 @@ async fn cleanup_inner(app: &AppHandle) -> Result<(), String> {
         if target == "codex" {
             let mut inner = state.inner.lock().await;
             inner.applied.remove(ID);
+            inner.applied.remove(ENTERPRISE_ID);
             inner.applied_revision = None;
         }
     }
@@ -481,10 +551,11 @@ pub(crate) fn observe(app: &AppHandle, agent: &str, session: &str, value: &Value
     let Some(model) = selected_model(value) else { return };
     let state = app.state::<Providers>();
     let mut gate = state.managed.gate.lock().unwrap();
-    if model.starts_with(MODEL_PREFIX) {
+    if account_model(model) {
         let generation = admitted_generation.unwrap_or(gate.generation);
         if admitted_generation.is_some() || !gate.routes.contains_key(session) {
-            gate.routes.insert(session.into(), Route { agent: agent.into(), generation, model: model.into() });
+            gate.routes
+                .insert(session.into(), Route { agent: agent.into(), generation, model: model.into(), revoked: false });
             if gate.account.is_none() || generation != gate.generation || !gate.models.contains(model) {
                 if let Err(error) = (RevokedSessions { session_ids: vec![session.into()] }).emit(app) {
                     log::error!("Cannot emit event: {error}");
@@ -662,6 +733,18 @@ fn check_request(gate: &Gate, method: &str, body: &Value) -> Result<(), String> 
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn enterprise_catalog_uses_issued_models_and_is_an_account_route() {
+        let body = json!([
+            {"provider_id":"litellm","name":"ALwith","base_url":"https://public.test","api_key":"personal","models":[{"api_id":"public","label":"Public"}]},
+            {"provider_id":"finture-enterprise","auth_type":"enterprise_session","name":"Finture","base_url":"https://enterprise.test","models":[{"api_id":"company","label":"Company"}]}
+        ]);
+        let enterprise = parse_enterprise_catalog(&body.to_string()).unwrap().unwrap();
+        assert_eq!(enterprise.id, "finture-enterprise");
+        assert_eq!(enterprise.models[0].api_id, "company");
+        let gate = Gate::default();
+        assert!(gate.check_selection(Some("gateway:finture-enterprise:company"), None).is_err());
+    }
 
     #[test]
     fn revoked_route_cannot_send_under_a_replacement_account() {
@@ -673,7 +756,7 @@ mod tests {
         gate.models.insert("gateway:litellm:m".into());
         gate.routes.insert(
             "session".into(),
-            Route { agent: "codex".into(), generation: 1, model: "gateway:litellm:m".into() },
+            Route { agent: "codex".into(), generation: 1, model: "gateway:litellm:m".into(), revoked: false },
         );
         assert!(gate.check_selection(None, Some("session")).is_ok());
         gate.invalidate().unwrap();
@@ -695,15 +778,18 @@ mod tests {
         };
         let model = "gateway:litellm:m";
         gate.models.insert(model.into());
-        gate.routes.insert("old".into(), Route { agent: "codex".into(), generation: 1, model: model.into() });
+        gate.routes
+            .insert("old".into(), Route { agent: "codex".into(), generation: 1, model: model.into(), revoked: false });
         assert!(gate.check_selection(Some(model), Some("old")).is_err());
     }
 
     #[test]
     fn execution_hints_cannot_bypass_revocation_and_explicit_selection_can_recover() {
         let mut gate = Gate::default();
-        gate.routes
-            .insert("old".into(), Route { agent: "codex".into(), generation: 0, model: "gateway:litellm:m".into() });
+        gate.routes.insert(
+            "old".into(),
+            Route { agent: "codex".into(), generation: 0, model: "gateway:litellm:m".into(), revoked: false },
+        );
         let body = json!({"sessionId":"old", "_meta":{"alwith":{"model":"gpt-native"}}});
         for method in [
             "prompt",
@@ -745,8 +831,10 @@ mod tests {
     #[test]
     fn explicit_resume_authorizes_only_a_valid_model_and_never_authorizes_prompt_metadata() {
         let mut gate = Gate::default();
-        gate.routes
-            .insert("old".into(), Route { agent: "codex".into(), generation: 0, model: "gateway:litellm:m".into() });
+        gate.routes.insert(
+            "old".into(),
+            Route { agent: "codex".into(), generation: 0, model: "gateway:litellm:m".into(), revoked: false },
+        );
         let body = json!({"sessionId":"old", "_meta":{"alwith":{"model":"gpt-native", "accountModelSelection":true}}});
         assert!(check_request(&gate, "session/resume", &body).is_ok());
         assert!(check_request(&gate, "session/prompt", &body).is_err());
@@ -764,8 +852,10 @@ mod tests {
     #[test]
     fn changing_effort_is_not_an_account_model_selection() {
         let mut gate = Gate::default();
-        gate.routes
-            .insert("old".into(), Route { agent: "codex".into(), generation: 0, model: "gateway:litellm:m".into() });
+        gate.routes.insert(
+            "old".into(),
+            Route { agent: "codex".into(), generation: 0, model: "gateway:litellm:m".into(), revoked: false },
+        );
         let body = json!({"sessionId":"old", "configId":"reasoning_effort", "value":"high"});
         assert!(check_request(&gate, "session/set_config_option", &body).is_err());
         assert!(!confirms_model("acpRequest", &json!({"method":"session/set_config_option", "params":body})));
@@ -795,9 +885,31 @@ mod tests {
         };
         gate.routes.insert(
             "session".into(),
-            Route { agent: "codex".into(), generation: 0, model: "gateway:litellm:removed".into() },
+            Route { agent: "codex".into(), generation: 0, model: "gateway:litellm:removed".into(), revoked: false },
         );
         assert!(gate.check_selection(None, Some("session")).is_err());
         assert!(gate.check_selection(Some("gateway:litellm:removed"), None).is_err());
+    }
+}
+
+#[cfg(test)]
+mod enterprise_regressions {
+    use super::*;
+    #[test]
+    fn revoked_enterprise_route_does_not_revive_when_catalog_returns() {
+        let model = "gateway:finture-enterprise:company";
+        let mut gate = Gate {
+            generation: 2,
+            account: Some(Account { api_base_url: "https://api.alwith.ai/service".into(), user_uuid: "alice".into() }),
+            ..Default::default()
+        };
+        gate.models.insert(model.into());
+        gate.routes.insert(
+            "enterprise".into(),
+            Route { agent: "codex".into(), model: model.into(), generation: 2, revoked: true },
+        );
+        assert!(gate.check_selection(None, Some("enterprise")).is_err());
+        assert!(gate.check_selection(None, Some("personal")).is_ok());
+        assert!(gate.check_selection(Some(model), None).is_ok());
     }
 }

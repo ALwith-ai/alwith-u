@@ -129,6 +129,8 @@ test("account-sourced providers are excluded from manual key configuration", () 
 
 test("account model classification follows the catalog source and exact provider ID", () => {
   expect(isAccountModel("gateway:litellm:model")).toBe(true)
+  expect(isAccountModel("gateway:finture-enterprise:company-model")).toBe(true)
+  expect(isAccountModel("gateway:finture-enterprise-other:company-model")).toBe(false)
   expect(isAccountModel("gateway:litellm-other:model")).toBe(false)
   expect(isAccountModel("gateway:deepseek:deepseek-flash")).toBe(false)
   expect(isAccountModel("gpt-6-sol")).toBe(false)

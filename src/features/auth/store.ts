@@ -21,8 +21,10 @@ import { create } from "zustand"
 
 import { commands } from "@/bindings"
 import { appEnv } from "@/lib/app-env"
+import i18n from "@/lib/i18n"
 import { openStore } from "@/lib/store"
 
+import { createEnterpriseEventHandler } from "./enterprise-events"
 import { createAccountTransition, createManagedProviders } from "./managed-providers"
 import { createProviderRefreshClient, serveProviderRefresh } from "./provider-refresh-bridge"
 
@@ -160,6 +162,23 @@ export function loginPlatform(response: LoginResponse): Promise<void> {
 
 /** Register listeners before restoring credentials; called once by each window bootstrap. */
 export async function initPlatformAuth(): Promise<void> {
+  if (isMain()) {
+    const handleEnterpriseEvent = createEnterpriseEventHandler({
+      account: () => usePlatformAuth.getState().user?.user_uuid ?? null,
+      status: () => commands.enterpriseStatus(),
+      renewAccount: async (generation, requestId) => {
+        await transport.request("/api/v1/me/profile", "GET")
+        await transport.authenticated((accessToken) =>
+          commands.enterpriseUpdateAccount({ generation, requestId, accessToken })
+        )
+      },
+      refreshModels: loadAccountProviders,
+      failed: () => toast.error(i18n.t("enterprise.error"))
+    })
+    await listen<unknown>("enterprise:event", ({ payload }) => {
+      void handleEnterpriseEvent(payload)
+    })
+  }
   await listen<AuthStateEvent>(STATE_EVENT, (event) => {
     for (const listener of stateListeners) listener(event.payload)
   })

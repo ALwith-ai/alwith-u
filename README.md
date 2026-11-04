@@ -49,3 +49,16 @@ CREATE_ALWITH_PATH=/absolute/path/to/create-alwith bun run test:scripts
 
 Install the candidate's dependencies first. This development override does not
 change U's production dependency manifest or lockfile.
+
+
+### Enterprise source builds
+
+The enterprise integration is compiled from the Git commit pinned in
+`src-tauri/Cargo.toml` and `Cargo.lock`. Local builds use your Git credential
+helper to read the enterprise repository. No enterprise npm package or separately
+staged native library is needed.
+
+Desktop CI builds require the `ENTERPRISE_GIT_READ_TOKEN` Actions secret, with
+`read_repository` access to the pinned enterprise source project. The build
+helper supplies this credential only to that Git host. Configure this secret in
+repository settings; do not put it in the Cargo URL or source files.

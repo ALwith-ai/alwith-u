@@ -1,6 +1,7 @@
 //! Application-owned provider credentials. Webviews receive only configured/region metadata.
 //! Independent provider changes apply under Runtime admission; busy session routing stays pinned.
 pub(crate) mod managed;
+pub(crate) mod enterprise;
 
 use alwith_api::{ResponseError, RuntimeClient};
 use serde::{Deserialize, Serialize};
@@ -89,6 +90,7 @@ struct Inner {
     error: Option<String>,
 }
 pub struct Providers {
+    pub(crate) enterprise: enterprise::Enterprise,
     managed: managed::State,
     auxiliary: tokio::sync::Mutex<BTreeMap<String, Inner>>,
     path: PathBuf,
@@ -139,6 +141,7 @@ impl Providers {
             Err(error) => return Err(error.into()),
         };
         Ok(Self {
+            enterprise: enterprise::Enterprise::default(),
             managed: managed::State::default(),
             auxiliary: tokio::sync::Mutex::new(BTreeMap::new()),
             path,
@@ -191,16 +194,17 @@ impl Inner {
                 .managed
                 .as_ref()
                 .filter(|_| self.managed_active)
-                .and_then(|cache| cache.provider.as_ref())
+                .into_iter()
+                .flat_map(managed::Cache::providers)
                 .map(|provider| {
-                    vec![PublicCustomProvider {
+                    PublicCustomProvider {
                         id: provider.id.clone(),
                         name: provider.name.clone(),
                         base_url: provider.base_url.clone(),
                         models: provider.models.clone(),
-                    }]
+                    }
                 })
-                .unwrap_or_default(),
+                .collect(),
             status: if self.error.is_some() {
                 "failed"
             } else if self.applied_revision == Some(self.saved.revision) {
@@ -614,7 +618,7 @@ pub async fn apply_locked(app: &AppHandle, client: &Arc<RuntimeClient>) -> Resul
         inner.applied_revision = None;
     }
     let resource_dir = app.path().resource_dir().map_err(|e| e.to_string())?;
-    if inner.managed_active && inner.saved.managed.as_ref().is_some_and(|cache| cache.provider.is_some()) {
+    if inner.managed_active && inner.saved.managed.as_ref().is_some_and(|cache| cache.providers().next().is_some()) {
         state.managed.gate.lock().unwrap().targets.insert("codex".into());
     }
     let outcome = reconcile(&mut inner, client, &resource_dir).await;
@@ -706,8 +710,9 @@ async fn reconcile_target(
                 .managed
                 .as_ref()
                 .filter(|_| inner.managed_active)
-                .and_then(|cache| cache.provider.as_ref())
-                .map(|provider| (managed::ID.to_string(), AppliedProvider::Custom(provider.clone()))),
+                .into_iter()
+                .flat_map(managed::Cache::providers)
+                .map(|provider| (provider.id.clone(), AppliedProvider::Custom(provider.clone()))),
         )
         .collect();
     // A revision without catalog changes does not need an idle boundary.
@@ -1588,6 +1593,7 @@ mod managed_tests {
     #[test]
     fn managed_cache_stays_private_and_user_edits_preserve_it() {
         let saved = Saved { managed: Some(managed::Cache {
+            enterprise: None,
             account: managed::Account { api_base_url: "https://api.alwith.ai/service".into(), user_uuid: "account-a".into() },
             provider: managed::parse_catalog(&json!([{"provider_id":"litellm","name":"ALwith","base_url":"https://gateway.test/v1","api_key":"private-model-key","hidden":false,"models":[{"api_id":"m","label":"Model"}]}]).to_string()).unwrap(),
         }), ..Saved::default() };

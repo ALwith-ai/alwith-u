@@ -99,6 +99,9 @@ pub fn prevent_exit(app: &AppHandle, code: Option<i32>) -> bool {
             if let Err(error) = crate::mobile::shutdown().await {
                 log::error!("Mobile shutdown failed: {error}");
             }
+            if let Err(error) = app.state::<crate::providers::Providers>().enterprise.close().await {
+                log::error!("Enterprise shutdown failed: {error}");
+            }
             app.state::<RuntimeState>().shutdown().await;
             app.exit(code.unwrap_or(0));
         });

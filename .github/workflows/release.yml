@@ -42,6 +42,10 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
+      - name: Configure enterprise source access
+        run: bun scripts/enterprise-git-auth.ts
+        env:
+          ENTERPRISE_GIT_READ_TOKEN: ${{ secrets.ENTERPRISE_GIT_READ_TOKEN }}
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
@@ -148,6 +152,10 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
+      - name: Configure enterprise source access
+        run: bun scripts/enterprise-git-auth.ts
+        env:
+          ENTERPRISE_GIT_READ_TOKEN: ${{ secrets.ENTERPRISE_GIT_READ_TOKEN }}
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri

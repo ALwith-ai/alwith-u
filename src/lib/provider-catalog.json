@@ -1,5 +1,12 @@
 [
   {
+    "id": "finture-enterprise",
+    "name": "Finture Enterprise",
+    "source": "account",
+    "models": [],
+    "catalog": "custom/models.json"
+  },
+  {
     "id": "litellm",
     "source": "account",
     "name": "ALwith",

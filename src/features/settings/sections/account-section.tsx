@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { logoutPlatform, usePlatformAuth } from "@/features/auth/store"
 import { PhoneLoginView } from "@/features/mobile/phone-login-view"
 
+import { EnterpriseSection } from "./enterprise-section"
 import { SettingGroup, SettingRow } from "./shared"
 
 export function AccountSection({ onOpenMobile }: { onOpenMobile: () => void }) {
@@ -16,6 +17,7 @@ export function AccountSection({ onOpenMobile }: { onOpenMobile: () => void }) {
   if (!user) return null
   return (
     <div className="space-y-6">
+      <EnterpriseSection />
       <SettingGroup>
         <SettingRow title={user.nickname} desc={user.login_email}>
           <Button
