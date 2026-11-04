@@ -1,3 +1,4 @@
+import { CONTRACT_VERSION } from "@alwith/module-drive"
 import type { DriveRequest, DriveResponse, Snapshot } from "@alwith/module-drive"
 import { act, cleanup, render, renderHook, screen, waitFor } from "@testing-library/react"
 import i18n from "i18next"
@@ -16,14 +17,16 @@ vi.mock("../controller", async () => {
   return { drive: createDriveController(transport), driveTransport: transport }
 })
 
+import { error as logError } from "@tauri-apps/plugin-log"
+
 import { DriveArchiveAction } from "../archive-action"
 import { useDriveContentHost } from "../content-host"
 import { drive } from "../controller"
-import { DriveStatus } from "../drive"
+import { DriveStatus, useDriveConnection } from "../drive"
 import { DriveIntegrations } from "../integrations"
 
 const snapshot: Snapshot = {
-  version: 1,
+  version: CONTRACT_VERSION,
   generation: 1,
   sequence: 0,
   configured: true,
@@ -82,6 +85,7 @@ afterEach(() => {
   cleanup()
   drive.dispose()
   snapshot.status = null
+  snapshot.error = null
   vi.clearAllMocks()
 })
 
@@ -147,4 +151,51 @@ test("session archive action waits for attachment before reading private session
   await act(() => drive.attach())
   await waitFor(() => expect(screen.getByRole("button")).not.toBeDisabled())
   expect(mock.error).not.toHaveBeenCalled()
+})
+
+test("startup errors stay in the status bar and do not open a notification", async () => {
+  snapshot.error = "Drive directory unavailable"
+  await drive.attach()
+  render(<DriveStatus />)
+  expect(screen.getByRole("button", { name: "YUP Drive" })).toHaveTextContent("Sync error")
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+  expect(mock.error).not.toHaveBeenCalled()
+})
+
+test("failed transfer list refresh is logged without a toast", async () => {
+  snapshot.status = {
+    state: { kind: "idle" },
+    pending: 0,
+    uploading: 0,
+    downloading: 0,
+    synced: 0,
+    failed: 1,
+    conflicts: [],
+    errors: [],
+    lastSyncAt: null,
+    pushConnected: false
+  }
+  const handle = mock.request.getMockImplementation()!
+  mock.request.mockImplementation((request) =>
+    request.type === "failedUploads" ? Promise.reject(new Error("Failure list unavailable")) : handle(request)
+  )
+  await drive.attach()
+  render(<DriveStatus />)
+  await waitFor(() => expect(logError).toHaveBeenCalledWith(expect.stringContaining("Failure list unavailable")))
+  expect(mock.error).not.toHaveBeenCalled()
+})
+
+test("background startup failure is logged without a toast", async () => {
+  vi.stubGlobal("isTauri", true)
+  const handle = mock.request.getMockImplementation()!
+  mock.request.mockImplementation((request) =>
+    request.type === "start" ? Promise.reject(new Error("Drive startup unavailable")) : handle(request)
+  )
+  try {
+    renderHook(() => useDriveConnection())
+    await waitFor(() => expect(logError).toHaveBeenCalledWith(expect.stringContaining("Drive startup unavailable")))
+    expect(mock.error).not.toHaveBeenCalled()
+  } finally {
+    vi.unstubAllGlobals()
+  }
 })
