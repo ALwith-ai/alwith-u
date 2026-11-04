@@ -344,7 +344,7 @@ dependencies = [
 
 [[package]]
 name = "alwith-u"
-version = "26.11.4"
+version = "26.11.5"
 dependencies = [
  "alwith-api",
  "alwith-auth",
