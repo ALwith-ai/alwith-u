@@ -144,6 +144,7 @@ impl ModelProxyDiagnostic {
                         | "NATIVE_NETWORK_AUTH_FAILED"
                         | "NATIVE_NETWORK_PROTOCOL_ERROR"
                         | "NATIVE_NETWORK_CANCELLED"
+                        | "NATIVE_NETWORK_BUSY"
                         | "ECONNRESET"
                         | "ECONNREFUSED"
                         | "ETIMEDOUT"
@@ -190,6 +191,8 @@ struct NativeNetworkDiagnostic {
     error_code: Option<String>,
     error_kind: Option<String>,
     os_error: Option<i32>,
+    active_requests: Option<u32>,
+    request_limit: Option<u32>,
 }
 impl NativeNetworkDiagnostic {
     fn valid(&self) -> bool {
@@ -209,7 +212,7 @@ impl NativeNetworkDiagnostic {
                 self.phase.as_str(),
                 "started" | "proxy_resolved" | "headers" | "completed" | "cancelled" | "failed"
             )
-            && matches!(self.stage.as_str(), "resolve_proxy" | "connect_upstream" | "read_response")
+            && matches!(self.stage.as_str(), "admit_request" | "resolve_proxy" | "connect_upstream" | "read_response")
             && matches!(self.route.as_str(), "unresolved" | "direct" | "proxy")
             && self.proxy_host.as_deref().is_none_or(host)
             && self.proxy_port.is_none_or(|port| port > 0)
@@ -230,10 +233,14 @@ impl NativeNetworkDiagnostic {
             })
             && self.status.is_none_or(|status| (100..=599).contains(&status))
             && self.close_code.is_none_or(|code| (1000..=4999).contains(&code))
-            && self
-                .error_kind
-                .as_deref()
-                .is_none_or(|kind| matches!(kind, "timeout" | "dns" | "connect" | "body" | "request" | "websocket"))
+            && self.error_kind.as_deref().is_none_or(|kind| {
+                matches!(kind, "capacity" | "timeout" | "dns" | "connect" | "body" | "request" | "websocket")
+            })
+            && match (self.active_requests, self.request_limit) {
+                (None, None) => true,
+                (Some(active), Some(limit)) => limit > 0 && limit <= 65536 && active <= limit,
+                _ => false,
+            }
             && self.error_code.as_deref().is_none_or(|code| {
                 matches!(
                     code,
@@ -243,6 +250,7 @@ impl NativeNetworkDiagnostic {
                         | "NATIVE_NETWORK_PROTOCOL_ERROR"
                         | "NATIVE_NETWORK_CANCELLED"
                         | "NATIVE_NETWORK_STREAM_FAILED"
+                        | "NATIVE_NETWORK_BUSY"
                         | "ETIMEDOUT"
                 )
             })
@@ -301,6 +309,7 @@ fn signature(message: &str) -> ErrorSignature {
         "NATIVE_NETWORK_AUTH_FAILED",
         "NATIVE_NETWORK_PROTOCOL_ERROR",
         "NATIVE_NETWORK_CANCELLED",
+        "NATIVE_NETWORK_BUSY",
         "ECONNRESET",
         "ECONNREFUSED",
         "ETIMEDOUT",
@@ -430,6 +439,7 @@ impl Event {
                                 | "NATIVE_NETWORK_AUTH_FAILED"
                                 | "NATIVE_NETWORK_PROTOCOL_ERROR"
                                 | "NATIVE_NETWORK_CANCELLED"
+                                | "NATIVE_NETWORK_BUSY"
                                 | "ECONNRESET"
                                 | "ECONNREFUSED"
                                 | "ETIMEDOUT"
