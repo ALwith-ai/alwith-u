@@ -172,7 +172,7 @@ export function EnterpriseSection() {
           ) : (
             <Button
               variant="outline"
-              disabled={busy || !account || status?.enabled === false}
+              disabled={busy || !account || (!error && status === null) || status?.enabled === false}
               onClick={() => (authorized ? setConfirm(true) : void run("login"))}
             >
               {busy && <Loader2 className="size-4 animate-spin" />}
