@@ -1,4 +1,5 @@
 interface ManagedHost {
+  validate: (userUuid: string) => Promise<void>
   bind: (userUuid: string) => Promise<number>
   refresh: (generation: number) => Promise<void>
   clear: () => Promise<void>
@@ -7,18 +8,27 @@ interface ManagedHost {
 /** Coalesce account refreshes without letting a previous login's response rejoin the current one. */
 export function createManagedProviders(host: ManagedHost) {
   let revision = 0
+  let validatedAccount: string | null = null
   let pending: { user: string; work: Promise<void> } | undefined
   let clearing: Promise<void> = Promise.resolve()
   function current(expected: number): void {
     if (revision !== expected) throw new Error("ALwith account changed during provider refresh")
   }
   return {
+    confirm(user: string): void {
+      validatedAccount = user
+    },
     refresh(user: string): Promise<void> {
       if (pending?.user === user) return pending.work
       const expected = ++revision
       const work = (async () => {
         await clearing
         current(expected)
+        if (validatedAccount !== user) {
+          await host.validate(user)
+          current(expected)
+          validatedAccount = user
+        }
         const generation = await host.bind(user)
         current(expected)
         await host.refresh(generation)
@@ -34,6 +44,7 @@ export function createManagedProviders(host: ManagedHost) {
     },
     clear(): Promise<void> {
       revision++
+      validatedAccount = null
       pending = undefined
       // Native invalidation must start immediately, not wait for a fetch it invalidates.
       clearing = host.clear()

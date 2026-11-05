@@ -59,6 +59,11 @@ const transport = createAuthTransport({
   }
 })
 const managedProviders = createManagedProviders({
+  validate: async (userUuid) => {
+    const profile = await transport.request<{ uuid: string }>("/api/v1/me/profile", "GET")
+    if (profile?.uuid !== userUuid || usePlatformAuth.getState().user?.user_uuid !== userUuid)
+      throw new Error("ALwith account changed during profile validation")
+  },
   bind: (userUuid) => commands.providersAccountBind({ account: { apiBaseUrl: API_BASE_URL, userUuid } }),
   refresh: async (generation) => {
     await transport.authenticated((accessToken) => commands.providersRefreshManaged({ generation, accessToken }))
@@ -67,9 +72,7 @@ const managedProviders = createManagedProviders({
     await commands.providersClearManaged()
   }
 })
-let validatedAccount: string | null = null
 async function clearAccountProviders(): Promise<void> {
-  validatedAccount = null
   try {
     await managedProviders.clear()
   } catch (error) {
@@ -79,7 +82,7 @@ async function clearAccountProviders(): Promise<void> {
 async function loadAccountProviders(): Promise<void> {
   if (!isMain()) throw new Error("ALwith model refresh belongs to the main window")
   const user = usePlatformAuth.getState().user
-  if (user?.user_uuid !== validatedAccount) throw new Error("ALwith account is not ready; retry shortly")
+  if (!user) throw new Error("Sign in to refresh ALwith models")
   await managedProviders.refresh(user.user_uuid)
 }
 function refreshAccountProviders(): void {
@@ -124,13 +127,15 @@ export const usePlatformAuth = create<AuthState & AuthActions>(
     loadProviders: () => {},
     clearProviders: () => {},
     onProfileRestored: () => {
-      validatedAccount = usePlatformAuth.getState().user?.user_uuid ?? null
+      const user = usePlatformAuth.getState().user
+      if (!user) throw new Error("ALwith profile restored without an account")
+      managedProviders.confirm(user.user_uuid)
       refreshAccountProviders()
     },
     clearAccountConversation: async () => {},
     onSignedIn: (user, source) => {
       if (source === "login") {
-        validatedAccount = user.user_uuid
+        managedProviders.confirm(user.user_uuid)
         refreshAccountProviders()
       }
     },

@@ -1,4 +1,4 @@
-import { expect, test } from "vitest"
+import { expect, test, vi } from "vitest"
 
 import { createAccountTransition, createManagedProviders } from "../managed-providers"
 
@@ -15,6 +15,7 @@ test("same-account refreshes share one request and logout invalidates its result
   let requests = 0
   let cleared = false
   const controller = createManagedProviders({
+    validate: async () => {},
     bind: () => Promise.resolve(1),
     refresh: async () => {
       requests++
@@ -41,6 +42,7 @@ test("refresh after account replacement never joins the previous account request
   const owners: string[] = []
   let generation = 0
   const controller = createManagedProviders({
+    validate: async () => {},
     bind: (owner: string) => {
       owners.push(owner)
       return Promise.resolve(++generation)
@@ -51,7 +53,7 @@ test("refresh after account replacement never joins the previous account request
     clear: async () => {}
   })
   const old = controller.refresh("account-a").catch((error: unknown) => error)
-  await Promise.resolve()
+  await vi.waitFor(() => expect(owners).toEqual(["account-a"]))
   await controller.clear()
   await controller.refresh("account-b")
   pending.resolve()
@@ -86,4 +88,23 @@ test("logout waits for an in-flight login and the next login runs after a failed
   await Promise.all([login, failed, next])
   expect(writes).toEqual(["login-a", "logout", "login-b"])
   expect(identity).toBe("b")
+})
+
+test("logout during profile validation prevents binding and requires validation again", async () => {
+  const pending = deferred<void>()
+  const validate = vi.fn().mockReturnValueOnce(pending.promise).mockResolvedValue(undefined)
+  const bind = vi.fn().mockResolvedValue(1)
+  const refresh = vi.fn().mockResolvedValue(undefined)
+  const controller = createManagedProviders({ validate, bind, refresh, clear: async () => {} })
+  const first = controller.refresh("account-a")
+  const failed = expect(first).rejects.toThrow(/changed/i)
+  await vi.waitFor(() => expect(validate).toHaveBeenCalledOnce())
+  await controller.clear()
+  pending.resolve()
+  await failed
+  expect(bind).not.toHaveBeenCalled()
+  await controller.refresh("account-a")
+  expect(validate).toHaveBeenCalledTimes(2)
+  expect(bind).toHaveBeenCalledOnce()
+  expect(refresh).toHaveBeenCalledOnce()
 })
