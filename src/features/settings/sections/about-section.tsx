@@ -1,3 +1,4 @@
+import { commands as computer } from "@alwith/module-computer/commands"
 import { useDesktopUpdater } from "@alwith/module-desktop-shell/react"
 import { getVersion } from "@tauri-apps/api/app"
 import { invoke, isTauri } from "@tauri-apps/api/core"
@@ -97,8 +98,14 @@ export function AboutSection() {
           disabled={exporting}
           onClick={() => {
             setExporting(true)
-            void commands
-              .diagnosticsExport()
+            void computer
+              .status()
+              .then(
+                (status) => status.diagnostics,
+                (error: unknown) =>
+                  `Computer diagnostics unavailable: ${error instanceof Error ? error.message : String(error)}`
+              )
+              .then((computerDiagnostics) => commands.diagnosticsExport({ computerDiagnostics }))
               .then((saved) => {
                 if (saved) toast.success(t("settings.diagnosticsExported"))
               })

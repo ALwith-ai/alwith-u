@@ -1,8 +1,9 @@
 //! Application policy around the shared Drive plugin: U's directories and names, its read-only
 //! existence check and its place in the ordered exit.
+use alwith_drive::{Config, Drive, DriveService, NativeError, ServiceOptions};
+use serde_json::{Value, json};
 use std::sync::Arc;
 use tauri::Manager;
-use alwith_drive::{Config, Drive, DriveService, NativeError, ServiceOptions};
 use tauri_plugin_opener::OpenerExt;
 
 #[path = "drive_paths.rs"]
@@ -53,6 +54,40 @@ pub async fn drive_path_exists(
         .map(|root| std::path::PathBuf::from(&root.local_path))
         .collect::<Vec<_>>();
     paths::exists(std::path::Path::new(&snapshot.local_root), &roots, &path)
+}
+
+/// Bounded operational evidence without credentials or file contents.
+pub(crate) fn diagnostic_snapshot(snapshot: &alwith_drive::contract::Snapshot) -> Value {
+    json!({
+        "configured": snapshot.configured,
+        "running": snapshot.running,
+        "generation": snapshot.generation,
+        "sequence": snapshot.sequence,
+        "localRoot": snapshot.local_root,
+        "roots": snapshot.roots.len(),
+        "selectedRoots": snapshot.roots.iter().filter(|root| root.selected).count(),
+        "files": snapshot.files.len(),
+        "projects": snapshot.projects.len(),
+        "pendingDeletes": snapshot.pending_deletes.len(),
+        "error": snapshot.error,
+        "status": snapshot.status.as_ref().map(diagnostic_status),
+        "failedProjects": snapshot.projects.iter().filter(|project| project.failed > 0 || project.message.is_some()).take(10).collect::<Vec<_>>(),
+    })
+}
+
+fn diagnostic_status(status: &alwith_drive::types::StatusSnapshot) -> Value {
+    json!({
+            "state": status.state,
+            "pending": status.pending,
+            "uploading": status.uploading,
+            "downloading": status.downloading,
+            "synced": status.synced,
+            "failed": status.failed,
+            "pushConnected": status.push_connected,
+            "lastSyncAt": status.last_sync_at,
+            "errorCount": status.errors.len(),
+            "errors": status.errors.iter().rev().take(10).collect::<Vec<_>>(),
+    })
 }
 
 /// Runs after the dirty-buffer confirmation: hide the windows, drain and stop Drive, then exit.

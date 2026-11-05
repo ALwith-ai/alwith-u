@@ -499,7 +499,7 @@
     "explorer": "资源管理器",
     "explorerHiddenDescription": "显示以 . 开头的隐藏文件和目录",
     "diagnosticsTitle": "诊断日志",
-    "diagnosticsDescription": "本机最多保留最近 7 天、约 5 MB 的诊断信息。可导出到本地文件，不包含聊天内容、凭据或原始协议报文。",
+    "diagnosticsDescription": "本机保留最近 7 天、约 5 MB 的诊断元数据。导出的 ZIP 包含应用日志、近期轮转日志和崩溃堆栈，并对常见凭据脱敏。",
     "diagnosticsExport": "导出诊断日志",
     "diagnosticsExporting": "正在导出…",
     "diagnosticsExported": "诊断日志已导出"

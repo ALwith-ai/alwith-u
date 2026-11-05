@@ -12,7 +12,8 @@ import {
 
 export const commands = {
   autostartStatus: (): Promise<AutostartStatus> => __t3Invoke<AutostartStatus>("autostart_status"),
-  diagnosticsExport: (): Promise<boolean> => __t3Invoke<boolean>("diagnostics_export"),
+  diagnosticsExport: (args: { computerDiagnostics: string | null }): Promise<boolean> =>
+    __t3Invoke<boolean>("diagnostics_export", args),
   autostartSet: (args: { enabled: boolean }): Promise<null> => __t3Invoke<null>("autostart_set", args),
   autostartLaunch: (): Promise<boolean> => __t3Invoke<boolean>("autostart_launch"),
   autostartComplete: (args: { restored: boolean }): Promise<null> => __t3Invoke<null>("autostart_complete", args),

@@ -1,4 +1,4 @@
-//! Bounded local diagnostics. Only projected metadata is persisted, never protocol payloads.
+//! Bounded metadata recording and diagnostic exports with native log snapshots.
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
@@ -12,6 +12,9 @@ use std::{
 };
 use tauri::Manager;
 use tauri_plugin_dialog::DialogExt;
+
+#[path = "diagnostic_logs.rs"]
+mod native_logs;
 
 const FILE_BYTES: u64 = 1024 * 1024;
 const FILE_COUNT: usize = 5;
@@ -92,7 +95,12 @@ impl ModelProxyDiagnostic {
             && matches!(self.runtime.as_str(), "bun-fetch" | "node-http" | "node-websocket" | "rust-native")
             && matches!(
                 self.stage.as_str(),
-                "resolve_target" | "read_request" | "prepare_request" | "connect_upstream" | "read_response"
+                "resolve_target"
+                    | "read_request"
+                    | "prepare_request"
+                    | "connect_native"
+                    | "connect_upstream"
+                    | "read_response"
             )
             && matches!(self.phase.as_str(), "started" | "headers" | "completed" | "cancelled" | "failed")
             && matches!(
@@ -212,7 +220,10 @@ impl NativeNetworkDiagnostic {
                 self.phase.as_str(),
                 "started" | "proxy_resolved" | "headers" | "completed" | "cancelled" | "failed"
             )
-            && matches!(self.stage.as_str(), "admit_request" | "resolve_proxy" | "connect_upstream" | "read_response")
+            && matches!(
+                self.stage.as_str(),
+                "admit_request" | "read_request" | "resolve_proxy" | "connect_upstream" | "read_response"
+            )
             && matches!(self.route.as_str(), "unresolved" | "direct" | "proxy")
             && self.proxy_host.as_deref().is_none_or(host)
             && self.proxy_port.is_none_or(|port| port > 0)
@@ -234,7 +245,19 @@ impl NativeNetworkDiagnostic {
             && self.status.is_none_or(|status| (100..=599).contains(&status))
             && self.close_code.is_none_or(|code| (1000..=4999).contains(&code))
             && self.error_kind.as_deref().is_none_or(|kind| {
-                matches!(kind, "capacity" | "timeout" | "dns" | "connect" | "body" | "request" | "websocket")
+                matches!(
+                    kind,
+                    "capacity"
+                        | "timeout"
+                        | "dns"
+                        | "connect"
+                        | "body"
+                        | "request"
+                        | "websocket"
+                        | "http_protocol"
+                        | "task_panic"
+                        | "task_cancelled"
+                )
             })
             && match (self.active_requests, self.request_limit) {
                 (None, None) => true,
@@ -939,18 +962,61 @@ pub fn runtime_closed(reason: &str) {
     record("runtime", "closed", Context { error: Some(signature(reason)), ..Context::default() });
 }
 
-fn write_report(path: &Path, report: &Value) -> io::Result<()> {
+struct ExportReport {
+    metadata: Value,
+    logs: native_logs::NativeLogs,
+}
+
+fn write_report(path: &Path, report: &ExportReport) -> io::Result<()> {
     let parent =
         path.parent().ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "Export needs a parent directory"))?;
     let mut temporary = tempfile::NamedTempFile::new_in(parent)?;
-    serde_json::to_writer_pretty(temporary.as_file_mut(), report)?;
+    {
+        let mut archive = zip::ZipWriter::new(temporary.as_file_mut());
+        let options = zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+        archive.start_file("diagnostics.json", options)?;
+        serde_json::to_writer_pretty(&mut archive, &report.metadata)?;
+        report.logs.write_archive(&mut archive)?;
+        archive.finish()?;
+    }
     temporary.as_file_mut().sync_all()?;
     temporary.persist(path).map_err(|error| error.error)?;
     Ok(())
 }
 
+fn export_report(collector: &Collector, directory: &Path, application_name: &str) -> ExportReport {
+    let mut report = collector.report();
+    let logs = native_logs::collect(directory, application_name);
+    report["nativeLogs"] = json!(logs);
+    report["privacy"] = json!(
+        "Events contain metadata only. Native log tails include error details and stack traces, with common credential formats redacted. Native logs may contain file paths and application data."
+    );
+    ExportReport { metadata: report, logs }
+}
+
+fn add_computer_logs(report: &mut ExportReport, snapshot: Result<String, String>) {
+    report.logs.add_computer(snapshot);
+    report.metadata["nativeLogs"] = json!(report.logs);
+}
+
+fn add_drive_state(report: &mut ExportReport, drive: Value) {
+    fn redacted(value: Value) -> Value {
+        match value {
+            Value::String(text) => Value::String(native_logs::redact(&text)),
+            Value::Array(values) => Value::Array(values.into_iter().map(redacted).collect()),
+            Value::Object(values) => {
+                Value::Object(values.into_iter().map(|(key, value)| (key, redacted(value))).collect())
+            }
+            value => value,
+        }
+    }
+    report.metadata["drive"] = redacted(drive);
+}
+
 #[tauri3_specta::command]
-pub async fn diagnostics_export(window: tauri::WebviewWindow) -> Result<bool, String> {
+pub async fn diagnostics_export(
+    window: tauri::WebviewWindow, computer_diagnostics: Option<String>,
+) -> Result<bool, String> {
     if !matches!(window.label(), "main" | "settings" | "chat") {
         return Err("Diagnostics export is unavailable in this window".into());
     }
@@ -959,13 +1025,29 @@ pub async fn diagnostics_export(window: tauri::WebviewWindow) -> Result<bool, St
             .dialog()
             .file()
             .set_parent(&window)
-            .set_file_name(format!("alwith-u-diagnostics-{}.json", now()))
-            .add_filter("Diagnostic report", &["json"])
+            .set_file_name(format!("alwith-u-diagnostics-{}.zip", now()))
+            .add_filter("Diagnostic archive", &["zip"])
             .blocking_save_file();
         let Some(selected) = selected else {
             return Ok(false);
         };
-        let report = COLLECTOR.get().ok_or("Diagnostics are not initialized")?.report();
+        log::logger().flush();
+        let directory = window.path().app_log_dir().map_err(|error| error.to_string())?;
+        let mut report = export_report(
+            COLLECTOR.get().ok_or("Diagnostics are not initialized")?,
+            &directory,
+            &window.app_handle().package_info().name,
+        );
+        add_computer_logs(
+            &mut report,
+            computer_diagnostics.ok_or_else(|| "Computer diagnostics were not supplied".into()),
+        );
+        let drive = window.state::<alwith_drive::Drive>();
+        let drive = match drive.service().and_then(|service| service.snapshot()) {
+            Ok(snapshot) => crate::drive::diagnostic_snapshot(&snapshot),
+            Err(error) => json!({"available": false, "error": error.message}),
+        };
+        add_drive_state(&mut report, drive);
         let path = selected.into_path().map_err(|error| error.to_string())?;
         write_report(&path, &report).map_err(|error| error.to_string())?;
         Ok(true)

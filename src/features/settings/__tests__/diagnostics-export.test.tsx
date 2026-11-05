@@ -1,7 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { beforeEach, expect, test, vi } from "vitest"
 
-const controls = vi.hoisted(() => ({ export: vi.fn(), success: vi.fn(), error: vi.fn() }))
+const controls = vi.hoisted(() => ({ export: vi.fn(), status: vi.fn(), success: vi.fn(), error: vi.fn() }))
+vi.mock("@alwith/module-computer/commands", () => ({ commands: { status: controls.status } }))
 vi.mock("@/bindings", () => ({ commands: { diagnosticsExport: controls.export } }))
 vi.mock("@tauri-apps/api/core", () => ({ isTauri: () => false }))
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
@@ -13,7 +14,10 @@ vi.mock("@alwith/module-desktop-shell/react", async (importOriginal) => ({
 
 import { AboutSection } from "../sections/about-section"
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => {
+  vi.clearAllMocks()
+  controls.status.mockResolvedValue({ diagnostics: "driver and gateway logs" })
+})
 
 test("export keeps the button busy until the native save completes", async () => {
   let finish!: (saved: boolean) => void
@@ -25,7 +29,9 @@ test("export keeps the button busy until the native save completes", async () =>
   render(<AboutSection />)
   fireEvent.click(screen.getByRole("button", { name: "settings.diagnosticsExport" }))
   expect(screen.getByRole("button", { name: "settings.diagnosticsExporting" })).toBeDisabled()
-  expect(controls.export).toHaveBeenCalledTimes(1)
+  await waitFor(() =>
+    expect(controls.export).toHaveBeenCalledExactlyOnceWith({ computerDiagnostics: "driver and gateway logs" })
+  )
   finish(true)
   await waitFor(() => expect(controls.success).toHaveBeenCalledWith("settings.diagnosticsExported"))
   expect(screen.getByRole("button", { name: "settings.diagnosticsExport" })).toBeEnabled()
