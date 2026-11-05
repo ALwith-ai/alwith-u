@@ -1,4 +1,5 @@
 import { hasPluginStore } from "@alwith/module-chat/client"
+import { OverflowMarquee } from "@alwith/module-chat/session-list"
 import { KeyboardIcon, MessageSquareIcon, PlusIcon, PuzzleIcon, SettingsIcon, SunMoonIcon } from "lucide-react"
 import { type ReactNode, useMemo, useRef, useState } from "react"
 import { flushSync } from "react-dom"
@@ -233,7 +234,7 @@ function PaletteContent({
                   }}
                 >
                   {entry.icon}
-                  <span className="min-w-0 truncate">{entry.label}</span>
+                  <OverflowMarquee className="flex-1">{entry.label}</OverflowMarquee>
                   {entry.detail !== undefined && (
                     <span className="ms-auto max-w-1/3 truncate text-xs text-muted-foreground">{entry.detail}</span>
                   )}
