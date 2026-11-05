@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "chat-account",
+  "description": "The ALwith account gateway: only main binds the signed-in account",
+  "windows": ["main"],
+  "permissions": ["alwith-chat:managed-providers"]
+}

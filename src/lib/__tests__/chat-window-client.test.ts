@@ -30,12 +30,14 @@ test("floating file completion delegates both empty and typed queries to the mai
   initialFiles.mockResolvedValue([file])
   try {
     await remote.connect()
-    expect(await remote.fuzzyFileSearch({ query: "", roots: ["/selected-project"] })).toEqual({ files: [file] })
+    expect(await remote.fuzzyFileSearch({ query: "", roots: ["/selected-project"], cancellationToken: null })).toEqual({
+      files: [file]
+    })
     expect(initialFiles).toHaveBeenCalledWith("/selected-project", "")
     expect(fake.fileSearches).toEqual([])
-    expect((await remote.fuzzyFileSearch({ query: "client", roots: ["/selected-project"] })).files).toMatchObject([
-      { root: "/selected-project", path: "中文 #1.txt" }
-    ])
+    expect(
+      (await remote.fuzzyFileSearch({ query: "client", roots: ["/selected-project"], cancellationToken: null })).files
+    ).toMatchObject([{ root: "/selected-project", path: "中文 #1.txt" }])
     expect(initialFiles).toHaveBeenCalledWith("/selected-project", "client")
     expect(fake.fileSearches).toEqual([])
   } finally {
@@ -642,10 +644,10 @@ test("floating project views use the owner's full session list and receive mutat
   try {
     await remote.connect()
     expect((await remote.listProjectSessions("/tmp/one")).map((sessionRow) => sessionRow.sessionId)).toEqual(["h1"])
-    expect(fake.fullListRequests).toEqual([{}])
+    expect(fake.listRequests).toEqual([{}])
     await owner.renameSession("h1", "Renamed")
     expect((await remote.listProjectSessions("/tmp/one"))[0]?.title).toBe("Renamed")
-    expect(fake.fullListRequests).toHaveLength(1)
+    expect(fake.listRequests).toHaveLength(1)
   } finally {
     remote.disconnect()
     stop()

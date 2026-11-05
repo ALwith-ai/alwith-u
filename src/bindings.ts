@@ -158,7 +158,7 @@ export const commands = {
   gamepadCatalog: (args: { operation: string; path: string | null }): Promise<Value> =>
     __t3Invoke<Value>("gamepad_catalog", args),
   /**
-   *  Configure only a newly created Gamepad agent; credentials never leave the native host.
+   *  Prepare shared provider settings and U's memory-only enterprise route for a temporary agent.
    */
   gamepadAiPrepare: (args: { agentId: string }): Promise<null> => __t3Invoke<null>("gamepad_ai_prepare", args),
   driveRequest: (args: { request: Value }): Promise<Value> => __t3Invoke<Value>("drive_request", args),
@@ -330,8 +330,11 @@ export const commands = {
   bridgeTrustedList: (): Promise<TrustedDevice_Serialize[]> =>
     __t3Invoke<TrustedDevice_Serialize[]>("bridge_trusted_list"),
   bridgeTrustedRevoke: (args: { deviceId: string }): Promise<null> => __t3Invoke<null>("bridge_trusted_revoke", args),
-  providersAccountBind: (args: { account: Account }): Promise<number> =>
-    __t3Invoke<number>("providers_account_bind", args),
+  enterpriseBind: (args: { account: Account }): Promise<number> => __t3Invoke<number>("enterprise_bind", args),
+  enterpriseRefresh: (args: { account: Account; generation: number; accessToken: string }): Promise<Value> =>
+    __t3Invoke<Value>("enterprise_refresh", args),
+  enterpriseCatalog: (): Promise<Value> => __t3Invoke<Value>("enterprise_catalog"),
+  enterpriseClear: (): Promise<null> => __t3Invoke<null>("enterprise_clear"),
   enterpriseStatus: (): Promise<Value> => __t3Invoke<Value>("enterprise_status"),
   enterpriseBegin: (args: { generation: number }): Promise<Value> => __t3Invoke<Value>("enterprise_begin", args),
   enterpriseCancel: (args: { generation: number; state: string }): Promise<null> =>
@@ -339,28 +342,6 @@ export const commands = {
   enterpriseUpdateAccount: (args: { generation: number; requestId: string; accessToken: string }): Promise<null> =>
     __t3Invoke<null>("enterprise_update_account", args),
   enterpriseLogout: (args: { generation: number }): Promise<null> => __t3Invoke<null>("enterprise_logout", args),
-  providersRefreshManaged: (args: { generation: number; accessToken: string }): Promise<Snapshot_Serialize> =>
-    __t3Invoke<Snapshot_Serialize>("providers_refresh_managed", args),
-  providersClearManaged: (): Promise<null> => __t3Invoke<null>("providers_clear_managed"),
-  providersRead: (): Promise<Snapshot_Serialize> => __t3Invoke<Snapshot_Serialize>("providers_read"),
-  providersSave: (args: {
-    providerId: string
-    input: {
-      apiKey?: string | null
-      region?: string | null
-      baseUrl?: string | null
-    } | null
-    expectedRevision: number
-  }): Promise<Snapshot_Serialize> => __t3Invoke<Snapshot_Serialize>("providers_save", args),
-  providersSaveCustom: (args: {
-    input: CustomInput_Deserialize
-    expectedRevision: number
-  }): Promise<Snapshot_Serialize> => __t3Invoke<Snapshot_Serialize>("providers_save_custom", args),
-  providersRemoveCustom: (args: { providerId: string; expectedRevision: number }): Promise<Snapshot_Serialize> =>
-    __t3Invoke<Snapshot_Serialize>("providers_remove_custom", args),
-  providersTest: (args: { providerId: string }): Promise<TestResult_Serialize> =>
-    __t3Invoke<TestResult_Serialize>("providers_test", args),
-  providersApply: (): Promise<Snapshot_Serialize> => __t3Invoke<Snapshot_Serialize>("providers_apply"),
   /**
    *  Makes `label` a child window of `main` (macOS only): it floats above the main window,
    *  follows it between Spaces and never becomes its own Stage Manager stage. Called on every
@@ -500,20 +481,15 @@ export type CommandErrors = {
   bridgeIdentity: string
   bridgeTrustedList: string
   bridgeTrustedRevoke: string
-  providersAccountBind: string
+  enterpriseBind: Value
+  enterpriseRefresh: Value
+  enterpriseCatalog: never
+  enterpriseClear: Value
   enterpriseStatus: Value
   enterpriseBegin: Value
   enterpriseCancel: Value
   enterpriseUpdateAccount: Value
   enterpriseLogout: Value
-  providersRefreshManaged: Value
-  providersClearManaged: string
-  providersRead: string
-  providersSave: string
-  providersSaveCustom: string
-  providersRemoveCustom: string
-  providersTest: string
-  providersApply: string
   attachWindowToMain: string
   readAppsInfo: Value
   chromeExtensionInstalled: string
@@ -571,23 +547,6 @@ export const events = {
     emit: (payload: RuntimeExit_Deserialize) => __t3Emit("runtime:exit", payload),
     emitTo: (target: string | __t3Target, payload: RuntimeExit_Deserialize) =>
       __t3EmitTo(target, "runtime:exit", payload)
-  },
-  "providers:changed": {
-    name: "providers:changed",
-    listen: (handler: __t3Callback<Snapshot_Serialize>) => __t3Listen<Snapshot_Serialize>("providers:changed", handler),
-    once: (handler: __t3Callback<Snapshot_Serialize>) => __t3Once<Snapshot_Serialize>("providers:changed", handler),
-    emit: (payload: Snapshot_Deserialize) => __t3Emit("providers:changed", payload),
-    emitTo: (target: string | __t3Target, payload: Snapshot_Deserialize) =>
-      __t3EmitTo(target, "providers:changed", payload)
-  },
-  "providers:managed-revoked": {
-    name: "providers:managed-revoked",
-    listen: (handler: __t3Callback<RevokedSessions>) =>
-      __t3Listen<RevokedSessions>("providers:managed-revoked", handler),
-    once: (handler: __t3Callback<RevokedSessions>) => __t3Once<RevokedSessions>("providers:managed-revoked", handler),
-    emit: (payload: RevokedSessions) => __t3Emit("providers:managed-revoked", payload),
-    emitTo: (target: string | __t3Target, payload: RevokedSessions) =>
-      __t3EmitTo(target, "providers:managed-revoked", payload)
   },
   "menu:open-settings": {
     name: "menu:open-settings",
@@ -888,40 +847,6 @@ export type CursorPosition = {
   y: number
 }
 
-export type CustomInput = CustomInput_Serialize | CustomInput_Deserialize
-
-export type CustomInput_Deserialize = {
-  id?: string | null
-  name: string
-  apiKey?: string | null
-  baseUrl: string
-  models: CustomModel_Deserialize[]
-}
-
-export type CustomInput_Serialize = {
-  id: string | null
-  name: string
-  apiKey: string | null
-  baseUrl: string
-  models: CustomModel_Serialize[]
-}
-
-export type CustomModel = CustomModel_Serialize | CustomModel_Deserialize
-
-export type CustomModel_Deserialize = {
-  label: string
-  api_id: string
-  contextWindow?: number | null
-  description?: string | null
-}
-
-export type CustomModel_Serialize = {
-  label: string
-  api_id: string
-  contextWindow?: number
-  description?: string
-}
-
 export type DeviceAttachments = DeviceAttachments_Serialize | DeviceAttachments_Deserialize
 
 export type DeviceAttachments_Deserialize = {
@@ -1049,20 +974,6 @@ export type ImportedImage = {
   height: number
 }
 
-export type Input = Input_Serialize | Input_Deserialize
-
-export type Input_Deserialize = {
-  apiKey?: string | null
-  region?: string | null
-  baseUrl?: string | null
-}
-
-export type Input_Serialize = {
-  apiKey: string | null
-  region: string | null
-  baseUrl: string | null
-}
-
 export type LaunchedApp = {
   bundleId: string
   executable: string
@@ -1111,20 +1022,6 @@ export type ManagedDevice = {
   name: string
   systemVersion: string
   running: boolean
-}
-
-export type Metadata = Metadata_Serialize | Metadata_Deserialize
-
-export type Metadata_Deserialize = {
-  configured: boolean
-  region?: string | null
-  base_url?: string | null
-}
-
-export type Metadata_Serialize = {
-  configured: boolean
-  region: string | null
-  base_url: string | null
 }
 
 export type MobileBridgeStatus = {
@@ -1222,22 +1119,6 @@ export type ProjectTree = null
 
 export type Provider = "vui" | "doubao"
 
-export type PublicCustomProvider = PublicCustomProvider_Serialize | PublicCustomProvider_Deserialize
-
-export type PublicCustomProvider_Deserialize = {
-  id: string
-  name: string
-  baseUrl: string
-  models: CustomModel_Deserialize[]
-}
-
-export type PublicCustomProvider_Serialize = {
-  id: string
-  name: string
-  baseUrl: string
-  models: CustomModel_Serialize[]
-}
-
 export type Registration = {
   address: string
   token: string
@@ -1248,10 +1129,6 @@ export type ReopenTab = null
 export type ReplaceInFile = null
 
 export type Result<T, E> = ({ Ok: T } & { Err?: never }) | ({ Err: E } & { Ok?: never })
-
-export type RevokedSessions = {
-  sessionIds: string[]
-}
 
 export type RuntimeExit = RuntimeExit_Serialize | RuntimeExit_Deserialize
 
@@ -1284,28 +1161,6 @@ export type Scan_Serialize = {
 export type SessionConnection = {
   connection: Connection
   token: string
-}
-
-export type Snapshot = Snapshot_Serialize | Snapshot_Deserialize
-
-export type Snapshot_Deserialize = {
-  revision: number
-  appliedRevision?: number | null
-  providers: { [key in string]: Metadata_Deserialize }
-  customProviders: PublicCustomProvider_Deserialize[]
-  managedProviders: PublicCustomProvider_Deserialize[]
-  status: string
-  error?: string | null
-}
-
-export type Snapshot_Serialize = {
-  revision: number
-  appliedRevision: number | null
-  providers: { [key in string]: Metadata_Serialize }
-  customProviders: PublicCustomProvider_Serialize[]
-  managedProviders?: PublicCustomProvider_Serialize[]
-  status: string
-  error: string | null
 }
 
 export type SpreadsheetCell = SpreadsheetCell_Serialize | SpreadsheetCell_Deserialize
@@ -1439,24 +1294,6 @@ export type StartOptions_Serialize = {
 export type Target = {
   pid: number
   windowId: number
-}
-
-export type TestResult = TestResult_Serialize | TestResult_Deserialize
-
-export type TestResult_Deserialize = {
-  ok: boolean
-  code: string
-  message: string
-  status?: number | null
-  latencyMs?: number | null
-}
-
-export type TestResult_Serialize = {
-  ok: boolean
-  code: string
-  message: string
-  status: number | null
-  latencyMs: number | null
 }
 
 /**  Normalized touchpad deltas, with right/down positive axes. */

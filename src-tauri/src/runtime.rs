@@ -83,6 +83,17 @@ impl RuntimeState {
     }
 }
 
+/// Shared chat orders provider changes with U's Runtime admission.
+pub struct ChatRuntime;
+impl alwith_chat::RuntimeAccess for ChatRuntime {
+    fn current(&self, app: &AppHandle) -> Result<Arc<RuntimeClient>, String> {
+        app.state::<RuntimeState>().current()
+    }
+    fn admission<'a>(&'a self, app: &'a AppHandle) -> &'a tokio::sync::Mutex<()> {
+        &app.state::<RuntimeState>().inner().admission
+    }
+}
+
 /// Keep the native event loop alive while IPC replies and Runtime shutdown drain.
 /// Blocking this thread can strand a Tokio worker waiting for a WebKit response.
 pub fn prevent_exit(app: &AppHandle, code: Option<i32>) -> bool {
@@ -99,7 +110,7 @@ pub fn prevent_exit(app: &AppHandle, code: Option<i32>) -> bool {
             if let Err(error) = crate::mobile::shutdown().await {
                 log::error!("Mobile shutdown failed: {error}");
             }
-            if let Err(error) = app.state::<crate::providers::Providers>().enterprise.close().await {
+            if let Err(error) = app.state::<crate::enterprise::Enterprise>().close().await {
                 log::error!("Enterprise shutdown failed: {error}");
             }
             app.state::<RuntimeState>().shutdown().await;
@@ -151,8 +162,8 @@ fn engines_table(app: &AppHandle, native_network_endpoint: Option<&str>) -> Resu
     if !adapter.is_file() {
         return Err(format!("ACP adapter missing at {}", adapter.display()));
     }
-    let catalogs = std::env::join_paths(crate::providers::bundled_model_catalogs(&resources)?)
-        .map_err(|error| error.to_string())?;
+    let catalogs =
+        std::env::join_paths(alwith_chat::bundled_model_catalogs(app)?).map_err(|error| error.to_string())?;
     let mut engines = json!({"codex": {
         "command": sidecar_path("bun")?,
         "args": ["--no-install", adapter],
@@ -220,7 +231,7 @@ pub async fn runtime_start(
     let cache = app.path().app_cache_dir().map_err(|error| error.to_string())?;
     let data = app.path().app_data_dir().map_err(|error| error.to_string())?;
     #[cfg(windows)]
-    let native_network = tauri_plugin_alwith_chat::native_network::NativeNetwork::start()
+    let native_network = alwith_chat::native_network::NativeNetwork::start()
         .await
         .map_err(|error| format!("Cannot start native network transport: {error}"))?;
     #[cfg(windows)]
@@ -246,7 +257,8 @@ pub async fn runtime_start(
     };
     let mut events = client.events();
     *state.client.lock().unwrap() = Some(Arc::clone(&client));
-    app.state::<crate::providers::Providers>().reset().await;
+    app.state::<alwith_chat::Providers>().reset().await;
+    crate::enterprise::reset(&app);
     let identity = Arc::downgrade(&client);
     tauri::async_runtime::spawn(async move {
         #[cfg(windows)]
@@ -296,7 +308,8 @@ pub async fn runtime_start(
                         if private_request(line) => {}
                     ClientEvent::Runtime(event) => {
                         crate::diagnostics::runtime_event(&event);
-                        crate::providers::managed::observe_event(&app, &event);
+                        alwith_chat::observe_event(&app, &event);
+                        crate::enterprise::observe_event(&app, &event);
                         crate::mobile::publish(&event);
                         if matches!(&event, alwith_api::RuntimeEvent::Exit { agent_id } if agent_id == "codex")
                             && let Err(error) = app.state::<alwith_computer::ComputerHost>().stop_current().await
@@ -326,10 +339,10 @@ pub async fn runtime_start(
                         }
                         let retry = matches!(&event, alwith_api::RuntimeEvent::RunStates { .. });
                         if resets_provider_catalog(&event) {
-                            app.state::<crate::providers::Providers>().reset().await;
+                            app.state::<alwith_chat::Providers>().reset().await;
                         }
                         if retry {
-                            crate::providers::schedule_apply(&app);
+                            alwith_chat::schedule_apply(&app);
                         }
                         let value = serde_json::to_value(event).expect("serialize Runtime event");
                         lines.push(value.to_string());
@@ -398,7 +411,8 @@ pub async fn runtime_send(
     }
     let client = state.current()?;
     let lifecycle = is_admission(&request)
-        || crate::providers::managed::requires_admission(&request.method, request.params.as_ref())
+        || alwith_chat::requires_admission(window.app_handle(), &request.method, request.params.as_ref())
+            .map_err(|error| error.message)?
         || matches!(request.method.as_str(), "sessionNew")
         || (request.method == "acpRequest"
             && matches!(
@@ -422,25 +436,53 @@ pub async fn runtime_send(
     if requires_provider_application(&request)
         && !temporary_gamepad
         && !active_prompt
-        && let Err(error) = crate::providers::apply_locked(window.app_handle(), &client).await
-        && !crate::providers::application_pending(&error)
+        && let Err(error) = alwith_chat::apply_locked(window.app_handle(), &client).await
+        && !alwith_chat::application_pending(&error)
     {
         return Err(error);
     }
     if !current_connection() {
         return Err("Window connection replaced".into());
     }
-    let generation = crate::providers::managed::check(window.app_handle(), &request.method, request.params.as_ref())?;
+    let generation = alwith_chat::check(window.app_handle(), &request.method, request.params.as_ref())
+        .map_err(|error| error.message)?;
+    crate::enterprise::check(window.app_handle(), &request.method, request.params.as_ref())?;
+    if crate::enterprise::uses_enterprise(window.app_handle(), &request.method, request.params.as_ref()) {
+        let agent = request.params.as_ref().and_then(|params| params["agentId"].as_str()).unwrap_or("codex");
+        crate::enterprise::apply(window.app_handle(), &client, agent).await?;
+    }
+    let enterprise_generation =
+        crate::enterprise::check(window.app_handle(), &request.method, request.params.as_ref())?;
+    let initialized_agent = initialization_agent(&request).map(str::to_owned);
     let original = request.params.clone();
     let outcome = client.request(&request.method, request.params).await;
     diagnostic.finish(&outcome);
+    if let (Some(agent), Ok(_)) = (initialized_agent.as_deref(), &outcome) {
+        crate::enterprise::ready(window.app_handle(), agent);
+        let _configuration = state.admission.lock().await;
+        if let Err(reason) = crate::enterprise::apply(window.app_handle(), &client, agent).await {
+            log::warn!("Enterprise route initialization deferred: {reason}");
+        }
+    }
     if let (Some(params), Ok(value)) = (&original, &outcome) {
-        crate::providers::managed::observe_realtime(window.app_handle(), &request.method, params);
+        if let Err(error) = alwith_chat::observe_realtime(window.app_handle(), &request.method, params) {
+            log::error!("Cannot record realtime stream: {error}");
+        }
+        crate::enterprise::observe_realtime(window.app_handle(), &request.method, params);
         let body = if request.method == "acpRequest" { &params["params"] } else { params };
         if let Some(session) = value["sessionId"].as_str().or_else(|| body["sessionId"].as_str()) {
             let agent = params["agentId"].as_str().unwrap_or("codex");
-            let confirmed = crate::providers::managed::confirms_model(&request.method, params).then_some(generation);
-            crate::providers::managed::observe(window.app_handle(), agent, session, value, confirmed);
+            let confirmed = alwith_chat::confirms_model(window.app_handle(), &request.method, params)
+                .map_err(|error| error.message)?
+                .then_some(generation);
+            alwith_chat::observe(window.app_handle(), agent, session, value, confirmed);
+            crate::enterprise::observe(
+                window.app_handle(),
+                agent,
+                session,
+                value,
+                confirmed.map(|_| enterprise_generation),
+            );
         }
     }
     if !state.owns(&client) {
@@ -451,7 +493,7 @@ pub async fn runtime_send(
     }
     drop(_admission);
     if lifecycle && !temporary_gamepad {
-        crate::providers::schedule_apply(window.app_handle());
+        alwith_chat::schedule_apply(window.app_handle());
     }
     let response = match outcome {
         Ok(result) => json!({"connectionId":connection_id,"id":request.id,"result":result,"error":null}),

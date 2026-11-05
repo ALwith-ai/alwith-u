@@ -43,6 +43,9 @@ export function EnterpriseSection() {
   useEffect(() => {
     let active = true
     let checking = false
+    setBusy(false)
+    setConfirm(false)
+    setError(false)
     setStatus(null)
     setRenewal(null)
     setPending(null)

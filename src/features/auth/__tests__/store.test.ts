@@ -8,7 +8,10 @@ const host = vi.hoisted(() => ({
   bind: vi.fn(),
   refresh: vi.fn(),
   clear: vi.fn(),
-  errors: vi.fn()
+  errors: vi.fn(),
+  enterpriseBind: vi.fn(),
+  enterpriseRefresh: vi.fn(),
+  enterpriseClear: vi.fn()
 }))
 vi.mock("@/lib/app-env", () => ({ appEnv: { apiBaseUrl: "https://api.example.test/service" } }))
 vi.mock("@/lib/store", () => ({
@@ -51,11 +54,15 @@ vi.mock("@tauri-apps/api/event", () => {
     }
   }
 })
+vi.mock("@alwith/module-chat/settings", async (original) => ({
+  ...(await original<object>()),
+  createManagedProvidersPort: () => ({ bind: host.bind, refresh: host.refresh, clear: host.clear })
+}))
 vi.mock("@/bindings", () => ({
   commands: {
-    providersAccountBind: host.bind,
-    providersRefreshManaged: host.refresh,
-    providersClearManaged: host.clear
+    enterpriseBind: host.enterpriseBind,
+    enterpriseRefresh: host.enterpriseRefresh,
+    enterpriseClear: host.enterpriseClear
   }
 }))
 vi.mock("sonner", () => ({ toast: { error: host.errors } }))
@@ -76,6 +83,9 @@ beforeEach(() => {
   host.bind.mockResolvedValue(1)
   host.refresh.mockResolvedValue(undefined)
   host.clear.mockResolvedValue(undefined)
+  host.enterpriseBind.mockResolvedValue(8)
+  host.enterpriseRefresh.mockResolvedValue(null)
+  host.enterpriseClear.mockResolvedValue(undefined)
 })
 
 async function restore() {
@@ -93,9 +103,15 @@ test("model refresh retries profile validation after cached login survives a sta
   await expect(auth.requestAccountProviderRefresh()).resolves.toBeUndefined()
   expect(host.request).toHaveBeenCalledTimes(2)
   expect(host.bind).toHaveBeenCalledWith({
-    account: { apiBaseUrl: "https://api.example.test/service", userUuid: cached.user_uuid }
+    apiBaseUrl: "https://api.example.test/service",
+    userUuid: cached.user_uuid
   })
-  expect(host.refresh).toHaveBeenCalledWith({ generation: 1, accessToken: "test-access" })
+  expect(host.refresh).toHaveBeenCalledWith(1, "test-access")
+  expect(host.enterpriseRefresh).toHaveBeenCalledWith({
+    account: { apiBaseUrl: "https://api.example.test/service", userUuid: cached.user_uuid },
+    generation: 8,
+    accessToken: "test-access"
+  })
 })
 
 test("a failed validation reports its actual error and a later refresh retries it", async () => {

@@ -1,3 +1,4 @@
+import { commands as chat } from "@alwith/module-chat/commands"
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks"
 import { afterEach, expect, test } from "vitest"
 
@@ -33,7 +34,7 @@ test("generated commands preserve rejected native errors", async () => {
   await expect(commands.runtimeSend({ connectionId: "stale", line: "{}" })).rejects.toEqual(failure)
 })
 
-test("generated provider and updater bindings keep optional inputs and existing results", async () => {
+test("chat plugin provider commands keep optional inputs and existing results", async () => {
   const calls: Array<{ command: string; args: unknown }> = []
   const snapshot = {
     revision: 1,
@@ -47,11 +48,11 @@ test("generated provider and updater bindings keep optional inputs and existing 
     calls.push({ command, args })
     return snapshot
   })
-  expect(await commands.providersSave({ providerId: "qwen", input: { apiKey: "test" }, expectedRevision: 0 })).toEqual(
+  expect(await chat.providersSave({ providerId: "qwen", input: { apiKey: "test" }, expectedRevision: 0 })).toEqual(
     snapshot
   )
   expect(calls[0]).toEqual({
-    command: "providers_save",
+    command: "plugin:alwith-chat|providers_save",
     args: { providerId: "qwen", input: { apiKey: "test" }, expectedRevision: 0 }
   })
 })

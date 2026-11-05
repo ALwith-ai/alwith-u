@@ -11,6 +11,7 @@ import {
 } from "@alwith/module-auth"
 import { createTauriAuthRefresh } from "@alwith/module-auth/tauri"
 import { createAuthTransport } from "@alwith/module-auth/transport"
+import { createManagedProvidersPort } from "@alwith/module-chat/settings"
 import { invoke } from "@tauri-apps/api/core"
 import { emit, emitTo, listen } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
@@ -58,18 +59,34 @@ const transport = createAuthTransport({
     await emit(STATE_EVENT, { action: "logout" } satisfies AuthStateEvent)
   }
 })
+const accountProviders = createManagedProvidersPort()
+const enterpriseBindings = new Map<number, { account: { apiBaseUrl: string; userUuid: string }; generation: number }>()
 const managedProviders = createManagedProviders({
   validate: async (userUuid) => {
     const profile = await transport.request<{ uuid: string }>("/api/v1/me/profile", "GET")
     if (profile?.uuid !== userUuid || usePlatformAuth.getState().user?.user_uuid !== userUuid)
       throw new Error("ALwith account changed during profile validation")
   },
-  bind: (userUuid) => commands.providersAccountBind({ account: { apiBaseUrl: API_BASE_URL, userUuid } }),
+  bind: async (userUuid) => {
+    const account = { apiBaseUrl: API_BASE_URL, userUuid }
+    const generation = await accountProviders.bind(account)
+    const enterpriseGeneration = await commands.enterpriseBind({ account })
+    enterpriseBindings.set(generation, { account, generation: enterpriseGeneration })
+    return generation
+  },
   refresh: async (generation) => {
-    await transport.authenticated((accessToken) => commands.providersRefreshManaged({ generation, accessToken }))
+    const binding = enterpriseBindings.get(generation)
+    if (!binding) throw new Error("Enterprise account binding is missing")
+    await transport.authenticated(async (accessToken) => {
+      // Both catalogs belong to the same validated account, with independent gateways.
+      await accountProviders.refresh(generation, accessToken)
+      await commands.enterpriseRefresh({ ...binding, accessToken })
+    })
   },
   clear: async () => {
-    await commands.providersClearManaged()
+    enterpriseBindings.clear()
+    const results = await Promise.allSettled([commands.enterpriseClear(), accountProviders.clear()])
+    for (const result of results) if (result.status === "rejected") throw result.reason
   }
 })
 async function clearAccountProviders(): Promise<void> {

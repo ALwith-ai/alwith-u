@@ -48,16 +48,11 @@ test("folds descending history in chronological order with replacement tool patc
   )
 })
 
-test("retries oversized pages at the same cursor with a smaller turn count", async () => {
-  const request = vi
-    .fn<(params: BrowseHistoryRequest) => Promise<unknown>>()
-    .mockRejectedValueOnce({ data: { reason: "history_page_too_large" } })
-    .mockResolvedValue(page())
-  await readHistoryPage("s", "/work", "cursor", request)
-  expect(request.mock.calls.map(([params]) => [params.cursor, params.limit])).toEqual([
-    ["cursor", 5],
-    ["cursor", 2]
-  ])
+test("surfaces adapter history failures without inventing a second pagination retry policy", async () => {
+  const failure = { data: { reason: "history_page_too_large" } }
+  const request = vi.fn<(params: BrowseHistoryRequest) => Promise<unknown>>().mockRejectedValue(failure)
+  await expect(readHistoryPage("s", "/work", "cursor", request)).rejects.toEqual(failure)
+  expect(request.mock.calls.map(([params]) => [params.cursor, params.limit])).toEqual([["cursor", 5]])
 })
 
 test("paged turns retain native timestamps, durations and interruption markers", async () => {

@@ -81,6 +81,8 @@ function CatalogPreview({ loading = false }: { loading?: boolean }) {
           marketplacePath: marketplace.path,
           shareUrl: null,
           description: "Explore the capabilities included with this plugin.",
+          onboardingSkill: null,
+          appTemplates: [],
           skillProjects: { "/work/alwith-desktop": ["/project/.agents/skills/review/SKILL.md"] },
           skills: [],
           mcpServers: [],

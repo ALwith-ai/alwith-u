@@ -179,10 +179,15 @@ test("null and failed results clear the suggestion; history and read-only sessio
   view.rerender({ session: predicted(session, "t1", null), available: true })
   expect(view.result.current.text).toBeNull()
   view.rerender({
-    session: { ...session, _meta: { codex: { prediction: { sourceTurnId: "t1", result: { type: "failed" } } } } },
+    session: {
+      ...session,
+      _meta: {
+        codex: { prediction: { sourceTurnId: "t1", result: { type: "failed", message: "Prediction timed out" } } }
+      }
+    },
     available: true
   })
-  expect(view.result.current.error).toBe("Prediction failed")
+  expect(view.result.current.error).toBe("Prediction timed out")
   const replay = completed("history", "t3")
   view.rerender({
     session: { ...replay, items: replay.items.map((item) => ({ ...item, replayed: true })) },

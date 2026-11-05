@@ -18,6 +18,7 @@ mod diagnostics;
 mod draft_directory;
 mod drive;
 mod editor;
+mod enterprise;
 mod extension_capabilities;
 mod extension_inbox;
 mod extension_wire;
@@ -34,7 +35,6 @@ mod native;
 #[cfg(target_os = "macos")]
 mod panel;
 mod panic_report;
-mod providers;
 mod runtime;
 mod secret_store;
 mod settings;
@@ -77,6 +77,7 @@ pub fn run() {
         .plugin(alwith_module_store::tauri::init())
         .plugin(alwith_auth_client::tauri::init(native::development_directory()))
         .manage(login_launch)
+        .manage(enterprise::Enterprise::default())
         .register_asynchronous_uri_scheme_protocol("preview-html", html_preview::handle_protocol)
         .runtime(tauri_runtime_wry::Wry::default())
         // Second launch: focus the running instance instead of starting a second alwith-runtime
@@ -121,6 +122,7 @@ pub fn run() {
 
     let builder = builder
         .plugin(chat_window::init())
+        .plugin(alwith_chat::init_with_account(runtime::ChatRuntime, native::development_directory()))
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_dialog::init())
@@ -201,7 +203,6 @@ pub fn run() {
             mobile::initialize(app.handle())?;
             settings::initialize(app.handle())?;
             voice::initialize(app.handle())?;
-            app.manage(providers::Providers::load(app.handle())?);
             drive::initialize(app.handle())?;
             gamepad::initialize(app.handle())?;
             computer::initialize(app.handle())?;
@@ -377,7 +378,7 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 gamepad::gamepad_permission,
                 gamepad::gamepad_capture,
                 gamepad::gamepad_catalog,
-                providers::gamepad_ai_prepare,
+                gamepad::gamepad_ai_prepare,
                 drive::drive_request,
                 drive::drive_path_exists,
                 chat_files::chat_save_file,
@@ -437,20 +438,15 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 mobile::bridge_identity,
                 mobile::bridge_trusted_list,
                 mobile::bridge_trusted_revoke,
-                providers::managed::providers_account_bind,
-                providers::enterprise::enterprise_status,
-                providers::enterprise::enterprise_begin,
-                providers::enterprise::enterprise_cancel,
-                providers::enterprise::enterprise_update_account,
-                providers::enterprise::enterprise_logout,
-                providers::managed::providers_refresh_managed,
-                providers::managed::providers_clear_managed,
-                providers::providers_read,
-                providers::providers_save,
-                providers::providers_save_custom,
-                providers::providers_remove_custom,
-                providers::providers_test,
-                providers::providers_apply,
+                enterprise::enterprise_bind,
+                enterprise::enterprise_refresh,
+                enterprise::enterprise_catalog,
+                enterprise::enterprise_clear,
+                enterprise::enterprise_status,
+                enterprise::enterprise_begin,
+                enterprise::enterprise_cancel,
+                enterprise::enterprise_update_account,
+                enterprise::enterprise_logout,
                 window::attach_window_to_main,
                 installed_apps::read_apps_info,
                 browser_bridge::chrome_extension_installed,
@@ -466,8 +462,6 @@ pub fn bindings() -> tauri3_specta::Bindings {
             .event::<computer::ComputerPreview>()
             .event::<device::DeviceAttachments>()
             .event::<runtime::RuntimeExit>()
-            .event::<providers::Snapshot>()
-            .event::<providers::managed::RevokedSessions>()
             .event::<menu::OpenSettings>()
             .event::<menu::NewChat>()
             .event::<menu::NewTab>()

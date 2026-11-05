@@ -397,3 +397,25 @@ pub async fn gamepad_catalog(
         _ => Err("Unknown Gamepad catalog operation".into()),
     }
 }
+
+/// Prepare shared provider settings and U's memory-only enterprise route for a temporary agent.
+#[tauri3_specta::command]
+pub async fn gamepad_ai_prepare(window: tauri::WebviewWindow, agent_id: String) -> Result<(), String> {
+    if !matches!(window.label(), "main" | "settings" | "gamepad") {
+        return Err("Gamepad AI is unavailable in this window".into());
+    }
+    let suffix = agent_id.strip_prefix("gamepad-config-").ok_or("Invalid Gamepad AI agent")?;
+    if suffix.len() != 36
+        || !suffix.bytes().enumerate().all(|(index, byte)| {
+            if matches!(index, 8 | 13 | 18 | 23) { byte == b'-' } else { byte.is_ascii_hexdigit() }
+        })
+    {
+        return Err("Invalid Gamepad AI agent".into());
+    }
+    alwith_chat::prepare_agent(window.app_handle(), &agent_id).await?;
+    let runtime = window.state::<crate::runtime::RuntimeState>();
+    let _admission = runtime.admission.lock().await;
+    let client = runtime.current()?;
+    crate::enterprise::ready(window.app_handle(), &agent_id);
+    crate::enterprise::apply(window.app_handle(), &client, &agent_id).await
+}

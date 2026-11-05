@@ -40,7 +40,7 @@ dependencies = [
 
 [[package]]
 name = "alwith-api"
-version = "0.1.8"
+version = "0.6.0"
 dependencies = [
  "log",
  "serde",
@@ -54,7 +54,7 @@ dependencies = [
 name = "alwith-auth-client"
 version = "0.5.13"
 dependencies = [
- "alwith-native-client",
+ "alwith-native-client 0.5.0",
  "serde",
  "serde_json",
  "tauri",
@@ -72,10 +72,43 @@ dependencies = [
 ]
 
 [[package]]
+name = "alwith-chat"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "abe648936c89b2cb3839f94f2a75ddb7a5fda88c8af093ad31824bb9ff89ef15"
+dependencies = [
+ "alwith-api",
+ "alwith-native-client 0.6.1",
+ "axum",
+ "chrono",
+ "futures-util",
+ "hex",
+ "http-body-util",
+ "hyper",
+ "hyper-util",
+ "log",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sha2 0.11.1",
+ "specta",
+ "tauri",
+ "tauri-plugin",
+ "tauri-plugin-dialog",
+ "tauri3-specta",
+ "tempfile",
+ "tokio",
+ "tokio-tungstenite",
+ "tokio-util",
+ "uuid",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
 name = "alwith-computer"
 version = "0.5.2"
 dependencies = [
- "alwith-native-client",
+ "alwith-native-client 0.5.0",
  "serde",
  "serde_json",
  "specta",
@@ -85,7 +118,7 @@ dependencies = [
 name = "alwith-device"
 version = "0.5.0"
 dependencies = [
- "alwith-native-client",
+ "alwith-native-client 0.5.0",
  "serde",
  "serde_json",
  "specta",
@@ -95,7 +128,7 @@ dependencies = [
 name = "alwith-drive"
 version = "0.5.1"
 dependencies = [
- "alwith-native-client",
+ "alwith-native-client 0.5.0",
  "serde",
  "serde_json",
  "specta",
@@ -106,7 +139,7 @@ dependencies = [
 name = "alwith-editor"
 version = "0.5.2"
 dependencies = [
- "alwith-native-client",
+ "alwith-native-client 0.5.0",
  "base64 0.23.1",
  "serde",
  "serde_json",
@@ -117,7 +150,7 @@ dependencies = [
 name = "alwith-enterprise-client"
 version = "0.6.1"
 dependencies = [
- "alwith-native-client",
+ "alwith-native-client 0.5.0",
  "serde",
  "serde_json",
  "tokio",
@@ -127,7 +160,7 @@ dependencies = [
 name = "alwith-extension"
 version = "0.5.1"
 dependencies = [
- "alwith-native-client",
+ "alwith-native-client 0.5.0",
  "percent-encoding",
  "schemars 1.2.3",
  "serde",
@@ -144,7 +177,7 @@ dependencies = [
 name = "alwith-fs"
 version = "0.5.1"
 dependencies = [
- "alwith-native-client",
+ "alwith-native-client 0.5.0",
  "serde",
  "serde_json",
 ]
@@ -153,7 +186,7 @@ dependencies = [
 name = "alwith-gamepad"
 version = "0.5.0"
 dependencies = [
- "alwith-native-client",
+ "alwith-native-client 0.5.0",
  "serde",
  "serde_json",
  "specta",
@@ -164,7 +197,7 @@ name = "alwith-mobile"
 version = "0.5.2"
 dependencies = [
  "alwith-mobile-protocol",
- "alwith-native-client",
+ "alwith-native-client 0.5.0",
  "serde",
  "serde_json",
  "specta",
@@ -204,12 +237,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "alwith-native-client"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4bc1baa4e2a7e3ee14bae81db0df0fa5c13956208f7169957acd41805b0b3fa6"
+dependencies = [
+ "libloading",
+ "serde",
+ "serde_json",
+ "specta",
+ "specta-typescript",
+ "tokio",
+]
+
+[[package]]
 name = "alwith-u"
 version = "26.11.4"
 dependencies = [
  "alwith-api",
  "alwith-auth-client",
  "alwith-browser",
+ "alwith-chat",
  "alwith-computer",
  "alwith-device",
  "alwith-drive",
@@ -220,7 +268,7 @@ dependencies = [
  "alwith-gamepad",
  "alwith-mobile",
  "alwith-module-store",
- "alwith-native-client",
+ "alwith-native-client 0.5.0",
  "alwith-voice",
  "arboard",
  "atlas-tauri",
@@ -248,7 +296,6 @@ dependencies = [
  "tauri",
  "tauri-build",
  "tauri-nspanel",
- "tauri-plugin-alwith-chat",
  "tauri-plugin-alwith-desktop-shell",
  "tauri-plugin-autostart",
  "tauri-plugin-clipboard-manager",
@@ -280,7 +327,7 @@ dependencies = [
 name = "alwith-voice"
 version = "0.5.3"
 dependencies = [
- "alwith-native-client",
+ "alwith-native-client 0.5.0",
  "serde",
  "serde_json",
  "specta",
@@ -4918,6 +4965,7 @@ version = "2.0.0-rc.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "81633014710ece1c7e8ac99e1bc9ad8d4339a2ccbae89ca2aa1095d4262c86b8"
 dependencies = [
+ "chrono",
  "paste",
  "rustc_version",
  "serde_json",
@@ -5325,32 +5373,6 @@ dependencies = [
  "serde_json",
  "tauri-utils",
  "walkdir",
-]
-
-[[package]]
-name = "tauri-plugin-alwith-chat"
-version = "0.1.0"
-dependencies = [
- "alwith-api",
- "axum",
- "futures-util",
- "hex",
- "http-body-util",
- "hyper",
- "hyper-util",
- "log",
- "reqwest",
- "serde",
- "serde_json",
- "sha2 0.11.1",
- "tauri",
- "tauri-plugin",
- "tempfile",
- "tokio",
- "tokio-tungstenite",
- "tokio-util",
- "uuid",
- "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5832,9 +5854,9 @@ dependencies = [
 
 [[package]]
 name = "tauri3-specta"
-version = "0.1.0-alpha.3"
+version = "0.1.0-alpha.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc1614f0e15187871a6339e2241fb0e7f6d665cf84f7b34c06969ac3496b4d2d"
+checksum = "158cb5aa9f22760ca20442655164d5c1128529010899dc873c7f05d8dbe57d34"
 dependencies = [
  "heck 0.5.0",
  "serde",

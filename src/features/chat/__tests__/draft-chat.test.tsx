@@ -67,9 +67,11 @@ function environment(nativeWindow = false, resolveModel?: ClientOptions["resolve
       vi.spyOn(client, "respond").mockImplementation((...args) => real.respond(...args)),
       vi.spyOn(core, "invoke").mockImplementation(async <T,>(command: string, args?: core.InvokeArgs): Promise<T> => {
         let result: unknown
-        if (command === "draft_directory")
+        if (command === "enterprise_catalog") result = null
+        else if (command === "draft_directory")
           result = (args as { cwd: string | null }).cwd ?? "/Users/mac/Documents/ALwith"
-        else if (command === "providers_apply" || command === "providers_read") result = providers
+        else if (command === "plugin:alwith-chat|providers_apply" || command === "plugin:alwith-chat|providers_read")
+          result = providers
         else if (command === "read_apps_info") result = []
         else if (nativeWindow) return invokeHost<T>(command, args)
         else throw new Error(`Unexpected host command: ${command}`)

@@ -96,3 +96,23 @@ test("a failed native callback releases the pending login so it can be retried",
   expect(screen.queryByRole("button", { name: "enterprise.cancel" })).not.toBeInTheDocument()
   expect(screen.getByRole("button", { name: "enterprise.login" })).toBeInTheDocument()
 })
+
+test("switching accounts during a pending sign-in unlocks the new account controls", async () => {
+  let release!: () => void
+  host.refresh.mockImplementationOnce(
+    () =>
+      new Promise<void>((resolve) => {
+        release = resolve
+      })
+  )
+  const view = render(<EnterpriseSection />)
+  await screen.findByText("enterprise.signedOut")
+  fireEvent.click(screen.getByRole("button", { name: "enterprise.login" }))
+  expect(screen.getByRole("button", { name: "enterprise.login" })).toBeDisabled()
+  host.user = { user_uuid: "bob" }
+  view.rerender(<EnterpriseSection />)
+  await waitFor(() => expect(screen.getByRole("button", { name: "enterprise.login" })).toBeEnabled())
+  await act(async () => release())
+  expect(host.begin).not.toHaveBeenCalled()
+  expect(screen.getByRole("button", { name: "enterprise.login" })).toBeEnabled()
+})

@@ -366,8 +366,9 @@ client.requestPrediction = async () => {}
 client.retrySession = (id) => Promise.resolve(finish(id, "重试成功，页面检查已完成。"))
 client.readAccount = () =>
   Promise.resolve({
-    account: { type: "chatgpt", email: "lin.ran@example.test", planType: "plus" },
-    requiresOpenaiAuth: true
+    account: { type: "chatgpt", email: "lin.ran@example.test", planType: "plus", workspaceName: null },
+    requiresOpenaiAuth: true,
+    workspaceRouting: null
   })
 client.readRateLimits = () =>
   Promise.resolve({
@@ -377,7 +378,10 @@ client.readRateLimits = () =>
     secondary: { usedPercent: 18, windowDurationMins: 10080, resetsAt: 1793163600 },
     credits: null,
     planType: "plus",
-    spendControlReached: false
+    spendControlReached: false,
+    normalModelSlug: null,
+    individualLimit: null,
+    rateLimitReachedType: null
   })
 client.listSkills = () => Promise.resolve({ data: [] })
 client.fuzzyFileSearch = () => Promise.resolve({ files: [] })

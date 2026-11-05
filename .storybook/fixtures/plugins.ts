@@ -99,6 +99,8 @@ function detail(summary: PluginSummary): PluginDetail {
     marketplacePath: null,
     shareUrl: null,
     description: summary.interface?.longDescription ?? "",
+    onboardingSkill: null,
+    appTemplates: [],
     mcpServers: ["workspace-search"],
     apps: [],
     hooks: [],
@@ -138,7 +140,7 @@ export function resetPlugins(next: PluginCase = "catalog", nextOperation: Plugin
           mustShowInstallationInterstitial: false,
           availability: mode === "unavailable" ? ("PLAN_NOT_ELIGIBLE" as PluginSummary["availability"]) : "AVAILABLE",
           authPolicy: "ON_USE",
-          disabledReason: mode === "unavailable" ? "PLAN_NOT_ELIGIBLE" : null,
+          disabledReason: mode === "unavailable" ? "plan_not_eligible" : null,
           eligiblePlanTypes: [],
           keywords: ["工作效率", "文档"],
           interface: {

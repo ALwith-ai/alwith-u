@@ -33,6 +33,7 @@ import { stageRuntime } from "@alwith/runtime/stage"
 import { $ } from "bun"
 
 import manifest from "../package.json"
+import { stageChatNative } from "./lib/chat-artifact"
 import { stageComputer } from "./lib/computer-artifact"
 import { runtimeBuildArtifact, runtimeSource, stageTarget } from "./lib/runtime-artifact"
 import { assertVersion, BUN_PACKAGES, CODEX_WINDOWS_HELPERS, codexSidecars, toolchainVersions } from "./lib/toolchain"
@@ -135,6 +136,7 @@ const nativeLibraries = [
   stageNativeDevice,
   stageNativeEnterprise
 ].map((stage) => stage(triple, join(root, "src-tauri/resources/native"), licenses))
+nativeLibraries.push(stageChatNative(root, triple, join(root, "src-tauri/resources/native"), licenses))
 if (triple.endsWith("apple-darwin") && process.env.APPLE_SIGNING_IDENTITY) {
   // A hardened application must load a library signed by the same team. Verify
   // the distributed bytes first, then sign the staged copy using the app's identity.
