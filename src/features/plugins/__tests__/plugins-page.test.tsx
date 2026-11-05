@@ -68,6 +68,28 @@ function plugin(id: string, installed = false): PluginSummary {
   }
 }
 
+test("the installed sidebar excludes official and policy installations but keeps disabled personal plugins", () => {
+  const personal = plugin("Personal plugin", true)
+  const disabled = { ...plugin("Disabled personal plugin", true), enabled: false }
+  const policy: PluginSummary = { ...plugin("Policy plugin", true), installPolicy: "INSTALLED_BY_DEFAULT" }
+  const implicit: PluginSummary = { ...plugin("Implicit plugin", true), installPolicySource: "IMPLICIT_CANONICAL_APP" }
+  const catalog: PluginMarketplaceEntry = { name: "personal", path: "/catalog", interface: null, plugins: [] }
+  pluginsStore.setState({
+    installed: [personal, disabled, policy, implicit]
+      .map((plugin) => ({ plugin, marketplace: catalog }))
+      .concat([
+        { plugin: plugin("Bundled plugin", true), marketplace: { ...catalog, name: "openai-bundled" } },
+        { plugin: plugin("Runtime plugin", true), marketplace: { ...catalog, name: "openai-primary-runtime" } },
+        { plugin: plugin("Official plugin", true), marketplace: { ...catalog, name: "openai-curated-remote" } }
+      ])
+  })
+  const view = render(<PluginsPage cwd={null} active />)
+  expect(view.getByRole("button", { name: "Personal plugin" })).toBeInTheDocument()
+  expect(view.getByRole("button", { name: "Disabled personal plugin" })).toBeInTheDocument()
+  for (const name of ["Policy plugin", "Implicit plugin", "Bundled plugin", "Runtime plugin", "Official plugin"])
+    expect(view.queryByRole("button", { name })).not.toBeInTheDocument()
+})
+
 test("plugin controls and skill scopes follow a language change without remounting the page", async () => {
   const installed = plugin("Installed example", true)
   const disabled = { ...plugin("Disabled example", true), enabled: false }

@@ -118,7 +118,7 @@ export function PluginDetailPage({ entry, onBack }: { entry: PluginEntry; onBack
                   {busy ? (
                     <Spinner aria-hidden="true" />
                   ) : (
-                    <PlusIcon className="size-5" strokeWidth={2} aria-hidden="true" />
+                    <PlusIcon className="size-4" strokeWidth={2} aria-hidden="true" />
                   )}
                 </Button>
               )}

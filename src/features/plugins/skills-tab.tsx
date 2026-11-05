@@ -32,7 +32,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CatalogSkeleton } from "./catalog-skeleton"
 import { pluginsStore } from "./instance"
 import { SkillDocument } from "./skill-document"
-import type { PluginEntry } from "./store"
 
 function SkillIcon({ skill }: { skill: SkillMetadata }) {
   const [failed, setFailed] = useState(false)
@@ -66,35 +65,26 @@ function SkillToggle({ skill }: { skill: SkillMetadata }) {
   )
 }
 
-export function SkillsTab({
-  query,
-  ready,
-  onOpenPlugin
-}: {
-  query: string
-  ready: boolean
-  onOpenPlugin: (entry: PluginEntry) => void
-}) {
+export function SkillsTab({ query, ready }: { query: string; ready: boolean }) {
   const { t } = useTranslation()
-  const skills = useStore(pluginsStore, (state) => state.skills)
+  const allSkills = useStore(pluginsStore, (state) => state.skills)
+  const skills = allSkills.filter((skill) => skill.pluginId === null)
   const errors = useStore(pluginsStore, (state) => state.skillErrors)
   const loading = useStore(pluginsStore, (state) => state.loading) || !ready
-  const installed = useStore(pluginsStore, (state) => state.installed)
   const projects = useStore(pluginsStore, (state) => state.skillProjects)
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null)
   const [expanded, setExpanded] = useState(false)
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({})
   const [selectedPath, setSelectedPath] = useState<string | null>(null)
   const q = useDeferredValue(query.trim().toLowerCase())
   const selected = skills.find((skill) => skill.path === selectedPath)
-  const owner = installed.find(({ plugin }) => plugin.id === selected?.pluginId)
   const filtered = skills.filter((skill) =>
     [
       skill.name,
       skill.interface?.displayName,
       skill.description,
       skill.shortDescription,
-      skill.interface?.shortDescription,
-      skill.pluginId
+      skill.interface?.shortDescription
     ]
       .filter(Boolean)
       .join(" ")
@@ -136,6 +126,8 @@ export function SkillsTab({
   }
   const currentGroup = groups.find((group) => group.id === selectedGroup) ?? groups[0]
   const groupSkills = currentGroup ? sorted.filter((skill) => currentGroup.paths.has(skill.path)) : []
+  const groupExpanded = currentGroup ? expandedGroups[currentGroup.id] === true : false
+  const groupSummary = groupExpanded || q ? groupSkills : groupSkills.slice(0, 6)
   const summary = expanded || q ? sorted : sorted.slice(0, 6)
   const renderSkills = (entries: SkillMetadata[]) => (
     <PanelList className="grid grid-cols-1 gap-x-8 gap-y-2 px-0 @min-[700px]:grid-cols-2">
@@ -164,7 +156,7 @@ export function SkillsTab({
           </ItemContent>
           <ItemActions className="pointer-events-none relative text-muted-foreground">
             {skill.enabled ? (
-              <CheckIcon className="size-4" aria-label={t("plugins.skills.enabledStatus")} />
+              <CheckIcon className="size-4" strokeWidth={2} aria-label={t("plugins.skills.enabledStatus")} />
             ) : (
               <span className="text-xs">{t("plugins.skills.disabledBadge")}</span>
             )}
@@ -240,7 +232,23 @@ export function SkillsTab({
                     <TabsContent key={group.id} value={group.id}>
                       {group.id === currentGroup.id &&
                         (groupSkills.length ? (
-                          renderSkills(groupSkills)
+                          <>
+                            {renderSkills(groupSummary)}
+                            {!q && groupSkills.length > 6 && (
+                              <Button
+                                variant="ghost"
+                                className="mt-3 max-w-full justify-start text-muted-foreground"
+                                aria-expanded={groupExpanded}
+                                onClick={() =>
+                                  setExpandedGroups((value) => ({ ...value, [group.id]: !value[group.id] }))
+                                }
+                              >
+                                {groupExpanded
+                                  ? t("plugins.sections.showLess")
+                                  : t("plugins.catalog.showMore", { count: groupSkills.length - 6 })}
+                              </Button>
+                            )}
+                          </>
                         ) : (
                           <p className="px-2 py-8 text-sm text-muted-foreground">{t("plugins.skills.filteredEmpty")}</p>
                         ))}
@@ -260,53 +268,32 @@ export function SkillsTab({
       >
         <DialogContent showCloseButton={false} className={toolboxDialogClassName}>
           {selected && (
-            <>
-              <SkillDocument
-                key={selected.path}
-                path={selected.path}
-                renderHeader={(actions) => (
-                  <>
-                    <div className="flex items-center justify-between gap-4">
-                      <SkillIcon skill={selected} />
-                      <div className="flex shrink-0 items-center gap-2">
-                        <SkillToggle skill={selected} />
-                        {actions}
-                        <DialogClose render={<Button variant="ghost" size="icon-sm" aria-label={t("actions.close")} />}>
-                          <XIcon />
-                        </DialogClose>
-                      </div>
+            <SkillDocument
+              key={selected.path}
+              path={selected.path}
+              renderHeader={(actions) => (
+                <>
+                  <div className="flex items-center justify-between gap-4">
+                    <SkillIcon skill={selected} />
+                    <div className="flex shrink-0 items-center gap-2">
+                      <SkillToggle skill={selected} />
+                      {actions}
+                      <DialogClose render={<Button variant="ghost" size="icon-sm" aria-label={t("actions.close")} />}>
+                        <XIcon />
+                      </DialogClose>
                     </div>
-                    <DialogHeader className="gap-3">
-                      <DialogTitle className="text-2xl leading-8 font-semibold break-words">
-                        {selected.interface?.displayName ?? selected.name}
-                      </DialogTitle>
-                      <DialogDescription className="text-sm leading-6 break-words whitespace-pre-wrap">
-                        {selected.description}
-                      </DialogDescription>
-                    </DialogHeader>
-                  </>
-                )}
-              />
-              {selected.pluginId && (
-                <div className="text-sm">
-                  <span className="text-muted-foreground">{t("plugins.catalog.fromPlugin")} </span>
-                  {owner ? (
-                    <Button
-                      variant="link"
-                      className="h-auto p-0"
-                      onClick={() => {
-                        setSelectedPath(null)
-                        onOpenPlugin(owner)
-                      }}
-                    >
-                      {owner.plugin.interface?.displayName ?? owner.plugin.name}
-                    </Button>
-                  ) : (
-                    selected.pluginId
-                  )}
-                </div>
+                  </div>
+                  <DialogHeader className="gap-3">
+                    <DialogTitle className="text-2xl leading-8 font-semibold break-words">
+                      {selected.interface?.displayName ?? selected.name}
+                    </DialogTitle>
+                    <DialogDescription className="text-sm leading-6 break-words whitespace-pre-wrap">
+                      {selected.description}
+                    </DialogDescription>
+                  </DialogHeader>
+                </>
               )}
-            </>
+            />
           )}
         </DialogContent>
       </Dialog>
