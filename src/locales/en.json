@@ -1384,8 +1384,8 @@
     }
   },
   "enterprise": {
-    "title": "Enterprise gateway",
-    "login": "Enterprise sign in",
+    "title": "Enterprise sign in",
+    "login": "Sign in to Finture",
     "logout": "Sign out of enterprise",
     "cancel": "Cancel",
     "authorized": "Authorized",

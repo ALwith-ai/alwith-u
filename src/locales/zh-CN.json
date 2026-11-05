@@ -1384,8 +1384,8 @@
     }
   },
   "enterprise": {
-    "title": "企业网关",
-    "login": "企业登录",
+    "title": "企业登录",
+    "login": "登录 Finture",
     "logout": "退出企业登录",
     "cancel": "取消",
     "authorized": "已授权",
