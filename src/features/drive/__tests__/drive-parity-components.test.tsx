@@ -128,6 +128,32 @@ test("sync status exposes its settings action", () => {
   fireEvent.click(screen.getByRole("button", { name: "Open settings" }))
   expect(open).toHaveBeenCalledOnce()
 })
+
+test("launcher search follows the sidebar toggle and clears its hidden query", () => {
+  const f = fixture()
+  const host: DriveHost = {
+    searchShortcut: false,
+    searchVisible: false,
+    readDirectory: async () => [],
+    pathExists: async () => true,
+    onOpenEntry: async () => {},
+    onRevealPath: async () => {},
+    onOpenExternal: async () => {},
+    pinnedDocs: [],
+    onPinnedDocsChange: async () => {}
+  }
+  const props = { controller: f.controller, controls, onOpenProject: async () => {}, confirm: async () => false }
+  const view = render(<DrivePanel {...props} host={host} mode="launcher" />)
+  expect(screen.queryByRole("textbox", { name: "Search all projects" })).toBeNull()
+  view.rerender(<DrivePanel {...props} host={{ ...host, searchVisible: true }} mode="launcher" />)
+  const input = screen.getByRole("textbox", { name: "Search all projects" })
+  expect(input).toHaveFocus()
+  fireEvent.change(input, { target: { value: "report" } })
+  view.rerender(<DrivePanel {...props} host={host} mode="launcher" />)
+  expect(screen.queryByRole("textbox", { name: "Search all projects" })).toBeNull()
+  view.rerender(<DrivePanel {...props} host={{ ...host, searchVisible: true }} mode="launcher" />)
+  expect(screen.getByRole("textbox", { name: "Search all projects" })).toHaveValue("")
+})
 test("missing pins retain their identity and expose context-menu unpin", async () => {
   const f = fixture()
   const update = vi.fn(async () => {})

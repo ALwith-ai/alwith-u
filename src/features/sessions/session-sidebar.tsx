@@ -10,6 +10,7 @@ import {
   NavigationHeader,
   NavigationItemButton,
   NavigationLeading,
+  NavigationMenuIconButton,
   NavigationScreenSwitch,
   NavigationStack,
   NavigationTabs,
@@ -39,9 +40,10 @@ import { toast } from "sonner"
 
 import type { SessionSummary } from "@/agent/client"
 import { Pane } from "@/components/alwith-ui/pane"
+import { Input } from "@/components/ui/input"
 import { Sidebar, SidebarContent, SidebarHeader } from "@/components/ui/sidebar"
 import { ProjectSessionPopover } from "@/features/chat/project-session-popover"
-import { AddToCollectionAction } from "@/features/collection/collection-menu"
+import { AddToCollectionAction, CreateCollectionMenu } from "@/features/collection/collection-menu"
 import { CollectionPanel } from "@/features/collection/collection-panel"
 import { dispatchCollection, reportCollection } from "@/features/collection/store"
 import { DriveArchiveAction } from "@/features/drive/archive-action"
@@ -130,6 +132,10 @@ function SidebarPanels({
   // Sidebar panel (Desktop's activeNavigationItem): session list or activity.
   const view = useSessionsUiStore((s) => s.view)
   const setView = useSessionsUiStore((s) => s.setView)
+  const driveSearchOpen = useSessionsUiStore((s) => s.driveSearchOpen)
+  const setDriveSearchOpen = useSessionsUiStore((s) => s.setDriveSearchOpen)
+  const [activitySearchOpen, setActivitySearchOpen] = useState(false)
+  const [activityQuery, setActivityQuery] = useState("")
   const activitySeen = useSessionsUiStore((s) => s.activitySeen)
   const setActivitySeen = useSessionsUiStore((s) => s.setActivitySeen)
   const activityOrder = useActivityOrder((state) => state.ids)
@@ -256,8 +262,47 @@ function SidebarPanels({
           onViewChange={(next) => setView(next as SidebarView)}
           onReset={(tab) => tab === "sessions" && collapseAll()}
           notifications={hasActivityNotification ? new Set(["activity"]) : undefined}
-          trailing={view === "sessions" ? <SessionListFilter onCollapseAll={collapseAll} /> : undefined}
+          trailing={
+            view === "sessions" ? (
+              <SessionListFilter onCollapseAll={collapseAll} />
+            ) : view === "collections" ? (
+              <CreateCollectionMenu />
+            ) : (
+              <NavigationMenuIconButton
+                aria-label={t(view === "activity" ? "sidebar.searchActivity" : "sidebar.searchDrive")}
+                title={t(view === "activity" ? "sidebar.searchActivity" : "sidebar.searchDrive")}
+                aria-expanded={view === "activity" ? activitySearchOpen : driveSearchOpen}
+                onClick={() => {
+                  if (view === "drive") setDriveSearchOpen(!driveSearchOpen)
+                  else {
+                    setActivitySearchOpen(!activitySearchOpen)
+                    setActivityQuery("")
+                  }
+                }}
+              >
+                <SearchIcon />
+              </NavigationMenuIconButton>
+            )
+          }
         />
+        {view === "activity" && activitySearchOpen && (
+          <div className="px-2 pb-2">
+            <Input
+              autoFocus
+              aria-label={t("sidebar.searchActivity")}
+              placeholder={t("sidebar.searchActivity")}
+              value={activityQuery}
+              onChange={(event) => setActivityQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") {
+                  setActivitySearchOpen(false)
+                  setActivityQuery("")
+                }
+              }}
+              className="h-8"
+            />
+          </div>
+        )}
         {driveVisible && (driveVisited || view === "drive") && (
           <div
             hidden={view !== "drive"}
@@ -269,7 +314,7 @@ function SidebarPanels({
         {view === "drive" ? null : view === "collections" ? (
           <CollectionPanel renderRow={renderRow} onSelect={onSelect} onNewChat={(id) => onNewProjectChat(null, id)} />
         ) : view === "activity" ? (
-          <ActivityPanel selectedId={selectedId} onSelect={onSelect} />
+          <ActivityPanel selectedId={selectedId} onSelect={onSelect} query={activityQuery} />
         ) : (
           <Pane className="session-list-scroll" viewportRef={setViewport} viewportClassName="px-0 pb-1">
             {/* Observe content height as groups expand, collapse or reveal more rows. */}

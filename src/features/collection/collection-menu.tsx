@@ -1,10 +1,23 @@
-import { HoverInfoAction, useNavigationHoverCardPin } from "@alwith/module-chat/session-list"
+import {
+  HoverInfoAction,
+  NavigationMenuIconButton,
+  useNavigationHoverCardPin,
+  useSidebarOverlay
+} from "@alwith/module-chat/session-list"
 import { DEFAULT_COLLECTION_ID, getCollectionName } from "@alwith/module-collection"
 import { BoxIcon, ChevronRightIcon, PlusIcon, StarIcon } from "lucide-react"
 import { type ReactElement, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +32,80 @@ import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 
 import { dispatchCollection, reportCollection, useCollectionStore } from "./store"
+
+export function CreateCollectionMenu() {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [name, setName] = useState("")
+  const [busy, setBusy] = useState(false)
+  useSidebarOverlay(open || creating)
+  const close = () => {
+    setCreating(false)
+    setName("")
+  }
+  return (
+    <>
+      <DropdownMenu open={open} onOpenChange={setOpen}>
+        <DropdownMenuTrigger
+          render={
+            <NavigationMenuIconButton aria-label={t("collection.newCollection")} title={t("collection.newCollection")}>
+              <PlusIcon />
+            </NavigationMenuIconButton>
+          }
+        />
+        <DropdownMenuContent align="end">
+          <DropdownMenuGroup>
+            <DropdownMenuItem onClick={() => setCreating(true)}>{t("collection.newCollection")}</DropdownMenuItem>
+          </DropdownMenuGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <Dialog
+        open={creating}
+        onOpenChange={(value) => {
+          if (!value && !busy) close()
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("collection.newCollection")}</DialogTitle>
+            <DialogDescription>{t("collection.collectionName")}</DialogDescription>
+          </DialogHeader>
+          <form
+            className="flex flex-col gap-3"
+            onSubmit={(event) => {
+              event.preventDefault()
+              if (!name.trim() || busy) return
+              setBusy(true)
+              reportCollection(
+                dispatchCollection({ type: "create", id: `collection-${crypto.randomUUID()}`, name: name.trim() })
+                  .then(close)
+                  .finally(() => setBusy(false))
+              )
+            }}
+          >
+            <Input
+              autoFocus
+              value={name}
+              disabled={busy}
+              aria-label={t("collection.collectionName")}
+              placeholder={t("collection.collectionName")}
+              onChange={(event) => setName(event.target.value)}
+            />
+            <DialogFooter>
+              <Button type="button" variant="outline" disabled={busy} onClick={close}>
+                {t("collection.cancel")}
+              </Button>
+              <Button type="submit" disabled={busy || !name.trim()}>
+                {t("collection.confirm")}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
 
 export function CollectionPicker({
   sessionId,

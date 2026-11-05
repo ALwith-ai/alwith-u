@@ -1,10 +1,4 @@
-import {
-  MENU_HIGHLIGHT,
-  NavigationGroup,
-  NavigationItemButton,
-  NavigationLeading,
-  NavigationStack
-} from "@alwith/module-chat/session-list"
+import { NavigationGroup, NavigationLeading, NavigationStack } from "@alwith/module-chat/session-list"
 import { type Collection, DEFAULT_COLLECTION_ID, getCollectionName } from "@alwith/module-collection"
 import {
   closestCorners,
@@ -270,19 +264,6 @@ export function CollectionPanel({
     <>
       <Pane className="session-list-scroll" viewportClassName="px-0 pb-1">
         <NavigationStack>
-          <NavigationItemButton
-            className={cn(MENU_HIGHLIGHT, "font-normal")}
-            onClick={() => {
-              setEditing("new")
-              setName("")
-              setEmoji("")
-            }}
-          >
-            <NavigationLeading>
-              <PlusIcon />
-            </NavigationLeading>
-            <span>{t("collection.newCollection")}</span>
-          </NavigationItemButton>
           {error && (
             <div className="px-2 text-sm text-muted-foreground">
               <p role="alert">{error}</p>
@@ -360,17 +341,17 @@ export function CollectionPanel({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t(editing === "new" ? "collection.newCollection" : "sidebar.rename")}</DialogTitle>
+            <DialogTitle>{t("sidebar.rename")}</DialogTitle>
             <DialogDescription>{t("collection.collectionName")}</DialogDescription>
           </DialogHeader>
           <form
             onSubmit={(event) => {
               event.preventDefault()
               if (editing === null || !name.trim() || busy) return
-              const id = editing === "new" ? `collection-${crypto.randomUUID()}` : editing
+              const id = editing
               finish(
                 dispatchCollection([
-                  editing === "new" ? { type: "create", id, name } : { type: "rename", id, name },
+                  { type: "rename", id, name },
                   { type: "emoji", id, emoji }
                 ]),
                 () => setEditing(null)
@@ -385,7 +366,7 @@ export function CollectionPanel({
               onChange={(event) => setName(event.target.value)}
               disabled={busy}
             />
-            {editing !== "new" && <CollectionEmoji emoji={emoji} onChange={setEmoji} />}
+            <CollectionEmoji emoji={emoji} onChange={setEmoji} />
             <DialogFooter>
               <Button type="button" variant="outline" disabled={busy} onClick={() => setEditing(null)}>
                 {t("collection.cancel")}

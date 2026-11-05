@@ -112,6 +112,8 @@
     "deleteTitle": "Delete this chat?",
     "deleteDescription": "This chat will be permanently deleted. This cannot be undone.",
     "search": "Search chats",
+    "searchDrive": "Search drive",
+    "searchActivity": "Search activity titles",
     "noResults": "No chats found",
     "stop": "Stop",
     "settings": "Settings",

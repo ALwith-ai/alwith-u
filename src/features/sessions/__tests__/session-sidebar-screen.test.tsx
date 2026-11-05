@@ -21,6 +21,61 @@ await initI18n("en")
 const originalState = client.state
 const originalAuth = usePlatformAuth.getState()
 const originalUi = useSessionsUiStore.getState()
+
+function sidebar() {
+  return render(
+    <SessionSidebar
+      screen="main"
+      leadingPage="plugins"
+      selectedId={null}
+      onSelect={() => {}}
+      onNewChat={() => {}}
+      onNewProjectChat={() => {}}
+      onSearch={() => {}}
+      onOpenWindow={() => {}}
+      onOpenSettings={() => {}}
+      onOpenPlugins={() => {}}
+      onSwitchScreen={() => {}}
+      drivePanel={<div>Drive panel</div>}
+    />,
+    {
+      wrapper: ({ children }) => (
+        <MainSidebarLayout initialPinned screen="main" leading={null} main={null} sidebar={children} />
+      )
+    }
+  )
+}
+
+test("tab actions open activity search, create collections, and control Drive search", async () => {
+  usePlatformAuth.setState({
+    isAuthenticated: true,
+    user: { ...originalAuth.user, login_email: "test@finture.id" } as NonNullable<typeof originalAuth.user>
+  })
+  const view = sidebar()
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("tab", { name: "Activity" }))))
+  const search = view.getByRole("button", { name: "Search activity titles" })
+  fireEvent.click(search)
+  const input = view.getByRole("textbox", { name: "Search activity titles" })
+  expect(search).toHaveAttribute("aria-expanded", "true")
+  fireEvent.change(input, { target: { value: "report" } })
+  fireEvent.keyDown(input, { key: "Escape" })
+  expect(view.queryByRole("textbox", { name: "Search activity titles" })).toBeNull()
+  fireEvent.click(search)
+  expect(view.getByRole("textbox", { name: "Search activity titles" })).toHaveValue("")
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("tab", { name: "Collections" }))))
+  fireEvent.click(view.getByRole("button", { name: "Create Collection" }))
+  fireEvent.click(view.getByRole("menuitem", { name: "Create Collection" }))
+  expect(view.getByRole("dialog")).toBeVisible()
+  expect(view.getByRole("textbox", { name: "Collection name" })).toHaveFocus()
+  fireEvent.click(view.getByRole("button", { name: "Cancel" }))
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("tab", { name: "Drive" }))))
+  const driveSearch = view.getByRole("button", { name: "Search drive" })
+  fireEvent.click(driveSearch)
+  expect(useSessionsUiStore.getState().driveSearchOpen).toBe(true)
+  fireEvent.click(driveSearch)
+  expect(useSessionsUiStore.getState().driveSearchOpen).toBe(false)
+})
+
 afterEach(async () => {
   await act(async () => {
     cleanup()

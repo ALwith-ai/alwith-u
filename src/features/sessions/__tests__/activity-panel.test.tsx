@@ -92,6 +92,19 @@ test.each([true, false])(
   }
 )
 
+test("title search filters activity while keeping the owned draft available", () => {
+  client.store.setState({ sessionList: [], drafts: { draft: true }, draftSessions: { draft: "main" } })
+  client.applyRunStates([record("Quarterly Report", false), record("Other work", false), record("draft", true)])
+  const view = render(<ActivityPanel selectedId={null} onSelect={() => {}} query="  REPORT  " />, {
+    wrapper: SessionListHostProvider
+  })
+  expect(view.getByText("Quarterly Report")).toBeInTheDocument()
+  expect(view.getByText("draft")).toBeInTheDocument()
+  expect(view.queryByText("Other work")).not.toBeInTheDocument()
+  view.rerender(<ActivityPanel selectedId={null} onSelect={() => {}} query="" />)
+  expect(view.getByText("Other work")).toBeInTheDocument()
+})
+
 test("owned unsent drafts appear as activity navigation targets", async () => {
   client.store.setState({ sessionList: [], drafts: { deleted: true }, draftSessions: { deleted: "main" } })
   client.applyRunStates([
