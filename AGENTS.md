@@ -173,8 +173,3 @@ Develop, debug and validate with local candidate packages in isolated environmen
 ## Shared chat dependency boundary
 
 Application code imports the client and session projections from `@alwith/module-chat/client`, import helpers from `@alwith/module-chat/import`, and adapter staging from `@alwith/module-chat/stage`. The shared chat package owns codex-acp; do not declare it directly or locate its files through the application's node_modules. The adapter still owns protocol implementation, and Runtime owns agent processes.
-
-
-## Pending work
-
-Pending work and upstream-blocked items of this repository are registered only in the ALwith plans index, `alwith-desktop/docs/plans/index.md` (rows that name this repository), with a link back to the document here that holds the details. Do not keep a second list in this repository; add a row there and link it. Origin: user instruction (2026-11-02, "one entry point for pending work").
