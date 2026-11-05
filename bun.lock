@@ -7,6 +7,7 @@
       "dependencies": {
         "@agentclientprotocol/sdk": "^2.4.0",
         "@alwith/api": "~0.5.4",
+        "@alwith/enterprise-client": "0.6.1",
         "@alwith/module-auth": "~0.5.14",
         "@alwith/module-browser": "^0.5.1",
         "@alwith/module-chat": "^0.5.28",
@@ -96,6 +97,7 @@
         "@alwith/native-computer": "^0.5.4",
         "@alwith/native-drive": "^0.5.1",
         "@alwith/native-editor": "0.5.1",
+        "@alwith/native-enterprise": "0.6.0",
         "@alwith/native-extension": "^0.5.1",
         "@alwith/native-fs": "^0.5.1",
         "@alwith/native-gamepad": "^0.5.1",
@@ -153,6 +155,8 @@
     "@agentclientprotocol/sdk": ["@agentclientprotocol/sdk@2.4.0", "https://registry.npmmirror.com/@agentclientprotocol/sdk/-/sdk-2.4.0.tgz", { "peerDependencies": { "@modelcontextprotocol/server": "^2.4.0", "zod": "^3.25.76 || ^4.0.0" }, "optionalPeers": ["@modelcontextprotocol/server"] }, "sha512-7qJ8nnyj7WesC5ve185ioTpB2/svQoeGV4HA4nLEhgDUrcmBe54/08VcXc/oL4p14tDbxxECZzdYmUYQ+4l+Wg=="],
 
     "@alwith/api": ["@alwith/api@0.5.4", "", { "peerDependencies": { "@tauri-apps/api": ">=2" }, "optionalPeers": ["@tauri-apps/api"] }, "sha512-Y4HSLhXLBXS6yzYkr1GbLCHW52nBARITbqQGz4O3Mg2CRCxLHRugatuxyVRRmb37S0icq1DadzW5WXt+t55npQ=="],
+
+    "@alwith/enterprise-client": ["@alwith/enterprise-client@0.6.1", "", { "peerDependencies": { "@alwith/native-kit": "0.5.2" } }, "sha512-DYOd+Pj8hDmDj/PPwhPy8UReV6gmeKWGXYrLRTh0t8WBPNxjK+5qkRBB9igudPWgB/6gDUF6EK3Yv+zRFIV+nA=="],
 
     "@alwith/module-auth": ["@alwith/module-auth@0.5.14", "", { "dependencies": { "@alwith/native-kit": "^0.5.0", "@base-ui/react": "^1.9.0", "@nyssance/atlas": "^0.1.10", "class-variance-authority": "^0.7.1", "cn": "^0.5.2", "fflate": "0.8.3", "i18next": "^26.7.1", "ldrs": "^1.1.9", "lucide-react": "^1.66.0", "motion": "^14.9.0", "react-i18next": "^17.1.11", "sonner": "^2.0.8", "tyme4ts": "^1.5.4", "zustand": "^5.0.16" }, "peerDependencies": { "@agentclientprotocol/sdk": "^2.4.0", "@alwith/api": "^0.5.4", "@alwith/module-chat": "^0.5.15", "@nyssance/codex-acp-v2": "^0.7.51", "@tauri-apps/api": "^3.0.0-alpha.3", "@tauri-apps/plugin-os": "^3.0.0-alpha.3", "react": "^19.3.1", "react-dom": "^19.3.1" }, "optionalPeers": ["@agentclientprotocol/sdk", "@alwith/api", "@alwith/module-chat", "@nyssance/codex-acp-v2", "@tauri-apps/api", "@tauri-apps/plugin-os", "react", "react-dom"] }, "sha512-8cWjAWQESZqOcPaSokeuFcRTDQr4W6ujVcjVXgjUNGTcmzscvnEAxhKzzhzcaRJPu2cIONgNwqlDM3lzpYnDyg=="],
 
@@ -217,6 +221,12 @@
     "@alwith/native-editor-darwin-arm64": ["@alwith/native-editor-darwin-arm64@0.5.1", "", { "os": "darwin", "cpu": "arm64" }, "sha512-R2yd1EjTrydImMA26dIwVVZfgikuQP2Jb+Mp9J2cZ2P8QlhZFUfJbMHBSLIArIiHFCPwQAiH95/aHbwMAcQBlQ=="],
 
     "@alwith/native-editor-win32-x64": ["@alwith/native-editor-win32-x64@0.5.1", "", { "os": "win32", "cpu": "x64" }, "sha512-0V0rsWskzlzxhwV1jJupYklddEjfaqOg5QbUwO1p9ilRwIaBSuglXeOdk5xmZQ8CBaHd/XdXvzy/nba9kQjz5A=="],
+
+    "@alwith/native-enterprise": ["@alwith/native-enterprise@0.6.0", "", { "dependencies": { "@alwith/native-kit": "0.5.2" }, "optionalDependencies": { "@alwith/native-enterprise-darwin-arm64": "0.6.0", "@alwith/native-enterprise-win32-x64": "0.6.0" } }, "sha512-0+WXCY5NenEziuRKIXUKgSRG7zmpXgi1rfvaMeXjaKIPkV9nx2WJWzt/SSUKf0NUDnHE2BGqgBWxEkbLnE1Dew=="],
+
+    "@alwith/native-enterprise-darwin-arm64": ["@alwith/native-enterprise-darwin-arm64@0.6.0", "", { "os": "darwin", "cpu": "arm64" }, "sha512-tby0d17X/b+nXP3QiPzX95DM+R//EPAO3bPMguzfVnQKJ048IGwJINULv/88jRWO+I4CeaA8x38JggiEFTzAUg=="],
+
+    "@alwith/native-enterprise-win32-x64": ["@alwith/native-enterprise-win32-x64@0.6.0", "", { "os": "win32", "cpu": "x64" }, "sha512-xKjZKfWphomWXoVetCE+tdOHxOmIo5geUHxy4GF2TDmRDDIdaw9eEOArvmm56guG3/h2qNiOaHK6hNqyTil85g=="],
 
     "@alwith/native-extension": ["@alwith/native-extension@0.5.1", "", { "dependencies": { "@alwith/native-kit": "0.5.1" }, "optionalDependencies": { "@alwith/native-extension-darwin-arm64": "0.5.1", "@alwith/native-extension-win32-x64": "0.5.1" } }, "sha512-45Qhd//eSnvkvPJtBA8LD5Yi42W+dO7SAmoLY8Gr3Gh22YnKupYEXPApRSQm11P1fxF7nZbF66Wx/QTxejF66Q=="],
 
