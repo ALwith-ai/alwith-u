@@ -10,7 +10,7 @@ import { createTauriTransport } from "@alwith/module-voice/tauri"
 import workletUrl from "@alwith/module-voice/worklet?url"
 import { Channel, invoke } from "@tauri-apps/api/core"
 import { Loader2Icon, MicIcon, SquareIcon, XIcon } from "lucide-react"
-import { type MutableRefObject, type ReactNode, useEffect, useRef, useState } from "react"
+import { type ReactNode, type RefObject, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
@@ -25,7 +25,7 @@ interface VoiceButtonProps {
   draft: DraftPort
   cwd: string
   enabled: boolean
-  cancelRef: MutableRefObject<(() => void) | null>
+  cancelRef: RefObject<(() => void) | null>
   waitForTurn: (signal: AbortSignal) => Promise<void>
   supportsHandsfree: boolean
   resume?: (signal: AbortSignal) => Promise<void>

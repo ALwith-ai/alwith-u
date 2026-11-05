@@ -614,7 +614,6 @@ export function FileWorkspace({
         [...workspaces.current.values()].some((value) => value.editor.getSnapshot().documents.some((doc) => doc.dirty))
       ) {
         event.preventDefault()
-        event.returnValue = ""
       }
     }
     function refresh(): void {

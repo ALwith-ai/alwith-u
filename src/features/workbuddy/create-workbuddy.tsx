@@ -1,6 +1,6 @@
 import { NavigationItemButton } from "@alwith/module-chat/session-list"
 import { AppWindowIcon, CheckIcon, FolderIcon } from "lucide-react"
-import { type FormEvent, useRef, useState } from "react"
+import { type SubmitEvent, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { commands } from "@/bindings"
@@ -44,7 +44,7 @@ export function CreateWorkBuddy({
   const [error, setError] = useState<string | null>(null)
   const report = (cause: unknown) => setError(cause instanceof Error ? cause.message : String(cause))
 
-  async function create(event: FormEvent) {
+  async function create(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
     if (pending.current) return
     pending.current = true
