@@ -12,9 +12,9 @@
         "@alwith/module-chat": "^0.6.4",
         "@alwith/module-collection": "^0.5.0",
         "@alwith/module-computer": "^0.6.1",
-        "@alwith/module-desktop-shell": "^0.6.0",
+        "@alwith/module-desktop-shell": "^0.6.1",
         "@alwith/module-device": "^0.6.0",
-        "@alwith/module-drive": "^0.6.1",
+        "@alwith/module-drive": "^0.6.2",
         "@alwith/module-editor": "^0.6.1",
         "@alwith/module-extension": "^0.6.0",
         "@alwith/module-file-tree": "^0.6.0",
@@ -153,11 +153,11 @@
 
     "@alwith/module-computer": ["@alwith/module-computer@0.6.1", "", { "peerDependencies": { "@tauri-apps/api": "^3.0.0-alpha.3" } }, "sha512-eEwdo69LvKCg9Ab9Jac0U9CsbhbwDtDF3mB1AdCjzoDKG3MeLobcnHQBCLFVlMUz3Nq/AxUtk6ELR6yloJAifw=="],
 
-    "@alwith/module-desktop-shell": ["@alwith/module-desktop-shell@0.6.0", "", { "dependencies": { "@base-ui/react": "^1.9.0", "@nyssance/shadcn": "^4.23.4", "class-variance-authority": "^0.7.1", "cn": "^0.5.2", "lucide-react": "^1.67.0" }, "peerDependencies": { "@nyssance/atlas": "^0.1.11", "@tauri-apps/api": "^3.0.0-alpha.3", "react": "^19.3.1", "react-dom": "^19.3.1" }, "optionalPeers": ["@nyssance/atlas"] }, "sha512-LQYBvRgggwzkvUFDLQWB0WRvoLxFRpJSPwmu3TqIQTI0UnIkwQJvmBIyVD0xoiFPJf5cV/x2cjwaS/0J8KYJhA=="],
+    "@alwith/module-desktop-shell": ["@alwith/module-desktop-shell@0.6.1", "", { "dependencies": { "@base-ui/react": "^1.9.0", "@nyssance/shadcn": "^4.23.4", "class-variance-authority": "^0.7.1", "cn": "^0.5.2", "lucide-react": "^1.67.0" }, "peerDependencies": { "@nyssance/atlas": "^0.1.11", "@tauri-apps/api": "^3.0.0-alpha.3", "react": "^19.3.1", "react-dom": "^19.3.1" }, "optionalPeers": ["@nyssance/atlas"] }, "sha512-i+kLjomRu6J8apmeH2LLlIeNtFZpLVR3leFJs1Vstu0jfz9TVVXDnE4Fx6hCaM9tL48YJ2eCMmbszUzlvLkeEw=="],
 
     "@alwith/module-device": ["@alwith/module-device@0.6.0", "", { "dependencies": { "@nyssance/shadcn": "^4.23.4", "lucide-react": "^1.66.0", "sonner": "^2.0.8" }, "peerDependencies": { "@tauri-apps/api": "^3.0.0-alpha.3", "react": "^19.3.1", "react-dom": "^19.3.1" } }, "sha512-xXuQgWamZokqDIxOUqHsRtWiUpMiOFa5DTS9W5C1LOWZQ5Rw+Ygd++h5SdQpUhEoLdM7X0/NDMiohfrt7uIJRg=="],
 
-    "@alwith/module-drive": ["@alwith/module-drive@0.6.1", "", { "peerDependencies": { "@alwith/module-editor": "^0.6.0", "@milkdown/core": "^7.22.2", "@milkdown/ctx": "^7.22.2", "@milkdown/plugin-collab": "^7.22.2", "@milkdown/prose": "^7.22.2", "@milkdown/utils": "^7.22.2", "@tauri-apps/api": "^3.0.0-alpha.3", "lucide-react": "^1.61.0", "react": "^19.3.1", "react-dom": "^19.3.1", "y-prosemirror": "^1.3.7", "y-protocols": "^1.0.7", "y-websocket": "^3.1.0", "yjs": "^13.6.33" }, "optionalPeers": ["@alwith/module-editor", "@milkdown/core", "@milkdown/ctx", "@milkdown/plugin-collab", "@milkdown/prose", "@milkdown/utils", "lucide-react", "y-prosemirror", "y-protocols", "y-websocket", "yjs"] }, "sha512-9Td4OSr0mfMy4g7/gizSRpysF/z9waGmBMgePZGHn9RLKmu973E7V7vK+g2aizA+F3Cg5n+CWl74D791Defuuw=="],
+    "@alwith/module-drive": ["@alwith/module-drive@0.6.2", "", { "peerDependencies": { "@alwith/module-editor": "^0.6.0", "@milkdown/core": "^7.22.2", "@milkdown/ctx": "^7.22.2", "@milkdown/plugin-collab": "^7.22.2", "@milkdown/prose": "^7.22.2", "@milkdown/utils": "^7.22.2", "@tauri-apps/api": "^3.0.0-alpha.3", "lucide-react": "^1.61.0", "react": "^19.3.1", "react-dom": "^19.3.1", "y-prosemirror": "^1.3.7", "y-protocols": "^1.0.7", "y-websocket": "^3.1.0", "yjs": "^13.6.33" }, "optionalPeers": ["@alwith/module-editor", "@milkdown/core", "@milkdown/ctx", "@milkdown/plugin-collab", "@milkdown/prose", "@milkdown/utils", "lucide-react", "y-prosemirror", "y-protocols", "y-websocket", "yjs"] }, "sha512-ubkWWVZ/a9McO2ggCE3M6zGm4F8wxQHXVapZ83wSXv3WYjEFdlFw3CSop4Zhltf8XXz9g/HyrX8NAxXoTi8DSg=="],
 
     "@alwith/module-editor": ["@alwith/module-editor@0.6.1", "", { "dependencies": { "@alwith/module-fs": "^0.6.0", "@base-ui/react": "^1.9.0" }, "peerDependencies": { "@alwith/module-chat": "^0.6.0", "@milkdown/core": "^7.22.2", "@milkdown/plugin-history": "^7.22.2", "@milkdown/plugin-math": "^7.5.9", "@milkdown/preset-commonmark": "^7.22.2", "@milkdown/preset-gfm": "^7.22.2", "@milkdown/prose": "^7.22.2", "@milkdown/utils": "^7.22.2", "@tauri-apps/api": "^3.0.0-alpha.3", "audiomotion-analyzer": "^4.5.4", "docx-preview": "^0.4.1", "dompurify": "^3.4.17", "katex": "^0.19.1", "lucide-react": "^1.61.0", "monaco-editor": "^0.57.0", "pdfjs-dist": "^6.4.299", "react": "^19.3.1", "react-dom": "^19.3.1", "react-player": "^3.4.0", "shiki": "^4.5.0", "utif": "^3.1.0", "x-data-spreadsheet": "^1.1.9", "xlsx": "^0.20.3" }, "optionalPeers": ["@alwith/module-chat", "@milkdown/core", "@milkdown/plugin-history", "@milkdown/plugin-math", "@milkdown/preset-commonmark", "@milkdown/preset-gfm", "@milkdown/prose", "@milkdown/utils", "audiomotion-analyzer", "docx-preview", "dompurify", "katex", "monaco-editor", "pdfjs-dist", "react-player", "shiki", "utif", "x-data-spreadsheet", "xlsx"] }, "sha512-Q5xcOxPJyHW2oxaPDtsQWBOTyWzxVtkYkfzsdS5mDZqAo7sQENQaav93AKwSJ5aQS5LucVRrM4iWvGwC6y4bog=="],
 
