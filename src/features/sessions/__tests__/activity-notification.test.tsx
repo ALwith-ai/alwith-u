@@ -43,7 +43,7 @@ test.each(["done", "requires_action", "running", "idle"] as const)(
       executionId: null,
       executionRole: null
     }))
-    client.applyRunStates(records)
+    client.applyRunStates(records, "snapshot")
     const screen = render(
       <SidebarProvider>
         <SessionSidebar
@@ -63,6 +63,8 @@ test.each(["done", "requires_action", "running", "idle"] as const)(
     )
     const activity = screen.getByRole("tab", { name: "Activity" })
     const badge = () => activity.querySelector("[data-activity-notification]")
+    expect(badge()).not.toBeInTheDocument()
+    act(() => client.applyRunStates(records.map((record) => ({ ...record, version: 2, since: 25 }))))
     if (state === "running" || state === "idle") {
       expect(badge()).not.toBeInTheDocument()
       return

@@ -3,9 +3,8 @@ import { type ReactNode, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
-import { client } from "@/lib/client"
-
 import { ProjectPathAction } from "./project-path-action"
+import { sessionListClient } from "./session-list-client"
 
 function SessionPathAction({ cwd, onOpened }: { cwd: string; onOpened: () => void }) {
   return <ProjectPathAction cwd={cwd} onOpened={onOpened} appearance="session" />
@@ -26,7 +25,7 @@ export function SessionListHostProvider({ children }: { children: ReactNode }) {
     [i18n, language]
   )
   return (
-    <SessionListProvider host={host} client={client}>
+    <SessionListProvider host={host} client={sessionListClient}>
       {children}
     </SessionListProvider>
   )

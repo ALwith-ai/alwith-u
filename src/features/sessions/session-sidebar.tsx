@@ -53,6 +53,7 @@ import { updateLabels } from "@/lib/update-labels"
 import { useChatWindowShortcut } from "@/lib/use-chat-window-shortcut"
 import { cn } from "@/lib/utils"
 
+import { useActivityOrder } from "./activity-order"
 import { ActivityPanel } from "./activity-panel"
 import { SessionListHostProvider } from "./session-list-host"
 import { SidebarAccountMenu } from "./sidebar-account-menu"
@@ -131,19 +132,16 @@ function SidebarPanels({
   const setView = useSessionsUiStore((s) => s.setView)
   const activitySeen = useSessionsUiStore((s) => s.activitySeen)
   const setActivitySeen = useSessionsUiStore((s) => s.setActivitySeen)
-  const draftSessions = useApp((state) => state.draftSessions)
+  const activityOrder = useActivityOrder((state) => state.ids)
   const activityNotifications = useMemo(
     () =>
       new Map(
-        Object.values(runStates)
-          .filter(
-            (record) =>
-              (record.state === "done" || record.state === "requires_action") &&
-              (!record.reusableDraft || draftSessions[record.sessionId] !== undefined)
-          )
+        activityOrder
+          .map((id) => runStates[id])
+          .filter((record) => record !== undefined && (record.state === "done" || record.state === "requires_action"))
           .map((record) => [record.sessionId, JSON.stringify([record.state, record.since, record.interruption])])
       ),
-    [runStates, draftSessions]
+    [runStates, activityOrder]
   )
   const hasActivityNotification =
     view !== "activity" &&

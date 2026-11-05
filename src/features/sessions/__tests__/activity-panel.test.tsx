@@ -53,8 +53,47 @@ function record(sessionId: string, reusableDraft: boolean, state: SessionRunStat
   }
 }
 
+test("startup snapshots stay out of the actual activity panel until a new activity event", async () => {
+  const historical = [record("historical-idle", false), record("historical-done", false, "done")]
+  client.applyRunStates(historical, "snapshot")
+  const view = render(<ActivityPanel selectedId={null} onSelect={() => {}} />, { wrapper: SessionListHostProvider })
+  expect(rowIds(view.container)).toEqual([])
+  await act(() => Promise.try(() => client.applyRunStates([...historical, record("new-turn", false, "running")])))
+  expect(rowIds(view.container)).toEqual(["new-turn"])
+  await act(() => Promise.try(() => client.applyRunStates([...historical, record("new-turn", false, "done")])))
+  expect(rowIds(view.container)).toEqual(["new-turn"])
+  expect(client.state.runStates["historical-done"]?.state).toBe("done")
+})
+
+test("startup event records without a live owner stay out of activity", () => {
+  client.applyRunStates([{ ...record("detached-history", false), owner: "" }])
+  const view = render(<ActivityPanel selectedId={null} onSelect={() => {}} />, { wrapper: SessionListHostProvider })
+  expect(rowIds(view.container)).toEqual([])
+})
+
+test.each([true, false])(
+  "restored idle history joins activity after attachment succeeds (snapshot first=%s)",
+  async (snapshotFirst) => {
+    const restored = { ...createSession("restored", "/tmp"), attached: true, restoring: true }
+    const records = [record("restored", false), record("untouched", false)]
+    if (snapshotFirst) client.applyRunStates(records, "snapshot")
+    client.store.setState({ sessions: { restored } })
+    const view = render(<ActivityPanel selectedId="restored" onSelect={() => {}} />, {
+      wrapper: SessionListHostProvider
+    })
+    if (!snapshotFirst) await act(() => Promise.try(() => client.applyRunStates(records, "snapshot")))
+    expect(rowIds(view.container)).toEqual([])
+    await act(() =>
+      Promise.try(() => client.store.setState({ sessions: { restored: { ...restored, restoring: false } } }))
+    )
+    expect(rowIds(view.container)).toEqual(["restored"])
+    await act(() => Promise.try(() => client.applyRunStates([record("untouched", false)])))
+    expect(rowIds(view.container)).toEqual([])
+  }
+)
+
 test("owned unsent drafts appear as activity navigation targets", async () => {
-  client.store.setState({ sessionList: [], draftSessions: { deleted: "main" } })
+  client.store.setState({ sessionList: [], drafts: { deleted: true }, draftSessions: { deleted: "main" } })
   client.applyRunStates([
     record("deleted", true),
     record("reconnected", true),
@@ -67,7 +106,7 @@ test("owned unsent drafts appear as activity navigation targets", async () => {
   )
   expect(view.getByText("deleted")).toBeInTheDocument()
   // Deletion drops local ownership; Runtime may still broadcast the unsent draft.
-  await act(() => Promise.try(() => client.store.setState({ draftSessions: {} })))
+  await act(() => Promise.try(() => client.store.setState({ drafts: {}, draftSessions: {} })))
   await act(() =>
     Promise.try(() =>
       client.applyRunStates([
@@ -86,10 +125,10 @@ test("owned unsent drafts appear as activity navigation targets", async () => {
 })
 
 test("first send appears only after local ownership and Runtime draft state have both transitioned", async () => {
-  client.store.setState({ sessionList: [], draftSessions: { draft: "main" } })
+  client.store.setState({ sessionList: [], drafts: { draft: true }, draftSessions: { draft: "main" } })
   client.applyRunStates([record("draft", true)])
   const view = render(<ActivityPanel selectedId="draft" onSelect={() => {}} />, { wrapper: SessionListHostProvider })
-  await act(() => Promise.try(() => client.store.setState({ draftSessions: {} })))
+  await act(() => Promise.try(() => client.store.setState({ drafts: {}, draftSessions: {} })))
   expect(view.queryByText("draft")).not.toBeInTheDocument()
   await act(() => Promise.try(() => client.applyRunStates([record("draft", false, "running")])))
   expect(view.getByText("draft")).toBeInTheDocument()
@@ -275,6 +314,7 @@ test("background conversations retain their floating host across selection chang
 test("the state dot carries Runtime's interruption as its title", () => {
   return Promise.try(() => {
     client.store.setState({ sessionList: [], draftSessions: {} })
+    client.applyRunStates([record("paused", false, "running")])
     client.applyRunStates([{ ...record("paused", false, "requires_action"), interruption: "runtime restarted" }])
     const view = render(<ActivityPanel selectedId={null} onSelect={() => {}} />, { wrapper: SessionListHostProvider })
     expect(view.getByTitle("runtime restarted")).toBeInTheDocument()
