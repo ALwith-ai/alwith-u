@@ -124,7 +124,6 @@
     "chooseFolder": "Choose folder"
   },
   "chat": {
-    "accountCreditError": "Your account has insufficient credits. Please top up.",
     "filePreview": {
       "readOnly": "Read-only preview",
       "reveal": "Show in file manager",
