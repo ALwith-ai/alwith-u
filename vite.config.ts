@@ -43,6 +43,9 @@ export const config = (mode = "development"): UserConfig => ({
     // Prebundle CommonJS dependencies of the excluded modules, including
     // the diff enum subpath and Milkdown's lazily loaded dependency graph.
     include: [
+      // Excluded shared modules and prebundled shadcn controls must share menu contexts.
+      "@base-ui/react/context-menu",
+      "@base-ui/react/menu",
       "diff2html",
       "diff2html/lib/types",
       "use-sync-external-store/shim",
