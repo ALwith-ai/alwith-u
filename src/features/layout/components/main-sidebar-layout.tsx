@@ -94,37 +94,37 @@ export function MainSidebarLayout({
   )
   return (
     <PreviewPaneContext.Provider value={previewPane}>
-    <DesktopWorkspace
-      navigation={<NavigationOverlayBridge>{sidebar}</NavigationOverlayBridge>}
-      leading={leading}
-      panes={[
-        { id: "chat", title: t("chat.timeline"), children: main },
-        {
-          id: "preview",
-          title: t("workspace.preview"),
-          children: <div ref={setPreviewSlot} className="flex min-h-0 flex-1 flex-col" />,
-          min: MIN_PREVIEW_WIDTH,
-          hidden: preview.hidden,
-          maximized: preview.maximized,
-          resizable: true
-        }
-      ]}
-      trailing={trailing}
-      toolbar={toolbar}
-      statusBar={statusBar}
-      overlays={children}
-      screen={screen}
-      onScreenChange={onScreenChange}
-      onRegionChange={regionChanged}
-      initialNavigationPinned={initialPinned}
-      onNavigationPinnedChange={persistPinned}
-      labels={labels}
-      direction={i18n.dir()}
-      trackpad={trackpad}
-      zoom={zoom}
-      openLink={openLink}
-      onError={report}
-    />
+      <DesktopWorkspace
+        navigation={<NavigationOverlayBridge>{sidebar}</NavigationOverlayBridge>}
+        leading={leading}
+        panes={[
+          { id: "chat", title: t("chat.timeline"), children: main, min: 420 },
+          {
+            id: "preview",
+            title: t("workspace.preview"),
+            children: <div ref={setPreviewSlot} className="flex min-h-0 flex-1 flex-col" />,
+            min: MIN_PREVIEW_WIDTH,
+            hidden: preview.hidden,
+            maximized: preview.maximized,
+            resizable: true
+          }
+        ]}
+        trailing={trailing}
+        toolbar={toolbar}
+        statusBar={statusBar}
+        overlays={children}
+        screen={screen}
+        onScreenChange={onScreenChange}
+        onRegionChange={regionChanged}
+        initialNavigationPinned={initialPinned}
+        onNavigationPinnedChange={persistPinned}
+        labels={labels}
+        direction={i18n.dir()}
+        trackpad={trackpad}
+        zoom={zoom}
+        openLink={openLink}
+        onError={report}
+      />
     </PreviewPaneContext.Provider>
   )
 }

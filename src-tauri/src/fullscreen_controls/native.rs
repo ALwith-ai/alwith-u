@@ -33,7 +33,10 @@ pub(super) fn traffic_light_center_y() -> f64 {
 
 pub(crate) fn align_native(window: &NSWindow, center_y: f64) -> Result<(), String> {
     MainThreadMarker::new().expect("Align native controls on the main thread");
-    if window.styleMask().contains(NSWindowStyleMask::FullScreen)
+    // AppKit owns the titlebar throughout live resize. Mutating it from resize/update
+    // notifications feeds another layout back into the active display transaction.
+    if window.inLiveResize()
+        || window.styleMask().contains(NSWindowStyleMask::FullScreen)
         || TRANSITIONS.with_borrow(|states| states.contains_key(&window_key(window)))
     {
         return Ok(());
@@ -158,7 +161,11 @@ extern "C-unwind" fn transition(delegate: &AnyObject, selector: Sel, argument: &
             }
         });
     }
-    if !starting
+    let alignment_needed = failed
+        || selector == sel!(windowDidEnterFullScreen:)
+        || selector == sel!(windowDidExitFullScreen:)
+        || selector == sel!(windowDidEndLiveResize:);
+    if alignment_needed
         && MAIN_WINDOW.with(|main| main.get() == Some(window_key(window)))
         && let Err(error) = align_native(window, traffic_light_center_y())
     {
@@ -183,6 +190,7 @@ pub(crate) fn prepare(window: &NSWindow) {
         sel!(windowDidFailToEnterFullScreen:),
         sel!(windowDidFailToExitFullScreen:),
         sel!(windowDidUpdate:),
+        sel!(windowDidEndLiveResize:),
         sel!(windowWillClose:),
     ] {
         let method = class.instance_method(selector);

@@ -237,6 +237,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
               setSurfaceGeneration((value) => value + 1)
               setView("chat")
               setSelectedId(id)
+              setChatRevealRequest((value) => value + 1)
             },
             onOpenError: (error: unknown) => toast.error(describe(error))
           })
