@@ -642,10 +642,10 @@ test("floating project views use the owner's full session list and receive mutat
   try {
     await remote.connect()
     expect((await remote.listProjectSessions("/tmp/one")).map((sessionRow) => sessionRow.sessionId)).toEqual(["h1"])
-    expect(fake.fullListRequests).toEqual([{}])
+    expect(fake.listRequests).toEqual([{}])
     await owner.renameSession("h1", "Renamed")
     expect((await remote.listProjectSessions("/tmp/one"))[0]?.title).toBe("Renamed")
-    expect(fake.fullListRequests).toHaveLength(1)
+    expect(fake.listRequests).toHaveLength(1)
   } finally {
     remote.disconnect()
     stop()

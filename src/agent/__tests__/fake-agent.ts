@@ -25,7 +25,7 @@ export type FakeAgent = {
   configResponse: {
     current: ((request: acp.SetSessionConfigOptionRequest) => acp.SetSessionConfigOptionResponse) | null
   }
-  fullListRequests: unknown[]
+  listRequests: unknown[]
   listSessions: {
     current: ((request: acp.ListSessionsRequest) => acp.ListSessionsResponse | Promise<acp.ListSessionsResponse>) | null
   }
@@ -240,7 +240,7 @@ export function createFakeAgent(): FakeAgent {
       _meta: { codex }
     }
   })
-  const fullListRequests: unknown[] = []
+  const listRequests: unknown[] = []
   const list = (params: acp.ListSessionsRequest) => {
     if (listSessions.current !== null) return listSessions.current(params)
     const wantArchived = params.archived === "only"
@@ -251,23 +251,14 @@ export function createFakeAgent(): FakeAgent {
       ].filter((item) => item.archived === wantArchived && !deleted.has(item.sessionId))
     }
   }
-  app.onRequest("session/list", ({ params }) => list(params))
+  app.onRequest("session/list", ({ params }) => {
+    listRequests.push(params)
+    return list(params)
+  })
   app.onRequest(
     "_codex/project_context",
     (params) => params,
     () => projectContext()
-  )
-  app.onRequest(
-    "_codex/session_list",
-    (value) => {
-      if (typeof value !== "object" || value === null || Array.isArray(value))
-        throw acp.RequestError.invalidParams(undefined, "Expected an object")
-      return value
-    },
-    ({ params }) => {
-      fullListRequests.push(params)
-      return list({})
-    }
   )
   app.onRequest("session/close", async ({ params }) => {
     active.get(params.sessionId)?.abort()
@@ -483,7 +474,7 @@ export function createFakeAgent(): FakeAgent {
     sessionCommands,
     configResponse,
     listSessions,
-    fullListRequests,
+    listRequests,
     configChanges,
     renamed,
     fileSearches,

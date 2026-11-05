@@ -835,12 +835,12 @@ test("opening an attached read-only session retries resume until the writer is r
   expect(attempts).toBe(3)
 })
 
-test("startup sends an object for the full list through a null-normalizing transport", async () => {
+test("startup sends an object for the list through a null-normalizing transport", async () => {
   const { client, port } = await make()
   const send = port.acpRequest.bind(port)
   vi.spyOn(port, "acpRequest").mockImplementation((agentId, method, params, options) => {
     const wireParams = params ?? null
-    if (method === "_codex/session_list" && wireParams === null)
+    if (method === "session/list" && wireParams === null)
       return Promise.reject(RequestError.invalidParams(undefined, "Expected an object"))
     return send(agentId, method, wireParams, options)
   })
@@ -864,7 +864,7 @@ test("project views share one full list with empty object params, deduplicate ID
   expect(project.map((sessionRow) => [sessionRow.sessionId, sessionRow.title])).toEqual([["p1", "Renamed"]])
   expect(client.state.sessionList.map((sessionRow) => sessionRow.sessionId)).toEqual(["p1", "other"])
   await client.listProjectSessions("/tmp/other")
-  expect(fake.fullListRequests).toEqual([{}])
+  expect(fake.listRequests).toEqual([{}])
 })
 
 test("explicitly selected history entries join the shared list only once", async () => {
@@ -913,8 +913,9 @@ test("refresh replaces the complete list and preserves the last snapshot on fail
   fake.listSessions.current = () => ({ sessions: [{ sessionId: "external", cwd: "/tmp/other" }] })
   await client.listSessions({ reset: true })
   expect(client.state.sessionList.map((sessionRow) => sessionRow.sessionId)).toEqual(["external"])
-  fake.listSessions.current = () => ({ sessions: [], nextCursor: "unexpected" })
-  await expect(client.listSessions({ reset: true })).rejects.toThrow("Full session list returned a cursor")
+  // The list follows cursors; a page that hands back its own cursor would never end.
+  fake.listSessions.current = () => ({ sessions: [], nextCursor: "repeated" })
+  await expect(client.listSessions({ reset: true })).rejects.toThrow("Session list returned a repeated cursor")
   expect(client.state.sessionList.map((sessionRow) => sessionRow.sessionId)).toEqual(["external"])
 })
 
@@ -1570,7 +1571,7 @@ test("concurrent refreshes share one request and loading state", async () => {
   const second = client.listSessions({ reset: true })
   expect(first).toBe(second)
   expect(client.state.sessionListLoading).toBe(true)
-  expect(fake.fullListRequests).toHaveLength(1)
+  expect(fake.listRequests).toHaveLength(1)
   answer({ sessions: [{ sessionId: "new", cwd: "/tmp/one" }] })
   await Promise.all([first, second])
   expect(client.state.sessionList.map((sessionRow) => sessionRow.sessionId)).toEqual(["new"])
@@ -1619,7 +1620,7 @@ test("deleted-project aliases share the same complete memory list", async () => 
   expect(result.map((sessionRow) => sessionRow.cwd)).toEqual([canonical, canonical])
   expect(await client.listProjectSessions(`${alias}/`)).toEqual(result)
   expect(client.state).toBe(before)
-  expect(fake.fullListRequests).toHaveLength(1)
+  expect(fake.listRequests).toHaveLength(1)
 })
 
 test("new and explicitly included chats use the same project key as history", async () => {
