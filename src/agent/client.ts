@@ -49,7 +49,7 @@ export type Launch = { engine: string; [key: string]: unknown }
 
 export type ClientOptions = BaseClientOptions & {
   /** Resolve a slot selection against the host's applied provider configuration. */
-  resolveModel?: (model: string | null) => Promise<string | null>
+  resolveModel?: (model: string | null, purpose: "session" | "draft") => Promise<string | null>
 }
 
 export type DraftOwner = "main" | "chat"
@@ -483,17 +483,33 @@ export class CodexClient extends CodexAcpClient<AppState> {
     return next
   }
 
-  prepareDraft(owner: DraftOwner, cwd: string | undefined, model: string | null = null): Promise<string> {
+  prepareDraft(
+    owner: DraftOwner,
+    cwd: string | undefined,
+    model: string | null = null,
+    nativeDefault = false
+  ): Promise<string> {
     const version = ++this.slotVersions[owner]
     return this.changeDraft([owner], async () => {
       const directory = cwd ?? (await this.refreshProjectContext(true)).chatDirectory
       const existing = Object.keys(this.state.draftSessions).find((id) => this.state.draftSessions[id] === owner)
       if (existing) await this.lifecycle.admission.pending(existing)
+      const inherited =
+        model ??
+        (existing
+          ? selectedModel(this.session(existing).configOptions)
+          : (this.savedModels[owner] ?? this.slotModels[owner]))
+      // Only an inherited, unsent selection may move to the currently available default.
+      const resolved = nativeDefault ? null : await this.resolveModel(inherited, model === null ? "draft" : "session")
       if (
         existing &&
         this.session(existing).cwd === directory &&
         (!this.draftDirectoryIntents.has(existing) || this.draftDirectoryIntents.get(existing) === cwd) &&
-        (model === null || selectedModel(this.session(existing).configOptions) === model)
+        !nativeDefault &&
+        !this.state.accountModelRecovery[existing] &&
+        (resolved === null
+          ? !selectedModel(this.session(existing).configOptions)?.startsWith("gateway:")
+          : selectedModel(this.session(existing).configOptions) === resolved)
       ) {
         this.activateSlot(owner, existing, version)
         if (!this.session(existing).attached) await this.replayForOwner(existing, directory, owner)
@@ -503,16 +519,7 @@ export class CodexClient extends CodexAcpClient<AppState> {
       // Inherit the confirmed model, including a change already requested by this
       // surface. A failed change must not silently create a draft on the old model.
       // Prepare the replacement before retiring the previous draft: failures preserve the user's input.
-      const id = await this.createNativeSession(
-        cwd,
-        await this.resolveModel(
-          model ??
-            (existing
-              ? selectedModel(this.session(existing).configOptions)
-              : (this.savedModels[owner] ?? this.slotModels[owner]))
-        ),
-        owner
-      )
+      const id = await this.createNativeSession(cwd, resolved, owner)
       try {
         // An unsent model change starts directly on the target provider. Resuming
         // the default-model thread creates a misleading model-change warning.
@@ -544,7 +551,8 @@ export class CodexClient extends CodexAcpClient<AppState> {
         throw error
       }
       this.activateSlot(owner, id, version)
-      if (model !== null) this.confirmModel(owner, this.session(id))
+      if (model !== null || nativeDefault || (inherited !== null && inherited !== resolved))
+        this.confirmModel(owner, this.session(id))
       return id
     })
   }
@@ -704,8 +712,8 @@ export class CodexClient extends CodexAcpClient<AppState> {
     for (const listener of this.confirmedModelListeners) listener(owner, model)
   }
 
-  private resolveModel(model: string | null): Promise<string | null> {
-    return this.resolveModelOption ? this.resolveModelOption(model) : Promise.resolve(model)
+  private resolveModel(model: string | null, purpose: "session" | "draft" = "session"): Promise<string | null> {
+    return this.resolveModelOption ? this.resolveModelOption(model, purpose) : Promise.resolve(model)
   }
 
   onSessionModel(listener: SessionModelListener): () => void {

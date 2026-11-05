@@ -14,6 +14,7 @@ mod chat_window;
 mod diagnostics;
 mod draft_directory;
 mod drive;
+mod enterprise;
 mod extension_capabilities;
 mod extension_inbox;
 mod extension_wire;
@@ -74,6 +75,7 @@ pub fn run() {
             vibemon: None,
         }))
         .manage(login_launch)
+        .manage(enterprise::Enterprise::default())
         .register_asynchronous_uri_scheme_protocol("preview-html", html_preview::handle_protocol)
         .runtime(tauri_runtime_wry::Wry::default())
         // Second launch: focus the running instance instead of starting a second alwith-runtime
@@ -132,9 +134,7 @@ pub fn run() {
         }))
         .plugin(drive::plugin())
         .plugin(appearance::wallpaper::plugin())
-        .plugin(alwith_editor::init(alwith_editor::Config {
-            development_directory: native::development_directory(),
-        }))
+        .plugin(alwith_editor::init(alwith_editor::Config { development_directory: native::development_directory() }))
         .plugin(alwith_computer::init(alwith_computer::Config {
             development_directory: native::development_directory(),
             proxy: native::development_resources().map(|resources| resources.join("computer/stdio.mjs")),
@@ -166,8 +166,7 @@ pub fn run() {
         ))
         .plugin(alwith_browser::init(
             |_| runtime::sidecar_path("bun"),
-            native::development_resources()
-                .map(|resources| resources.join(alwith_browser::BRIDGE_RESOURCE)),
+            native::development_resources().map(|resources| resources.join(alwith_browser::BRIDGE_RESOURCE)),
         ))
         .plugin(alwith_chat::init_with_account(runtime::ChatRuntime, native::development_directory()))
         .plugin(tauri_plugin_opener::init())
@@ -405,6 +404,15 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 runtime::codex_status,
                 mobile::mobile_set_activity_sessions,
                 gamepad::gamepad_ai_prepare,
+                enterprise::enterprise_bind,
+                enterprise::enterprise_refresh,
+                enterprise::enterprise_catalog,
+                enterprise::enterprise_clear,
+                enterprise::enterprise_status,
+                enterprise::enterprise_begin,
+                enterprise::enterprise_cancel,
+                enterprise::enterprise_update_account,
+                enterprise::enterprise_logout,
                 window::attach_window_to_main,
             ]
             .event::<trackpad::TrackpadGesture>()

@@ -1,6 +1,7 @@
 //! Application-owned Runtime connection. The shared SDK owns framing, request correlation,
 //! journal refill and process shutdown; each webview receives only its own request replies.
 use alwith_api::{ClientEvent, ResponseError, RuntimeClient, process::HideConsoleExt};
+use alwith_mobile::MobileExt;
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::collections::HashMap;
@@ -11,7 +12,6 @@ use std::sync::{
 };
 use std::time::Duration;
 use tauri::{AppHandle, Manager, State, WebviewWindow};
-use alwith_mobile::MobileExt;
 use tauri3_specta::Event;
 
 const READY_TIMEOUT: Duration = Duration::from_secs(20);
@@ -132,6 +132,9 @@ pub fn prevent_exit(app: &AppHandle, code: Option<i32>) -> bool {
             if let Err(error) = app.mobile().shutdown().await {
                 log::error!("Mobile shutdown failed: {error}");
             }
+            if let Err(reason) = app.state::<crate::enterprise::Enterprise>().close().await {
+                log::error!("Enterprise shutdown failed: {reason}");
+            }
             app.state::<RuntimeState>().shutdown().await;
             app.exit(code.unwrap_or(0));
         });
@@ -180,8 +183,8 @@ fn engines_table(app: &AppHandle, native_network_endpoint: Option<&str>) -> Resu
     if !adapter.is_file() {
         return Err(format!("ACP adapter missing at {}", adapter.display()));
     }
-    let catalogs = std::env::join_paths(alwith_chat::bundled_model_catalogs(app)?)
-        .map_err(|error| error.to_string())?;
+    let catalogs =
+        std::env::join_paths(alwith_chat::bundled_model_catalogs(app)?).map_err(|error| error.to_string())?;
     let mut engines = json!({"codex": {
         "command": sidecar_path("bun")?,
         "args": ["--no-install", adapter],
@@ -276,6 +279,7 @@ pub async fn runtime_start(
     let mut events = client.events();
     *state.client.lock().unwrap() = Some(Arc::clone(&client));
     app.state::<alwith_chat::Providers>().reset().await;
+    crate::enterprise::reset(&app);
     let identity = Arc::downgrade(&client);
     tauri::async_runtime::spawn(async move {
         #[cfg(windows)]
@@ -325,6 +329,7 @@ pub async fn runtime_start(
                     ClientEvent::Runtime(event) => {
                         crate::diagnostics::runtime_event(&event);
                         alwith_chat::observe_event(&app, &event);
+                        crate::enterprise::observe_event(&app, &event);
                         crate::mobile::publish(&app, &event);
                         if matches!(&event, alwith_api::RuntimeEvent::Exit { agent_id } if agent_id == "codex")
                             && let Err(error) = app.state::<alwith_computer::Computer>().release().await
@@ -346,9 +351,7 @@ pub async fn runtime_start(
                                 })
                                 .map(|s| s.session_id.clone())
                                 .collect();
-                            if let Err(error) =
-                                app.state::<alwith_computer::Computer>().sync_running(&running)
-                            {
+                            if let Err(error) = app.state::<alwith_computer::Computer>().sync_running(&running) {
                                 log::error!("Computer lease update failed: {error}");
                             }
                         }
@@ -461,18 +464,33 @@ pub async fn runtime_send(
     }
     let generation = alwith_chat::check(window.app_handle(), &request.method, request.params.as_ref())
         .map_err(|error| error.message)?;
+    crate::enterprise::check(window.app_handle(), &request.method, request.params.as_ref())?;
+    if crate::enterprise::uses_enterprise(window.app_handle(), &request.method, request.params.as_ref()) {
+        let agent = request.params.as_ref().and_then(|params| params["agentId"].as_str()).unwrap_or("codex");
+        crate::enterprise::apply(window.app_handle(), &client, agent).await?;
+    }
+    let enterprise_generation =
+        crate::enterprise::check(window.app_handle(), &request.method, request.params.as_ref())?;
+    let initialized_agent = initialization_agent(&request).map(str::to_owned);
     let original = request.params.clone();
     let outcome = client.request(&request.method, request.params).await;
     diagnostic.finish(&outcome);
+    if let (Some(agent), Ok(_)) = (initialized_agent.as_deref(), &outcome) {
+        crate::enterprise::ready(window.app_handle(), agent);
+        let _configuration = state.admission.lock().await;
+        if let Err(reason) = crate::enterprise::apply(window.app_handle(), &client, agent).await {
+            log::warn!("Enterprise route initialization deferred: {reason}");
+        }
+    }
     if let (Some(params), Ok(value)) = (&original, &outcome) {
         if let Err(error) = alwith_chat::observe_realtime(window.app_handle(), &request.method, params) {
             log::error!("Cannot record realtime stream: {error}");
         }
+        crate::enterprise::observe_realtime(window.app_handle(), &request.method, params);
         let body = if request.method == "acpRequest" { &params["params"] } else { params };
         if let Some(session) = value["sessionId"].as_str().or_else(|| body["sessionId"].as_str()) {
             let agent = params["agentId"].as_str().unwrap_or("codex");
-            let confirmed = match alwith_chat::confirms_model(window.app_handle(), &request.method, params)
-            {
+            let confirmed = match alwith_chat::confirms_model(window.app_handle(), &request.method, params) {
                 Ok(confirms) => confirms.then_some(generation),
                 Err(error) => {
                     log::error!("Cannot classify the session model request: {error}");
@@ -480,6 +498,13 @@ pub async fn runtime_send(
                 }
             };
             alwith_chat::observe(window.app_handle(), agent, session, value, confirmed);
+            crate::enterprise::observe(
+                window.app_handle(),
+                agent,
+                session,
+                value,
+                confirmed.map(|_| enterprise_generation),
+            );
         }
     }
     if !state.owns(&client) {

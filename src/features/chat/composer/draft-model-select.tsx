@@ -67,7 +67,7 @@ export function DraftModelSelect({
         }
       ]}
       showModelList
-      onChange={(item) => onChange(item.api_id === "" ? null : item.api_id)}
+      onChange={(item) => onChange(item.api_id)}
       t={(key) => t(key, { ns: "alwithChat" })}
     />
   )

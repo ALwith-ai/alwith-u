@@ -37,6 +37,12 @@ bun tauri build
 Installers are generated in `src-tauri/target/release/bundle/`.
 On macOS, open the `.dmg` and drag ALwith U into Applications. On Windows, run the generated installer.
 
+## Test
+
+Run `bun test` for Bun-native script tests, or `bun run test` for the complete
+suite, including frontend and engine tests under Vitest. Vitest supplies jsdom
+and the mocks required by application tests.
+
 ## Test a local generator candidate
 
 Set `CREATE_ALWITH_PATH` to an absolute checkout path to bundle a local
@@ -49,3 +55,15 @@ CREATE_ALWITH_PATH=/absolute/path/to/create-alwith bun run test:scripts
 
 Install the candidate's dependencies first. This development override does not
 change U's production dependency manifest or lockfile.
+
+
+### Enterprise native module
+
+Enterprise authentication and gateway access use `@alwith/enterprise-client`
+and the independently built `@alwith/native-enterprise` platform artifacts.
+`bun run stage` verifies and copies the native library and its license notices;
+release builds sign the staged macOS library with the application's identity.
+
+Install dependencies before running Cargo: the Rust transport comes from
+`node_modules/@alwith/enterprise-client/rust`. Application builds require no
+access to the private enterprise implementation repository.

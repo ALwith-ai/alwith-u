@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { logoutPlatform, usePlatformAuth } from "@/features/auth/store"
 import { PhoneLoginView } from "@/features/mobile/phone-login-view"
 
+import { EnterpriseSection } from "./enterprise-section"
 import { SettingGroup, SettingRow } from "./shared"
 
 export function AccountSection({ onOpenMobile }: { onOpenMobile: () => void }) {
@@ -44,6 +45,7 @@ export function AccountSection({ onOpenMobile }: { onOpenMobile: () => void }) {
         </SettingRow>
         {loggingIn && <PhoneLoginView onBack={() => setLoggingIn(false)} onContinue={onOpenMobile} />}
       </SettingGroup>
+      <EnterpriseSection />
     </div>
   )
 }

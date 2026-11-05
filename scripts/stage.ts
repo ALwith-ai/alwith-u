@@ -18,6 +18,7 @@ import { join, resolve } from "node:path"
 import { stageChromeBridge } from "@alwith/module-browser/stage"
 import { stageChatAdapter } from "@alwith/module-chat/stage"
 import { stageNativeModule } from "@alwith/module-desktop-shell/stage"
+import { stageNative as stageNativeEnterprise } from "@alwith/native-enterprise/stage"
 import { stageRuntime } from "@alwith/runtime/stage"
 import { $ } from "bun"
 
@@ -127,9 +128,10 @@ const MODULES = [
   "drive"
 ]
 const nativeDirectory = join(root, "src-tauri/resources/native")
-const staged = MODULES.flatMap((module) =>
-  stageNativeModule(import.meta.url, module, triple, nativeDirectory, licenses)
-)
+const staged = [
+  ...MODULES.flatMap((module) => stageNativeModule(import.meta.url, module, triple, nativeDirectory, licenses)),
+  { path: stageNativeEnterprise(triple, nativeDirectory, licenses), signing: "resign" as const }
+]
 if (triple.endsWith("apple-darwin") && process.env.APPLE_SIGNING_IDENTITY) {
   // A hardened application must load libraries and helpers signed by the same team. The stager
   // verified the distributed bytes; sign the staged copies with the application's identity.

@@ -322,15 +322,17 @@ test("the real new-chat surface supplies its receipt and resumes after materiali
   vi.spyOn(core, "invoke").mockImplementation(<T,>(command: string): Promise<T> => {
     return Promise.try(() => {
       const value: unknown =
-        command === "draft_directory"
-          ? "/tmp"
-          : command === "plugin:alwith-chat|providers_apply"
-            ? providers
-            : command === "plugin:alwith-installed-apps|read_apps_info"
-              ? []
-              : command === "settings_request"
-                ? { revision: 1, values: {}, browserMigrated: true }
-                : undefined
+        command === "enterprise_catalog"
+          ? null
+          : command === "draft_directory"
+            ? "/tmp"
+            : command === "plugin:alwith-chat|providers_apply"
+              ? providers
+              : command === "plugin:alwith-installed-apps|read_apps_info"
+                ? []
+                : command === "settings_request"
+                  ? { revision: 1, values: {}, browserMigrated: true }
+                  : undefined
       if (value === undefined) throw new Error(`Unexpected host command: ${command}`)
       return value as T
     })

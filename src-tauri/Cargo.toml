@@ -17,6 +17,7 @@ tauri-build = { version = "3.0.0-alpha.4", features = [] }
 hasgard-testing = ["dep:tauri-plugin-hasgard"]
 
 [dependencies]
+alwith-enterprise-client = { path = "../node_modules/@alwith/enterprise-client/rust" }
 alwith-editor = "0.6"
 alwith-desktop-shell = "0.6"
 keepawake = "0.6"
@@ -34,7 +35,7 @@ alwith-fs = "0.6"
 alwith-drive = "0.6"
 # The ALwith account gateway (`init_with_account`); the application selects reqwest's TLS backend.
 alwith-chat = { version = "0.6", default-features = false }
-alwith-api = "0.6"
+alwith-api = { path = "../node_modules/@alwith/api/rust" }
 alwith-extension = "0.6"
 tempfile = "3"
 sha2 = "0.11"
@@ -99,6 +100,8 @@ resolver = "3"
 exclude = ["patches/tauri-nspanel", "patches/wry", "patches/tauri-plugin-decoration", "patches/tauri-plugin-single-instance"]
 
 [patch.crates-io]
+# Unify module plugins with the installed Runtime SDK.
+alwith-api = { path = "../node_modules/@alwith/api/rust" }
 # Temporary WebKit race fix; removal is tracked in patches/wry/PATCH.md.
 wry = { path = "patches/wry" }
 tauri-plugin-single-instance = { path = "patches/tauri-plugin-single-instance" }

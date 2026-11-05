@@ -7,6 +7,7 @@
       "dependencies": {
         "@agentclientprotocol/sdk": "^2.4.0",
         "@alwith/api": "^0.6.0",
+        "@alwith/enterprise-client": "0.6.1",
         "@alwith/module-auth": "^0.6.0",
         "@alwith/module-browser": "^0.6.0",
         "@alwith/module-chat": "^0.6.4",
@@ -24,6 +25,8 @@
         "@alwith/module-mobile": "^0.6.0",
         "@alwith/module-store": "^0.6.0",
         "@alwith/module-voice": "^0.6.2",
+        "@alwith/native-enterprise": "0.6.0",
+        "@alwith/native-kit": "0.5.2",
         "@alwith/runtime": "^0.6.0",
         "@base-ui/react": "^1.9.0",
         "@dnd-kit/core": "^6.3.1",
@@ -143,6 +146,8 @@
 
     "@alwith/api": ["@alwith/api@0.6.0", "", { "peerDependencies": { "@tauri-apps/api": ">=2" }, "optionalPeers": ["@tauri-apps/api"] }, "sha512-gtsHDMUFdeCD/kV7Exym09+YwnwxthGTHUv1NC90kizN2SljUKnpf8MAamyrCcS1ii/yPfd3FNquZ98ZC967+g=="],
 
+    "@alwith/enterprise-client": ["@alwith/enterprise-client@0.6.1", "", { "peerDependencies": { "@alwith/native-kit": "0.5.2" } }, "sha512-DYOd+Pj8hDmDj/PPwhPy8UReV6gmeKWGXYrLRTh0t8WBPNxjK+5qkRBB9igudPWgB/6gDUF6EK3Yv+zRFIV+nA=="],
+
     "@alwith/module-auth": ["@alwith/module-auth@0.6.0", "", { "dependencies": { "@base-ui/react": "^1.9.0", "@nyssance/atlas": "^0.1.10", "class-variance-authority": "^0.7.1", "cn": "^0.5.2", "fflate": "0.8.3", "i18next": "^26.7.1", "ldrs": "^1.1.9", "lucide-react": "^1.66.0", "motion": "^14.9.0", "react-i18next": "^17.1.11", "sonner": "^2.0.8", "tyme4ts": "^1.5.4", "zustand": "^5.0.16" }, "peerDependencies": { "@agentclientprotocol/sdk": "^2.4.0", "@alwith/api": "^0.6.0", "@alwith/module-chat": "^0.6.0", "@nyssance/codex-acp-v2": "^0.7.51", "@tauri-apps/api": "^3.0.0-alpha.3", "@tauri-apps/plugin-os": "^3.0.0-alpha.3", "react": "^19.3.1", "react-dom": "^19.3.1" }, "optionalPeers": ["@agentclientprotocol/sdk", "@alwith/api", "@alwith/module-chat", "@nyssance/codex-acp-v2", "@tauri-apps/api", "@tauri-apps/plugin-os", "react", "react-dom"] }, "sha512-V0GYFEBUI18jBZM092e9TWJg2WSVdOU8F3aKFE06PJWrS9dnTRrBiwPrjaEp5/fPOkIZVYrIFweNvbX9a9vyMA=="],
 
     "@alwith/module-browser": ["@alwith/module-browser@0.6.0", "", { "peerDependencies": { "@tauri-apps/api": "^3.0.0-alpha.3", "react": "^19.3.1" }, "optionalPeers": ["@tauri-apps/api"] }, "sha512-ciTJgf9eoJZsx8GKvV2kTGohbOqTzxDscirrRbP2yCzY7TL+/zsJIDa4kGCNp4RHMKJ9yoYCNxY1JJdSroNudw=="],
@@ -176,6 +181,14 @@
     "@alwith/module-store": ["@alwith/module-store@0.6.0", "", { "peerDependencies": { "@tauri-apps/api": "^3.0.0-alpha.3" }, "optionalPeers": ["@tauri-apps/api"] }, "sha512-Uw/MPWlTgz1QZhr8ngLujxGkLJmLxfreGDtNy3vpbUhq2bYaJTLUJFUi7bpOfN7/IOcpr1kl1iGNLRxOocPd/w=="],
 
     "@alwith/module-voice": ["@alwith/module-voice@0.6.2", "", { "dependencies": { "effect": "^4.1.2" }, "peerDependencies": { "@tauri-apps/api": "^3.0.0-alpha.3", "react": "^19.3.1", "react-dom": "^19.3.1" }, "optionalPeers": ["react", "react-dom"] }, "sha512-uRMsgqcWQpvoyio9UzHuhn8oeMhrhqGx3uGxrGA1y+CSCP+fxybpXHFsNKcYw7Xl8jk42sjW62dcLRdkJs9fnA=="],
+
+    "@alwith/native-enterprise": ["@alwith/native-enterprise@0.6.0", "", { "dependencies": { "@alwith/native-kit": "0.5.2" }, "optionalDependencies": { "@alwith/native-enterprise-darwin-arm64": "0.6.0", "@alwith/native-enterprise-win32-x64": "0.6.0" } }, "sha512-0+WXCY5NenEziuRKIXUKgSRG7zmpXgi1rfvaMeXjaKIPkV9nx2WJWzt/SSUKf0NUDnHE2BGqgBWxEkbLnE1Dew=="],
+
+    "@alwith/native-enterprise-darwin-arm64": ["@alwith/native-enterprise-darwin-arm64@0.6.0", "", { "os": "darwin", "cpu": "arm64" }, "sha512-tby0d17X/b+nXP3QiPzX95DM+R//EPAO3bPMguzfVnQKJ048IGwJINULv/88jRWO+I4CeaA8x38JggiEFTzAUg=="],
+
+    "@alwith/native-enterprise-win32-x64": ["@alwith/native-enterprise-win32-x64@0.6.0", "", { "os": "win32", "cpu": "x64" }, "sha512-xKjZKfWphomWXoVetCE+tdOHxOmIo5geUHxy4GF2TDmRDDIdaw9eEOArvmm56guG3/h2qNiOaHK6hNqyTil85g=="],
+
+    "@alwith/native-kit": ["@alwith/native-kit@0.5.2", "", {}, "sha512-3rEpldU/pdyeFoKH8LvYj83lsCmLI9lFZWEhBUPNMPOwQY+88IFcaB/fxctR87m1zryBA6l1DKHcbBpJ+MOIZg=="],
 
     "@alwith/runtime": ["@alwith/runtime@0.6.0", "", { "optionalDependencies": { "@alwith/runtime-darwin-arm64": "0.6.0", "@alwith/runtime-win32-x64": "0.6.0" } }, "sha512-06RxbDyMUx0bF2CiZQw8sgAvVDEisceBxqFbgzArq5Y5H9uv1VKNJS5zndvkTL4USM9+XvrNISln87RmdxOmKw=="],
 

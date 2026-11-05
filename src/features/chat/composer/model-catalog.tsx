@@ -5,7 +5,7 @@ import { Bot } from "lucide-react"
 
 import { NATIVE_MODEL_GROUP } from "@/agent/client"
 import openaiLogo from "@/components/icons/openai-logo.svg"
-import { gatewayModelId, MODEL_PRESENTATION, PROVIDERS } from "@/lib/providers"
+import { gatewayModelId, isAccountModel, MODEL_PRESENTATION, PROVIDERS } from "@/lib/providers"
 
 import alwithLogo from "../../../../src-tauri/icons/32x32.png"
 import { ModelSettingsAction } from "./model-settings-action"
@@ -46,7 +46,7 @@ export function presentModelCatalog(groups: ModelGroup[]): ModelGroup[] {
         shortLabel: model.shortLabel ?? presentation[model.api_id]?.shortLabel,
         icon: native ? (
           <img src={openaiLogo} alt="" className="size-4 shrink-0 dark:invert" />
-        ) : group.id === "litellm" ? (
+        ) : group.id === "litellm" || group.id === "finture-enterprise" || isAccountModel(model.api_id) ? (
           <img src={alwithLogo} alt="" className="size-4 shrink-0" />
         ) : (
           <Logo aria-hidden="true" className="size-4 shrink-0" />

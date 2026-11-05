@@ -39,7 +39,7 @@ export async function resetAccount(signedIn = true, kind: AccountCase = "ready")
                   ? { type: "amazonBedrock", usesCodexManagedCredentials: true }
                   : identity.account
           }
-        : { account: null, requiresOpenaiAuth: true },
+        : { account: null, requiresOpenaiAuth: true, workspaceRouting: null },
       rateLimits:
         kind === "noLimits"
           ? null

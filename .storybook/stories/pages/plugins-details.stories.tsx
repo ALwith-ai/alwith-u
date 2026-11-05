@@ -62,6 +62,8 @@ const detail: PluginDetail = {
   marketplacePath: null,
   shareUrl: null,
   description: null,
+  onboardingSkill: null,
+  appTemplates: [],
   mcpServers: ["workspace"],
   apps: [],
   hooks: [],

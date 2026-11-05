@@ -2,6 +2,6 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "chat",
   "description": "Model provider settings, provider application and skill documents",
-  "windows": ["main", "settings", "chat"],
+  "windows": ["main", "settings", "chat", "gamepad"],
   "permissions": ["alwith-chat:default"]
 }

@@ -184,6 +184,18 @@ export const commands = {
    *  Configure only a newly created Gamepad agent; credentials never leave the native host.
    */
   gamepadAiPrepare: (args: { agentId: string }): Promise<null> => __t3Invoke<null>("gamepad_ai_prepare", args),
+  enterpriseBind: (args: { account: Account }): Promise<number> => __t3Invoke<number>("enterprise_bind", args),
+  enterpriseRefresh: (args: { account: Account; generation: number; accessToken: string }): Promise<Value> =>
+    __t3Invoke<Value>("enterprise_refresh", args),
+  enterpriseCatalog: (): Promise<Value> => __t3Invoke<Value>("enterprise_catalog"),
+  enterpriseClear: (): Promise<null> => __t3Invoke<null>("enterprise_clear"),
+  enterpriseStatus: (): Promise<Value> => __t3Invoke<Value>("enterprise_status"),
+  enterpriseBegin: (args: { generation: number }): Promise<Value> => __t3Invoke<Value>("enterprise_begin", args),
+  enterpriseCancel: (args: { generation: number; state: string }): Promise<null> =>
+    __t3Invoke<null>("enterprise_cancel", args),
+  enterpriseUpdateAccount: (args: { generation: number; requestId: string; accessToken: string }): Promise<null> =>
+    __t3Invoke<null>("enterprise_update_account", args),
+  enterpriseLogout: (args: { generation: number }): Promise<null> => __t3Invoke<null>("enterprise_logout", args),
   /**
    *  Makes `label` a child window of `main` (macOS only): it floats above the main window,
    *  follows it between Spaces and never becomes its own Stage Manager stage. Called on every
@@ -256,6 +268,15 @@ export type CommandErrors = {
   codexStatus: string
   mobileSetActivitySessions: string
   gamepadAiPrepare: string
+  enterpriseBind: Value
+  enterpriseRefresh: Value
+  enterpriseCatalog: never
+  enterpriseClear: Value
+  enterpriseStatus: Value
+  enterpriseBegin: Value
+  enterpriseCancel: Value
+  enterpriseUpdateAccount: Value
+  enterpriseLogout: Value
   attachWindowToMain: string
 }
 
@@ -393,6 +414,11 @@ export const events = {
     emitTo: (target: string | __t3Target, payload: ActualSize) => __t3EmitTo(target, "menu:actual-size", payload)
   }
 } as const
+
+export type Account = {
+  apiBaseUrl: string
+  userUuid: string
+}
 
 export type ActualSize = null
 

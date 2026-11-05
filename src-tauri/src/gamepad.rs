@@ -28,7 +28,12 @@ pub async fn gamepad_ai_prepare(window: tauri::WebviewWindow, agent_id: String) 
     if !is_temporary_agent(&agent_id) {
         return Err("Invalid Gamepad AI agent".into());
     }
-    alwith_chat::prepare_agent(window.app_handle(), &agent_id).await
+    alwith_chat::prepare_agent(window.app_handle(), &agent_id).await?;
+    let runtime = window.state::<crate::runtime::RuntimeState>();
+    let _admission = runtime.admission.lock().await;
+    let client = runtime.current()?;
+    crate::enterprise::ready(window.app_handle(), &agent_id);
+    crate::enterprise::apply(window.app_handle(), &client, &agent_id).await
 }
 
 /// The destroyed Gamepad window cannot stop its temporary agents itself.

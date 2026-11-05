@@ -41,8 +41,6 @@ dependencies = [
 [[package]]
 name = "alwith-api"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "afc8f46892a3e947ca9c46d92a2cd20c3b15604e6ddf2b1bead8e66cdc23738a"
 dependencies = [
  "log",
  "serde",
@@ -58,7 +56,7 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "217bb750a16190f9b82e73ddef8492ae6dd9a4eed37c8edc72e19561505e72c9"
 dependencies = [
- "alwith-native-client",
+ "alwith-native-client 0.6.1",
  "log",
  "objc2",
  "objc2-app-kit",
@@ -101,7 +99,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "abe648936c89b2cb3839f94f2a75ddb7a5fda88c8af093ad31824bb9ff89ef15"
 dependencies = [
  "alwith-api",
- "alwith-native-client",
+ "alwith-native-client 0.6.1",
  "axum",
  "chrono",
  "futures-util",
@@ -133,7 +131,7 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a7482faff50962176cf99fd56044941438c68248525643f0e985afe1c4a36934"
 dependencies = [
- "alwith-native-client",
+ "alwith-native-client 0.6.1",
  "log",
  "macos-privacy",
  "serde",
@@ -172,7 +170,7 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ce918d9aa735164b2856b41c4edde0e03a254bdd54e907764f402050464f618e"
 dependencies = [
- "alwith-native-client",
+ "alwith-native-client 0.6.1",
  "base64 0.23.1",
  "log",
  "serde",
@@ -191,7 +189,7 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "74c8aceb76a0b101897e7f380d0178d193ddeaf580998b56d1001e3109d3468a"
 dependencies = [
- "alwith-native-client",
+ "alwith-native-client 0.6.1",
  "serde",
  "serde_json",
  "specta",
@@ -207,7 +205,7 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b248f7b4e383f000fa2b4cbe0a90830f04011644bdf9dba07e42e871886fada8"
 dependencies = [
- "alwith-native-client",
+ "alwith-native-client 0.6.1",
  "base64 0.23.1",
  "serde",
  "serde_json",
@@ -218,12 +216,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "alwith-enterprise-client"
+version = "0.6.1"
+dependencies = [
+ "alwith-native-client 0.5.0",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "alwith-extension"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6aa59c06a5a7be763cbf42b5d66c49cc83aa6d3a6f4de4b06c9e4eab8235c6c"
 dependencies = [
- "alwith-native-client",
+ "alwith-native-client 0.6.1",
  "percent-encoding",
  "serde",
  "serde_json",
@@ -241,7 +249,7 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d325c93f0f790e72c56c1dfab921dd95e9284630c5b6746c6f9b1194bfe60bb6"
 dependencies = [
- "alwith-native-client",
+ "alwith-native-client 0.6.1",
  "serde",
  "serde_json",
  "specta",
@@ -257,7 +265,7 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f3029c1b781af8030f854d1b02d0372b9b530314fc5312a8132a12be09a8819"
 dependencies = [
- "alwith-native-client",
+ "alwith-native-client 0.6.1",
  "log",
  "serde",
  "serde_json",
@@ -273,7 +281,7 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "deab8a804506a1e9508d9a501323ed9dce5318201135996e87cf45bed0dc73ae"
 dependencies = [
- "alwith-native-client",
+ "alwith-native-client 0.6.1",
  "serde",
  "serde_json",
  "specta",
@@ -288,7 +296,7 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3cdd797d719c75e07eb6da38dbd40127e8b27c1ac001cf5df52f3c38abc5a6a5"
 dependencies = [
- "alwith-native-client",
+ "alwith-native-client 0.6.1",
  "log",
  "serde",
  "serde_json",
@@ -309,6 +317,16 @@ dependencies = [
  "serde_json",
  "specta",
  "tempfile",
+ "tokio",
+]
+
+[[package]]
+name = "alwith-native-client"
+version = "0.5.0"
+dependencies = [
+ "libloading",
+ "serde",
+ "serde_json",
  "tokio",
 ]
 
@@ -355,6 +373,7 @@ dependencies = [
  "alwith-device",
  "alwith-drive",
  "alwith-editor",
+ "alwith-enterprise-client",
  "alwith-extension",
  "alwith-fs",
  "alwith-gamepad",
@@ -419,7 +438,7 @@ version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4a06b0462692cd4a10bd2e9d17e4c8d4aacf681b79309337ac6999a373594b03"
 dependencies = [
- "alwith-native-client",
+ "alwith-native-client 0.6.1",
  "log",
  "serde",
  "serde_json",

@@ -53,3 +53,7 @@ ignorePatterns = [
 
 [run]
 bun = true
+
+# Bun owns script tests; frontend and engine suites run through Vitest in `bun run test`.
+[test]
+root = "./scripts/lib"

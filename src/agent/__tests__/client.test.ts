@@ -93,7 +93,7 @@ test("new sessions resolve the configured default before asking the agent to cre
   const resolve = vi.fn((model: string | null) => Promise.resolve(model ?? "configured-default"))
   const { client, fake } = await make(undefined, undefined, resolve)
   const id = await client.newSession("/tmp/configured-default")
-  expect(resolve).toHaveBeenCalledWith(null)
+  expect(resolve).toHaveBeenCalledWith(null, "session")
   expect(fake.modelHints.get(id)).toBe("configured-default")
 })
 
@@ -1538,11 +1538,7 @@ test.each(["archive", "delete", "rename"] as const)("a pending list cannot undo 
 test("a pending archived list cannot undo restore", async () => {
   const { client, fake } = await make()
   await client.listArchived()
-  let answer:
-    | ((value: {
-        sessions: Array<{ sessionId: string; cwd: string; archived: boolean }>
-      }) => void)
-    | undefined
+  let answer: ((value: { sessions: Array<{ sessionId: string; cwd: string; archived: boolean }> }) => void) | undefined
   fake.listSessions.current = () =>
     new Promise((resolve) => {
       answer = resolve
@@ -1550,10 +1546,7 @@ test("a pending archived list cannot undo restore", async () => {
   const pending = client.listArchived({ reset: true })
   await until(() => answer !== undefined)
   await client.unarchive("h2")
-  must(
-    answer,
-    "pending list response"
-  )({ sessions: [{ sessionId: "h2", cwd: "/tmp/two", archived: true }] })
+  must(answer, "pending list response")({ sessions: [{ sessionId: "h2", cwd: "/tmp/two", archived: true }] })
   await pending
   expect(client.state.archivedSessions).toEqual([])
   expect(client.state.sessionList.map((sessionRow) => sessionRow.sessionId)).toEqual(["h2"])
@@ -1906,3 +1899,55 @@ test("selecting the default folder explicitly does not reuse a projectless draft
   expect(explicit).not.toBe(quick)
   expect(fake.deleted.has(quick)).toBe(true)
 })
+
+test("explicit native draft recovery bypasses a saved unavailable account model", async () => {
+  const resolve = vi.fn(async (model: string | null) => {
+    if (model?.startsWith("gateway:finture-enterprise:")) throw new Error("Account model unavailable")
+    return "gateway:deepseek:deepseek-flash"
+  })
+  const { client, fake } = await make(undefined, undefined, resolve)
+  client.setModelSelections({ main: "gateway:finture-enterprise:company", chat: null })
+  await expect(client.prepareDraft("main", "/tmp/recovery")).rejects.toThrow("Account model unavailable")
+  const id = await client.prepareDraft("main", "/tmp/recovery", null, true)
+  expect(fake.modelHints.get(id)).toBeNull()
+  expect(resolve).toHaveBeenCalledTimes(1)
+})
+
+test.each(["main", "chat"] as const)(
+  "%s drafts replace revoked account models without reusing the revoked session",
+  async (owner) => {
+    const accountModel = "gateway:finture-enterprise:company"
+    let available = true
+    const resolve = vi.fn(async (model: string | null, purpose?: string) => {
+      if (model === accountModel && !available) {
+        if (purpose === "draft") return null
+        throw new Error("Account model unavailable")
+      }
+      return model
+    })
+    const { client, fake, port } = await make(undefined, undefined, resolve)
+    await registerGateway(port, {
+      id: "finture-enterprise",
+      name: "Enterprise",
+      baseUrl: "https://gateway.example",
+      bearerToken: "fake-token",
+      models: [{ id: accountModel }],
+      config: {}
+    })
+    client.setModelSelections({ main: accountModel, chat: accountModel })
+    const previous = await client.prepareDraft(owner, "/tmp/enterprise-logout")
+    available = false
+    await unregisterGateway(port, "finture-enterprise")
+    client.markAccountModelsUnavailable([previous])
+    const confirmed = vi.fn()
+    client.onConfirmedModel(confirmed)
+    const replacement = await client.prepareDraft(owner, "/tmp/enterprise-logout")
+    expect(replacement).not.toBe(previous)
+    expect(fake.modelHints.get(replacement)).toBeNull()
+    expect(fake.deleted.has(previous)).toBe(true)
+    expect(client.session(replacement).readOnly).toBe(false)
+    expect(confirmed).toHaveBeenCalledWith(owner, "gpt-6.1-sol")
+    const next = await client.prepareDraft(owner, "/tmp/enterprise-next")
+    expect(fake.modelHints.get(next)).not.toBe(accountModel)
+  }
+)

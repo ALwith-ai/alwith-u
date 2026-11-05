@@ -1384,5 +1384,20 @@
       "open": "显示模拟器",
       "close": "隐藏模拟器"
     }
+  },
+  "enterprise": {
+    "title": "企业登录",
+    "login": "登录 Finture",
+    "logout": "退出企业登录",
+    "cancel": "取消",
+    "authorized": "已授权",
+    "unknown": "状态未知",
+    "pending": "等待浏览器完成登录",
+    "checking": "正在检查企业授权",
+    "disabled": "企业网关未启用",
+    "signedOut": "未登录企业账号",
+    "accountHint": "这是 Finture 企业账号。退出企业登录不会退出 ALwith U 账号。",
+    "error": "企业授权状态获取或操作失败，请重试。",
+    "logoutHint": "退出后停止使用企业模型的会话，普通 ALwith 模型和自配模型不受影响。"
   }
 }
