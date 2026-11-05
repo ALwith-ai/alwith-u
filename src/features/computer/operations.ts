@@ -47,11 +47,11 @@ export function stopComputer(): Promise<void> {
   )
 }
 
-/** Default to enabled once permissions are granted, unless the user explicitly disabled access. */
+/** Restore computer access only when the user explicitly enabled it. */
 export function restoreComputer(): Promise<void> {
   return transition(
     Effect.gen(function* () {
-      if (settingsStore.get<boolean>("computer.enabled") === false) return
+      if (settingsStore.get<boolean>("computer.enabled") !== true) return
       const status = yield* attempt(() => commands.status())
       if (status.enabled || !status.available || !status.permissions.supported) return
       if (!status.permissions.accessibility || !status.permissions.screenCapture) return
