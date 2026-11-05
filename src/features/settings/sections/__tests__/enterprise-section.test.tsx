@@ -80,7 +80,7 @@ test("status errors expose retry without claiming enterprise authorization", asy
   render(<EnterpriseSection />)
   await screen.findByRole("alert")
   expect(screen.getByRole("button", { name: "actions.retry" })).toBeInTheDocument()
-  expect(screen.queryByText("enterprise.renewal")).not.toBeInTheDocument()
+  expect(screen.queryByText("enterprise.accountHint")).not.toBeInTheDocument()
 })
 
 test("a failed native callback releases the pending login so it can be retried", async () => {

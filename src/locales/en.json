@@ -1394,7 +1394,7 @@
     "checking": "Checking enterprise authorization",
     "disabled": "Enterprise gateway is disabled",
     "signedOut": "Not signed in to enterprise",
-    "renewal": "Authorization renews automatically. Each conversation selects its own model.",
+    "accountHint": "This is your Finture enterprise account. Signing out here does not sign you out of ALwith U.",
     "error": "Could not read or update enterprise authorization. Please retry.",
     "logoutHint": "This stops conversations using enterprise models. Personal ALwith and custom models remain available."
   }
