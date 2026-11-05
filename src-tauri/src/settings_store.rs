@@ -75,7 +75,7 @@ impl SettingsStore {
             let (known, _) = partition_settings(ordinary);
             validate(&known)?;
             for (key, secret) in &tx.credentials {
-                validate_secret(key, secret)?;
+                validate_stored_secret(key, secret)?;
             }
             // Redo a durable intent before any service or webview is allowed to read.
             write_json(&root.join("credentials.json"), &tx.credentials)?;
@@ -133,14 +133,14 @@ impl SettingsStore {
             if let Some(old) = read_json::<BTreeMap<String, String>>(&root.join("voice-credentials.json"))? {
                 for (provider, secret) in old {
                     let key = format!("voice.{provider}.apiKey");
-                    validate_secret(&key, &secret)?;
+                    validate_stored_secret(&key, &secret)?;
                     imported.insert(key, secret);
                 }
             }
             secrets.replace(imported)?;
         }
         for (key, secret) in secrets.snapshot() {
-            validate_secret(&key, &secret)?;
+            validate_stored_secret(&key, &secret)?;
         }
         let store = Self { root, values, secrets, unrecognized, revision, browser_migrated, pending: false };
         if first || migrated {
@@ -295,6 +295,14 @@ fn validate_secret_key(key: &str) -> Result<(), String> {
 fn validate_secret(key: &str, value: &str) -> Result<(), String> {
     validate_secret_key(key)?;
     alwith_voice::validate_credential(value).map_err(|error| error.code)
+}
+
+// Preserve credentials from retired features or newer versions without exposing them.
+fn validate_stored_secret(key: &str, value: &str) -> Result<(), String> {
+    if validate_secret_key(key).is_ok() {
+        validate_secret(key, value)?;
+    }
+    Ok(())
 }
 fn validate(values: &BTreeMap<String, Value>) -> Result<(), String> {
     for (key, value) in values {

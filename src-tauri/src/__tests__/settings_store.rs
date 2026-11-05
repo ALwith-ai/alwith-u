@@ -364,3 +364,57 @@ fn mobile_bridge_preference_survives_restart_and_rejects_non_boolean_values() {
     let restarted = SettingsStore::load(dir.path().into()).unwrap();
     assert_eq!(restarted.values["mobile.bridgeEnabled"], true);
 }
+
+#[test]
+fn retired_credentials_survive_startup_and_writes_without_becoming_accessible() {
+    let dir = tempfile::tempdir().unwrap();
+    let retired = "images.seedream.apiKey";
+    let credentials = BTreeMap::from([(retired.to_owned(), "retired-secret".to_owned())]);
+    write_json(&dir.path().join("credentials.json"), &credentials).unwrap();
+    let mut store = SettingsStore::load(dir.path().into()).unwrap();
+    assert!(store.secret(retired).is_err());
+    assert!(store.set_secret(retired, "replacement").is_err());
+    assert!(store.remove_secret(retired).is_err());
+    store.update(changes(json!({"appearance.theme": "dark"})), None).unwrap();
+    store.set_secret("voice.doubao.apiKey", "current-secret").unwrap();
+    store.remove_secret("voice.doubao.apiKey").unwrap();
+    let restarted = SettingsStore::load(dir.path().into()).unwrap();
+    assert_eq!(restarted.secrets.snapshot(), credentials);
+    assert!(!serde_json::to_string(&restarted.snapshot().unwrap()).unwrap().contains("retired-secret"));
+}
+
+#[test]
+fn transaction_recovery_preserves_retired_credentials() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = SettingsStore::load(dir.path().into()).unwrap();
+    let credentials = BTreeMap::from([("images.seedream.apiKey".into(), "retired-secret".into())]);
+    let tx = Transaction { settings: store.document(&BTreeMap::new(), 3, true), credentials: credentials.clone() };
+    write_json(&dir.path().join(".settings-transaction.json"), &tx).unwrap();
+    let recovered = SettingsStore::load(dir.path().into()).unwrap();
+    assert_eq!(recovered.secrets.snapshot(), credentials);
+    assert!(!dir.path().join(".settings-transaction.json").exists());
+}
+
+#[test]
+fn stored_known_credentials_still_require_valid_values() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("credentials.json");
+    write_json(&path, &json!({"voice.doubao.apiKey": ""})).unwrap();
+    let original = std::fs::read(&path).unwrap();
+    assert!(SettingsStore::load(dir.path().into()).is_err());
+    assert_eq!(std::fs::read(path).unwrap(), original);
+}
+
+#[test]
+fn legacy_voice_migration_preserves_retired_provider_credentials() {
+    let dir = tempfile::tempdir().unwrap();
+    write_json(
+        &dir.path().join("voice-credentials.json"),
+        &json!({"retired": "old-secret", "doubao": "current-secret"}),
+    )
+    .unwrap();
+    let store = SettingsStore::load(dir.path().into()).unwrap();
+    assert_eq!(store.secret("voice.doubao.apiKey").unwrap().as_deref(), Some("current-secret"));
+    assert!(store.secret("voice.retired.apiKey").is_err());
+    assert_eq!(store.secrets.snapshot()["voice.retired.apiKey"], "old-secret");
+}
