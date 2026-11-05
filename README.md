@@ -37,6 +37,12 @@ bun tauri build
 Installers are generated in `src-tauri/target/release/bundle/`.
 On macOS, open the `.dmg` and drag ALwith U into Applications. On Windows, run the generated installer.
 
+## Test
+
+Run `bun test` for Bun-native script tests, or `bun run test` for the complete
+suite, including frontend and engine tests under Vitest. Vitest supplies jsdom
+and the mocks required by application tests.
+
 ## Test a local generator candidate
 
 Set `CREATE_ALWITH_PATH` to an absolute checkout path to bundle a local
