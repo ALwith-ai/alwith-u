@@ -6,6 +6,42 @@ import type { ClientOptions } from "../client"
 import { createFakeAgent } from "./fake-agent"
 import { FakeHubPort } from "./fake-runtime-client"
 
+test("a driver generation change replaces an unsent draft before admission can unload it", async () => {
+  const fake = createFakeAgent()
+  const port = new FakeHubPort(() => fake.app)
+  const request = vi.spyOn(port, "acpRequest")
+  let revision = "driver-1"
+  const bind = vi.fn(async (_id: string) => {})
+  const client = new CodexClient(() => Promise.resolve(port), {
+    agentId: "codex",
+    launch: { engine: "codex" },
+    sessionContext: async () => ({ revision, mcpServers: [], bind }),
+    sessionContextRevision: async () => revision
+  })
+  try {
+    await client.connect()
+    const old = await client.prepareDraft("main", "/a", "model-b")
+    const sibling = await client.prepareDraft("chat", "/b")
+    expect(await client.prepareDraft("main", "/a")).toBe(old)
+    revision = "driver-2"
+    request.mockClear()
+    const next = await client.prepareDraft("main", "/a")
+    expect(next).not.toBe(old)
+    expect(fake.deleted.has(old)).toBe(true)
+    expect(client.state.draftSessions[sibling]).toBe("chat")
+    expect(bind).toHaveBeenLastCalledWith(next)
+    expect(request.mock.calls.find((call) => call[1] === "session/new")?.[2]).toMatchObject({
+      _meta: { alwith: { model: "model-b" } }
+    })
+    request.mockClear()
+    await client.prompt(next, [{ type: "text", text: "First message after reconnect" }])
+    expect(request.mock.calls.some((call) => ["session/close", "session/resume"].includes(call[1]))).toBe(false)
+    expect(client.session(next).items.some((item) => item.kind === "user")).toBe(true)
+  } finally {
+    client.disconnect()
+  }
+})
+
 test("host session context is resolved for each explicit session operation without replacing model hints", async () => {
   const fake = createFakeAgent()
   const port = new FakeHubPort(() => fake.app)
