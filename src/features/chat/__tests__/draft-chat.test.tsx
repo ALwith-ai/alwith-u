@@ -42,19 +42,14 @@ const providers: ProviderSnapshot = {
   error: null
 }
 
-function environment(
-  nativeWindow = false,
-  resolveModel?: ClientOptions["resolveModel"],
-  options: Partial<ClientOptions> = {}
-) {
+function environment(nativeWindow = false, resolveModel?: ClientOptions["resolveModel"]) {
   return Promise.try(() => {
     const fake = createFakeAgent()
     const port = new FakeHubPort(() => fake.app)
     const real = new CodexClient(() => Promise.resolve(port), {
       agentId: "codex",
       launch: { engine: "codex" },
-      resolveModel,
-      ...options
+      resolveModel
     })
     real.store.setState({ projectContext: projectContext() })
     const previous = client.state
@@ -96,64 +91,6 @@ function environment(
     }
   })
 }
-
-test.each([false, true])(
-  "first send after computer reconnection carries input and supports retry (%s)",
-  async (retry) => {
-    let revision = "driver-1"
-    let rejected = false
-    const env = await environment(false, undefined, {
-      sessionContext: async () => ({ revision, mcpServers: [] }),
-      sessionContextRevision: async () => revision,
-      prepareSessionTools: () => {
-        if (retry && !rejected) {
-          rejected = true
-          return Promise.reject(new Error("Computer discovery failed"))
-        }
-        return Promise.resolve()
-      }
-    })
-    const created = vi.fn()
-    importDraft(DRAFT_SESSION_ID, { text: "Observe my screen", mentions: [], attachments: [], modelId: null })
-    const view = render(
-      <DraftChat
-        owner="main"
-        cwd="/tmp/reconnect"
-        onCwdChange={() => {}}
-        onCreated={created}
-        onSendingChange={() => {}}
-        onAuthRequired={() => {}}
-        onNewChat={() => {}}
-        providerSnapshot={providers}
-      />
-    )
-    try {
-      await waitFor(() => expect(view.getByRole("button", { name: "Send" })).toBeEnabled())
-      const previous = created.mock.calls.at(-1)?.[0] as string
-      revision = "driver-2"
-      await act(() => Promise.resolve(fireEvent.click(view.getByRole("button", { name: "Send" }))))
-      if (retry) {
-        await waitFor(() => expect(view.getByRole("textbox")).toHaveValue("Observe my screen"))
-        await waitFor(() => expect(view.getByRole("button", { name: "Send" })).toBeEnabled())
-        await act(() => Promise.resolve(fireEvent.click(view.getByRole("button", { name: "Send" }))))
-      }
-      await waitFor(() => expect(env.real.state.sessionList).toHaveLength(1))
-      const next = created.mock.calls.at(-1)?.[0] as string
-      expect(next).not.toBe(previous)
-      expect(env.fake.deleted.has(previous)).toBe(true)
-      expect(env.real.session(next).items).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ kind: "user", content: [{ type: "text", text: "Observe my screen" }] })
-        ])
-      )
-      expect(view.queryByText(/thread not loaded/)).toBeNull()
-      await waitFor(() => expect(view.getByRole("textbox")).toHaveValue(""))
-    } finally {
-      view.unmount()
-      env.restore()
-    }
-  }
-)
 
 const windowPreferences: Preferences = {
   sidebarPinned: false,

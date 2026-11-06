@@ -11,7 +11,7 @@ import { useStore } from "zustand"
 import type { AppState } from "@/agent/client"
 import { macProjectPaths } from "@/agent/project-path"
 import { computerRuntimeEnv } from "@/features/computer/runtime-config"
-import { computerContextRevision, hostSessionContext, prepareComputerTools } from "@/features/computer/session-context"
+import { hostSessionContext } from "@/features/computer/session-context"
 import { RemoteChatClient } from "@/lib/chat-window-client"
 import { DesktopCodexClient } from "@/lib/desktop-client"
 import { isMac } from "@/lib/platform"
@@ -34,10 +34,10 @@ export const client =
             : resolveSessionModel(model, providers, purpose)
         },
         sessionContext: hostSessionContext,
-        sessionContextRevision: computerContextRevision,
-        prepareSessionTools: prepareComputerTools,
         revokeSessionAccess: async (sessionId) => {
-          await computer.stopSession({ sessionId })
+          void computer.stopSession({ sessionId }).catch((error: unknown) => {
+            console.error("Cannot release computer access", error)
+          })
           await device.stopSession({ sessionId }).catch(() => undefined)
         }
       })

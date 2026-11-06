@@ -26,7 +26,7 @@ alwith-mobile = "0.6"
 atlas-tauri = { version = "0.1", features = ["specta"] }
 alwith-store = "0.6"
 alwith-auth = "0.6"
-alwith-computer = "0.6"
+alwith-computer = "0.6.3"
 alwith-device = "0.6"
 alwith-voice = "0.6"
 alwith-gamepad = "0.6"

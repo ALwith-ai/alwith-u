@@ -32,12 +32,12 @@ const enable = Effect.fn("Computer.enable")(function* (start: () => Promise<unkn
   yield* attempt(() => updateSettings({ "computer.enabled": true }))
 }, Effect.scoped)
 
-/** Native authority is application-wide; every session refreshes tools before its next prompt. */
+/** Application authority changes execution admission without refreshing conversations. */
 export function enableComputer(): Promise<void> {
   return transition(enable(() => commands.start()))
 }
 
-/** Closing the shared driver revokes every MCP connection without cancelling unrelated chat work. */
+/** Closing the shared driver revokes native execution without closing MCP discovery or chat. */
 export function stopComputer(): Promise<void> {
   return transition(
     Effect.gen(function* () {
@@ -62,7 +62,7 @@ export function restoreComputer(): Promise<void> {
   )
 }
 
-/** Reconnect replaces the driver generation without replaying any previous action. */
+/** Reconnect replaces only the Driver generation without replaying any previous action. */
 export function reconnectComputer(): Promise<void> {
   return transition(enable(() => commands.reconnect()))
 }

@@ -129,9 +129,9 @@ dependencies = [
 
 [[package]]
 name = "alwith-computer"
-version = "0.6.0"
+version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7482faff50962176cf99fd56044941438c68248525643f0e985afe1c4a36934"
+checksum = "554d7a40d5fcfaf33dbfc857ac1aeb03365b931e232a53b0bfadfb218d9b7468"
 dependencies = [
  "alwith-native-client 0.6.1",
  "log",
