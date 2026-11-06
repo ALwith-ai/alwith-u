@@ -106,53 +106,28 @@ pub(super) struct Connection {
     pub params: Value,
 }
 
-pub(super) fn connection(
+pub(super) async fn connection(
     app: &tauri::AppHandle, account: &str, provider: IssuedProvider, relay: alwith_enterprise_client::RelayConnection,
+    host: &alwith_enterprise_client::EnterpriseClient, generation: u64,
 ) -> Result<Connection, String> {
-    use std::io::Write;
     let id = provider_id(account, &provider.provider_id);
-    // Reuse the shared public catalog's instructions; U only projects API-issued enterprise metadata.
     let catalogs = alwith_chat::bundled_model_catalogs(app)?;
-    let template_path = catalogs
+    let source = catalogs
         .iter()
-        .find(|path| path.ends_with("qwen/models.json"))
-        .ok_or("Shared model instructions unavailable")?;
-    let known_path = catalogs
+        .find(|path| path.ends_with("alwith/models.json"))
+        .ok_or("Shared ALwith model catalog unavailable")?;
+    let models: Vec<_> = provider
+        .models
         .iter()
-        .find(|path| path.ends_with("custom/models.json"))
-        .ok_or("Shared custom model catalog unavailable")?;
-    let known: Value = serde_json::from_slice(&std::fs::read(known_path).map_err(|reason| reason.to_string())?)
-        .map_err(|reason| reason.to_string())?;
-    let known_models = known["models"].as_array().ok_or("Invalid shared model catalog")?;
-    let has_known_model =
-        provider.models.iter().any(|model| known_models.iter().any(|entry| entry["slug"] == model.api_id));
-    let template: Value = serde_json::from_slice(&std::fs::read(template_path).map_err(|reason| reason.to_string())?)
-        .map_err(|reason| reason.to_string())?;
-    let entries: Vec<_> = provider.models.iter().map(|model| {
-        if let Some(entry) = known_models.iter().find(|entry| entry["slug"] == model.api_id) {
-            let mut entry = entry.clone();
-            entry["display_name"] = Value::String(model.label.clone());
-            if let Some(context) = model.context_window { entry["context_window"] = context.into(); entry["max_context_window"] = context.into(); }
-            return entry;
-        }
-        serde_json::json!({
-        "slug":model.api_id,"display_name":model.label,"description":model.description,
-        "base_instructions":template["models"][0]["base_instructions"],
-        "supported_reasoning_levels":[],"shell_type":"shell_command","visibility":"list","supported_in_api":true,"priority":0,
-        "support_verbosity":false,"supports_reasoning_summary_parameter":false,
-        "truncation_policy":{"mode":"bytes","limit":10000},"experimental_supported_tools":[],"input_modalities":["text"],
-        "context_window":model.context_window,"max_context_window":model.context_window,
-        "apply_patch_tool_type":"freeform","tool_mode":"direct","include_apps_usage_instructions":false
-    })}).collect();
-    let bytes = serde_json::to_vec(&serde_json::json!({"models":entries})).map_err(|reason| reason.to_string())?;
-    let path =
-        std::env::temp_dir().join(format!("alwith-u-enterprise-catalog-{}.json", hex::encode(Sha256::digest(&bytes))));
-    if !path.exists() {
-        let mut file = tempfile::NamedTempFile::new_in(std::env::temp_dir()).map_err(|reason| reason.to_string())?;
-        file.write_all(&bytes).map_err(|reason| reason.to_string())?;
-        file.persist(&path).map_err(|reason| reason.to_string())?;
-    }
-    Ok(connection_params(id, provider, relay, path, has_known_model))
+        .map(|model| alwith_enterprise_client::CatalogModel {
+            api_id: model.api_id.clone(),
+            label: model.label.clone(),
+            description: model.description.clone(),
+            context_window: model.context_window,
+        })
+        .collect();
+    let catalog = host.model_catalog(generation, source, &models).await.map_err(|reason| reason.to_string())?;
+    Ok(connection_params(id, provider, relay, catalog.path, catalog.has_known_model))
 }
 
 fn connection_params(

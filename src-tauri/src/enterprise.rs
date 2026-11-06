@@ -223,7 +223,9 @@ pub async fn enterprise_refresh(
         }
         let gateway = provider.base_url.clone();
         let relay = host.relay(native_generation, gateway, Protocol::Responses).await?;
-        Ok::<_, Value>(Some(catalog::connection(app, &identity, provider, relay).map_err(error)?))
+        Ok::<_, Value>(Some(
+            catalog::connection(app, &identity, provider, relay, host, native_generation).await.map_err(error)?,
+        ))
     }
     .await;
     check()?;
