@@ -106,58 +106,28 @@ pub(super) struct Connection {
     pub params: Value,
 }
 
-pub(super) fn connection(
+pub(super) async fn connection(
     app: &tauri::AppHandle, account: &str, provider: IssuedProvider, relay: alwith_enterprise_client::RelayConnection,
+    host: &alwith_enterprise_client::EnterpriseClient, generation: u64,
 ) -> Result<Connection, String> {
-    use std::io::Write;
     let id = provider_id(account, &provider.provider_id);
-    // Enterprise routes reuse only the ALwith account catalog; gateway credentials stay separate.
-    let known = load_model_catalog(&alwith_chat::bundled_model_catalogs(app)?)?;
-    let known_models = known["models"].as_array().expect("validated ALwith model catalog");
-    let has_known_model =
-        provider.models.iter().any(|model| known_models.iter().any(|entry| entry["slug"] == model.api_id));
-    let entries = catalog_entries(&provider.models, known_models, &known);
-    let bytes = serde_json::to_vec(&serde_json::json!({"models":entries})).map_err(|reason| reason.to_string())?;
-    let path =
-        std::env::temp_dir().join(format!("alwith-u-enterprise-catalog-{}.json", hex::encode(Sha256::digest(&bytes))));
-    if !path.exists() {
-        let mut file = tempfile::NamedTempFile::new_in(std::env::temp_dir()).map_err(|reason| reason.to_string())?;
-        file.write_all(&bytes).map_err(|reason| reason.to_string())?;
-        file.persist(&path).map_err(|reason| reason.to_string())?;
-    }
-    Ok(connection_params(id, provider, relay, path, has_known_model))
-}
-
-fn load_model_catalog(paths: &[std::path::PathBuf]) -> Result<Value, String> {
-    let path = paths
+    let catalogs = alwith_chat::bundled_model_catalogs(app)?;
+    let source = catalogs
         .iter()
         .find(|path| path.ends_with("alwith/models.json"))
         .ok_or("Shared ALwith model catalog unavailable")?;
-    let catalog: Value = serde_json::from_slice(&std::fs::read(path).map_err(|error| error.to_string())?)
-        .map_err(|error| error.to_string())?;
-    if catalog["models"].as_array().is_none_or(|models| models.is_empty()) {
-        return Err("Invalid shared ALwith model catalog".into());
-    }
-    Ok(catalog)
-}
-
-fn catalog_entries(models: &[Model], known_models: &[Value], template: &Value) -> Vec<Value> {
-    models.iter().map(|model| {
-        if let Some(entry) = known_models.iter().find(|entry| entry["slug"] == model.api_id) {
-            let mut entry = entry.clone();
-            entry["display_name"] = Value::String(model.label.clone());
-            if let Some(context) = model.context_window { entry["context_window"] = context.into(); entry["max_context_window"] = context.into(); }
-            return entry;
-        }
-        serde_json::json!({
-        "slug":model.api_id,"display_name":model.label,"description":model.description,
-        "base_instructions":template["models"][0]["base_instructions"],
-        "supported_reasoning_levels":[],"shell_type":"shell_command","visibility":"list","supported_in_api":true,"priority":0,
-        "support_verbosity":false,"supports_reasoning_summary_parameter":false,
-        "truncation_policy":{"mode":"bytes","limit":10000},"experimental_supported_tools":[],"input_modalities":["text"],
-        "context_window":model.context_window,"max_context_window":model.context_window,
-        "apply_patch_tool_type":"freeform","tool_mode":"direct","include_apps_usage_instructions":false
-    })}).collect()
+    let models: Vec<_> = provider
+        .models
+        .iter()
+        .map(|model| alwith_enterprise_client::CatalogModel {
+            api_id: model.api_id.clone(),
+            label: model.label.clone(),
+            description: model.description.clone(),
+            context_window: model.context_window,
+        })
+        .collect();
+    let catalog = host.model_catalog(generation, source, &models).await.map_err(|reason| reason.to_string())?;
+    Ok(connection_params(id, provider, relay, catalog.path, catalog.has_known_model))
 }
 
 fn connection_params(
@@ -185,35 +155,6 @@ fn connection_params(
 mod connection_tests {
     use super::*;
     use serde_json::json;
-    #[test]
-    fn enterprise_deepseek_inherits_account_image_capabilities() {
-        let provider = parse(json!([{"provider_id":"issued","auth_type":"enterprise_session","name":"Issued","base_url":"https://issued.test","models":[{"api_id":"deepseek-V4.1-flash","label":"Enterprise model","context_window":120000}]}])).unwrap().unwrap();
-        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../node_modules/@alwith/module-chat/assets/catalogs");
-        let paths =
-            vec![root.join("custom/models.json"), root.join("deepseek/models.json"), root.join("alwith/models.json")];
-        let account = load_model_catalog(&paths).unwrap();
-        let entries = catalog_entries(&provider.models, account["models"].as_array().unwrap(), &account);
-        assert_eq!(entries[0]["input_modalities"], json!(["text", "image"]));
-        assert_eq!(entries[0]["display_name"], "Enterprise model");
-        assert_eq!(entries[0]["context_window"], 120000);
-        assert_eq!(entries[0]["max_context_window"], 120000);
-        assert_eq!(entries[0]["base_instructions"], account["models"][0]["base_instructions"]);
-    }
-    #[test]
-    fn enterprise_catalog_never_uses_other_shared_catalogs() {
-        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../node_modules/@alwith/module-chat/assets/catalogs");
-        assert!(load_model_catalog(&[root.join("custom/models.json"), root.join("deepseek/models.json")]).is_err());
-    }
-    #[test]
-    fn models_absent_from_the_account_catalog_remain_text_only() {
-        let provider = parse(json!([{"provider_id":"issued","auth_type":"enterprise_session","name":"Issued","base_url":"https://issued.test","models":[{"api_id":"unknown/model","label":"Unknown"}]}])).unwrap().unwrap();
-        let account = json!({"models":[{"slug":"account/model","base_instructions":"account instructions","input_modalities":["text","image"]}]});
-        let entries = catalog_entries(&provider.models, account["models"].as_array().unwrap(), &account);
-        assert_eq!(entries[0]["input_modalities"], json!(["text"]));
-        assert_eq!(entries[0]["base_instructions"], "account instructions");
-    }
     #[test]
     fn relay_credentials_are_only_in_the_native_runtime_request() {
         let provider = parse(json!([{"provider_id":"from-api","auth_type":"enterprise_session","name":"Issued","base_url":"https://issued.test","models":[{"api_id":"issued/model","label":"Issued","context_window":120000}]}])).unwrap().unwrap();
