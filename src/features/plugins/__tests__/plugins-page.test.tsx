@@ -566,7 +566,7 @@ test("installed sidebar lists only installed plugins and switches right-hand det
     readPlugin: read
   })
   const view = render(<PluginsPage cwd={null} active />)
-  const sidebar = view.getByRole("complementary", { name: "Toolbox navigation" })
+  const sidebar = view.getByRole("complementary", { name: "Customize navigation" })
   const installed = within(view.getByRole("navigation", { name: "Installed" }))
   expect(installed.getAllByRole("button").map((button) => button.textContent)).toEqual([
     "Installed alpha",

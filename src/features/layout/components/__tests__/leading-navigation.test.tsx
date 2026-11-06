@@ -43,11 +43,11 @@ test("leading navigation switches pages and is inaccessible on the main screen",
       .getAllByRole("button")
       .slice(0, 3)
       .map((button) => button.getAttribute("aria-label"))
-  ).toEqual(["Toolbox", "Vibémon", "Archived chats"])
-  expect(view.getByRole("button", { name: "Toolbox" })).toHaveAttribute("aria-current", "page")
+  ).toEqual(["Customize", "Vibémon", "Archived chats"])
+  expect(view.getByRole("button", { name: "Customize" })).toHaveAttribute("aria-current", "page")
   for (const [name, page] of [
     ["Vibémon", "vibemon"],
-    ["Toolbox", "plugins"],
+    ["Customize", "plugins"],
     ["Archived chats", "archives"]
   ] as const) {
     fireEvent.click(view.getByRole("button", { name }))
@@ -60,6 +60,6 @@ test("leading navigation switches pages and is inaccessible on the main screen",
     ).toHaveLength(1)
   }
   fireEvent.click(view.getByRole("button", { name: "Return to chat" }))
-  expect(view.queryByRole("button", { name: "Toolbox" })).not.toBeInTheDocument()
+  expect(view.queryByRole("button", { name: "Customize" })).not.toBeInTheDocument()
   expect(view.getByRole("main")).toHaveTextContent("Chat")
 })

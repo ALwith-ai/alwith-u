@@ -23,10 +23,10 @@ import { DesktopNavigationFooter, DesktopUpdateStatus } from "@alwith/module-des
 import { ScrollArea } from "@base-ui/react/scroll-area"
 import {
   ActivityIcon,
+  BriefcaseIcon,
   CloudIcon,
   FolderIcon,
   FolderMinusIcon,
-  LayoutGridIcon,
   PawPrintIcon,
   PictureInPicture2Icon,
   PlusIcon,
@@ -235,7 +235,7 @@ function SidebarPanels({
             onClick={onOpenPlugins}
           >
             <NavigationLeading>
-              <LayoutGridIcon />
+              <BriefcaseIcon />
             </NavigationLeading>
             <span>{t("plugins.catalog.customize")}</span>
           </NavigationItemButton>

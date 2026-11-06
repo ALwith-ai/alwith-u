@@ -205,7 +205,7 @@ export const CatalogLayout: Story = {
   render: () => <CatalogPreview />,
   play: async ({ canvasElement, userEvent }) => {
     const ui = within(canvasElement)
-    const sidebar = await ui.findByRole("complementary", { name: "Toolbox navigation" })
+    const sidebar = await ui.findByRole("complementary", { name: "Customize navigation" })
     const main = ui.getByRole("main", { name: "Plugin and skill content" })
     const sideHeader = sidebar.querySelector("[data-plugin-sidebar-header]")!
     const mainHeader = main.querySelector("[data-plugin-page-header]")!
@@ -219,7 +219,7 @@ export const CatalogLayout: Story = {
     await expect(sideHeader.getBoundingClientRect().top - sidebar.getBoundingClientRect().top).toBeCloseTo(12, 0)
     const left = catalogHeading.getBoundingClientRect().left
     await expect(left - sidebar.getBoundingClientRect().right).toBeCloseTo(48, 0)
-    const customize = within(sidebar).getByRole("heading", { name: "Toolbox" })
+    const customize = within(sidebar).getByRole("heading", { name: "Customize" })
     const railIcon = canvasElement.querySelector(".leading-navigation button svg")!
     await expect(center(customize)).toBeCloseTo(center(railIcon), 0)
     const skillsButton = within(ui.getByRole("navigation", { name: "Manage extensions" })).getByRole("button", {
