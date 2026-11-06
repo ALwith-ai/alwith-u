@@ -174,10 +174,46 @@ impl ModelProxyDiagnostic {
 
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct NativeNetworkErrorCause {
+    message: String,
+    debug: String,
+}
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct NativeProxyStep {
+    source: String,
+    outcome: String,
+    winhttp_error: Option<u32>,
+    elapsed_ms: u64,
+}
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct NativeProxyConfig {
+    auto_detect: bool,
+    pac_configured: bool,
+    manual_configured: bool,
+    bypass_configured: bool,
+    environment_proxy_present: bool,
+}
+fn native_proxy_source(source: &str) -> bool {
+    matches!(
+        source,
+        "environment"
+            | "windows-user"
+            | "windows-machine"
+            | "windows-pac"
+            | "windows-auto"
+            | "windows-manual"
+            | "windows-direct"
+    )
+}
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct NativeNetworkDiagnostic {
     version: u8,
     request_id: String,
     transport: String,
+    transport_backend: Option<String>,
     tls_backend: String,
     target_host: String,
     target_port: u16,
@@ -199,6 +235,12 @@ struct NativeNetworkDiagnostic {
     error_code: Option<String>,
     error_kind: Option<String>,
     os_error: Option<i32>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    error_chain: Vec<NativeNetworkErrorCause>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    proxy_steps: Vec<NativeProxyStep>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    proxy_config: Option<NativeProxyConfig>,
     active_requests: Option<u32>,
     request_limit: Option<u32>,
 }
@@ -213,6 +255,7 @@ impl NativeNetworkDiagnostic {
             && self.request_id.len() == 24
             && self.request_id.bytes().all(|b| b.is_ascii_hexdigit())
             && matches!(self.transport.as_str(), "http" | "websocket")
+            && self.transport_backend.as_deref().is_none_or(|backend| matches!(backend, "winhttp" | "reqwest"))
             && matches!(self.tls_backend.as_str(), "schannel" | "native-tls" | "none")
             && host(&self.target_host)
             && self.target_port > 0
@@ -231,16 +274,30 @@ impl NativeNetworkDiagnostic {
                 .proxy_scheme
                 .as_deref()
                 .is_none_or(|scheme| matches!(scheme, "http" | "https" | "socks5" | "socks5h"))
-            && self.proxy_source.as_deref().is_none_or(|source| {
-                matches!(
-                    source,
-                    "windows-user"
-                        | "windows-machine"
-                        | "windows-pac"
-                        | "windows-auto"
-                        | "windows-manual"
-                        | "windows-direct"
-                )
+            && self.proxy_source.as_deref().is_none_or(native_proxy_source)
+            && self.error_chain.len() <= 8
+            && self.error_chain.iter().all(|cause| {
+                [&cause.message, &cause.debug]
+                    .into_iter()
+                    .all(|text| text.chars().count() <= 256 && !text.chars().any(char::is_control))
+            })
+            && self.proxy_steps.len() <= 16
+            && self.proxy_steps.iter().all(|step| {
+                native_proxy_source(&step.source)
+                    && matches!(
+                        step.outcome.as_str(),
+                        "started"
+                            | "read"
+                            | "ignored"
+                            | "proxy"
+                            | "direct"
+                            | "failed"
+                            | "not_discovered"
+                            | "disabled"
+                            | "bypassed"
+                            | "not_configured"
+                            | "invalid"
+                    )
             })
             && self.status.is_none_or(|status| (100..=599).contains(&status))
             && self.close_code.is_none_or(|code| (1000..=4999).contains(&code))
@@ -248,6 +305,7 @@ impl NativeNetworkDiagnostic {
                 matches!(
                     kind,
                     "capacity"
+                        | "tls"
                         | "timeout"
                         | "dns"
                         | "connect"
@@ -281,12 +339,17 @@ impl NativeNetworkDiagnostic {
 }
 fn native_network_context(line: &str) -> Option<Context> {
     let payload = line.strip_prefix("[alwith-native-network] ")?;
-    if payload.len() > 8192 {
+    if payload.len() > 65536 {
         return None;
     }
-    let network: NativeNetworkDiagnostic = serde_json::from_str(payload).ok()?;
+    let mut network: NativeNetworkDiagnostic = serde_json::from_str(payload).ok()?;
     if !network.valid() {
         return None;
+    }
+    // Defense at the ingestion boundary also covers older or alternate producers.
+    for cause in &mut network.error_chain {
+        cause.message = native_logs::redact(&cause.message).chars().take(256).collect();
+        cause.debug = native_logs::redact(&cause.debug).chars().take(256).collect();
     }
     Some(Context {
         request_ref: Some(network.request_id.clone()),
@@ -989,7 +1052,7 @@ fn export_report(collector: &Collector, directory: &Path, application_name: &str
     let logs = native_logs::collect(directory, application_name);
     report["nativeLogs"] = json!(logs);
     report["privacy"] = json!(
-        "Events contain metadata only. Native log tails include error details and stack traces, with common credential formats redacted. Native logs may contain file paths and application data."
+        "Events include transport metadata and bounded error chains, with common credential formats redacted. Native log tails include error details and stack traces, with common credential formats redacted. Native logs may contain file paths and application data."
     );
     ExportReport { metadata: report, logs }
 }
