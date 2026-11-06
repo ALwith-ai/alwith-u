@@ -99,7 +99,8 @@ export function ChatActionsMenu({
   }
   const canMutate = session !== undefined && connected && !session.restoring
   const hasMessages = session !== undefined && session.items.length > 0
-  const canOpenWindow = surface === "main" && onOpenWindow !== undefined && !session?.restoring
+  const draft = useApp((state) => session !== undefined && state.draftSessions[session.id] !== undefined)
+  const canOpenWindow = surface === "main" && onOpenWindow !== undefined && hasMessages && !draft && !session?.restoring
   const canReturnToMain = surface === "floating" && onReturnToMain !== undefined && !session?.restoring
   const showNewChat = surface === "floating" && session !== undefined
   const showNewProject = surface === "floating" && onNewProject !== undefined

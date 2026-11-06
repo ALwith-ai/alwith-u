@@ -149,7 +149,17 @@ test("menu search opens the current chat search and keeps focus in its input", a
 test("main chat opens its floating window directly beside More actions", async () => {
   const transfer = vi.fn()
   const view = render(
-    <ChatActionsMenu surface="main" cwd="/tmp/project" onNewChat={() => {}} onOpenWindow={transfer} />
+    <ChatActionsMenu
+      surface="main"
+      session={applyUpdate(createSession("materialized-chat", "/tmp/project"), {
+        sessionUpdate: "user_message",
+        messageId: "first-message",
+        content: [{ type: "text", text: "hello" }]
+      })}
+      cwd="/tmp/project"
+      onNewChat={() => {}}
+      onOpenWindow={transfer}
+    />
   )
   const open = view.getByRole("button", { name: "Open chat window" })
   const more = view.getByRole("button", { name: "More actions" })
@@ -161,12 +171,29 @@ test("main chat opens its floating window directly beside More actions", async (
   view.unmount()
 })
 
-test("main draft without menu actions keeps only the floating window button", () => {
+test.each(["new", "empty-session", "draft"])("main %s hides the floating window entry", (kind) => {
+  const before = client.state
   const transfer = vi.fn()
-  const view = render(<ChatActionsMenu surface="main" cwd={null} onNewChat={() => {}} onOpenWindow={transfer} />)
-  expect(view.queryByRole("button", { name: "More actions" })).toBeNull()
-  fireEvent.click(view.getByRole("button", { name: "Open chat window" }))
-  expect(transfer).toHaveBeenCalledOnce()
+  const session =
+    kind === "new"
+      ? undefined
+      : applyUpdate(createSession("unsent-chat", "/tmp/project"), {
+          sessionUpdate: "user_message",
+          messageId: "pending-message",
+          content: [{ type: "text", text: "pending" }]
+        })
+  if (kind === "empty-session" && session) session.items = []
+  if (kind === "draft") client.store.setState({ draftSessions: { "unsent-chat": "main" } })
+  try {
+    const view = render(
+      <ChatActionsMenu surface="main" session={session} cwd={null} onNewChat={() => {}} onOpenWindow={transfer} />
+    )
+    expect(view.queryByRole("button", { name: "Open chat window" })).toBeNull()
+    expect(transfer).not.toHaveBeenCalled()
+    view.unmount()
+  } finally {
+    client.store.setState(before, true)
+  }
 })
 
 test("floating draft without a project has no empty menu", () => {
