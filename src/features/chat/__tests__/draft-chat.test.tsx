@@ -166,11 +166,13 @@ const windowPreferences: Preferences = {
   externalEditor: null
 }
 
-async function windowEnvironment() {
+async function windowEnvironment(visible = false) {
   const sound = navigationSoundStore.getState()
   navigationSoundStore.setState({ soundMode: "none" })
   mockWindows("chat")
-  let hidden = true
+  let hidden = !visible
+  let restored: chatWindow.ChatTransfer | null = null
+  const requestSurface = chatWindow.requestChatSurface
   mockIPC(
     (command) => {
       if (command === "plugin:log|log") return
@@ -198,6 +200,10 @@ async function windowEnvironment() {
         surface = null
       })
     }),
+    vi.spyOn(chatWindow, "requestChatSurface").mockImplementation((target, action) => {
+      if (target === "main" && action.type === "restore") return Promise.resolve(restored)
+      return requestSurface(target, action)
+    }),
     vi.spyOn(chatWindow, "announceChatReady").mockResolvedValue(),
     vi.spyOn(chatWindow, "publishChatWindowSurface").mockResolvedValue(),
     vi.spyOn(projectPicker, "chooseFolder").mockResolvedValue("/tmp/window-replacement"),
@@ -208,11 +214,17 @@ async function windowEnvironment() {
   ]
   return {
     ...env,
+    restoreSurface(value: chatWindow.ChatTransfer): void {
+      restored = value
+    },
     get hidden() {
       return hidden
     },
     async present(sessionId?: string): Promise<void> {
       await must(surface, "window handler")({ type: "present", sessionId })
+    },
+    async startNewChat(sessionId: string): Promise<void> {
+      await must(surface, "window handler")({ type: "present", newChatFor: sessionId })
     },
     async release(id: string): Promise<chatWindow.ChatTransfer | null> {
       return await must(surface, "window handler")({ type: "release", sessionId: id })
@@ -226,6 +238,66 @@ async function windowEnvironment() {
     }
   }
 }
+
+test("confirmed sidebar creation replaces only its explicit floating conversation with a draft", async () => {
+  const env = await windowEnvironment(true)
+  await env.real.connect()
+  const original = await env.real.newSession("/tmp/floating-confirm", null, "chat")
+  const main = await env.real.newSession("/tmp/main-preserved", null, "main")
+  env.restoreSurface({ sessionId: original, cwd: "/tmp/floating-confirm", draft: null })
+  const view = render(<ChatWindow preferences={windowPreferences} />)
+  try {
+    await waitFor(() => expect(view.getByRole("textbox")).toBeTruthy())
+    await act(() => env.startNewChat(original))
+    await waitFor(() => expect(Object.values(env.real.state.draftSessions)).toEqual(["chat"]))
+    const draft = must(Object.keys(env.real.state.draftSessions)[0], "new floating draft")
+    expect(draft).not.toBe(original)
+    expect(env.real.session(draft).cwd).toBe("/tmp/floating-confirm")
+    expect(env.real.state.sessions[original]).toBeDefined()
+    expect(env.real.state.sessionWindows[main]).toBe("main")
+    expect(chatWindow.publishChatWindowSurface).toHaveBeenLastCalledWith(draft, true)
+    await act(async () => {
+      await expect(env.startNewChat(original)).rejects.toThrow("The chat window conversation changed")
+    })
+    expect(Object.keys(env.real.state.draftSessions)).toEqual([draft])
+  } finally {
+    await act(() => Promise.try(() => view.unmount()))
+    env.restore()
+  }
+})
+
+test("a visible floating webview restores its conversation after Reload without another present", async () => {
+  const env = await windowEnvironment(true)
+  await env.real.connect()
+  const id = await env.real.newSession("/tmp/reloaded-project", null, "chat")
+  env.restoreSurface({ sessionId: id, cwd: "/tmp/reloaded-project", draft: null })
+  const view = render(<ChatWindow preferences={windowPreferences} />)
+  try {
+    await waitFor(() => expect(view.getByRole("textbox")).toBeTruthy())
+    expect(chatWindow.requestChatSurface).toHaveBeenCalledWith("main", { type: "restore" })
+    expect(chatWindow.publishChatWindowSurface).toHaveBeenCalledWith(id, true)
+    expect(client.state.sessionWindows[id]).toBe("chat")
+  } finally {
+    await act(() => Promise.try(() => view.unmount()))
+    env.restore()
+  }
+})
+
+test("a visible floating reload offers retry when restoration fails and mounts after recovery", async () => {
+  const env = await windowEnvironment(true)
+  mockOf(chatWindow, "requestChatSurface").mockRejectedValueOnce(new Error("Main host is restarting"))
+  const view = render(<ChatWindow preferences={windowPreferences} />)
+  try {
+    const retry = await view.findByRole("button", { name: "Reconnect" })
+    expect(view.getByRole("status")).toHaveTextContent("Main host is restarting")
+    await act(() => Promise.try(() => fireEvent.click(retry)))
+    await waitFor(() => expect(view.getByRole("textbox")).toBeTruthy())
+    expect(view.queryByRole("status")).toBeNull()
+  } finally {
+    await act(() => Promise.try(() => view.unmount()))
+    env.restore()
+  }
+})
 
 test("floating project menus switch from a draft to another conversation and exclude the displayed session", async () => {
   const env = await windowEnvironment()
@@ -995,6 +1067,7 @@ test("returning a floating draft transfers its input and releases the surface on
   let reject = true
   const request = vi.spyOn(chatWindow, "requestChatSurface").mockImplementation((target, action) => {
     return Promise.try(() => {
+      if (action.type === "restore") return null
       requests.push({ target, action })
       if (reject) throw new Error("Main window is busy")
       return null

@@ -11,9 +11,10 @@ import { createWindowController } from "./window-controller"
 
 export type ChatTransfer = { sessionId: string | null; cwd: string | null; draft: ComposerDraft | null }
 type SurfaceAction =
-  | { type: "present"; transfer?: ChatTransfer; sessionId?: string }
+  | { type: "present"; transfer?: ChatTransfer; sessionId?: string; newChatFor?: string }
   | ({ type: "surface" } & ChatWindowSurface)
   | { type: "inspectSurface" }
+  | { type: "restore" }
   | { type: "release"; sessionId: string }
   | { type: "markRead"; sessionId: string }
   | { type: "shortcut"; shortcut: string }
@@ -78,6 +79,16 @@ export async function serveChatSurface(
             // The chat window is listening before it reports its surface, so this also
             // supplies the initial main-window snapshot after either webview reloads.
             await emitTo("chat", MAIN_SURFACE, useMainWindowSurface.getState())
+          } else if (action.type === "restore") {
+            if (window.label !== "main" || payload.from !== "chat") throw new Error("Invalid chat surface restoration")
+            const { sessionId } = useChatWindowSurface.getState()
+            if (sessionId !== null) {
+              if (client.state.sessionWindows[sessionId] !== "chat")
+                throw new Error("The chat window conversation changed")
+              const session = client.state.sessions[sessionId]
+              if (!session) throw new Error("The chat window conversation is unavailable")
+              value = { sessionId, cwd: session.cwd, draft: null }
+            }
           } else if (action.type === "inspectSurface") {
             if (window.label !== "chat" || payload.from !== "main") throw new Error("Invalid chat surface inspection")
             const visible = (await window.isVisible()) && !(await window.isMinimized())

@@ -19,6 +19,7 @@ const CLOSED = "chat:client-closed"
 const REALTIME = "chat:client-realtime"
 const METHODS = [
   "connect",
+  "refreshProjectContext",
   "startRealtime",
   "stopRealtime",
   "newSession",
@@ -158,6 +159,9 @@ export async function serveChatClient(
               })
             )
           }
+          // JSON arrays encode an omitted directory as null; restore it before calling the typed client.
+          if (request.method === "prepareDraft" && request.args[1] === null) request.args[1] = undefined
+          if (request.method === "newSession" && request.args[0] === null) request.args[0] = undefined
           const action = Reflect.get(owner, request.method) as (...args: unknown[]) => unknown
           const result = await action.apply(owner, request.args)
           if (disposed || connectionId !== request.connectionId) return
@@ -362,6 +366,11 @@ export class RemoteChatClient extends CodexClient {
       listeners.delete(receive)
       if (listeners.size === 0) this.realtimeListeners.delete(sessionId)
     }
+  }
+  override refreshProjectContext(
+    ...args: Parameters<CodexClient["refreshProjectContext"]>
+  ): ReturnType<CodexClient["refreshProjectContext"]> {
+    return this.request("refreshProjectContext", args)
   }
   override listSessions(...args: Parameters<CodexClient["listSessions"]>): Promise<void> {
     return this.request("listSessions", args)

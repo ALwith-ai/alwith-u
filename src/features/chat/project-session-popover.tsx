@@ -309,7 +309,7 @@ function ProjectContents({
           (expanded ? sessionRows : sessionRows.slice(0, 5)).map((sessionRow) => (
             <div
               key={sessionRow.sessionId}
-              className={cn(TRAILING_GROUP, ROW_HIGHLIGHT, "flex h-7 w-full items-center gap-2 rounded-sm ps-3 pe-3")}
+              className={cn(TRAILING_GROUP, ROW_HIGHLIGHT, "flex h-7 w-full items-center gap-2 rounded-sm px-2")}
             >
               <Button
                 variant="ghost"
@@ -348,7 +348,7 @@ function ProjectContents({
         <Button
           variant="ghost"
           size="sm"
-          className="h-7 justify-start ps-9 pe-3 text-muted-foreground"
+          className="h-7 justify-start border-0 ps-8 pe-2 text-muted-foreground"
           onClick={(event) => {
             onExpand(event.clientX, event.clientY)
             if (listRef.current === null) throw new Error("Project session list is not mounted")
@@ -379,7 +379,7 @@ function ProjectContents({
       <Button
         variant="ghost"
         size="sm"
-        className="justify-start gap-2 px-3 has-data-[icon=inline-start]:pl-3"
+        className="justify-start gap-2 border-0 px-2 has-data-[icon=inline-start]:ps-2"
         onClick={onNewChat}
       >
         <PlusIcon data-icon="inline-start" />

@@ -146,31 +146,27 @@ test("menu search opens the current chat search and keeps focus in its input", a
   }
 })
 
-test("main draft menu keeps window transfer inside the menu and hides inapplicable actions", async () => {
-  let transferred = 0
+test("main chat opens its floating window directly beside More actions", async () => {
+  const transfer = vi.fn()
   const view = render(
-    <ChatActionsMenu
-      surface="main"
-      cwd={null}
-      onNewChat={() => {}}
-      onOpenWindow={() => {
-        transferred++
-      }}
-    />
+    <ChatActionsMenu surface="main" cwd="/tmp/project" onNewChat={() => {}} onOpenWindow={transfer} />
   )
-  await act(() => {
-    return Promise.try(() => {
-      fireEvent.click(view.getByRole("button", { name: "More actions" }))
-    })
-  })
-  expect(view.queryAllByRole("menuitem")).toHaveLength(1)
-  expect(view.queryByRole("separator")).toBeNull()
-  await act(() => {
-    return Promise.try(() => {
-      fireEvent.click(view.getByRole("menuitem"))
-    })
-  })
-  expect(transferred).toBe(1)
+  const open = view.getByRole("button", { name: "Open chat window" })
+  const more = view.getByRole("button", { name: "More actions" })
+  expect(open.nextElementSibling).toBe(more)
+  fireEvent.click(open)
+  expect(transfer).toHaveBeenCalledOnce()
+  await act(() => Promise.try(() => fireEvent.click(more)))
+  expect(view.queryByRole("menuitem", { name: "Open chat window" })).toBeNull()
+  view.unmount()
+})
+
+test("main draft without menu actions keeps only the floating window button", () => {
+  const transfer = vi.fn()
+  const view = render(<ChatActionsMenu surface="main" cwd={null} onNewChat={() => {}} onOpenWindow={transfer} />)
+  expect(view.queryByRole("button", { name: "More actions" })).toBeNull()
+  fireEvent.click(view.getByRole("button", { name: "Open chat window" }))
+  expect(transfer).toHaveBeenCalledOnce()
 })
 
 test("floating draft without a project has no empty menu", () => {

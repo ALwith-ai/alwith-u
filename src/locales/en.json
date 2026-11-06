@@ -910,6 +910,8 @@
     "status": "revision {{revision}} · {{entries}} entries · {{notes}} notes"
   },
   "chatWindow": {
+    "newChatTitle": "Start a new chat in the current floating window?",
+    "newChatDescription": "The current conversation will remain in your chat history.",
     "returnToMain": "Return to main window",
     "open": "Open chat window",
     "shortcut": "Chat window shortcut",
