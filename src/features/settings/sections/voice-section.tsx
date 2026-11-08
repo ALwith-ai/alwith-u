@@ -116,7 +116,7 @@ export function VoiceSection(): ReactNode {
       <VoiceSettingsForm
         host={host}
         slots={slots}
-        text={(key, values) => t(`voice.${key}`, values)}
+        text={(key, values) => t(`voice.${key}`, values ?? {})}
         onError={(error) => toast.error(error instanceof Error ? error.message : String(error))}
         onSaved={() => void onSaved()}
       />
