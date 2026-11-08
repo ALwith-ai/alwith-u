@@ -1,10 +1,10 @@
-// Live verification of predictions through the packaged Runtime and ACP adapter.
+// Live verification of prompt suggestions through the packaged Runtime and ACP adapter.
 import { mkdtemp, realpath, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 
 import { ProcessRuntimeClient } from "@alwith/api/node"
-import { codexTurnId, composerPrediction } from "@alwith/module-chat/client"
+import { promptSuggestion } from "@alwith/module-chat/client"
 
 import { CodexClient } from "../src/agent/client"
 import { staged, stagedCodexEngine } from "./lib/runtime"
@@ -47,12 +47,16 @@ async function snapshot(phase: string) {
   const temporaryVisible = project.some((sessionRow) => sessionRow.sessionId !== sessionId)
   evidence.push({ phase, parentVisible, temporaryVisible })
   if (!parentVisible || temporaryVisible) throw new Error(`Sidebar isolation failed: ${phase}`)
-  console.log(`Sidebar ${phase}: parent visible; no temporary fork`)
+  console.log(`Sidebar ${phase}: parent visible; no temporary session`)
 }
 try {
   await client.connect()
   sessionId = await client.newSession(cwd)
   const id = sessionId
+  const leakedSessions = new Set<string>()
+  unsubscribe = client.store.subscribe((state) => {
+    for (const key of Object.keys(state.sessions)) if (key !== id) leakedSessions.add(key)
+  })
   await client.prompt(id, [
     {
       type: "text",
@@ -61,23 +65,15 @@ try {
   ])
   await until(() => client.session(id).state === "idle", "reply")
   const session = client.session(id)
-  const sourceTurnId = codexTurnId(session.items.findLast((item) => item.kind === "user")?._meta)
-  if (!sourceTurnId || session.lastStopReason !== "end_turn") throw new Error("No successful source turn")
+  if (session.lastStopReason !== "end_turn") throw new Error("No successful source turn")
   const count = session.items.length
-  const leakedSessions = new Set<string>()
-  unsubscribe = client.store.subscribe((state) => {
-    for (const key of Object.keys(state.sessions)) if (key !== id) leakedSessions.add(key)
-  })
-  await client.requestPrediction(id, sourceTurnId)
-  if (composerPrediction(client.session(id)._meta)) throw new Error("Prediction finished before the running snapshot")
-  await snapshot("generating")
-  await until(() => composerPrediction(client.session(id)._meta)?.sourceTurnId === sourceTurnId, "prediction")
-  const prediction = composerPrediction(client.session(id)._meta)
-  if (prediction?.result.type !== "completed") throw new Error("Codex prediction generation failed")
+  // The adapter samples the session thread after the completed turn and publishes the suggestion itself.
+  await until(() => promptSuggestion(client.session(id)._meta) !== null, "prompt suggestion")
+  const suggestion = promptSuggestion(client.session(id)._meta)
   if (client.session(id).state !== "idle" || client.session(id).items.length !== count)
-    throw new Error("Prediction mutated the conversation")
-  if (leakedSessions.size) throw new Error("Temporary fork events entered UI session state")
-  await snapshot("generated")
+    throw new Error("Prompt suggestion mutated the conversation")
+  if (leakedSessions.size) throw new Error("Suggestion sampling leaked a session into UI state")
+  await snapshot("suggested")
   unsubscribe()
   unsubscribe = undefined
   await stop()
@@ -86,9 +82,9 @@ try {
   await snapshot("restarted")
   await writeFile(
     join(cwd, "evidence.json"),
-    JSON.stringify({ evidence, transcriptUnchanged: true, leakedSessionCount: leakedSessions.size }, null, 2)
+    JSON.stringify({ evidence, suggestion, transcriptUnchanged: true, leakedSessionCount: leakedSessions.size }, null, 2)
   )
-  console.log(`Prediction completed; transcript unchanged; evidence: ${join(cwd, "evidence.json")}`)
+  console.log(`Prompt suggestion received; transcript unchanged; evidence: ${join(cwd, "evidence.json")}`)
 } finally {
   unsubscribe?.()
   if (sessionId) await client.delete(sessionId)
