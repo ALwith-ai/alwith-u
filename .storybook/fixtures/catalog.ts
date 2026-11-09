@@ -1,4 +1,6 @@
+import chatImage from "./chat-image.json"
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
+import { asyncQuestionId, questionReplyEnvelope } from "@alwith/module-chat/async-question-card"
 import { acknowledgePrompt, addPrompt, applyUpdate, createSession, type Session } from "@alwith/module-chat/client"
 
 import type { PendingAction, SessionSummary } from "../../src/agent/client"
@@ -77,22 +79,58 @@ export const chatCases = [
   "welcome",
   "project",
   "conversation",
+  "plainText",
+  "markdown",
+  "table",
+  "code",
+  "htmlCode",
+  "links",
+  "diagram",
+  "math",
+  "linkedImage",
+  "fileResource",
+  "userText",
+  "userImage",
   "running",
+  "awaitingResponse",
+  "compacting",
+  "compacted",
+  "steering",
+  "cancelled",
+  "cancelledPartial",
+  "streaming",
   "reasoning",
+  "activityEdit",
+  "activityRun",
+  "activitySearch",
+  "activityWeb",
+  "activityDelete",
+  "activityMove",
+  "completedActivities",
   "tools",
   "plan",
   "permission",
   "question",
+  "questionSubmitting",
+  "questionUnavailable",
+  "questionAnswered",
   "form",
+  "formQueue",
   "url",
   "error",
+  "errorNonRetryable",
+  "errorRetrying",
+  "disconnectedMidTurn",
+  "compactionFailed",
+  "toolFailed",
   "stopped",
   "readOnly",
   "restoring",
   "history",
   "long",
   "files",
-  "image"
+  "image",
+  "imagePreview"
 ] as const
 export type ChatCase = (typeof chatCases)[number]
 
@@ -106,8 +144,139 @@ export function makeSession(kind: ChatCase, id: string = kind): Session {
   }
   if (kind === "welcome" || kind === "project") return { ...session, title: null }
   if (kind === "restoring") return { ...session, restoring: true, items: [] }
+  if (kind === "cancelled") return {
+    ...addPrompt(session, [{ type: "text", text: "请检查项目文件。" }], `local:${id}-user`),
+    state: "idle",
+    lastStopReason: "cancelled"
+  }
+  if (kind === "cancelledPartial") return {
+    ...applyUpdate(userMessage(session, "请检查产品工作台的页面和交互。"), {
+      sessionUpdate: "agent_message_chunk",
+      messageId: `${id}-partial`,
+      content: { type: "text", text: "我已经检查完项目结构，接下来会核对交付清单和文件预览……" },
+      _meta: { codex: { turnId: `turn:${id}-user`, phase: "commentary" } }
+    }),
+    state: "idle",
+    lastStopReason: "cancelled"
+  }
+  if (kind === "userText" || kind === "userImage") {
+    const content: acp.ContentBlock[] = kind === "userImage"
+      ? [{ type: "text", text: "请查看这张图片。" }, { type: "image", mimeType: chatImage.mimeType, data: chatImage.data }]
+      : [{ type: "text", text: "请整理本周的交付进度。" }]
+    const promptId = `local:${id}-user`
+    session = acknowledgePrompt(addPrompt(session, content, promptId), promptId, `${id}-user`)
+    return {
+      ...assistantMessage(applyUpdate(session, {
+        sessionUpdate: "user_message",
+        messageId: `${id}-user`,
+        content,
+        _meta: { codex: { turnId: `turn:${id}-user` } }
+      }), "已收到。"),
+      lastStopReason: "end_turn"
+    }
+  }
   session = userMessage(session, "请检查产品工作台的页面和交互，整理本周的交付内容，并把结果保存到项目中。")
-  if (kind === "running" || kind === "reasoning") {
+  if (kind === "completedActivities") {
+    const activities: { kind: acp.ToolKind; name: string; title: string; rawInput?: Record<string, string> }[] = [
+      { kind: "read", name: "read_file", title: "读取项目文件" },
+      { kind: "search", name: "search_files", title: "搜索文件" },
+      { kind: "fetch", name: "web_search", title: "搜索网页" },
+      { kind: "edit", name: "apply_patch", title: "编辑文件" },
+      { kind: "execute", name: "exec_command", title: "bun run storybook:check", rawInput: { command: "bun run storybook:check" } },
+      { kind: "delete", name: "delete_file", title: "删除文件" },
+      { kind: "move", name: "move_file", title: "移动文件" }
+    ]
+    for (const [index, activity] of activities.entries()) {
+      session = applyUpdate(session, {
+        sessionUpdate: "tool_call_update", toolCallId: `${id}-tool-${index}`,
+        ...activity, status: "completed"
+      })
+    }
+    session = applyUpdate(session, {
+      sessionUpdate: "agent_thought_chunk", messageId: `${id}-thought`,
+      content: { type: "text", text: "正在整理已完成的检查结果。" }
+    })
+    return { ...session, state: "running" }
+  }
+  const activityKinds: Partial<Record<ChatCase, { kind: acp.ToolKind; name: string; title: string }>> = {
+    activityEdit: { kind: "edit", name: "apply_patch", title: "编辑文件" },
+    activityRun: { kind: "execute", name: "exec_command", title: "bun run storybook:check" },
+    activitySearch: { kind: "search", name: "search_files", title: "搜索文件" },
+    activityWeb: { kind: "fetch", name: "web_search", title: "搜索网页" },
+    activityDelete: { kind: "delete", name: "delete_file", title: "删除文件" },
+    activityMove: { kind: "move", name: "move_file", title: "移动文件" }
+  }
+  const activity = activityKinds[kind]
+  if (activity) return {
+    ...applyUpdate(session, {
+      sessionUpdate: "tool_call_update", toolCallId: `${id}-tool`,
+      ...activity, status: "in_progress",
+      ...(kind === "activityRun" ? { rawInput: { command: "bun run storybook:check" } } : {})
+    }),
+    state: "running"
+  }
+  if (kind === "awaitingResponse") return { ...session, state: "running" }
+  if (kind === "compacting" || kind === "compacted") {
+    const compacting = applyUpdate(session, { sessionUpdate: "compaction_update", compactionId: `${id}-compact`, status: "in_progress" })
+    return {
+      ...(kind === "compacted" ? applyUpdate(compacting, { sessionUpdate: "compaction_update", compactionId: `${id}-compact`, status: "completed" }) : compacting),
+      state: "running"
+    }
+  }
+  if (kind === "compactionFailed")
+    return {
+      ...applyUpdate(session, {
+        sessionUpdate: "compaction_update",
+        compactionId: `${id}-compact`,
+        status: "failed",
+        error: "上下文超出模型限制，无法压缩。请新建会话后继续。"
+      }),
+      state: "idle"
+    }
+  if (kind === "toolFailed")
+    return {
+      ...applyUpdate(session, {
+        sessionUpdate: "tool_call_update",
+        toolCallId: `${id}-run`,
+        name: "exec_command",
+        title: "运行测试",
+        kind: "execute",
+        status: "failed",
+        rawInput: { command: "bun run test" },
+        rawOutput: "1 test failed\n\nExpected: 200\nReceived: 500\n\nexit code 1"
+      }),
+      state: "idle"
+    }
+  if (kind === "steering") {
+    session = applyUpdate(session, {
+      sessionUpdate: "agent_message_chunk", messageId: `${id}-stream`,
+      content: { type: "text", text: "正在检查项目文件和页面。" },
+      _meta: { codex: { turnId: `turn:${id}-user`, phase: "commentary" } }
+    })
+    return { ...addPrompt(session, [{ type: "text", text: "请同时检查移动端布局。" }], `local:${id}-steer`), state: "running" }
+  }
+  if (kind === "imagePreview") return {
+    ...applyUpdate(assistantMessage(session, "下面是 PNG 图片示例。"), {
+      sessionUpdate: "agent_message", messageId: `${id}-image`,
+      content: [{ type: "image", mimeType: chatImage.mimeType, data: chatImage.data }],
+      _meta: { codex: { phase: "final_answer" } }
+    }), lastStopReason: "end_turn"
+  }
+  const contentSamples: Partial<Record<ChatCase, string>> = {
+    plainText: "已核对项目中的导航和文件目录。聊天记录保存在当前会话中，后续可以继续补充问题。",
+    markdown: "# 项目检查结果\n\n本次检查包含 **导航**、*文件预览* 和 `README.md`。\n\n## 已完成\n\n- 核对项目目录\n- 检查交互入口\n\n## 后续步骤\n\n1. 打开交付清单\n2. 确认待处理内容\n\n> 这是一条 Markdown 引用说明。",
+    table: "以下是模块检查结果：\n\n| 模块 | 状态 | 下一步 |\n| --- | --- | --- |\n| 导航 | 已核对 | 确认入口名称 |\n| 文件预览 | 待确认 | 打开文件检查 |\n| 设置 | 已核对 | 整理说明 |",
+    code: "下面是组件代码：\n\n```tsx\nexport function Summary({ count }: { count: number }) {\n  return <section aria-label=\"结果\">已处理 {count} 项</section>\n}\n```",
+    htmlCode: "下面是 HTML 源码，在聊天中显示为代码块：\n\n```html\n<!doctype html>\n<html lang=\"zh-CN\">\n  <head><title>项目报告</title></head>\n  <body><main><h1>检查结果</h1><p>报告已整理。</p></main></body>\n</html>\n```",
+    links: "## 相关链接\n\n- [网页报告（HTML 链接）](https://example.test/report.html)\n- [交付清单（本地 Markdown 文件）](docs/交付清单.md)\n\n网页地址与本地文件链接复用真实产品的链接处理逻辑。",
+    diagram: "以下是交付流程：\n\n```mermaid\nflowchart LR\n  A[整理需求] --> B[检查页面]\n  B --> C[交付结果]\n```",
+    math: String.raw`行内公式：$E=mc^2$。` + "\n\n" + String.raw`$$\sum_{i=1}^{n} i = \frac{n(n+1)}{2}$$`,
+    linkedImage: "项目中的图片：\n\n![品牌示例图](assets/brand.svg)",
+    fileResource: "已生成交付资料：\n\n[示例 PDF](samples/sample.pdf)\n\n[任务清单 CSV](data/tasks.csv)"
+  }
+  const contentSample = contentSamples[kind]
+  if (contentSample !== undefined) return { ...assistantMessage(session, contentSample), lastStopReason: "end_turn" }
+  if (kind === "running" || kind === "streaming" || kind === "reasoning") {
     session = applyUpdate(session, {
       sessionUpdate: "agent_thought_chunk",
       messageId: `${id}-thought`,
@@ -115,6 +284,10 @@ export function makeSession(kind: ChatCase, id: string = kind): Session {
         type: "text",
         text: "先核对导航、项目文件和现有页面，再逐一检查空状态、加载状态与异常分支。\n\n正在比对最新组件与交付清单。"
       }
+    })
+    if (kind === "running" || kind === "streaming") session = applyUpdate(session, {
+      sessionUpdate: "agent_message_chunk", messageId: `${id}-stream`,
+      content: { type: "text", text: kind === "streaming" ? "正在整理交付结果：" : "已核对导航入口和项目目录，正在整理交付结果。\n\n## 当前进度\n\n- 导航与侧栏检查完成\n- 正在汇总文件预览的检查记录" }
     })
     return { ...session, state: "running" }
   }
@@ -170,26 +343,50 @@ export function makeSession(kind: ChatCase, id: string = kind): Session {
     })
     return { ...assistantMessage(session, "页面清单已经整理好，正在检查文件预览与交互。"), state: "running" }
   }
-  if (kind === "permission" || kind === "form" || kind === "url")
+  if (kind === "permission" || kind === "form" || kind === "formQueue" || kind === "url")
     return { ...assistantMessage(session, "已完成检查，继续执行前需要你补充确认。"), state: "running" }
-  if (kind === "question") {
-    return {
-      ...applyUpdate(session, {
-        sessionUpdate: "agent_message",
-        messageId: `${id}-question-${++questionSequence}`,
-        content: [{ type: "text", text: "交付资料需要覆盖哪些使用场景？" }],
-        _meta: {
-          codex: {
-            turnId: `turn:${id}-user`,
-            phase: "final_answer",
-            delivery: "async",
-            questions: [
-              { title: "交付范围", options: ["全部页面与流程", "仅核心聊天流程", "仅本周新增内容"] },
-              { title: "补充说明", options: null }
-            ]
-          }
+  if (kind === "question" || kind === "questionSubmitting" || kind === "questionUnavailable" || kind === "questionAnswered") {
+    const questionMessageId = `${id}-question-${++questionSequence}`
+    const questions = [
+      { title: "交付范围", options: ["全部页面与流程", "仅核心聊天流程", "仅本周新增内容"] },
+      { title: "补充说明", options: null }
+    ]
+    session = applyUpdate(session, {
+      sessionUpdate: "agent_message",
+      messageId: questionMessageId,
+      content: [{ type: "text", text: "交付资料需要覆盖哪些使用场景？" }],
+      _meta: {
+        codex: {
+          turnId: `turn:${id}-user`,
+          phase: "final_answer",
+          delivery: "async",
+          questions
         }
-      }),
+      }
+    })
+    if (kind === "questionAnswered") {
+      const reply = {
+        questionItemId: asyncQuestionId(questionMessageId, 0),
+        question: questions[0].title,
+        answer: "全部页面与流程"
+      }
+      const replyContent = {
+        type: "text" as const,
+        text: questionReplyEnvelope(reply),
+        _meta: { codex: { questionReply: reply } }
+      }
+      const replyId = `${id}-question-reply`
+      session = acknowledgePrompt(addPrompt(session, [replyContent], `local:${replyId}`), `local:${replyId}`, replyId)
+      session = applyUpdate(session, {
+        sessionUpdate: "user_message",
+        messageId: replyId,
+        content: [replyContent],
+        _meta: { codex: { turnId: `turn:${id}-user`, questionReply: reply } }
+      })
+    }
+    return {
+      ...session,
+      ...(kind === "questionUnavailable" ? { attached: false } : {}),
       state: "running"
     }
   }
@@ -205,6 +402,54 @@ export function makeSession(kind: ChatCase, id: string = kind): Session {
         }
       }
     })
+  }
+  if (kind === "errorNonRetryable") {
+    return applyUpdate(session, {
+      sessionUpdate: "agent_message",
+      messageId: `codex-error:${id}`,
+      content: [{ type: "text", text: "模型拒绝了这次请求，请调整输入后重试。" }],
+      _meta: {
+        codex: {
+          turnId: `turn:${id}-user`,
+          error: { message: "模型拒绝了这次请求，请调整输入后重试。", category: "refusal", retryable: false }
+        }
+      }
+    })
+  }
+  if (kind === "errorRetrying") {
+    return {
+      ...applyUpdate(session, {
+        sessionUpdate: "agent_message",
+        messageId: `codex-error:${id}`,
+        content: [{ type: "text", text: "模型当前繁忙，正在自动重试。" }],
+        _meta: {
+          codex: {
+            turnId: `turn:${id}-user`,
+            error: { message: "模型当前繁忙，正在自动重试。", category: "overloaded", retryable: true }
+          }
+        }
+      }),
+      state: "running",
+      lastStopReason: "error",
+      _meta: { codex: { retry: { message: "Reconnecting... 2/5", codexErrorInfo: "serverOverloaded" } } }
+    }
+  }
+  if (kind === "disconnectedMidTurn") {
+    return {
+      ...applyUpdate(session, {
+        sessionUpdate: "agent_message_chunk",
+        messageId: `${id}-partial`,
+        content: { type: "text", text: "我已经完成前半部分检查，正在继续核对交付清单……" },
+        _meta: { codex: { turnId: `turn:${id}-user`, phase: "commentary" } }
+      }),
+      attached: false,
+      state: "idle",
+      error: {
+        stopReason: "disconnected",
+        error: null,
+        meta: { codex: { error: { message: "连接中断，本轮生成已停止。", retryable: false } } }
+      }
+    }
   }
   session = assistantMessage(
     session,

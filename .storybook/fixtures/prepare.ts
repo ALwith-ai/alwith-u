@@ -8,6 +8,7 @@ import { predictionPreference } from "../../src/features/chat/composer/predictio
 import { pluginsStore } from "../../src/features/plugins/instance"
 import { createPluginsStore } from "../../src/features/plugins/store"
 import { useSessionsUiStore } from "../../src/features/sessions/store"
+import { useChatWindowSurface } from "../../src/lib/chat-window-state"
 import { settingsStore } from "../../src/lib/settings-store"
 import { zoomStore } from "../../src/lib/zoom"
 import { type AuthCase, demoUser, resetAuth, usePlatformAuth } from "./auth"
@@ -38,7 +39,9 @@ export interface PreviewState {
   binaryFiles?: boolean
   page?: string
   chatCase?: ChatCase
-  sidebarView?: "sessions" | "activity" | "drive"
+  floatingChatCase?: ChatCase
+  initialDirectory?: string | null
+  sidebarView?: "collections" | "sessions" | "activity" | "drive"
   sidebarPinned?: boolean
   emptyThreads?: boolean
   connection?: "ready" | "connecting" | "disconnected" | "failed"
@@ -70,6 +73,7 @@ export interface PreviewState {
   companyAccount?: boolean
   response?: "complete" | "permission" | "question" | "error"
   draftFailure?: string | null
+  draftFailureCode?: number | null
   file?: string | null
   emptyFiles?: boolean
   computerCase?: "enabled" | "disabled" | "permissions" | "unavailable"
@@ -96,11 +100,15 @@ export const preparePreview: LoaderFunction = async ({ args, globals }) => {
         }
       : null
   )
+  const floatingCase = state.floatingChatCase ?? state.chatCase
   resetChatWindow(
-    state.chatCase && !["welcome", "project"].includes(state.chatCase) ? state.chatCase : null,
-    state.chatCase === "welcome" ? null : PROJECT_DIRECTORY
+    floatingCase && !["welcome", "project"].includes(floatingCase) ? floatingCase : null,
+    floatingCase === "welcome" ? null : PROJECT_DIRECTORY,
+    null,
+    state.page === "floating" ? state.connection : undefined
   )
-  resetClient({ connection: state.connection, response: state.response, draftFailure: state.draftFailure })
+  useChatWindowSurface.setState({ sessionId: null, visible: false })
+  resetClient({ connection: state.connection, response: state.response, draftFailure: state.draftFailure, draftFailureCode: state.draftFailureCode })
   resetAuth(state.authenticated ?? state.page !== "login", state.authError, state.authCase)
   await resetPets(state.petCase, state.bubbleCase)
   if (state.companyAccount === false)
@@ -136,8 +144,9 @@ export const preparePreview: LoaderFunction = async ({ args, globals }) => {
     activitySeen: new Map(),
     activityCollapsedGroups: new Set()
   })
-  if (state.chatCase && state.chatCase !== "welcome" && state.chatCase !== "project") {
-    let session = makeSession(state.chatCase)
+  for (const chatCase of new Set([state.chatCase, state.floatingChatCase])) {
+    if (!chatCase || chatCase === "welcome" || chatCase === "project") continue
+    let session = makeSession(chatCase)
     if (state.composerCase === "prediction" || state.composerCase === "predictionError") {
       session = { ...session, state: "idle", lastStopReason: "end_turn" }
       client.store.setState((previous) => ({
@@ -170,9 +179,17 @@ export const preparePreview: LoaderFunction = async ({ args, globals }) => {
         forkOrigins: { [session.id]: { sourceId: "conversation", boundaryTurnId: `turn:${session.id}-user` } }
       })
     client.store.setState((previous) => ({ sessions: { ...previous.sessions, [session.id]: session } }))
-    if (["permission", "form", "url"].includes(state.chatCase))
-      client.store.setState({ actions: [pendingAction(state.chatCase as "permission" | "form" | "url", session.id)] })
-    if (["running", "reasoning", "tools", "plan", "question"].includes(state.chatCase))
+    if (["permission", "form", "formQueue", "url"].includes(chatCase)) {
+      const actionKind = chatCase === "formQueue" ? "form" : chatCase
+      const action = pendingAction(actionKind as "permission" | "form" | "url", session.id)
+      client.store.setState({
+        actions:
+          chatCase === "formQueue"
+            ? [action, { ...action, id: `${action.id}-2` }, { ...action, id: `${action.id}-3` }]
+            : [action]
+      })
+    }
+    if (["running", "streaming", "awaitingResponse", "compacting", "compacted", "steering", "reasoning", "tools", "plan", "question", "questionSubmitting", "questionUnavailable", "questionAnswered", "activityEdit", "activityRun", "activitySearch", "activityWeb", "activityDelete", "activityMove", "completedActivities", "errorRetrying"].includes(chatCase))
       client.store.setState((previous) => ({
         runStates: { ...previous.runStates, [session.id]: runState(session.id, "running") }
       }))

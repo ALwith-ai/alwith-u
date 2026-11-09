@@ -47,6 +47,7 @@ let connectionCase = "ready"
 let sequence = 0
 let response: "complete" | "permission" | "question" | "error" = "complete"
 let draftFailure: string | null = null
+let draftFailureCode: number | null = -32000
 let timers: ReturnType<typeof setTimeout>[] = []
 export const actionsTaken: { type: string; id: string; value?: unknown }[] = []
 export function runState(id: string, state: SessionRunState["state"]): SessionRunState {
@@ -81,7 +82,7 @@ function finish(id: string, text = "检查已完成，交付清单已更新。�
   client.store.setState((state) => ({ runStates: { ...state.runStates, [id]: runState(id, "done") } }))
 }
 export function resetClient(
-  options: { connection?: string; response?: typeof response; draftFailure?: string | null } = {}
+  options: { connection?: string; response?: typeof response; draftFailure?: string | null; draftFailureCode?: number | null } = {}
 ): void {
   client.unarchive = unarchive
   client.delete = deleteSession
@@ -91,6 +92,7 @@ export function resetClient(
   sequence = 0
   response = options.response ?? "complete"
   draftFailure = options.draftFailure ?? null
+  draftFailureCode = options.draftFailureCode === undefined ? -32000 : options.draftFailureCode
   client.listSessions = async () => {}
   client.listArchived = async () => {}
   actionsTaken.length = 0
@@ -133,6 +135,7 @@ export function resetClient(
               fuzzyFileSearch: true,
               sessionLineage: true,
               forkAtTurn: true,
+              sessionRetry: { version: 1 },
               composerPredictions: true
             }
           }
@@ -163,14 +166,13 @@ client.connect = async () => {
 }
 client.listSessions = async () => {}
 client.listArchived = async () => {}
-client.refreshProjectContext = () => Promise.resolve(projectContext)
-client.listProjectSessions = (cwd) => Promise.resolve(client.state.sessionList.filter((thread) => thread.cwd === cwd))
-client.listHistorySessions = () => Promise.resolve([...client.state.sessionList, ...client.state.archivedSessions])
-client.readSessionSummary = (id) =>
-  Promise.resolve(client.state.sessionList.find((thread) => thread.sessionId === id) ?? null)
-client.activityReply = () => Promise.resolve("页面与交互检查已完成，交付资料已经更新。")
-client.prepareDraft = (owner, cwd, model) => {
-  if (draftFailure) return Promise.reject(Object.assign(new Error(draftFailure), { code: -32000 }))
+client.refreshProjectContext = async () => projectContext
+client.listProjectSessions = async (cwd) => client.state.sessionList.filter((thread) => thread.cwd === cwd)
+client.listHistorySessions = async () => [...client.state.sessionList, ...client.state.archivedSessions]
+client.readSessionSummary = async (id) => client.state.sessionList.find((thread) => thread.sessionId === id) ?? null
+client.activityReply = async () => "页面与交互检查已完成，交付资料已经更新。"
+client.prepareDraft = async (owner, cwd, model) => {
+  if (draftFailure) throw Object.assign(new Error(draftFailure), draftFailureCode === null ? {} : { code: draftFailureCode })
   const previous = Object.keys(client.state.draftSessions).find(
     (id) =>
       client.state.draftSessions[id] === owner &&
@@ -272,8 +274,8 @@ client.prompt = (id, prompt) => {
   }, 1300)
   return Promise.resolve(`${id}-user-${index}`)
 }
-client.cancel = (id) => {
-  publish({ ...client.session(id), state: "idle" })
+client.cancel = async (id) => {
+  publish({ ...client.session(id), state: "idle", lastStopReason: "cancelled" })
   client.store.setState((state) => ({
     actions: state.actions.filter((action) => action.sessionId !== id),
     runStates: { ...state.runStates, [id]: runState(id, "done") }
