@@ -4,7 +4,6 @@ import {
   type CondenseScope,
   DriveCondense,
   DriveMoveDialog,
-  drivePreviewIntegrations,
   resolveDriveRoot
 } from "@alwith/module-drive/content"
 import { DriveBadge, useDrive } from "@alwith/module-drive/react"
@@ -255,43 +254,45 @@ export function FileWorkspace({
           <ImagePreview document={document} labels={imageLabels} onError={report} />
         )
       },
-      ...localPreviewProviders({
-        ...drivePreviewIntegrations(contentHost),
-        htmlPreview: createHtmlPreviewHost(
-          workspace.root,
-          workspace.fs,
-          invoke,
-          navigator.userAgent.includes("Windows")
-        ),
-        openLink: openExternal,
-        resolveResource: (path, reference) => resolvePreviewResource(workspace.fs, workspace.root, path, reference),
-        openExternal,
-        allowRemoteResources: true,
-        autoSaveDelay: 800,
-        imageLabels,
-        labels: {
-          loading: t("workspace.previewsLoading"),
-          openExternal: t("workspace.openExternal"),
-          legacyWord: t("workspace.legacyWord"),
-          mediaUnsupported: t("workspace.mediaUnsupported"),
-          emptySheet: t("workspace.emptySheet"),
-          worksheets: t("workspace.worksheets"),
-          bold: t("workspace.bold"),
-          italic: t("workspace.italic"),
-          outline: t("workspace.outline"),
-          outlineEmpty: t("workspace.outlineEmpty"),
-          editMarkdown: t("workspace.editMarkdown"),
-          copyCode: t("workspace.copyCode"),
-          toggleWrap: t("workspace.toggleWrap"),
-          previousSheet: t("workspace.previousSheet"),
-          nextSheet: t("workspace.nextSheet"),
-          page: t("workspace.page"),
-          thumbnails: t("workspace.thumbnails"),
-          zoomIn: t("workspace.zoomIn"),
-          zoomOut: t("workspace.zoomOut"),
-          resetZoom: t("workspace.resetZoom")
-        }
-      })
+      ...localPreviewProviders(
+        {
+          htmlPreview: createHtmlPreviewHost(
+            workspace.root,
+            workspace.fs,
+            invoke,
+            navigator.userAgent.includes("Windows")
+          ),
+          openLink: openExternal,
+          resolveResource: (path, reference) => resolvePreviewResource(workspace.fs, workspace.root, path, reference),
+          openExternal,
+          allowRemoteResources: true,
+          autoSaveDelay: 800,
+          imageLabels,
+          labels: {
+            loading: t("workspace.previewsLoading"),
+            openExternal: t("workspace.openExternal"),
+            legacyWord: t("workspace.legacyWord"),
+            mediaUnsupported: t("workspace.mediaUnsupported"),
+            emptySheet: t("workspace.emptySheet"),
+            worksheets: t("workspace.worksheets"),
+            bold: t("workspace.bold"),
+            italic: t("workspace.italic"),
+            outline: t("workspace.outline"),
+            outlineEmpty: t("workspace.outlineEmpty"),
+            editMarkdown: t("workspace.editMarkdown"),
+            copyCode: t("workspace.copyCode"),
+            toggleWrap: t("workspace.toggleWrap"),
+            previousSheet: t("workspace.previousSheet"),
+            nextSheet: t("workspace.nextSheet"),
+            page: t("workspace.page"),
+            thumbnails: t("workspace.thumbnails"),
+            zoomIn: t("workspace.zoomIn"),
+            zoomOut: t("workspace.zoomOut"),
+            resetZoom: t("workspace.resetZoom")
+          }
+        },
+        contentHost
+      )
     ]
   }, [workspace, t, contentHost])
   const reportedDirty = useRef(false)

@@ -1,6 +1,6 @@
 [package]
 name = "alwith-u"
-version = "26.11.7"
+version = "26.11.9"
 description = "An independent desktop client for the OpenAI Codex CLI"
 authors = ["alwith.ai"]
 license = "Apache-2.0"
@@ -26,7 +26,7 @@ alwith-mobile = "0.6"
 atlas-tauri = { version = "0.1", features = ["specta"] }
 alwith-store = "0.6"
 alwith-auth = "0.6"
-alwith-computer = "0.6"
+alwith-computer = "0.6.3"
 alwith-device = "0.6"
 alwith-voice = "0.6"
 alwith-gamepad = "0.6"
@@ -34,7 +34,7 @@ alwith-installed-apps = "0.6"
 alwith-fs = "0.6"
 alwith-drive = "0.6"
 # The ALwith account gateway (`init_with_account`); the application selects reqwest's TLS backend.
-alwith-chat = { version = "0.6", default-features = false }
+alwith-chat = { version = "0.6.5", default-features = false }
 alwith-api = { path = "../node_modules/@alwith/api/rust" }
 alwith-extension = "0.6"
 tempfile = "3"
@@ -49,10 +49,10 @@ serde_json = "1"
 # The app alone selects rustls with aws-lc-rs; libraries and Tauri plugins inherit it through feature unification.
 reqwest = { version = "0.13", default-features = false, features = ["json", "rustls"] }
 # Tauri 3 keeps its runtime in a separate crate; alpha.4 provides transparency without a private-API feature.
-tauri = { version = "3.0.0-alpha.5", features = ["protocol-asset", "specta", "tray-icon"] }
-specta = { version = "2.0.0-rc.27", features = ["derive", "function"] }
-tauri3-specta = "0.1.0-alpha.4"
-tauri-runtime-wry = "3.0.0-alpha.5"
+tauri = { version = "3.0.0-alpha.6", features = ["protocol-asset", "specta", "tray-icon"] }
+specta = { version = "2.0.0-rc.28", features = ["derive", "function"] }
+tauri3-specta = "0.1.0-alpha.5"
+tauri-runtime-wry = "3.0.0-alpha.6"
 tauri-plugin-dialog = "3.0.0-alpha.4"
 tauri-plugin-clipboard-manager = "3.0.0-alpha.3"
 tauri-plugin-global-shortcut = "3.0.0-alpha.3"
@@ -88,7 +88,7 @@ objc2-quartz-core = { version = "0.3", default-features = false, features = ["st
 objc2-core-graphics = { version = "0.3", default-features = false, features = ["std", "CGAffineTransform", "CGGeometry", "CGPath"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
-alwith-chat = { version = "0.6", default-features = false, features = ["native-network"] }
+alwith-chat = { version = "0.6.5", default-features = false, features = ["native-network"] }
 tauri-plugin-decoration = "3"
 windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_UI_Controls", "Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_HiDpi", "Win32_Media_Audio", "Win32_Devices_HumanInterfaceDevice", "Win32_UI_Input", "Win32_UI_Shell"] }
 window-vibrancy = "0.8"

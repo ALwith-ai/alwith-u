@@ -552,3 +552,74 @@ fn native_capacity_rejection_survives_export_with_bounded_counts() {
         assert!(native_network_context(&format!("[alwith-native-network] {value}")).is_none());
     }
 }
+
+#[test]
+fn native_network_error_chain_and_proxy_decisions_survive_export_with_redaction() {
+    let mut value: Value =
+        serde_json::from_str(native_network_line().strip_prefix("[alwith-native-network] ").unwrap()).unwrap();
+    value["errorKind"] = json!("tls");
+    value["errorChain"] = json!([
+        {"message":"TLS handshake failed at https://example.test/private?token=secret", "debug":"Os { code: -2146893019 } api_key=secret"}
+    ]);
+    value["proxySteps"] = json!([
+        {"source":"windows-user", "outcome":"read", "winhttpError":null, "elapsedMs":0},
+        {"source":"windows-auto", "outcome":"not_discovered", "winhttpError":12180, "elapsedMs":3},
+        {"source":"windows-direct", "outcome":"not_configured", "winhttpError":null, "elapsedMs":5}
+    ]);
+    value["proxyConfig"] = json!({
+        "autoDetect":true,"pacConfigured":false,"manualConfigured":false,"bypassConfigured":false,"environmentProxyPresent":true
+    });
+    let context = native_network_context(&format!("[alwith-native-network] {value}")).unwrap();
+    let directory = tempfile::tempdir().unwrap();
+    let collector = Collector::new(directory.path().to_path_buf());
+    collector.record("native_network", "failed", context);
+    let report = collector.report();
+    let network = &report["events"][0]["context"]["network"];
+    assert_eq!(network["errorKind"], "tls");
+    assert!(network["errorChain"][0]["debug"].as_str().unwrap().contains("-2146893019"));
+    assert!(!network.to_string().contains("secret"));
+    assert!(!network.to_string().contains("/private"));
+    assert_eq!(network["proxySteps"][1]["winhttpError"], 12180);
+    assert_eq!(network["proxySteps"][2]["outcome"], "not_configured");
+    assert_eq!(network["proxyConfig"]["environmentProxyPresent"], true);
+}
+
+#[test]
+fn native_network_extended_diagnostics_reject_unbounded_and_unknown_fields() {
+    let original: Value =
+        serde_json::from_str(native_network_line().strip_prefix("[alwith-native-network] ").unwrap()).unwrap();
+    for (field, entry) in [
+        ("errorChain", json!([{"message":"x".repeat(257),"debug":""}])),
+        ("errorChain", json!([{"message":"ok","debug":"", "token":"secret"}])),
+        ("errorChain", json!([{"message":"line\nbreak","debug":""}])),
+        ("errorChain", json!(vec![json!({"message":"ok","debug":""}); 9])),
+        ("proxySteps", json!([{"source":"raw-private-source","outcome":"read","winhttpError":null,"elapsedMs":0}])),
+        (
+            "proxySteps",
+            json!([{"source":"windows-user","outcome":"raw-private-outcome","winhttpError":null,"elapsedMs":0}]),
+        ),
+        (
+            "proxySteps",
+            json!(vec![json!({"source":"windows-auto","outcome":"started","winhttpError":null,"elapsedMs":0}); 17]),
+        ),
+        (
+            "proxyConfig",
+            json!({"autoDetect":false,"pacConfigured":false,"manualConfigured":false,"bypassConfigured":false,"environmentProxyPresent":false,"pac":"secret"}),
+        ),
+    ] {
+        let mut value = original.clone();
+        value[field] = entry;
+        assert!(native_network_context(&format!("[alwith-native-network] {value}")).is_none(), "accepted {field}");
+    }
+}
+
+#[test]
+fn native_transport_backend_is_bounded_and_survives_export() {
+    let mut value: Value =
+        serde_json::from_str(native_network_line().strip_prefix("[alwith-native-network] ").unwrap()).unwrap();
+    value["transportBackend"] = json!("winhttp");
+    let context = native_network_context(&format!("[alwith-native-network] {value}")).unwrap();
+    assert_eq!(context.network.unwrap().transport_backend.as_deref(), Some("winhttp"));
+    value["transportBackend"] = json!("raw private backend");
+    assert!(native_network_context(&format!("[alwith-native-network] {value}")).is_none());
+}

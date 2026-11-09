@@ -26,6 +26,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { openPlatformTopUp } from "@/features/auth/open-account"
 import { requestAccountProviderRefresh } from "@/features/auth/store"
 import { openExternal } from "@/lib/open"
+import { describeProviderError as describe, logProviderError } from "@/lib/provider-errors"
 import type {
   CustomProvider,
   CustomProviderInput,
@@ -51,10 +52,6 @@ import { cn } from "@/lib/utils"
 
 import { CodexProviderSection } from "./codex-provider-section"
 import { SettingGroup, SettingLabel } from "./shared"
-
-function describe(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
-}
 
 /** Fetch on entry; failed network refreshes retry the fetch rather than cached configuration application. */
 export function ManagedProviderSection() {
@@ -147,7 +144,10 @@ export function ProviderSection() {
           delete next[provider.id]
           return next
         })
-      if (result.error) toast.error(result.error)
+      if (result.error) {
+        logProviderError("save", result.error)
+        toast.error(describe(result.error))
+      }
       if (!result.error)
         toast.success(
           t(result.status === "pending" ? "provider.pending" : key === null ? "provider.removed" : "provider.saved", {
@@ -156,6 +156,7 @@ export function ProviderSection() {
         )
       return result
     } catch (error) {
+      logProviderError("save", error)
       toast.error(describe(error))
       return null
     } finally {
@@ -169,8 +170,14 @@ export function ProviderSection() {
       const result = await testProvider(providerId)
       setTestResults((current) => ({ ...current, [providerId]: result }))
       if (result.ok) toast.success(t("provider.testSuccess", { latency: result.latencyMs ?? 0 }))
-      else toast.error(`${t(`provider.testErrors.${result.code}`)}${result.message ? `: ${result.message}` : ""}`)
+      else {
+        logProviderError("test", result)
+        toast.error(
+          `${t(`provider.testErrors.${result.code}`)}${result.message ? `: ${describe(result.message)}` : ""}`
+        )
+      }
     } catch (error) {
+      logProviderError("test", error)
       toast.error(describe(error))
     } finally {
       setBusy(null)
@@ -181,8 +188,10 @@ export function ProviderSection() {
     setBusy(input.id)
     try {
       const result = await saveCustomProvider(revision, input)
-      if (result.error) toast.error(result.error)
-      else {
+      if (result.error) {
+        logProviderError("save-custom", result.error)
+        toast.error(describe(result.error))
+      } else {
         setTestResults((current) => {
           const next = { ...current }
           delete next[input.id]
@@ -192,6 +201,7 @@ export function ProviderSection() {
       }
       return !result.error
     } catch (error) {
+      logProviderError("save-custom", error)
       toast.error(describe(error))
       return false
     } finally {
@@ -204,12 +214,15 @@ export function ProviderSection() {
     setBusy(provider.id)
     try {
       const result = await removeCustomProvider(snapshot.revision, provider.id)
-      if (result.error) toast.error(result.error)
-      else {
+      if (result.error) {
+        logProviderError("remove-custom", result.error)
+        toast.error(describe(result.error))
+      } else {
         setActiveId(PROVIDERS[0]?.id ?? "")
         toast.success(t(result.status === "pending" ? "provider.pending" : "provider.removed", { name: provider.name }))
       }
     } catch (error) {
+      logProviderError("remove-custom", error)
       toast.error(describe(error))
     } finally {
       setBusy(null)
@@ -220,9 +233,12 @@ export function ProviderSection() {
     setBusy("retry")
     try {
       const result = await applyProvidersWhenIdle()
-      if (result.error) toast.error(result.error)
-      else if (result.status === "pending") toast.info(t("provider.pending"))
+      if (result.error) {
+        logProviderError("apply", result.error)
+        toast.error(describe(result.error))
+      } else if (result.status === "pending") toast.info(t("provider.pending"))
     } catch (error) {
+      logProviderError("apply", error)
       toast.error(describe(error))
     } finally {
       setBusy(null)

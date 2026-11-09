@@ -1,3 +1,4 @@
+import { createSession } from "@alwith/module-chat/client"
 import type * as eventApi from "@tauri-apps/api/event"
 import type { Event, EventCallback, EventName } from "@tauri-apps/api/event"
 import type * as windowApi from "@tauri-apps/api/webviewWindow"
@@ -46,6 +47,7 @@ vi.mock("@tauri-apps/api/webviewWindow", () => ({
   }
 }))
 
+const { client } = await import("../client")
 const { useChatWindowSurface, useMainWindowSurface } = await import("../chat-window-state")
 const { requestChatSurface, serveChatSurface } = await import("../chat-window")
 const { getCurrentWebviewWindow } = await import("@tauri-apps/api/webviewWindow")
@@ -153,6 +155,48 @@ test("chat surface reports reach the main registry without invoking navigation",
     expect(useChatWindowSurface.getState()).toEqual({ sessionId: "chat-session", visible: true })
     await requestChatSurface("main", { type: "surface", sessionId: "chat-session", visible: false })
     expect(useChatWindowSurface.getState()).toEqual({ sessionId: "chat-session", visible: false })
+  } finally {
+    stopMain()
+  }
+})
+
+test("a reloaded chat restores its explicit session without overwriting the main registry", async () => {
+  const before = client.state
+  const session = createSession("floating-before-reload", "/tmp/floating-project")
+  client.store.setState({
+    sessions: { [session.id]: session },
+    sessionWindows: { [session.id]: "chat" }
+  })
+  useChatWindowSurface.setState({ sessionId: session.id, visible: true })
+  currentLabel = "main"
+  const stopMain = await serveChatSurface(() => Promise.reject(new Error("Restore must not navigate main")))
+  try {
+    currentLabel = "chat"
+    await expect(requestChatSurface("main", { type: "restore" })).resolves.toEqual({
+      sessionId: session.id,
+      cwd: session.cwd,
+      draft: null
+    })
+    expect(useChatWindowSurface.getState()).toEqual({ sessionId: session.id, visible: true })
+    client.store.setState({ sessionWindows: { [session.id]: "main" } })
+    await expect(requestChatSurface("main", { type: "restore" })).rejects.toThrow(
+      "The chat window conversation changed"
+    )
+  } finally {
+    stopMain()
+    client.store.setState(before, true)
+  }
+})
+
+test("a reloaded empty chat has no session to restore", async () => {
+  currentLabel = "main"
+  const stopMain = await serveChatSurface(() => Promise.reject(new Error("Restore must not navigate main")))
+  try {
+    currentLabel = "chat"
+    await expect(requestChatSurface("main", { type: "restore" })).resolves.toBeNull()
+    expect(useChatWindowSurface.getState()).toEqual({ sessionId: null, visible: false })
+    currentLabel = "settings"
+    await expect(requestChatSurface("main", { type: "restore" })).rejects.toThrow("Invalid chat surface restoration")
   } finally {
     stopMain()
   }

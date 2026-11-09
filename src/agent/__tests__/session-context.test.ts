@@ -6,37 +6,35 @@ import type { ClientOptions } from "../client"
 import { createFakeAgent } from "./fake-agent"
 import { FakeHubPort } from "./fake-runtime-client"
 
-test("a driver generation change replaces an unsent draft before admission can unload it", async () => {
+test("computer attachment changes leave an unsent draft and ordinary prompts attached", async () => {
   const fake = createFakeAgent()
   const port = new FakeHubPort(() => fake.app)
   const request = vi.spyOn(port, "acpRequest")
-  let revision = "driver-1"
-  const bind = vi.fn(async (_id: string) => {})
+  let generation = "driver-1"
+  const context = vi.fn(() =>
+    Promise.resolve({
+      mcpServers: [{ type: "stdio" as const, name: "computer", command: "/broker", args: [generation], env: [] }]
+    })
+  )
   const client = new CodexClient(() => Promise.resolve(port), {
     agentId: "codex",
     launch: { engine: "codex" },
-    sessionContext: async () => ({ revision, mcpServers: [], bind }),
-    sessionContextRevision: async () => revision
+    sessionContext: context
   })
   try {
     await client.connect()
-    const old = await client.prepareDraft("main", "/a", "model-b")
-    const sibling = await client.prepareDraft("chat", "/b")
-    expect(await client.prepareDraft("main", "/a")).toBe(old)
-    revision = "driver-2"
+    const id = await client.prepareDraft("main", "/a")
+    generation = "driver-2"
+    expect(await client.prepareDraft("main", "/a")).toBe(id)
+    context.mockClear()
     request.mockClear()
-    const next = await client.prepareDraft("main", "/a")
-    expect(next).not.toBe(old)
-    expect(fake.deleted.has(old)).toBe(true)
-    expect(client.state.draftSessions[sibling]).toBe("chat")
-    expect(bind).toHaveBeenLastCalledWith(next)
-    expect(request.mock.calls.find((call) => call[1] === "session/new")?.[2]).toMatchObject({
-      _meta: { alwith: { model: "model-b" } }
-    })
-    request.mockClear()
-    await client.prompt(next, [{ type: "text", text: "First message after reconnect" }])
-    expect(request.mock.calls.some((call) => ["session/close", "session/resume"].includes(call[1]))).toBe(false)
-    expect(client.session(next).items.some((item) => item.kind === "user")).toBe(true)
+    await client.prompt(id, [{ type: "text", text: "Ordinary message" }])
+    expect(context).not.toHaveBeenCalled()
+    expect(
+      request.mock.calls
+        .filter((call) => ["session/close", "session/resume", "session/prompt"].includes(call[1]))
+        .map((call) => call[1])
+    ).toEqual(["session/prompt"])
   } finally {
     client.disconnect()
   }

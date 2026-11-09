@@ -15,8 +15,8 @@ import {
 import {
   codexTurnId,
   codexTurnStartedAt,
-  composerPrediction,
   isBooleanOption,
+  promptSuggestion,
   isFormElicitation,
   isStringProperty,
   isText,
@@ -210,19 +210,9 @@ async function check(transport: "stdio" | "ws") {
     if (!answerPhase || answerFrames.some((update) => update._meta?.codex?.phase !== answerPhase))
       throw new Error("Live assistant message changed phase between start, streaming and completion")
     console.log("chat ordering: native start reserves the message position; streamed and completed phases agree")
-    await client.requestPrediction(a, liveTurnId)
-    await until(
-      () => {
-        const meta = client.session(a)._meta?.codex
-        return typeof meta === "object" && meta !== null && "prediction" in meta
-      },
-      75_000,
-      "composer prediction result"
-    )
-    const prediction = composerPrediction(client.session(a)._meta)
-    if (prediction?.sourceTurnId !== liveTurnId || prediction.result.type !== "completed")
-      throw new Error("Composer prediction did not complete for the live native turn")
-    console.log("chat facts: live native ids, message completion and composer prediction result verified")
+    // The adapter publishes the predicted follow-up prompt on its own after the completed turn.
+    await until(() => promptSuggestion(client.session(a)._meta) !== null, 75_000, "prompt suggestion")
+    console.log("chat facts: live native ids, message completion and prompt suggestion verified")
     if (process.env.ALWITH_LIVE_FOCUS === "chat") return
 
     if (process.env.ALWITH_LIVE_FOCUS === "steer") {

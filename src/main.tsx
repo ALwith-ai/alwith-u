@@ -83,7 +83,7 @@ async function bootstrap(): Promise<void> {
     await startupStep("power listener", () =>
       listen<string>("power:error", ({ payload }) => surfaceGlobalError(payload))
     )
-    await startupStep("computer", restoreComputer).catch((error: unknown) => surfaceGlobalError(describe(error)))
+    void startupStep("computer", restoreComputer).catch((error: unknown) => surfaceGlobalError(describe(error)))
     void startStartupImports().catch(reportExtensionError)
   }
   await startupStep("viewport", startZoomViewport)

@@ -5,33 +5,40 @@ import { isTauri } from "@tauri-apps/api/core"
 import type { ClientOptions } from "@/agent/client"
 import { deviceSessionContext } from "@/features/device/session-context"
 import { driveSessionContext } from "@/features/drive/session-context"
-import i18n from "@/lib/i18n"
-import { text } from "@/lib/text"
 
-export async function computerContextRevision(): Promise<string> {
-  if (!isTauri()) return "disabled"
-  return commands.revision()
+/** Computer attachment failures belong to the optional tool channel, not the conversation. */
+async function computerSessionContext() {
+  try {
+    const descriptor = await commands.context()
+    const context = await computerContext(() => Promise.resolve(descriptor?.connection ?? null))
+    return {
+      mcpServers: context.mcpServers,
+      appendSystemPrompt: context.appendSystemPrompt,
+      bind: descriptor
+        ? (sessionId: string) => {
+            // Tool calls wait for their explicit binding in native; replay never waits for it.
+            void commands.bind({ token: descriptor.token, sessionId }).catch((error: unknown) => {
+              console.error("Cannot bind computer access", error)
+            })
+          }
+        : undefined
+    }
+  } catch (error) {
+    console.error("Cannot attach computer tools", error)
+    return { mcpServers: [], appendSystemPrompt: undefined, bind: undefined }
+  }
 }
 
 export const hostSessionContext: NonNullable<ClientOptions["sessionContext"]> = async (cwd) => {
   const drive = await driveSessionContext(cwd)
-  if (!isTauri()) return { ...drive, revision: "disabled" }
-  const descriptor = await commands.context()
-  const computer = await computerContext(() => Promise.resolve(descriptor?.connection ?? null))
+  if (!isTauri()) return drive
+  const computer = await computerSessionContext()
   const device = await deviceSessionContext()
   const appendSystemPrompt = [drive.appendSystemPrompt, computer.appendSystemPrompt, device.appendSystemPrompt]
     .filter(Boolean)
     .join("\n\n")
-  const binders = [
-    descriptor
-      ? async (sessionId: string) => {
-          await commands.bind({ token: descriptor.token, sessionId })
-        }
-      : undefined,
-    device.bind
-  ].filter((bind) => bind !== undefined)
+  const binders = [computer.bind, device.bind].filter((bind) => bind !== undefined)
   return {
-    revision: computer.revision,
     bind:
       binders.length > 0
         ? async (sessionId: string) => {
@@ -40,15 +47,5 @@ export const hostSessionContext: NonNullable<ClientOptions["sessionContext"]> = 
         : undefined,
     mcpServers: [...drive.mcpServers, ...computer.mcpServers, ...device.mcpServers],
     ...(appendSystemPrompt ? { appendSystemPrompt } : {})
-  }
-}
-
-/** A failed preflight keeps the message unsent; sending again retries the connection. */
-export async function prepareComputerTools(sessionId: string): Promise<void> {
-  if (!isTauri()) return
-  try {
-    await commands.ready({ sessionId })
-  } catch (error) {
-    throw new Error(i18n.t("computer.connectionError", { error: text(error) }), { cause: error })
   }
 }

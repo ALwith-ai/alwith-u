@@ -108,7 +108,7 @@ export const LeadingApps: Story = {
     await expect(canvas.getByRole("heading")).toHaveTextContent("app-19/page")
     await expect(fixed.getBoundingClientRect().top).toBe(top)
     await expect(canvas.getByRole("button", { name: "App 20" })).toHaveAttribute("aria-current", "page")
-    await expect(canvas.getByRole("button", { name: "Toolbox" })).not.toHaveAttribute("aria-current")
+    await expect(canvas.getByRole("button", { name: "Customize" })).not.toHaveAttribute("aria-current")
   }
 }
 
@@ -140,9 +140,9 @@ export const LeadingFeatures: Story = {
     )
   },
   play: async ({ canvas, userEvent }) => {
-    await userEvent.click(canvas.getByRole("button", { name: "工具箱" }))
+    await userEvent.click(canvas.getByRole("button", { name: "自定义" }))
     await expect(canvas.getByRole("heading")).toHaveTextContent("plugins")
-    await expect(canvas.getByRole("button", { name: "工具箱" })).toHaveAttribute("aria-current", "page")
+    await expect(canvas.getByRole("button", { name: "自定义" })).toHaveAttribute("aria-current", "page")
   }
 }
 

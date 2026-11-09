@@ -20,6 +20,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { SidebarInset } from "@/components/ui/sidebar"
 import { WallpaperBackground } from "@/features/appearance/wallpaper/background"
+import { useSidebarChatWindow } from "@/features/chat-window/use-sidebar-chat-window"
 import { ActionCard, ElicitationFormDialog } from "@/features/chat/action-card"
 import { ChatView } from "@/features/chat/chat-view"
 import { DRAFT_SESSION_ID, DraftChat } from "@/features/chat/draft-chat"
@@ -88,6 +89,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   useDriveArchive()
   const { host: extensions, runtime: extensionRuntime, state: extensionState } = useExtensions()
   const { t } = useTranslation()
+  const sidebarChatWindow = useSidebarChatWindow()
   const connection = useApp((state) => state.connection)
   const connectionError = useApp((state) => state.connectionError)
   const globalActions = useApp(useShallow((state) => state.actions.filter((action) => action.sessionId === null)))
@@ -630,7 +632,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
               onNewChat={newChat}
               onSearch={() => setPaletteOpen(true)}
               onOpenVibemon={openVibemon}
-              onOpenWindow={() => void openChatWindow().catch((error) => toast.error(describe(error)))}
+              onOpenWindow={sidebarChatWindow.open}
               onNewProjectChat={newChatInDirectory}
               onOpenSettings={() => void openSettingsWindow()}
               onOpenPlugins={openExtensions}
@@ -743,6 +745,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
             </SidebarInset>
           }
         >
+          {sidebarChatWindow.confirmation}
           <HotkeysDialog open={hotkeysOpen} onOpenChange={setHotkeysOpen} />
           {globalFormDialog}
           <CommandPalette

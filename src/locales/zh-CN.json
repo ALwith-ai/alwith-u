@@ -614,8 +614,8 @@
   },
   "plugins": {
     "catalog": {
-      "navigation": "工具箱导航",
-      "customize": "工具箱",
+      "navigation": "自定义导航",
+      "customize": "自定义",
       "content": "插件与技能内容",
       "pluginViews": "插件视图",
       "personal": "个人",
@@ -910,6 +910,8 @@
     "status": "revision {{revision}} · {{entries}} 条 · {{notes}} 笔记"
   },
   "chatWindow": {
+    "newChatTitle": "确定要在当前浮窗开启新会话吗？",
+    "newChatDescription": "当前会话将保留在聊天记录中。",
     "returnToMain": "回到聊天主窗",
     "open": "打开聊天浮窗",
     "shortcut": "聊天浮窗快捷键",

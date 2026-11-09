@@ -55,16 +55,17 @@ async function poll(milliseconds = 0) {
   await act(() => vi.advanceTimersByTimeAsync(milliseconds))
 }
 
-test("fresh settings enable automatically when both permissions are already granted", async () => {
+test("fresh settings stay disabled even when both permissions are already granted", async () => {
   const view = renderHook(useComputerStatus)
   await poll()
-  expect(native.computerStart).toHaveBeenCalledOnce()
-  expect(view.result.current.status?.enabled).toBe(true)
+  expect(native.computerStart).not.toHaveBeenCalled()
+  expect(view.result.current.status?.enabled).toBe(false)
   await poll(3000)
-  expect(native.computerStart).toHaveBeenCalledOnce()
+  expect(native.computerStart).not.toHaveBeenCalled()
 })
 
-test("granting the second permission enables without another click or reopening settings", async () => {
+test("a saved enabled choice starts after both permissions become available", async () => {
+  settings.get.mockReturnValue(true)
   status.permissions.accessibility = false
   status.permissions.screenCapture = false
   const view = renderHook(useComputerStatus)
@@ -79,6 +80,7 @@ test("granting the second permission enables without another click or reopening 
 })
 
 test("manual disable survives polling, permission changes and reopening settings", async () => {
+  settings.get.mockReturnValue(true)
   const view = renderHook(useComputerStatus)
   await poll()
   await act(stopComputer)
@@ -104,6 +106,7 @@ test("a saved disabled choice prevents automatic startup with both permissions",
 })
 
 test.each(["failed", "verifying", "stopping"])("polling never restarts a driver in phase %s", async (phase) => {
+  settings.get.mockReturnValue(true)
   status.phase = phase
   renderHook(useComputerStatus)
   await poll(3000)
@@ -111,6 +114,7 @@ test.each(["failed", "verifying", "stopping"])("polling never restarts a driver 
 })
 
 test("failed automatic verification is visible and is not retried every second", async () => {
+  settings.get.mockReturnValue(true)
   native.computerStart.mockImplementation(async () => {
     status.phase = "failed"
     status.lastError = "capture unavailable"
@@ -125,6 +129,7 @@ test("failed automatic verification is visible and is not retried every second",
 })
 
 test("unmounting during a permission query prevents a late automatic start", async () => {
+  settings.get.mockReturnValue(true)
   let resolve!: (value: ComputerStatus) => void
   native.computerStatus.mockImplementationOnce(
     () =>

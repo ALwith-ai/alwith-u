@@ -7,9 +7,9 @@ import {
   MoreHorizontalIcon,
   PanelTopIcon,
   PencilIcon,
-  PictureInPicture2Icon,
   PlusIcon,
   SearchIcon,
+  SquareArrowOutUpRightIcon,
   Trash2Icon
 } from "lucide-react"
 import { useRef, useState } from "react"
@@ -43,6 +43,8 @@ import { ExternalEditorMenu, ProjectAppIcon, useProjectApps } from "./open-in-ed
 
 // Keep the diagnostics implementation available while its menu entry is temporarily hidden.
 const showMcpDiagnostics = false
+const toolbarButtonClass =
+  "transition-colors duration-150 ease-out hover:bg-foreground/8 aria-expanded:bg-foreground/8 dark:hover:bg-foreground/8"
 
 /** Shared by main and floating chats. Mutations always address the displayed session. */
 export function ChatActionsMenu({
@@ -97,157 +99,163 @@ export function ChatActionsMenu({
   }
   const canMutate = session !== undefined && connected && !session.restoring
   const hasMessages = session !== undefined && session.items.length > 0
-  const canOpenWindow = surface === "main" && onOpenWindow !== undefined && !session?.restoring
+  const draft = useApp((state) => session !== undefined && state.draftSessions[session.id] !== undefined)
+  const canOpenWindow = surface === "main" && onOpenWindow !== undefined && hasMessages && !draft && !session?.restoring
   const canReturnToMain = surface === "floating" && onReturnToMain !== undefined && !session?.restoring
   const showNewChat = surface === "floating" && session !== undefined
   const showNewProject = surface === "floating" && onNewProject !== undefined
   const showCreationActions = showNewChat || showNewProject
-  const showChatActions = session !== undefined || canOpenWindow || canReturnToMain
+  const showChatActions = session !== undefined || canReturnToMain
   if (!session && cwd === null && !canOpenWindow && !canReturnToMain && !showNewProject) return null
   return (
     <>
-      <DropdownMenu
-        onOpenChange={(open) => {
-          if (open) skipMenuFocus.current = false
-        }}
-      >
-        <DropdownMenuTrigger
-          render={
-            <Button
-              ref={trigger}
-              variant="ghost"
-              size="icon-sm"
-              className="transition-colors duration-150 ease-out hover:bg-foreground/8 aria-expanded:bg-foreground/8 dark:hover:bg-foreground/8"
-              aria-label={t("actions.more")}
-              title={t("actions.more")}
-            />
-          }
+      {canOpenWindow && (
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className={toolbarButtonClass}
+          aria-label={t("chatWindow.open")}
+          title={t("chatWindow.open")}
+          onClick={onOpenWindow}
         >
-          <MoreHorizontalIcon />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          align="end"
-          className="max-w-[calc(100vw-2rem)] min-w-56"
-          finalFocus={() => !skipMenuFocus.current}
+          <SquareArrowOutUpRightIcon />
+        </Button>
+      )}
+      {(session !== undefined || cwd !== null || canReturnToMain || showNewProject) && (
+        <DropdownMenu
+          onOpenChange={(open) => {
+            if (open) skipMenuFocus.current = false
+          }}
         >
-          {showCreationActions && (
-            <DropdownMenuGroup>
-              {showNewChat && (
-                <DropdownMenuItem
-                  onClick={() => {
-                    skipMenuFocus.current = true
-                    onNewChat()
-                  }}
-                >
-                  <PlusIcon />
-                  {t("sidebar.newChat")}
-                  <ShortcutKey shortcut="CmdOrCtrl+N" className="ml-auto shrink-0" />
-                </DropdownMenuItem>
-              )}
-              {showNewProject && (
-                <DropdownMenuItem onClick={onNewProject}>
-                  <FolderPlusIcon />
-                  {t("chat.draft.newProject")}
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuGroup>
-          )}
-          {showChatActions && (
-            <>
-              {showCreationActions && <DropdownMenuSeparator />}
+          <DropdownMenuTrigger
+            render={
+              <Button
+                ref={trigger}
+                variant="ghost"
+                size="icon-sm"
+                className={toolbarButtonClass}
+                aria-label={t("actions.more")}
+                title={t("actions.more")}
+              />
+            }
+          >
+            <MoreHorizontalIcon />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="end"
+            className="max-w-[calc(100vw-2rem)] min-w-56"
+            finalFocus={() => !skipMenuFocus.current}
+          >
+            {showCreationActions && (
               <DropdownMenuGroup>
-                {canOpenWindow && (
+                {showNewChat && (
                   <DropdownMenuItem
                     onClick={() => {
                       skipMenuFocus.current = true
-                      onOpenWindow()
+                      onNewChat()
                     }}
                   >
-                    <PictureInPicture2Icon />
-                    {t("chatWindow.open")}
+                    <PlusIcon />
+                    {t("sidebar.newChat")}
+                    <ShortcutKey shortcut="CmdOrCtrl+N" className="ml-auto shrink-0" />
                   </DropdownMenuItem>
                 )}
-                {canReturnToMain && (
-                  <DropdownMenuItem
-                    onClick={() => {
-                      skipMenuFocus.current = true
-                      onReturnToMain()
-                    }}
-                  >
-                    <PanelTopIcon />
-                    {t("chatWindow.returnToMain")}
-                  </DropdownMenuItem>
-                )}
-                {canMutate && canRename && (
-                  <DropdownMenuItem
-                    onClick={() => {
-                      skipMenuFocus.current = true
-                      setName(session.title ?? "")
-                      setDialog("rename")
-                    }}
-                  >
-                    <PencilIcon />
-                    {t("sidebar.rename")}
-                  </DropdownMenuItem>
-                )}
-                {showMcpDiagnostics && session && <McpDiagnostics key={session.id} session={session} />}
-                {hasMessages && (
-                  <DropdownMenuItem
-                    onClick={() => {
-                      skipMenuFocus.current = true
-                      openChatSearch(session.id)
-                    }}
-                  >
-                    <SearchIcon />
-                    {t("chat.search.label")}
-                    <ShortcutKey shortcut="CmdOrCtrl+F" className="ml-auto shrink-0" />
+                {showNewProject && (
+                  <DropdownMenuItem onClick={onNewProject}>
+                    <FolderPlusIcon />
+                    {t("chat.draft.newProject")}
                   </DropdownMenuItem>
                 )}
               </DropdownMenuGroup>
-            </>
-          )}
-          {cwd !== null &&
-            (surface === "main" ? (
-              <ExternalEditorMenu editor={editor} separator={showChatActions} />
-            ) : (
+            )}
+            {showChatActions && (
               <>
-                {(showCreationActions || showChatActions) && <DropdownMenuSeparator />}
+                {showCreationActions && <DropdownMenuSeparator />}
+                <DropdownMenuGroup>
+                  {canReturnToMain && (
+                    <DropdownMenuItem
+                      onClick={() => {
+                        skipMenuFocus.current = true
+                        onReturnToMain()
+                      }}
+                    >
+                      <PanelTopIcon />
+                      {t("chatWindow.returnToMain")}
+                    </DropdownMenuItem>
+                  )}
+                  {canMutate && canRename && (
+                    <DropdownMenuItem
+                      onClick={() => {
+                        skipMenuFocus.current = true
+                        setName(session.title ?? "")
+                        setDialog("rename")
+                      }}
+                    >
+                      <PencilIcon />
+                      {t("sidebar.rename")}
+                    </DropdownMenuItem>
+                  )}
+                  {showMcpDiagnostics && session && <McpDiagnostics key={session.id} session={session} />}
+                  {hasMessages && (
+                    <DropdownMenuItem
+                      onClick={() => {
+                        skipMenuFocus.current = true
+                        openChatSearch(session.id)
+                      }}
+                    >
+                      <SearchIcon />
+                      {t("chat.search.label")}
+                      <ShortcutKey shortcut="CmdOrCtrl+F" className="ml-auto shrink-0" />
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuGroup>
+              </>
+            )}
+            {cwd !== null &&
+              (surface === "main" ? (
+                <ExternalEditorMenu editor={editor} separator={showChatActions} />
+              ) : (
+                <>
+                  {(showCreationActions || showChatActions) && <DropdownMenuSeparator />}
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem
+                      className="group/path"
+                      aria-label={t("actions.openFolder")}
+                      title={
+                        editor.active ? `${t("actions.openProjectWith", { app: editor.active.name })}\n${cwd}` : cwd
+                      }
+                      onClick={() => void editor.openPreferred().catch(report)}
+                    >
+                      <ProjectAppIcon app={editor.active} />
+                      <OverflowMarquee className="flex-1">{cwd}</OverflowMarquee>
+                      <ArrowUpRightIcon
+                        aria-hidden="true"
+                        className="invisible shrink-0 group-hover/path:visible group-focus-visible/path:visible group-data-highlighted/path:visible"
+                      />
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                </>
+              ))}
+            {canMutate && (
+              <>
+                <DropdownMenuSeparator />
                 <DropdownMenuGroup>
                   <DropdownMenuItem
-                    className="group/path"
-                    aria-label={t("actions.openFolder")}
-                    title={editor.active ? `${t("actions.openProjectWith", { app: editor.active.name })}\n${cwd}` : cwd}
-                    onClick={() => void editor.openPreferred().catch(report)}
+                    variant="destructive"
+                    onClick={() => {
+                      skipMenuFocus.current = true
+                      setDialog("delete")
+                    }}
                   >
-                    <ProjectAppIcon app={editor.active} />
-                    <OverflowMarquee className="flex-1">{cwd}</OverflowMarquee>
-                    <ArrowUpRightIcon
-                      aria-hidden="true"
-                      className="invisible shrink-0 group-hover/path:visible group-focus-visible/path:visible group-data-highlighted/path:visible"
-                    />
+                    <Trash2Icon />
+                    {t("sidebar.delete")}
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
               </>
-            ))}
-          {canMutate && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuGroup>
-                <DropdownMenuItem
-                  variant="destructive"
-                  onClick={() => {
-                    skipMenuFocus.current = true
-                    setDialog("delete")
-                  }}
-                >
-                  <Trash2Icon />
-                  {t("sidebar.delete")}
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-            </>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
       <Dialog
         open={dialog !== null}
         onOpenChange={(open) => {

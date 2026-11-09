@@ -7,7 +7,7 @@ import { WorkflowPreview } from "../../workflow-preview"
 
 const labels = [
   "初始页面 · 聊天",
-  "点击 · 工具箱",
+  "点击 · 自定义",
   "点击 · 项目工具",
   "点击 · Vibémon",
   "点击 · 返回主屏",

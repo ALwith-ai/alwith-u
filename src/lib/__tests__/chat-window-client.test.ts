@@ -12,6 +12,39 @@ import { DesktopCodexClient } from "../desktop-client"
 const initialFiles = vi.hoisted(() => vi.fn())
 vi.mock("../initial-file-results", () => ({ initialFileResults: initialFiles }))
 
+test("floating draft refreshes project context through its connected main owner", async () => {
+  const fake = createFakeAgent()
+  const port = new FakeHubPort(() => fake.app)
+  const owner = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
+  const transport = eventBus()
+  const stop = await serveChatClient(owner, transport)
+  const remote = new RemoteChatClient(transport)
+  const refresh = vi.spyOn(owner, "refreshProjectContext")
+  try {
+    await remote.connect()
+    expect(remote.state.connection).toBe("ready")
+    const context = await remote.refreshProjectContext(true)
+    expect(refresh).toHaveBeenLastCalledWith(true)
+    expect(context.chatDirectory).toBe("/Users/mac/Documents/ALwith")
+    expect(remote.state.projectContext).toEqual(owner.state.projectContext)
+    const id = await remote.prepareDraft("chat", undefined)
+    expect(remote.session(id).cwd).toBe(context.chatDirectory)
+    expect(owner.state.draftSessions[id]).toBe("chat")
+    const created = await remote.newSession()
+    expect(remote.session(created).cwd).toBe(context.chatDirectory)
+    refresh.mockRejectedValueOnce(new Error("Cannot read project context"))
+    await expect(remote.refreshProjectContext(true)).rejects.toThrow("Cannot read project context")
+    expect(remote.state.connection).toBe("ready")
+    expect((await remote.refreshProjectContext()).chatDirectory).toBe(context.chatDirectory)
+    expect(refresh).toHaveBeenLastCalledWith()
+  } finally {
+    refresh.mockRestore()
+    remote.disconnect()
+    stop()
+    owner.disconnect()
+  }
+})
+
 test("floating file completion delegates both empty and typed queries to the main owner", async () => {
   const fake = createFakeAgent()
   const port = new FakeHubPort(() => fake.app)
@@ -30,12 +63,14 @@ test("floating file completion delegates both empty and typed queries to the mai
   initialFiles.mockResolvedValue([file])
   try {
     await remote.connect()
-    expect(await remote.fuzzyFileSearch({ query: "", roots: ["/selected-project"], cancellationToken: null })).toEqual({ files: [file] })
+    expect(await remote.fuzzyFileSearch({ query: "", roots: ["/selected-project"], cancellationToken: null })).toEqual({
+      files: [file]
+    })
     expect(initialFiles).toHaveBeenCalledWith("/selected-project", "")
     expect(fake.fileSearches).toEqual([])
-    expect((await remote.fuzzyFileSearch({ query: "client", roots: ["/selected-project"], cancellationToken: null })).files).toMatchObject([
-      { root: "/selected-project", path: "中文 #1.txt" }
-    ])
+    expect(
+      (await remote.fuzzyFileSearch({ query: "client", roots: ["/selected-project"], cancellationToken: null })).files
+    ).toMatchObject([{ root: "/selected-project", path: "中文 #1.txt" }])
     expect(initialFiles).toHaveBeenCalledWith("/selected-project", "client")
     expect(fake.fileSearches).toEqual([])
   } finally {
@@ -60,7 +95,8 @@ function eventBus(): ChatEvents {
     },
     emitTo: (_target, event, payload) => {
       return Promise.try(() => {
-        for (const callback of handlers.get(event) ?? []) callback({ event, id: 0, payload: structuredClone(payload) })
+        for (const callback of handlers.get(event) ?? [])
+          callback({ event, id: 0, payload: JSON.parse(JSON.stringify(payload)) })
       })
     }
   }

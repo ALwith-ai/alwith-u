@@ -89,7 +89,6 @@ export class CodexClient extends CodexAcpClient<AppState> {
   private slotTargets: Record<DraftOwner, string | null> = { main: null, chat: null }
   private slotVersions: Record<DraftOwner, number> = { main: 0, chat: 0 }
   private readonly draftDirectoryIntents = new Map<string, string | undefined>()
-  private readonly draftContextRevisions = new Map<string, string | undefined>()
   private readonly draftOperations = new Map<DraftOwner, Promise<unknown>>()
   /** Attached session selections, retained for forks and event-stream repair only. */
   private readonly gatewayModels = new Map<string, string>()
@@ -359,21 +358,6 @@ export class CodexClient extends CodexAcpClient<AppState> {
     operation: SessionOperation,
     options: SessionRequestOptions
   ): ReturnType<CodexAcpClient<AppState>["requestContext"]> {
-    const context = await this.modelRequestContext(cwd, operation, options)
-    return {
-      ...context,
-      bind: async (id: string) => {
-        await context.bind?.(id)
-        this.draftContextRevisions.set(id, context.revision)
-      }
-    }
-  }
-
-  private async modelRequestContext(
-    cwd: string,
-    operation: SessionOperation,
-    options: SessionRequestOptions
-  ): ReturnType<CodexAcpClient<AppState>["requestContext"]> {
     if (
       operation.kind !== "resume" ||
       (options.meta?.["alwith"] as { model?: unknown } | undefined)?.model !== undefined
@@ -517,13 +501,8 @@ export class CodexClient extends CodexAcpClient<AppState> {
           : (this.savedModels[owner] ?? this.slotModels[owner]))
       // Only an inherited, unsent selection may move to the currently available default.
       const resolved = nativeDefault ? null : await this.resolveModel(inherited, model === null ? "draft" : "session")
-      const contextCurrent =
-        !this.options.sessionContextRevision ||
-        (existing !== undefined &&
-          this.draftContextRevisions.get(existing) === (await this.options.sessionContextRevision()))
       if (
         existing &&
-        contextCurrent &&
         this.session(existing).cwd === directory &&
         (!this.draftDirectoryIntents.has(existing) || this.draftDirectoryIntents.get(existing) === cwd) &&
         !nativeDefault &&
@@ -609,7 +588,6 @@ export class CodexClient extends CodexAcpClient<AppState> {
   protected override onDraftMaterialized(id: string): void {
     super.onDraftMaterialized(id)
     this.draftDirectoryIntents.delete(id)
-    this.draftContextRevisions.delete(id)
     this.setApp((state) => {
       const { [id]: _draft, ...draftSessions } = state.draftSessions
       return { draftSessions }
@@ -620,7 +598,6 @@ export class CodexClient extends CodexAcpClient<AppState> {
   protected override onSessionDropped(id: string): void {
     super.onSessionDropped(id)
     this.draftDirectoryIntents.delete(id)
-    this.draftContextRevisions.delete(id)
     this.gatewayModels.delete(id)
     this.accountRevocations.delete(id)
     this.accountRecoveries.delete(id)

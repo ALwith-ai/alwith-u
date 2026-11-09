@@ -111,12 +111,13 @@ test("successive custom providers get independent IDs and existing providers rem
 })
 
 test("a failed save and switching tabs preserve the new provider draft", async () => {
-  vi.mocked(saveCustomProvider).mockRejectedValueOnce(new Error("Save failed"))
+  vi.mocked(saveCustomProvider).mockRejectedValueOnce({ message: "Save failed", code: "runtime_not_ready" })
   const view = render(<ProviderSection />)
   const tabs = providerTabs(view)
   await act(() => Promise.try(() => fireEvent.click(tabs.getByText("Custom", { selector: "span" }))))
   await fillProvider(visibleEditor(view), "Draft")
   await act(() => Promise.try(() => fireEvent.click(visibleEditor(view).getByText("Save", { selector: "button" }))))
+  expect(toast.error).toHaveBeenCalledWith("Save failed; code: runtime_not_ready")
   await act(() => Promise.try(() => fireEvent.click(tabs.getByText("DeepSeek", { selector: "span" }))))
   await act(() => Promise.try(() => fireEvent.click(tabs.getByText("Custom", { selector: "span" }))))
   expect(visibleEditor(view).getByLabelText("Provider name")).toHaveValue("Draft")

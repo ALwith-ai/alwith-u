@@ -50,6 +50,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
   const voiceHandoff = useVoiceHandoff(selectedId, generation)
   const [ready, setReady] = useState(false)
   const [contentMounted, setContentMounted] = useState(false)
+  const [restoreError, setRestoreError] = useState<string | null>(null)
   const [headerTarget, setHeaderTarget] = useState<HTMLDivElement | null>(null)
   const current = useRef({ selectedId, cwd })
   current.current = { selectedId, cwd }
@@ -71,14 +72,29 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
   }, [])
 
   const reconnect = useCallback(async (): Promise<void> => {
-    await client.connect()
-    const { selectedId, cwd } = current.current
-    // During replacement, the owner may already hold the new draft while the
-    // mounted surface is still awaiting its response. Do not resume the retired id.
-    const preparingDraft = Object.values(client.state.draftSessions).includes("chat")
-    if (selectedId !== null && !client.state.sessions[selectedId] && !preparingDraft) {
-      if (cwd === null) throw new Error("A chat session must have a working directory")
-      await client.open(selectedId, cwd)
+    try {
+      await client.connect()
+      if (current.current.selectedId === null) {
+        const restored = await requestChatSurface("main", { type: "restore" })
+        if (restored !== null) {
+          current.current = { selectedId: restored.sessionId, cwd: restored.cwd }
+          setCwd(restored.cwd)
+          setSelectedId(restored.sessionId)
+        }
+      }
+      const { selectedId, cwd } = current.current
+      // During replacement, the owner may already hold the new draft while the
+      // mounted surface is still awaiting its response. Do not resume the retired id.
+      const preparingDraft = Object.values(client.state.draftSessions).includes("chat")
+      if (selectedId !== null && !client.state.sessions[selectedId] && !preparingDraft) {
+        if (cwd === null) throw new Error("A chat session must have a working directory")
+        await client.open(selectedId, cwd)
+      }
+      setRestoreError(null)
+      setContentMounted(true)
+    } catch (error) {
+      setRestoreError(error instanceof Error ? error.message : String(error))
+      throw error
     }
   }, [])
 
@@ -187,6 +203,17 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
               surfaceRevision.current++
               if (action.transfer) await client.connect()
               else await reconnect()
+              if (action.newChatFor !== undefined) {
+                if (current.current.selectedId !== action.newChatFor)
+                  throw new Error("The chat window conversation changed")
+                const directory = newChatDirectory(current.current.cwd, client.state.projectContext)
+                await client.discardDraft("chat")
+                current.current = { selectedId: null, cwd: directory }
+                setCwd(directory)
+                setSelectedId(null)
+                importDraft(DRAFT_SESSION_ID, null)
+                setGeneration((value) => value + 1)
+              }
               if (action.transfer) {
                 const transfer = action.transfer
                 if (transfer.sessionId !== null) {
@@ -201,6 +228,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
                 setSelectedId(transfer.sessionId)
                 setGeneration((value) => value + 1)
               }
+              setRestoreError(null)
               setContentMounted(true)
               await presentChatWindow()
               await publishChatWindowSurface(current.current.selectedId, true)
@@ -239,7 +267,9 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
         return
       }
       setReady(true)
-      await announceChatReady()
+      // A visible webview reloads independently of the main window's presentation request.
+      if (await win.isVisible()) await operation.run(reconnect)
+      if (!disposed) await announceChatReady()
     })().catch((error) => {
       if (!disposed) report(error)
     })
@@ -254,7 +284,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
   }, [capture, hide, newChat, operation, reconnect])
 
   useEffect(() => {
-    if (!ready) return
+    if (!ready || !contentMounted) return
     const window = getCurrentWebviewWindow()
     let disposed = false
     const refresh = async () => {
@@ -278,7 +308,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
         })
         .catch(report)
     }
-  }, [selectedId, ready])
+  }, [selectedId, ready, contentMounted])
 
   const readable =
     session !== null && !session.restoring && (session.attached || session.readOnly) && session.items.length > 0
@@ -317,9 +347,12 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
         <ChatWindowVibemonButton sessionId={selectedId} />
       </header>
       {ready &&
-        (connection === "disconnected" || connection === "failed" || (selectedId !== null && session === null)) && (
+        (restoreError !== null ||
+          connection === "disconnected" ||
+          connection === "failed" ||
+          (selectedId !== null && session === null)) && (
           <div className="flex items-center justify-between gap-2 px-4 py-2 text-sm" role="status">
-            <span>{t("connection.disconnected")}</span>
+            <span>{restoreError ?? t("connection.disconnected")}</span>
             <Button variant="outline" size="sm" onClick={() => void operation.run(reconnect).catch(report)}>
               {t("connection.reconnect")}
             </Button>

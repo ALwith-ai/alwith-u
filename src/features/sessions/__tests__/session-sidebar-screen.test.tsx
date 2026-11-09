@@ -116,7 +116,7 @@ test("footer arrows switch screens, plugins are selected only on the leading scr
     )
   }
   const view = render(<Harness />)
-  const plugins = view.getByRole("button", { name: "Toolbox" })
+  const plugins = view.getByRole("button", { name: "Customize" })
   const arrow = view.getByRole("button", { name: "Open -1 screen" })
   const updateCard = view.getByRole("button", { name: /Relaunch to update/ })
   expect(updateCard.closest('[data-slot="sidebar-footer"]')).toBe(arrow.closest('[data-slot="sidebar-footer"]'))
@@ -181,7 +181,7 @@ test("customization replaces the standalone extension entry and remains availabl
     )
   }
   const view = render(<Harness />)
-  const customize = view.getByRole("button", { name: "Toolbox" })
+  const customize = view.getByRole("button", { name: "Customize" })
   expect(view.queryByRole("button", { name: "Extensions" })).toBeNull()
   await act(() => Promise.try(() => fireEvent.click(customize)))
   expect(customize).toHaveAttribute("aria-current", "page")
@@ -189,7 +189,7 @@ test("customization replaces the standalone extension entry and remains availabl
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Back to main screen" }))))
   expect(customize.hasAttribute("aria-current")).toBe(false)
   await act(() => Promise.try(() => client.store.setState({ agent: null })))
-  expect(view.getByRole("button", { name: "Toolbox" })).toBe(customize)
+  expect(view.getByRole("button", { name: "Customize" })).toBe(customize)
   expect(view.queryByRole("button", { name: "Extensions" })).toBeNull()
 })
 
@@ -315,7 +315,7 @@ test("Vibemon sits below customization and selects its own leading page without 
   }
   const view = render(<Harness />)
   const vibemon = view.getByRole("button", { name: "Vibémon" })
-  const customize = view.getByRole("button", { name: "Toolbox" })
+  const customize = view.getByRole("button", { name: "Customize" })
   expect(customize.nextElementSibling).toBe(vibemon)
   expect(vibemon.closest('[data-slot="sidebar-header"]')).not.toBeNull()
   await act(() => Promise.try(() => fireEvent.click(vibemon)))

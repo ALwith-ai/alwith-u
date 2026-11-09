@@ -180,25 +180,6 @@ export function DraftChat({
         throw new Error("The draft changed before the message was sent")
       if (pending !== preparation.current) continue
       if (target === null) throw new Error("The draft session preparation was cancelled")
-      // Codex has no rollout before the first prompt. Prepare a replacement for an
-      // outdated draft before tool admission can close its unrecoverable thread.
-      if (client.state.draftSessions[target]) {
-        const previous = target
-        const draft = client.state.sessions[target]
-        if (!draft) throw new Error("The draft session is missing")
-        target = await client.prepareDraft(owner, cwd === null ? undefined : draft.cwd)
-        if (!mounted.current || context.current.owner !== owner || (cwd !== null && context.current.cwd !== cwd))
-          throw new Error("The draft changed before the message was sent")
-        if (pending !== preparation.current) continue
-        if (target !== previous) {
-          const input = drafts.get(previous)
-          if (input) importDraft(target, input)
-          currentId.current = target
-          preparation.current = Promise.resolve(target)
-          setId(target)
-          callbacks.current.onCreated(target)
-        }
-      }
       break
     }
     onSendingChange(target, true)

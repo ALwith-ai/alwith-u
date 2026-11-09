@@ -16,10 +16,10 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 export const Modules: Story = {
-  name: "聊天 → 工具箱 → 扩展页面 → Vibémon → 返回聊天",
+  name: "聊天 → 自定义 → 扩展页面 → Vibémon → 返回聊天",
   args: { extensionCase: "content" },
   play: async ({ canvas, userEvent, step }) => {
-    for (const name of ["工具箱", "项目工具", "Vibémon"])
+    for (const name of ["自定义", "项目工具", "Vibémon"])
       await step(name, async () => {
         await userEvent.click(canvas.getAllByRole("button", { name })[0])
         await expect(canvas.getAllByRole("button", { name }).length).toBeGreaterThan(0)

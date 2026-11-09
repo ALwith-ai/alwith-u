@@ -139,6 +139,7 @@ export function SkillsTab({ query, ready }: { query: string; ready: boolean }) {
           <Button
             variant="ghost"
             className="absolute inset-0 z-0 size-full"
+            data-hover-background="none"
             aria-label={skill.interface?.displayName ?? skill.name}
             onClick={() => setSelectedPath(skill.path)}
           />

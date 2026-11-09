@@ -65,8 +65,8 @@ test("leading navigation opens customization without a standalone extension entr
     <LeadingNavigation activePage="extensions" onOpenVibemon={vi.fn()} onOpenArchives={vi.fn()} onOpenPlugins={open} />
   )
   expect(ui.queryByRole("button", { name: "Extensions" })).toBeNull()
-  expect(ui.getByRole("button", { name: "Toolbox" })).toHaveAttribute("aria-current", "page")
-  fireEvent.click(ui.getByRole("button", { name: "Toolbox" }))
+  expect(ui.getByRole("button", { name: "Customize" })).toHaveAttribute("aria-current", "page")
+  fireEvent.click(ui.getByRole("button", { name: "Customize" }))
   expect(open).toHaveBeenCalledOnce()
 })
 
