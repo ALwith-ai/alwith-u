@@ -126,6 +126,26 @@
     "chooseFolder": "选择文件夹"
   },
   "chat": {
+    "inputMode": {
+      "label": "输入模式",
+      "chat": "聊天",
+      "image": "图片",
+      "welcome": {
+        "chat": {
+          "title": "聊点什么？",
+          "description": "直接开始对话，也可以选择项目文件夹。"
+        },
+        "image": {
+          "title": "想创作什么图片？",
+          "description": "描述你的想法，或添加参考图进行编辑。"
+        }
+      },
+      "placeholder": "描述想要的图片，或添加参考图进行编辑",
+      "aspectRatio": "图片比例",
+      "model": "图片模型",
+      "resolution": "分辨率",
+      "autoAspect": "自动"
+    },
     "filePreview": {
       "readOnly": "只读预览",
       "reveal": "在文件管理器中显示",
@@ -219,6 +239,17 @@
     },
     "image": {
       "edit": {
+        "moveToolbar": "拖动工具栏 · 方向键移动，Home 复位",
+        "comment": "添加评论",
+        "commentHint": "点击图片添加评论",
+        "commentCanvas": "图片评论",
+        "commentText": "评论",
+        "commentPlaceholder": "添加评论…",
+        "saveComment": "保存评论",
+        "cancelComment": "取消评论",
+        "deleteComment": "删除评论",
+        "editComment": "编辑评论 {{number}}",
+        "comments": "图片评论",
         "tools": "图片编辑",
         "annotate": "标注",
         "background": "移除背景",
@@ -244,6 +275,7 @@
           "widescreen": "宽屏"
         },
         "prompts": {
+          "comment": "根据编号评论编辑第一张原图。第二张图片中的编号标记表示各条评论的位置。请按评论要求修改，不要在结果中保留编号、标记或评论文字。",
           "annotate": "请根据用户说明编辑第一张图像。第二张图像是标注参考，用于指出需要修改的区域。最终结果不要保留标注。",
           "background": "移除此图像的背景。保持所有前景主体不变且完整，保留细节，边缘干净平滑。将背景设为透明，返回 PNG 图像。",
           "erase": "从第一张图像中移除第二张图像中标记的区域。第二张是蒙版：白色区域需要移除，黑色区域需要保留。自然补全擦除区域，其余内容保持不变。",
@@ -502,7 +534,8 @@
     "diagnosticsDescription": "本机保留最近 7 天、约 5 MB 的诊断元数据。导出的 ZIP 包含应用日志、近期轮转日志和崩溃堆栈，并对常见凭据脱敏。",
     "diagnosticsExport": "导出诊断日志",
     "diagnosticsExporting": "正在导出…",
-    "diagnosticsExported": "诊断日志已导出"
+    "diagnosticsExported": "诊断日志已导出",
+    "images": "图片"
   },
   "usage": {
     "title": "套餐用量限额",
@@ -1401,5 +1434,94 @@
     "accountHint": "这是 Finture 企业账号。退出企业登录不会退出 ALwith U 账号。",
     "error": "企业授权状态获取或操作失败，请重试。",
     "logoutHint": "退出后停止使用企业模型的会话，普通 ALwith 模型和自配模型不受影响。"
+  },
+  "images": {
+    "discover": "从一个灵感开始",
+    "discoveryDescription": "选择模板或描述画面，在主会话中继续创作。",
+    "myImages": "我的图像",
+    "aspectRatio": "宽高比",
+    "autoAspect": "自动",
+    "aspectInstruction": "请生成宽高比为 {{ratio}} 的图片。",
+    "tryTemplate": "试一试",
+    "templateHint": "使用主输入框中的生成设置。",
+    "templateReferenceHint": "使用主输入框中的参考图片和生成设置。",
+    "referenceRequired": "请先在主输入框添加参考图片。",
+    "requestBusy": "正在提交图像请求。",
+    "openConversation": "打开原会话",
+    "templates": {
+      "portrait": {
+        "title": "自然棚拍人像",
+        "description": "用你的照片创作自然的摄影棚人像。",
+        "prompt": "请根据参考照片创作一张摄影棚人像，保留人物身份和自然面部特征。使用柔和的侧光、中性背景和细腻质感，让人物神态自然放松。"
+      },
+      "product": {
+        "title": "产品摄影",
+        "description": "用干净构图和光影呈现产品质感。",
+        "prompt": "请创作一张精致的产品棚拍照片。如果附有参考图片，请保留产品外形、材质和细节。使用简洁背景、柔和的定向光、真实阴影和充足留白。"
+      },
+      "illustration": {
+        "title": "风景插画",
+        "description": "用层次、色彩和纹理构建氛围。",
+        "prompt": "请创作一幅黎明时分宁静山间小镇的风景插画。用层叠景深、温暖窗灯、细腻纸张纹理和克制的配色，让画面开阔而安静。"
+      },
+      "poster": {
+        "title": "文字海报",
+        "description": "让清晰的信息与画面构图结合。",
+        "prompt": "请设计一张当代风格海报，标题为「创造新的可能」。使用清晰可读的字体、明确的视觉层级、简洁几何图形和均衡留白。"
+      }
+    },
+    "chatgptAuth": "使用已连接的 ChatGPT 账号。",
+    "otherModels": "其他图片模型",
+    "conversationTitle": "生成图像",
+    "connectServices": "请先配置图片模型",
+    "configureModels": "配置图片模型",
+    "manageAccount": "管理账号",
+    "getKey": "获取 API Key",
+    "settingsSaved": "图片模型配置已保存",
+    "baseUrlHint": "留空使用火山方舟默认地址。",
+    "keyRemoved": "图片 API Key 已移除",
+    "title": "图像",
+    "model": "图片模型",
+    "resolution": "分辨率",
+    "settings": "图片模型设置",
+    "seedreamKey": "Seedream API Key",
+    "configured": "已配置，输入新密钥可替换",
+    "enterKey": "输入 API Key",
+    "removeKey": "移除密钥",
+    "save": "保存",
+    "newCreation": "新建创作",
+    "gallery": "图库",
+    "loadFailed": "暂时无法读取图像，稍后重试",
+    "refresh": "刷新图库",
+    "retry": "重试",
+    "olderVersions": "加载更早的图片",
+    "loadMore": "加载更多创作",
+    "untitled": "未命名创作",
+    "continueCreation": "继续创作",
+    "openChat": "打开对话",
+    "focus": "聚焦视图",
+    "canvas": "画布视图",
+    "zoomIn": "放大",
+    "zoomOut": "缩小",
+    "edit": "查看并编辑图片",
+    "emptyTitle": "开始一次新的创作",
+    "emptyDescription": "描述画面、添加参考图，再在同一个对话里持续调整。",
+    "result": "生成的图片",
+    "version": "第 {{count}} 版",
+    "selected": "已选作参考",
+    "useReference": "用作参考",
+    "download": "下载",
+    "reference": "参考图片",
+    "removeReference": "移除参考图",
+    "prompt": "描述你想创作的画面…",
+    "addReference": "添加参考图片",
+    "referenceCount": "已选择 {{count}} 张参考图",
+    "multiTurn": "在同一个对话中继续创作",
+    "stop": "停止生成",
+    "generate": "生成",
+    "generating": "正在创作图片…",
+    "invalidFile": "请使用小于 8 MiB 的 PNG、JPEG 或 WebP 图片。",
+    "openPage": "在图像页打开此对话",
+    "noResult": "本次未生成图片，输入已保留，可以重试。"
   }
 }

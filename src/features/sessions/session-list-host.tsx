@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
 import { ProjectPathAction } from "./project-path-action"
+import { SessionImageIcon } from "./session-image-icon"
 import { sessionListClient } from "./session-list-client"
 
 function SessionPathAction({ cwd, onOpened }: { cwd: string; onOpened: () => void }) {
@@ -20,6 +21,7 @@ export function SessionListHostProvider({ children }: { children: ReactNode }) {
         t: (key, values) => i18n.t(key, { ...values, ns: "alwithChat" }),
         i18n: { language },
         PathAction: SessionPathAction,
+        SessionMedia: SessionImageIcon,
         reportError: (error) => toast.error(error instanceof Error ? error.message : String(error))
       }) satisfies SessionListHost,
     [i18n, language]

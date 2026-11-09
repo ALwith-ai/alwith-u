@@ -1,13 +1,15 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { fireEvent, render, waitFor } from "@testing-library/react"
-import { expect, test, vi } from "vitest"
+import { afterEach, expect, test, vi } from "vitest"
 
 import { initI18n } from "@/lib/i18n"
 
+import * as imageEdit from "../image-edit"
 import { ImageEditOverlay, ImageEditToolbar, useImageEditor } from "../image-editor"
 import { promptText } from "./prompt-text"
 
 await initI18n("en")
+afterEach(() => vi.restoreAllMocks())
 
 function Editor({ send, close }: { send: (prompt: acp.ContentBlock[]) => Promise<void>; close: () => void }) {
   const editor = useImageEditor("data:image/png;base64,b3JpZw==", { width: 600, height: 400 }, send, close)
@@ -30,6 +32,32 @@ test("background removal sends immediately to the supplied destination without t
   expect(prompt).toHaveLength(2)
   expect(prompt[0]).toEqual({ type: "image", mimeType: "image/png", data: "b3JpZw==" })
   expect(promptText(prompt[1])).toContain("transparent")
+})
+
+test("saving and editing image pins does not send until the numbered comments are submitted", async () => {
+  vi.spyOn(imageEdit, "renderImageEdit").mockResolvedValue("data:image/png;base64,cGlucw==")
+  const send = vi.fn<(prompt: acp.ContentBlock[]) => Promise<void>>().mockResolvedValue(undefined)
+  const close = vi.fn()
+  const view = render(<Editor send={send} close={close} />)
+  fireEvent.click(view.getByRole("button", { name: "Add comment" }))
+  const canvas = view.getByRole("group", { name: "Image comments" })
+  vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue({ left: 100, top: 50, width: 300, height: 200 } as DOMRect)
+  fireEvent.pointerDown(canvas, { pointerId: 1, button: 0, clientX: 175, clientY: 150 })
+  fireEvent.change(view.getByRole("textbox", { name: "Comment" }), { target: { value: "Make this blue" } })
+  fireEvent.click(view.getByRole("button", { name: "Save comment" }))
+  expect(send).not.toHaveBeenCalled()
+  fireEvent.click(view.getAllByRole("button", { name: "Edit comment 1" })[0])
+  fireEvent.change(view.getByRole("textbox", { name: "Comment" }), { target: { value: "Make this orange" } })
+  fireEvent.click(view.getByRole("button", { name: "Save comment" }))
+  expect(send).not.toHaveBeenCalled()
+  fireEvent.click(view.getByRole("button", { name: "Send" }))
+  await waitFor(() => expect(close).toHaveBeenCalledOnce())
+  expect(send).toHaveBeenCalledOnce()
+  expect(send.mock.calls[0][0].slice(0, 2)).toMatchObject([
+    { type: "image", data: "b3JpZw==" },
+    { type: "image", data: "cGlucw==" }
+  ])
+  expect(promptText(send.mock.calls[0][0][2])).toContain("1. (25%, 50%): Make this orange")
 })
 
 test("resize lists the five aspect ratios and choosing one sends immediately", async () => {

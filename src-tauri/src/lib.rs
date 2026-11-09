@@ -20,6 +20,7 @@ mod extension_inbox;
 mod extension_wire;
 mod gamepad;
 mod html_preview;
+mod images;
 mod imports;
 mod legacy_extensions;
 mod menu;
@@ -347,6 +348,12 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 chat_files::chat_save_file,
                 chat_files::chat_write_text_attachment,
                 chat_files::chat_read_image,
+                images::images_configured,
+                images::images_read_settings,
+                images::images_save_settings,
+                images::images_prepare_references,
+                images::images_generate_seedream,
+                images::images_cancel,
                 chat_files::chat_preview_file,
                 chat_files::chat_read_dropped_file,
                 chat_files::chat_clipboard_file_paths,

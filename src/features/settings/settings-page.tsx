@@ -14,6 +14,7 @@ import {
   CpuIcon,
   DownloadIcon,
   FolderTreeIcon,
+  ImageIcon,
   InfoIcon,
   MicIcon,
   MonitorIcon,
@@ -43,6 +44,7 @@ import { AppearanceSection } from "./sections/appearance-section"
 import { ComputerSection } from "./sections/computer-section"
 import { ExplorerSection } from "./sections/explorer-section"
 import { GeneralSection } from "./sections/general-section"
+import { ImageSection } from "./sections/image-section"
 import { ImportSection } from "./sections/import-section"
 import { ProviderSection } from "./sections/provider-section"
 import { TrackpadRow } from "./sections/trackpad-row"
@@ -60,6 +62,7 @@ const ICONS: Record<SettingsSection, typeof InfoIcon> = {
   explorer: FolderTreeIcon,
   appearance: ContrastIcon,
   provider: CpuIcon,
+  images: ImageIcon,
   voice: MicIcon,
   extensions: BlocksIcon,
   import: DownloadIcon,
@@ -136,6 +139,8 @@ export function SettingsPage() {
             return <VoiceSection />
           case "provider":
             return <ProviderSection />
+          case "images":
+            return <ImageSection onOpenModels={() => setSection("provider")} />
           case "import":
             return <ImportSection />
           case "about":

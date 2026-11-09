@@ -11,6 +11,8 @@ import { DesktopCodexClient } from "../desktop-client"
 
 const initialFiles = vi.hoisted(() => vi.fn())
 vi.mock("../initial-file-results", () => ({ initialFileResults: initialFiles }))
+const inputModes = vi.hoisted(() => ({ delete: vi.fn<(id: string) => Promise<void>>() }))
+vi.mock("@/features/chat/composer/input-mode-preferences", () => ({ deleteSessionInputMode: inputModes.delete }))
 
 test("floating draft refreshes project context through its connected main owner", async () => {
   const fake = createFakeAgent()
@@ -314,7 +316,11 @@ test("the bridge returns operation errors and disconnect rejects pending calls",
 test("floating rename and delete target only the explicit session and synchronize both windows", async () => {
   const fake = createFakeAgent()
   const port = new FakeHubPort(() => fake.app)
-  const owner = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
+  const owner = new DesktopCodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
+  inputModes.delete.mockReset().mockImplementation((id) => {
+    expect(fake.deleted.has(id)).toBe(true)
+    return Promise.resolve()
+  })
   const transport = eventBus()
   const stop = await serveChatClient(owner, transport)
   const remote = new RemoteChatClient(transport)
@@ -328,6 +334,7 @@ test("floating rename and delete target only the explicit session and synchroniz
     expect(owner.session(floatingId).title).toBe("Renamed floating chat")
     expect(remote.session(floatingId).title).toBe("Renamed floating chat")
     await remote.delete(floatingId)
+    expect(inputModes.delete).toHaveBeenCalledExactlyOnceWith(floatingId)
     expect(fake.deleted.has(floatingId)).toBe(true)
     expect(fake.deleted.has(mainId)).toBe(false)
     expect(owner.state.sessions[floatingId]).toBeUndefined()
@@ -335,8 +342,29 @@ test("floating rename and delete target only the explicit session and synchroniz
     expect(remote.session(mainId)).toEqual(owner.session(mainId))
     expect(port.started).toEqual(["codex"])
   } finally {
+    inputModes.delete.mockReset()
     remote.disconnect()
     stop()
+    owner.disconnect()
+  }
+})
+
+test("a failed conversation deletion preserves its input mode preference", async () => {
+  const fake = createFakeAgent()
+  const port = new FakeHubPort(() => fake.app)
+  const owner = new DesktopCodexClient(() => Promise.resolve(port), {
+    agentId: "codex",
+    launch: { engine: "codex" },
+    revokeSessionAccess: () => Promise.reject(new Error("Conversation deletion failed"))
+  })
+  inputModes.delete.mockReset()
+  try {
+    await owner.connect()
+    const id = await owner.newSession("/tmp/main-project")
+    await expect(owner.delete(id)).rejects.toThrow("Conversation deletion failed")
+    expect(inputModes.delete).not.toHaveBeenCalled()
+    expect(owner.state.sessions[id]).toBeDefined()
+  } finally {
     owner.disconnect()
   }
 })

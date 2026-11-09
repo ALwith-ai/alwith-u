@@ -1,14 +1,13 @@
 // A draft owns a real ACP session before the first send, as in Desktop.
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
-import { createSession } from "@alwith/module-chat/client"
+import { createSession, type PromptOptions } from "@alwith/module-chat/client"
 import { drafts, importDraft, ModelMenu, SessionActions } from "@alwith/module-chat/conversation"
 import { invoke } from "@tauri-apps/api/core"
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react"
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import type { DraftOwner } from "@/agent/client"
 import { Button } from "@/components/ui/button"
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
 import { dispatchCollection, reportCollection } from "@/features/collection/store"
 import { client, useApp, useSession } from "@/lib/client"
 import type { ProviderSnapshot } from "@/lib/providers"
@@ -18,8 +17,10 @@ import { text } from "@/lib/text"
 import { ChatActionsMenu } from "./chat-actions-menu"
 import { ChatHeader } from "./chat-header"
 import { ChatHostProvider } from "./chat-host"
+import { ChatWelcome } from "./chat-welcome"
 import { ChatComposer } from "./composer"
 import { DraftModelSelect } from "./composer/draft-model-select"
+import { MainInputModeSwitch, useInputMode } from "./composer/input-mode"
 import { chatModelMenu } from "./composer/model-catalog"
 import { FilePreviewModal } from "./dialogs/file-preview-modal"
 import { DraftProjectPicker } from "./draft-project-picker"
@@ -64,6 +65,7 @@ export function DraftChat({
   onNewProject?: () => void
 }) {
   const { t } = useTranslation()
+  const inputMode = useInputMode()
   const sessionRows = useApp((state) => state.sessionList)
   const connection = useApp((state) => state.connection)
   const [id, setId] = useState<string | null>(
@@ -82,8 +84,24 @@ export function DraftChat({
   currentId.current = id
   const mounted = useRef(false)
   const preparation = useRef<Promise<string | null> | null>(null)
+  const preparedMode = useRef<"chat" | "image">("chat")
   const context = useRef({ owner, cwd })
   context.current = { owner, cwd }
+  const adoptDraft = useCallback((next: string) => {
+    const previous = currentId.current
+    if (previous !== next) {
+      const input = drafts.get(previous ?? DRAFT_SESSION_ID)
+      if (input) importDraft(next, input)
+      // The placeholder is consumed once a real session owns its input.
+      if (previous === null) importDraft(DRAFT_SESSION_ID, null)
+    }
+    // Every committed replacement carries the input forward, even when a newer
+    // directory request is pending. A later failure must leave a usable session.
+    currentId.current = next
+    if (!mounted.current) return
+    setId(next)
+    callbacks.current.onCreated(next)
+  }, [])
   useEffect(() => {
     mounted.current = true
     return () => {
@@ -129,19 +147,9 @@ export function DraftChat({
         model === "" ? null : model,
         model === ""
       )
-      const previous = currentId.current
-      if (previous !== next) {
-        const input = drafts.get(previous ?? DRAFT_SESSION_ID)
-        if (input) importDraft(next, input)
-        // The placeholder is consumed once a real session owns its input.
-        if (previous === null) importDraft(DRAFT_SESSION_ID, null)
-      }
-      // Every committed replacement carries the input forward, even when a newer
-      // directory request is pending. A later failure must leave a usable session.
-      currentId.current = next
+      preparedMode.current = "chat"
+      adoptDraft(next)
       if (!mounted.current) return next
-      setId(next)
-      callbacks.current.onCreated(next)
       if (active && cwd !== null && cwd !== directory) callbacks.current.onCwdChange(directory)
       if (active && model !== null) setModel(null)
       return next
@@ -162,9 +170,13 @@ export function DraftChat({
     return () => {
       active = false
     }
-  }, [owner, cwd, providerRevision, providerSnapshot?.status, attempt, model])
+  }, [owner, cwd, providerRevision, providerSnapshot?.status, attempt, model, adoptDraft])
 
-  const send = async (prompt: acp.ContentBlock[], accept?: (receipt: string) => void): Promise<void> => {
+  const send = async (
+    prompt: acp.ContentBlock[],
+    accept?: (receipt: string) => void,
+    options?: PromptOptions
+  ): Promise<void> => {
     let target: string | null
     // Follow preparation retries, but never send into a different project or abandoned surface.
     for (;;) {
@@ -180,12 +192,34 @@ export function DraftChat({
         throw new Error("The draft changed before the message was sent")
       if (pending !== preparation.current) continue
       if (target === null) throw new Error("The draft session preparation was cancelled")
+      const mode = inputMode?.mode ?? "chat"
+      if (preparedMode.current !== mode) {
+        // UI switches stay local; bind tools only for the mode being sent.
+        const next = client
+          .prepareDraft(owner, cwd === null ? undefined : client.session(target).cwd, null, false, mode)
+          .then((id) => {
+            preparedMode.current = mode
+            adoptDraft(id)
+            return id
+          })
+        preparation.current = next
+        try {
+          await next
+        } catch (failure) {
+          if (preparation.current === next) preparation.current = pending
+          throw failure
+        }
+        continue
+      }
       break
     }
     onSendingChange(target, true)
     try {
-      if (accept === undefined) await client.prompt(target, prompt)
-      else accept(await client.prompt(target, prompt))
+      await inputMode?.saveForSession(target)
+      const receipt = await (options === undefined
+        ? client.prompt(target, prompt)
+        : client.prompt(target, prompt, options))
+      accept?.(receipt)
       if (collectionId !== undefined)
         reportCollection(dispatchCollection({ type: "add", collectionId, sessionId: target }))
     } finally {
@@ -208,19 +242,15 @@ export function DraftChat({
         <ChatHeader target={headerTarget} title={t("sidebar.newChat")} project={projectMenu}>
           <ChatActionsMenu
             surface={headerTarget === undefined ? "main" : "floating"}
-            onOpenWindow={session && !preparing ? onOpenWindow : undefined}
+            onOpenWindow={session && !preparing && inputMode?.mode !== "image" ? onOpenWindow : undefined}
             onReturnToMain={preparing ? undefined : onReturnToMain}
             cwd={cwd}
             onNewChat={onNewChat}
             onNewProject={onNewProject}
           />
         </ChatHeader>
-        <Empty className="flex-1">
-          <EmptyHeader>
-            <EmptyTitle className="text-[28px] font-normal">{t("welcome.title")}</EmptyTitle>
-            <EmptyDescription>{t("welcome.description")}</EmptyDescription>
-          </EmptyHeader>
-        </Empty>
+        {owner === "main" && <MainInputModeSwitch />}
+        <ChatWelcome />
         {!preparing && (error !== null || connection !== "ready") && (
           <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center gap-2 px-6 py-2 text-sm" role="status">
             <span>{error !== null ? text(error) : t("connection.disconnected")}</span>
@@ -270,7 +300,9 @@ export function DraftChat({
             ) : undefined
           }
           disabled={session === null || preparing || error !== null || connection !== "ready"}
-          onSubmit={runOperation ? (prompt, accept) => runOperation(() => send(prompt, accept)) : send}
+          onSubmit={
+            runOperation ? (prompt, accept, options) => runOperation(() => send(prompt, accept, options)) : send
+          }
           onHandOff={onVoiceHandoff}
         />
         <FilePreviewModal />

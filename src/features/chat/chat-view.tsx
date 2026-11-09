@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next"
 import type { SessionSummary } from "@/agent/client"
 import { CollectionPicker } from "@/features/collection/collection-menu"
 import { SessionPreview } from "@/features/computer/session-preview"
+import { prepareImageEdit } from "@/features/images/prepare-edit"
 import type { VoiceResume } from "@/features/voice/use-voice-handoff"
 import { client } from "@/lib/client"
 
@@ -14,7 +15,9 @@ import { ChatActionsMenu } from "./chat-actions-menu"
 import { ChatBranchProvider, ForkProgress, ForkTurnButton } from "./chat-branches"
 import { ChatHeader } from "./chat-header"
 import { useChatHost, useTimelineSlots } from "./chat-host"
+import { ChatWelcome } from "./chat-welcome"
 import { ChatComposer } from "./composer"
+import { useInputMode } from "./composer/input-mode"
 import { ChatSearch } from "./dialogs/chat-search"
 import { FilePreviewModal } from "./dialogs/file-preview-modal"
 import { ImageLightbox } from "./dialogs/image-lightbox"
@@ -46,6 +49,7 @@ function Conversation({
   rootRef
 }: ChatViewProps & { rootRef: RefObject<HTMLDivElement | null> }) {
   const { t } = useTranslation()
+  const inputMode = useInputMode()
   const host = useChatHost(session.id)
   const timeline = useTimelineSlots()
   const lastNativeItem = session.items.findLast((item) => nativeTurnId(item) !== null)
@@ -71,7 +75,7 @@ function Conversation({
             />
             <ChatActionsMenu
               surface={headerTarget === undefined ? "main" : "floating"}
-              onOpenWindow={onOpenWindow}
+              onOpenWindow={inputMode?.mode === "image" ? undefined : onOpenWindow}
               onReturnToMain={onReturnToMain}
               session={session}
               cwd={session.cwd}
@@ -98,16 +102,31 @@ function Conversation({
         <ForkTurnButton labelled turnId={lastNativeItem === undefined ? null : nativeTurnId(lastNativeItem)} />
       }
       composer={<ChatComposer session={session} voiceResume={voiceResume} />}
+      welcome={<ChatWelcome />}
     >
       <FilePreviewModal />
       <ImageLightbox
         sessionId={session.id}
         onSend={async (prompt) => {
           const current = client.state.sessions[session.id]
-          if (client.state.connection !== "ready" || !current?.attached || current.restoring || current.readOnly) {
+          if (
+            client.state.connection !== "ready" ||
+            !current?.attached ||
+            current.restoring ||
+            current.readOnly ||
+            inputMode?.ready === false
+          ) {
             throw new Error(t("chat.image.edit.notReady"))
           }
-          await client.prompt(session.id, prompt)
+          const selection = inputMode?.mode === "image" ? { ...inputMode.selection } : null
+          const meta = {
+            alwith: {
+              imageIntent: selection ? "edit" : null,
+              ...(selection ? { imageSelection: selection } : {})
+            }
+          }
+          const prepared = await prepareImageEdit(prompt, session.id, selection?.model ?? null, meta)
+          await client.prompt(session.id, prepared, { meta })
         }}
       />
     </ConversationView>

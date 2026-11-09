@@ -1,12 +1,13 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import type { ActivityImage } from "@alwith/module-chat/activity-host"
-import { openPath, revealItemsInDir } from "@tauri-apps/plugin-opener"
+import { revealItemsInDir } from "@tauri-apps/plugin-opener"
 import {
   ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   DownloadIcon,
   FolderOpenIcon,
+  ImageIcon,
   LoaderCircleIcon,
   XIcon
 } from "lucide-react"
@@ -15,6 +16,7 @@ import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { create } from "zustand"
 
+import { commands } from "@/bindings"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import {
@@ -25,10 +27,11 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu"
-import { type AppInfo, openPathInApp, readAppsInfo } from "@/lib/open-with-app"
+import { type AppInfo, externalAppCandidates, openPathInApp, readAppsInfo } from "@/lib/open-with-app"
 import { isMac } from "@/lib/platform"
 
 import { chatFileName, downloadChatFile } from "../file-actions"
+import { ProjectAppIcon } from "../open-in-editor"
 import { ImageEditOverlay, ImageEditToolbar, useImageEditor } from "./image-editor"
 
 // Gallery entries keep their original attachment identity for file operations.
@@ -88,13 +91,27 @@ function ImagePreview({
   const [zoom, setZoom] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
   const [apps, setApps] = useState<AppInfo[]>([])
+  const [fileManager, setFileManager] = useState<AppInfo>()
   const [appsError, setAppsError] = useState(false)
   const [failed, setFailed] = useState(false)
+  const exportedPath = useRef<Promise<string> | null>(null)
   const sending = useLightbox((state) => state.sending)
   const editor = useImageEditor(image.src, natural, onSend, closeLightbox, setLightboxSending, sending)
   const path = localPath(image.uri) ?? localPath(image.src)
   const data = /^data:(image\/[^;,]+);base64,([\s\S]*)$/.exec(image.src)
   const name = image.uri ? chatFileName(image.uri) : `image.${data?.[1]?.split("/")[1] ?? "png"}`
+  const canOpen = path !== null || data !== null
+  const ensureLocalPath = (): Promise<string> => {
+    if (path) return Promise.resolve(path)
+    if (!data) return Promise.reject(new Error("Image data is unavailable"))
+    return (exportedPath.current ??= Promise.try(async () => {
+      const bytes = Uint8Array.from(atob(data[2]), (character) => character.charCodeAt(0))
+      return await commands.chatWritePastedFile({ name, data: Array.from(bytes) })
+    }).catch((error: unknown) => {
+      exportedPath.current = null
+      throw error
+    }))
+  }
   const fit =
     natural.width && bounds.width
       ? Math.min(1, Math.max(1, bounds.width - 48) / natural.width, Math.max(1, bounds.height - 48) / natural.height)
@@ -129,6 +146,9 @@ function ImagePreview({
     )
       .then(setApps)
       .catch(() => setAppsError(true))
+    void readAppsInfo([externalAppCandidates()[0]], true)
+      .then((apps) => setFileManager(apps[0]))
+      .catch(() => setFileManager(undefined))
   }
   return (
     <>
@@ -156,52 +176,38 @@ function ImagePreview({
               </DropdownMenuRadioGroup>
             </DropdownMenuContent>
           </DropdownMenu>
-          <div
-            className="flex items-center rounded-full border bg-background"
-            title={!path ? t("chat.image.localRequired") : undefined}
-          >
-            <Button
-              variant="ghost"
-              className="rounded-s-full"
-              disabled={!path || busy || editor.sending}
-              title={!path ? t("chat.image.localRequired") : undefined}
-              onClick={() => path && void run(() => openPath(path))}
+          <DropdownMenu onOpenChange={(open) => open && loadApps()}>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  variant="outline"
+                  className="rounded-full"
+                  disabled={!canOpen || busy || editor.sending}
+                  title={!canOpen ? t("chat.image.localRequired") : undefined}
+                />
+              }
             >
               <FolderOpenIcon />
               {t("actions.open")}
-            </Button>
-            <DropdownMenu onOpenChange={(open) => open && loadApps()}>
-              <DropdownMenuTrigger
-                render={
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="rounded-e-full"
-                    disabled={!path || busy || editor.sending}
-                    aria-label={t("chat.image.openWith")}
-                    title={!path ? t("chat.image.localRequired") : undefined}
-                  />
-                }
-              >
-                <ChevronDownIcon />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-48">
-                {apps.map((app) => (
-                  <DropdownMenuItem
-                    key={app.bundle_id}
-                    onClick={() => path && void run(() => openPathInApp(app.bundle_id, path))}
-                  >
-                    {app.icon && <img src={app.icon} alt="" className="size-4" />}
-                    {app.name}
-                  </DropdownMenuItem>
-                ))}
-                {appsError && <DropdownMenuItem disabled>{t("chat.image.appsUnavailable")}</DropdownMenuItem>}
-                <DropdownMenuItem onClick={() => path && void run(() => revealItemsInDir(path))}>
-                  {t("chat.filePreview.reveal")}
+              <ChevronDownIcon />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-48">
+              {apps.map((app) => (
+                <DropdownMenuItem
+                  key={app.bundle_id}
+                  onClick={() => void run(async () => openPathInApp(app.bundle_id, await ensureLocalPath()))}
+                >
+                  {app.icon ? <img src={app.icon} alt="" className="size-4" /> : <ImageIcon />}
+                  {app.name}
                 </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+              ))}
+              {appsError && <DropdownMenuItem disabled>{t("chat.image.appsUnavailable")}</DropdownMenuItem>}
+              <DropdownMenuItem onClick={() => void run(async () => revealItemsInDir(await ensureLocalPath()))}>
+                <ProjectAppIcon app={fileManager} />
+                {t(isMac() ? "plugins.skills.revealInFinder" : "plugins.skills.revealInFileExplorer")}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button
             variant="outline"
             size="icon"
@@ -239,7 +245,7 @@ function ImagePreview({
                 draggable={false}
                 src={image.src}
                 alt={image.alt}
-                className="block max-w-none shadow-sm"
+                className="block max-w-none border-0 shadow-none"
                 style={
                   natural.width && scale
                     ? { width: natural.width * scale, height: natural.height * scale }

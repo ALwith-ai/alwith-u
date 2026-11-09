@@ -1,7 +1,6 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
-import { exceedsImageLimit } from "@alwith/module-chat/limits"
 
-export type EditMode = "annotate" | "background" | "erase" | "resize"
+export type EditMode = "annotate" | "comment" | "background" | "erase" | "resize"
 export const IMAGE_ASPECT_RATIOS = [
   { value: "1:1", label: "square" },
   { value: "3:4", label: "portrait" },
@@ -11,6 +10,7 @@ export const IMAGE_ASPECT_RATIOS = [
 ] as const
 export type ImageAspectRatio = (typeof IMAGE_ASPECT_RATIOS)[number]["value"]
 export type Point = { x: number; y: number }
+export type ImageComment = { id: string; point: Point; text: string }
 export type Stroke = { tool: "pen" | "rectangle" | "arrow"; points: Point[]; width: number; color: string }
 export type ImageEditRequest = {
   mode: EditMode
@@ -19,6 +19,7 @@ export type ImageEditRequest = {
   instruction: string
   aspectRatio?: ImageAspectRatio
   operationText?: string
+  comments?: ImageComment[]
 }
 
 export function imagePoint(x: number, y: number, bounds: Pick<DOMRect, "left" | "top" | "width" | "height">): Point {
@@ -30,24 +31,25 @@ export function imagePoint(x: number, y: number, bounds: Pick<DOMRect, "left" | 
 
 /** Images remain separate ACP attachments: original first, reference or mask second. */
 export function imageEditPrompt(request: ImageEditRequest): acp.ContentBlock[] {
-  const { mode, source, overlay, instruction, aspectRatio, operationText } = request
-  if ((mode === "annotate" || mode === "erase") && !overlay) throw new Error("The edit reference is missing")
+  const { mode, source, overlay, instruction, aspectRatio, operationText, comments = [] } = request
+  if ((mode === "annotate" || mode === "erase" || mode === "comment") && !overlay)
+    throw new Error("The edit reference is missing")
   if (mode === "annotate" && !instruction.trim()) throw new Error("Describe how to edit the marked image")
+  if (mode === "comment" && (comments.length === 0 || comments.some((comment) => !comment.text.trim())))
+    throw new Error("Image comments are missing")
   if (mode === "resize" && !IMAGE_ASPECT_RATIOS.some((ratio) => ratio.value === aspectRatio))
     throw new Error("Invalid image aspect ratio")
   const prompt: acp.ContentBlock[] = []
-  let bytes = 0
   for (const url of [source, ...(overlay ? [overlay] : [])]) {
     const match = /^data:(image\/[^;,]+);base64,([A-Za-z0-9+/]+={0,2})$/.exec(url)
     if (!match) throw new Error("Image data is unavailable")
-    const size = Math.floor((match[2].length * 3) / 4) - (match[2].endsWith("==") ? 2 : match[2].endsWith("=") ? 1 : 0)
-    if (exceedsImageLimit(bytes, size)) throw new Error("Images exceed the attachment size limit")
-    bytes += size
     prompt.push({ type: "image", mimeType: match[1], data: match[2] })
   }
   const instructions: Record<EditMode, string> = {
     annotate:
       "Edit the first image according to the user's instructions. The second image is an annotated reference showing the relevant areas. Do not include the annotation marks in the result.",
+    comment:
+      "Edit the first image according to the numbered comments. The second image shows numbered pins locating each comment. Apply the requested changes and do not include pins or comment text in the result.",
     background:
       "Remove the background from this image. Preserve the subject and fine details, and return a PNG with a transparent background.",
     erase:
@@ -56,7 +58,16 @@ export function imageEditPrompt(request: ImageEditRequest): acp.ContentBlock[] {
   }
   prompt.push({
     type: "text",
-    text: `${operationText ?? instructions[mode]}${instruction.trim() ? `\n\n${instruction.trim()}` : ""}`
+    text: [
+      operationText ?? instructions[mode],
+      ...(mode === "comment"
+        ? comments.map(
+            (comment, index) =>
+              `${index + 1}. (${Math.round(comment.point.x * 100)}%, ${Math.round(comment.point.y * 100)}%): ${comment.text.trim()}`
+          )
+        : []),
+      ...(instruction.trim() ? [instruction.trim()] : [])
+    ].join("\n\n")
   })
   return prompt
 }
@@ -87,7 +98,12 @@ export function strokePath(stroke: Stroke, width: number, height: number): strin
   return `M${x} ${y}${segments}`
 }
 
-export async function renderImageEdit(source: string, strokes: Stroke[], mask: boolean): Promise<string> {
+export async function renderImageEdit(
+  source: string,
+  strokes: Stroke[],
+  mask: boolean,
+  comments: ImageComment[] = []
+): Promise<string> {
   const image = new Image()
   image.src = source
   await image.decode()
@@ -109,5 +125,22 @@ export async function renderImageEdit(source: string, strokes: Stroke[], mask: b
     context.lineWidth = stroke.width * Math.min(canvas.width, canvas.height)
     context.stroke(new Path2D(strokePath(stroke, canvas.width, canvas.height)))
   }
+  const radius = Math.max(12, Math.min(canvas.width, canvas.height) * 0.018)
+  comments.forEach((comment, index) => {
+    const x = comment.point.x * canvas.width
+    const y = comment.point.y * canvas.height
+    context.beginPath()
+    context.arc(x, y, radius, 0, Math.PI * 2)
+    context.fillStyle = "#171717"
+    context.fill()
+    context.strokeStyle = "#ffffff"
+    context.lineWidth = Math.max(2, radius * 0.12)
+    context.stroke()
+    context.fillStyle = "#ffffff"
+    context.font = `600 ${Math.round(radius)}px sans-serif`
+    context.textAlign = "center"
+    context.textBaseline = "middle"
+    context.fillText(String(index + 1), x, y)
+  })
   return canvas.toDataURL("image/png")
 }

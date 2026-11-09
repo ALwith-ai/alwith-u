@@ -5,6 +5,7 @@ import {
   EraserIcon,
   GripVerticalIcon,
   LoaderCircleIcon,
+  MessageSquarePlusIcon,
   PencilIcon,
   Redo2Icon,
   ScanIcon,
@@ -22,10 +23,12 @@ import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Textarea } from "@/components/ui/textarea"
 
+import { ImageCommentOverlay, ImageCommentSummary } from "./image-comments"
 import {
   type EditMode,
   IMAGE_ASPECT_RATIOS,
   type ImageAspectRatio,
+  type ImageComment,
   imageEditPrompt,
   imagePoint,
   type Point,
@@ -33,6 +36,7 @@ import {
   type Stroke,
   strokePath
 } from "./image-edit"
+import { useImageToolbarDrag } from "./image-toolbar-drag"
 
 // These swatches represent annotation content, independent of the interface theme.
 const ANNOTATION_COLORS = [
@@ -65,6 +69,8 @@ export function useImageEditor(
   const [annotationRedo, setAnnotationRedo] = useState<Stroke[]>([])
   const [erasureRedo, setErasureRedo] = useState<Stroke[]>([])
   const [instruction, setInstruction] = useState("")
+  const [comments, setComments] = useState<ImageComment[]>([])
+  const [commentDraft, setCommentDraft] = useState<ImageComment | null>(null)
   const [penWidth, setPenWidth] = useState(0.006)
   const [eraserWidth, setEraserWidth] = useState(0.04)
   const [localSending, setSending] = useState(false)
@@ -85,16 +91,18 @@ export function useImageEditor(
   const available = onSend !== undefined && /^data:image\/[^;,]+;base64,/.test(source)
   const canSend =
     available &&
-    drawing &&
+    (drawing || mode === "comment") &&
     !sending &&
     !draft &&
-    strokes.length > 0 &&
+    !commentDraft &&
+    (mode === "comment" ? comments.length > 0 : strokes.length > 0) &&
     (mode !== "annotate" || instruction.trim().length > 0)
   const select = (next: EditMode | null): void => {
     if (sending || pending.current) return
     active.current = null
     setDraft(null)
     setCursor(null)
+    setCommentDraft(null)
     setError(null)
     setMode(next)
   }
@@ -111,7 +119,7 @@ export function useImageEditor(
   const send = async (nextMode: EditMode | null = mode, aspectRatio?: ImageAspectRatio): Promise<void> => {
     if (!available || sending || pending.current || !onSend || !nextMode || draft) return
     const isDrawing = nextMode === "annotate" || nextMode === "erase"
-    if (isDrawing && !canSend) return
+    if ((isDrawing || nextMode === "comment") && !canSend) return
     pending.current = true
     setMode(nextMode)
     setSending(true)
@@ -119,17 +127,21 @@ export function useImageEditor(
     setError(null)
     try {
       let reference: string | undefined
-      if (isDrawing) {
-        const selection = overlay.current
-        if (!selection) throw new Error("Image selection is unavailable")
-        reference = await renderImageEdit(source, strokes, nextMode === "erase")
+      if (isDrawing || nextMode === "comment") {
+        reference = await renderImageEdit(
+          source,
+          isDrawing ? strokes : [],
+          nextMode === "erase",
+          nextMode === "comment" ? comments : []
+        )
       }
       await onSend(
         imageEditPrompt({
           mode: nextMode,
           source,
           overlay: reference,
-          instruction: nextMode === "annotate" ? instruction : "",
+          instruction: nextMode === "annotate" || nextMode === "comment" ? instruction : "",
+          comments: nextMode === "comment" ? comments : undefined,
           aspectRatio,
           operationText: t(`chat.image.edit.prompts.${nextMode}`, { ratio: aspectRatio })
         })
@@ -201,6 +213,27 @@ export function useImageEditor(
     setCursor,
     instruction,
     setInstruction,
+    comments,
+    commentDraft,
+    setCommentDraft,
+    beginComment: (point: Point) => {
+      if (!sending && !commentDraft) setCommentDraft({ id: crypto.randomUUID(), point, text: "" })
+    },
+    saveComment: () => {
+      if (sending || !commentDraft?.text.trim()) return
+      const saved = { ...commentDraft, text: commentDraft.text.trim() }
+      setComments((previous) =>
+        previous.some((comment) => comment.id === saved.id)
+          ? previous.map((comment) => (comment.id === saved.id ? saved : comment))
+          : [...previous, saved]
+      )
+      setCommentDraft(null)
+    },
+    deleteComment: () => {
+      if (sending || !commentDraft) return
+      setComments((previous) => previous.filter((comment) => comment.id !== commentDraft.id))
+      setCommentDraft(null)
+    },
     brush,
     setBrush,
     sending,
@@ -212,10 +245,12 @@ export function useImageEditor(
   }
 }
 
-type ImageEditor = ReturnType<typeof useImageEditor>
+export type ImageEditor = ReturnType<typeof useImageEditor>
 
 export function ImageEditOverlay({ editor }: { editor: ImageEditor }) {
   const { t } = useTranslation()
+  if (editor.mode === "comment" && editor.natural.width && editor.natural.height)
+    return <ImageCommentOverlay editor={editor} />
   if (!editor.drawing || !editor.natural.width || !editor.natural.height) return null
   const { width, height } = editor.natural
   return (
@@ -266,6 +301,7 @@ export function ImageEditOverlay({ editor }: { editor: ImageEditor }) {
 export function ImageEditToolbar({ editor }: { editor: ImageEditor }) {
   const { t } = useTranslation()
   const [colorOpen, setColorOpen] = useState(false)
+  const drag = useImageToolbarDrag()
   if (!editor.available) return null
   const iconButton =
     "h-8 gap-1.5 rounded-lg px-2 text-[13px] font-normal text-foreground/70 hover:bg-foreground/10 hover:text-foreground [&_svg:not([class*='size-'])]:size-3.5"
@@ -306,7 +342,9 @@ export function ImageEditToolbar({ editor }: { editor: ImageEditor }) {
         </div>
       )}
       <div
-        className="dark flex max-w-full items-center gap-0.5 rounded-xl bg-muted p-1 text-foreground shadow-lg"
+        ref={drag.toolbar}
+        style={{ transform: `translate(${drag.offset.x}px, ${drag.offset.y}px)` }}
+        className="dark relative z-30 flex max-w-full flex-wrap items-center justify-center gap-0.5 rounded-xl bg-muted p-1 text-foreground shadow-lg"
         role="toolbar"
         aria-label={t("chat.image.edit.tools")}
         onKeyDown={(event) => {
@@ -317,7 +355,22 @@ export function ImageEditToolbar({ editor }: { editor: ImageEditor }) {
           }
         }}
       >
-        <GripVerticalIcon aria-hidden className="mx-0.5 size-3.5 shrink-0 text-muted-foreground" />
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          className="cursor-grab touch-none text-muted-foreground active:cursor-grabbing"
+          disabled={editor.sending}
+          aria-label={t("chat.image.edit.moveToolbar")}
+          title={t("chat.image.edit.moveToolbar")}
+          onPointerDown={drag.start}
+          onPointerMove={drag.move}
+          onPointerUp={drag.end}
+          onPointerCancel={drag.end}
+          onLostPointerCapture={drag.end}
+          onKeyDown={drag.keyDown}
+        >
+          <GripVerticalIcon aria-hidden className="size-3.5" />
+        </Button>
         {editor.mode === "annotate" ? (
           <>
             {(
@@ -434,6 +487,12 @@ export function ImageEditToolbar({ editor }: { editor: ImageEditor }) {
             <span aria-hidden className="mx-1 h-5 border-s border-foreground/15" />
             {cancel}
           </>
+        ) : editor.mode === "comment" ? (
+          <>
+            <MessageSquarePlusIcon className="mx-2 size-3.5" />
+            <span className="px-1 text-[13px] text-muted-foreground">{t("chat.image.edit.commentHint")}</span>
+            {cancel}
+          </>
         ) : editor.mode === "erase" ? (
           <>
             <span className="px-2 text-[13px] text-muted-foreground">{t("chat.image.edit.eraseHint")}</span>
@@ -459,6 +518,15 @@ export function ImageEditToolbar({ editor }: { editor: ImageEditor }) {
             >
               <PencilIcon />
               {t("chat.image.edit.annotate")}
+            </Button>
+            <Button
+              variant="ghost"
+              className={iconButton}
+              disabled={editor.sending}
+              onClick={() => editor.select("comment")}
+            >
+              <MessageSquarePlusIcon />
+              {t("chat.image.edit.comment")}
             </Button>
             <Button
               variant="ghost"
@@ -514,7 +582,8 @@ export function ImageEditToolbar({ editor }: { editor: ImageEditor }) {
           </>
         )}
       </div>
-      {editor.mode === "annotate" && (
+      {editor.mode === "comment" && <ImageCommentSummary editor={editor} />}
+      {(editor.mode === "annotate" || editor.mode === "comment") && (
         <form
           className="flex w-full max-w-3xl items-end gap-2 rounded-3xl border bg-background p-1.5 ps-4 shadow-sm"
           onSubmit={(event) => {

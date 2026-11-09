@@ -4,14 +4,16 @@ import { createManagedProvidersPort } from "@alwith/module-chat/settings"
 // The app-wide CodexClient instance and the React bindings to its store.
 import { commands as computer } from "@alwith/module-computer/commands"
 import { commands as device } from "@alwith/module-device/commands"
-import { isTauri } from "@tauri-apps/api/core"
+import { invoke, isTauri } from "@tauri-apps/api/core"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { useStore } from "zustand"
 
 import type { AppState } from "@/agent/client"
 import { macProjectPaths } from "@/agent/project-path"
+import { readSessionInputMode } from "@/features/chat/composer/input-mode-preferences"
 import { computerRuntimeEnv } from "@/features/computer/runtime-config"
 import { hostSessionContext } from "@/features/computer/session-context"
+import { useImagePreferences } from "@/features/images/preferences"
 import { RemoteChatClient } from "@/lib/chat-window-client"
 import { DesktopCodexClient } from "@/lib/desktop-client"
 import { isMac } from "@/lib/platform"
@@ -24,6 +26,23 @@ export const client =
     : new DesktopCodexClient(runtimeClient, {
         agentId: CODEX_AGENT_ID,
         launch: { engine: "codex", env: computerRuntimeEnv },
+        imageService: {
+          inputMode: readSessionInputMode,
+          selection: () => useImagePreferences.getState().selection,
+          generateExternal: async (selection, prompt, images, signal) => {
+            const requestId = crypto.randomUUID()
+            const cancel = () => {
+              void invoke("images_cancel", { requestId }).catch(() => undefined)
+            }
+            signal?.throwIfAborted()
+            signal?.addEventListener("abort", cancel, { once: true })
+            try {
+              return await invoke("images_generate_seedream", { input: { ...selection, prompt, images, requestId } })
+            } finally {
+              signal?.removeEventListener("abort", cancel)
+            }
+          }
+        },
         projectPaths: isMac() ? macProjectPaths : undefined,
         resolveModel: async (model, purpose) => {
           const providers = await applyProvidersWhenIdle()

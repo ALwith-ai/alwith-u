@@ -49,6 +49,15 @@ export const commands = {
     __t3Invoke<string>("chat_write_text_attachment", args),
   chatReadImage: (args: { path: string; cwd: string }): Promise<ChatImage> =>
     __t3Invoke<ChatImage>("chat_read_image", args),
+  imagesConfigured: (): Promise<boolean> => __t3Invoke<boolean>("images_configured"),
+  imagesReadSettings: (): Promise<ImageSettings> => __t3Invoke<ImageSettings>("images_read_settings"),
+  imagesSaveSettings: (args: { input: ImageSettingsInput_Deserialize }): Promise<ImageSettings> =>
+    __t3Invoke<ImageSettings>("images_save_settings", args),
+  imagesPrepareReferences: (args: { input: ImageReferencesInput_Deserialize }): Promise<string[]> =>
+    __t3Invoke<string[]>("images_prepare_references", args),
+  imagesGenerateSeedream: (args: { input: ImageInput }): Promise<ImageResult> =>
+    __t3Invoke<ImageResult>("images_generate_seedream", args),
+  imagesCancel: (args: { requestId: string }): Promise<null> => __t3Invoke<null>("images_cancel", args),
   /**
    *  Explicit file-link clicks may preview one external file without authorizing
    *  its parent directory or creating a writable workspace.
@@ -227,6 +236,12 @@ export type CommandErrors = {
   chatSaveFile: string
   chatWriteTextAttachment: string
   chatReadImage: string
+  imagesConfigured: string
+  imagesReadSettings: string
+  imagesSaveSettings: string
+  imagesPrepareReferences: string
+  imagesGenerateSeedream: string
+  imagesCancel: string
   chatPreviewFile: string
   chatReadDroppedFile: string
   chatClipboardFilePaths: string
@@ -514,6 +529,58 @@ export type HttpResponse = {
   url: string
   headers: { [key in string]: string }
   body: number[]
+}
+
+export type ImageData = {
+  mimeType: string
+  data: string
+}
+
+export type ImageInput = {
+  requestId: string
+  model: string
+  size: string
+  prompt: string
+  images: string[]
+}
+
+export type ImageReferencesInput = ImageReferencesInput_Serialize | ImageReferencesInput_Deserialize
+
+export type ImageReferencesInput_Deserialize = {
+  model?: string | null
+  images: string[]
+  envelopeBytes: number
+}
+
+export type ImageReferencesInput_Serialize = {
+  model: string | null
+  images: string[]
+  envelopeBytes: number
+}
+
+export type ImageResult = {
+  images: ImageData[]
+}
+
+export type ImageSettings = {
+  revision: number
+  baseUrl: string
+  defaultBaseUrl: string
+  configured: boolean
+}
+
+export type ImageSettingsInput = ImageSettingsInput_Serialize | ImageSettingsInput_Deserialize
+
+export type ImageSettingsInput_Deserialize = {
+  expectedRevision: number
+  baseUrl: string
+  apiKey?: string | null
+}
+
+export type ImageSettingsInput_Serialize = {
+  expectedRevision: number
+  baseUrl: string
+  apiKey: string | null
 }
 
 export type ImportedImage = {

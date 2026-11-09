@@ -23,6 +23,7 @@ import { WallpaperBackground } from "@/features/appearance/wallpaper/background"
 import { useSidebarChatWindow } from "@/features/chat-window/use-sidebar-chat-window"
 import { ActionCard, ElicitationFormDialog } from "@/features/chat/action-card"
 import { ChatView } from "@/features/chat/chat-view"
+import { MainInputModeProvider } from "@/features/chat/composer/input-mode"
 import { DRAFT_SESSION_ID, DraftChat } from "@/features/chat/draft-chat"
 import { newChatDirectory } from "@/features/chat/new-chat-directory"
 import { ChatProjectMenu } from "@/features/chat/project-session-popover"
@@ -719,7 +720,13 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
                 <WorkspaceSessionContext.Provider value={session?.id ?? null}>
                   <FileWorkspace cwd={session?.cwd ?? lastDirectory} chatRevealRequest={chatRevealRequest}>
                     <DriveDeleteConfirmation />
-                    <div className="flex min-h-0 flex-1 flex-col">{main}</div>
+                    <MainInputModeProvider
+                      key={surfaceGeneration}
+                      sessionId={session?.id ?? null}
+                      draft={session === null || Boolean(draftSessions[session.id]) || submittingDraftId === session.id}
+                    >
+                      <div className="flex min-h-0 flex-1 flex-col">{main}</div>
+                    </MainInputModeProvider>
                     {driveSidebar &&
                       createPortal(
                         <DrivePage

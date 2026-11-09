@@ -69,3 +69,27 @@ test("pointer coordinates are normalized against the displayed image and clamped
   expect(imagePoint(300, 100, bounds)).toEqual({ x: 0.5, y: 0.25 })
   expect(imagePoint(600, 0, bounds)).toEqual({ x: 1, y: 0 })
 })
+
+test("numbered image comments carry the original, pinned reference and matching instructions", () => {
+  const comments = [
+    { id: "first", point: { x: 0.25, y: 0.5 }, text: "Make this blue" },
+    { id: "second", point: { x: 0.75, y: 0.8 }, text: "Remove this element" }
+  ]
+  const request = {
+    mode: "comment" as const,
+    source: "data:image/png;base64,b3JpZw==",
+    overlay: "data:image/png;base64,cGlucw==",
+    instruction: "Keep the logo proportions",
+    comments
+  }
+  const prompt = imageEditPrompt(request)
+  expect(prompt.slice(0, 2)).toMatchObject([
+    { type: "image", data: "b3JpZw==" },
+    { type: "image", data: "cGlucw==" }
+  ])
+  const instructions = promptText(prompt[2])
+  expect(instructions).toContain("1. (25%, 50%): Make this blue")
+  expect(instructions).toContain("2. (75%, 80%): Remove this element")
+  expect(instructions).toContain("Keep the logo proportions")
+  expect(() => imageEditPrompt({ ...request, comments: [] })).toThrow()
+})

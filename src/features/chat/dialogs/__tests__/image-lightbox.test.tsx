@@ -1,14 +1,15 @@
-import * as opener from "@tauri-apps/plugin-opener"
 import { act, fireEvent, render, waitFor, within } from "@testing-library/react"
 import { toast } from "sonner"
 import { afterEach, expect, test, vi } from "vitest"
 
+import { commands } from "@/bindings"
 import { WorkspaceContext } from "@/features/workspace/context"
 import { openPathInApp } from "@/lib/open-with-app"
 
 import * as files from "../../file-actions"
 
 vi.mock("@/lib/open-with-app", () => ({
+  externalAppCandidates: () => ["File Explorer"],
   readAppsInfo: () => Promise.resolve([{ name: "Preview", bundle_id: "com.apple.Preview", icon: null }]),
   openPathInApp: vi.fn().mockResolvedValue(undefined)
 }))
@@ -22,6 +23,7 @@ await initI18n("en")
 const mounted: Array<ReturnType<typeof render>> = []
 afterEach(async () => {
   vi.restoreAllMocks()
+  vi.mocked(openPathInApp).mockReset().mockResolvedValue(undefined)
   await act(() => {
     return Promise.try(() => {
       for (const view of mounted.splice(0)) view.unmount()
@@ -53,7 +55,7 @@ test("image previews expose a visible close button and still close with Escape",
 
 test("preview toolbar hides the filename and side-panel action while retaining local file actions", async () => {
   const download = vi.spyOn(files, "downloadChatFile").mockResolvedValue(true)
-  const open = vi.spyOn(opener, "openPath").mockResolvedValue()
+  vi.mocked(openPathInApp).mockResolvedValue(undefined)
   const openFile = vi.fn().mockResolvedValue(undefined)
   const view = render(
     <WorkspaceContext value={{ visible: false, toggle: vi.fn(), openFile, openProject: vi.fn(), revealEntry: vi.fn() }}>
@@ -72,8 +74,6 @@ test("preview toolbar hides the filename and side-panel action while retaining l
   fireEvent.click(within(dialog).getByRole("button", { name: "Download portrait.png" }))
   await waitFor(() => expect(download).toHaveBeenCalledWith("/tmp/portrait.png", "aGVsbG8="))
   fireEvent.click(within(dialog).getByRole("button", { name: "Open" }))
-  await waitFor(() => expect(open).toHaveBeenCalledWith("/tmp/portrait.png"))
-  fireEvent.click(within(dialog).getByRole("button", { name: "Open with" }))
   fireEvent.click(await view.findByRole("menuitem", { name: "Preview" }))
   await waitFor(() => expect(openPathInApp).toHaveBeenCalledWith("com.apple.Preview", "/tmp/portrait.png"))
   expect(within(dialog).queryByRole("button", { name: "Open in side panel" })).toBeNull()
@@ -85,7 +85,7 @@ test("failed file actions report the error and keep the preview usable", async (
   vi.spyOn(files, "downloadChatFile").mockRejectedValue(new Error("Disk full"))
   const error = vi.spyOn(toast, "error").mockImplementation(() => "error")
   const openFile = vi.fn()
-  vi.spyOn(opener, "openPath").mockRejectedValue(new Error("Cannot open image"))
+  vi.mocked(openPathInApp).mockRejectedValueOnce(new Error("Cannot open image"))
   const view = render(
     <WorkspaceContext value={{ visible: false, toggle: vi.fn(), openFile, openProject: vi.fn(), revealEntry: vi.fn() }}>
       <ImageLightbox />
@@ -97,17 +97,29 @@ test("failed file actions report the error and keep the preview usable", async (
   await waitFor(() => expect(error).toHaveBeenCalledWith("Disk full"))
   await waitFor(() => expect(view.getByRole("button", { name: "Open" })).not.toBeDisabled())
   fireEvent.click(view.getByRole("button", { name: "Open" }))
+  fireEvent.click(await view.findByRole("menuitem", { name: "Preview" }))
   await waitFor(() => expect(error).toHaveBeenCalledWith("Cannot open image"))
   expect(view.getByRole("dialog")).toBeDefined()
   fireEvent.click(view.getByRole("button", { name: "Close" }))
   await waitFor(() => expect(view.queryByRole("dialog")).toBeNull())
 })
 
-test("inline-only images disable local opening and reset zoom when another image opens", async () => {
+test("inline images are materialized once for opening and reset zoom when another image opens", async () => {
+  const write = vi.spyOn(commands, "chatWritePastedFile").mockResolvedValue("/tmp/cache/image.png")
+  const open = vi.mocked(openPathInApp).mockResolvedValue(undefined)
   const view = render(<ImageLightbox />)
   mounted.push(view)
   act(() => openImageLightbox("data:image/png;base64,aGVsbG8=", "Inline"))
-  expect(view.getByRole("button", { name: "Open" })).toBeDisabled()
+  expect(view.getByRole("button", { name: "Open" })).toBeEnabled()
+  fireEvent.click(view.getByRole("button", { name: "Open" }))
+  fireEvent.click(await view.findByRole("menuitem", { name: "Preview" }))
+  await waitFor(() => expect(open).toHaveBeenCalledWith("com.apple.Preview", "/tmp/cache/image.png"))
+  expect(write).toHaveBeenCalledWith({ name: "image.png", data: [104, 101, 108, 108, 111] })
+  await waitFor(() => expect(view.getByRole("button", { name: "Open" })).toBeEnabled())
+  fireEvent.click(view.getByRole("button", { name: "Open" }))
+  fireEvent.click(await view.findByRole("menuitem", { name: "Preview" }))
+  await waitFor(() => expect(open).toHaveBeenCalledTimes(2))
+  expect(write).toHaveBeenCalledOnce()
   expect(view.queryByRole("button", { name: "Open in side panel" })).toBeNull()
   fireEvent.click(view.getByRole("button", { name: "Zoom" }))
   fireEvent.click(view.getByRole("menuitemradio", { name: "200%" }))
@@ -183,13 +195,14 @@ test("a pending edit remains locked after its source conversation is remounted",
 })
 
 test("a local file source can open even when the gallery has no separate URI", async () => {
-  const open = vi.spyOn(opener, "openPath").mockResolvedValue()
+  const open = vi.mocked(openPathInApp).mockResolvedValue(undefined)
   const view = render(<ImageLightbox />)
   mounted.push(view)
   act(() => openImageLightbox("file:///tmp/source%20image.png", "Hidden name"))
   const button = view.getByRole("button", { name: "Open" })
   expect(button).toBeEnabled()
   fireEvent.click(button)
-  await waitFor(() => expect(open).toHaveBeenCalledWith("/tmp/source image.png"))
+  fireEvent.click(await view.findByRole("menuitem", { name: "Preview" }))
+  await waitFor(() => expect(open).toHaveBeenCalledWith("com.apple.Preview", "/tmp/source image.png"))
   expect(view.queryByText("Hidden name")).toBeNull()
 })

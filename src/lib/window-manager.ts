@@ -17,6 +17,7 @@ export type SettingsSection =
   | "appearance"
   | "account"
   | "provider"
+  | "images"
   | "voice"
   | "computer"
   | "extensions"
@@ -27,6 +28,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
   "account",
   "general",
   "provider",
+  "images",
   "appearance",
   "editor",
   "explorer",

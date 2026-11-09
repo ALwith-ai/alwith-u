@@ -44,6 +44,7 @@ test("all new, resumed and forked conversations receive the application grant", 
     await context.bind?.("destination")
     expect(native.bind).toHaveBeenLastCalledWith({ token: "token", sessionId: "destination" })
     expect(context.appendSystemPrompt).toContain("Workspace knowledge")
+    expect(context.appendSystemPrompt).not.toContain("generate_image")
   }
   expect(native.context.mock.calls.every((args) => args.length === 0)).toBe(true)
 })
@@ -52,10 +53,9 @@ test("an unavailable computer host does not remove the workspace context", async
   native.context.mockRejectedValue(new Error("Computer module unavailable"))
   const error = vi.spyOn(console, "error").mockImplementation(() => {})
   try {
-    expect(await hostSessionContext("/project", { kind: "resume", sessionId: "history" })).toMatchObject({
-      mcpServers: [],
-      appendSystemPrompt: "Workspace knowledge"
-    })
+    const context = await hostSessionContext("/project", { kind: "resume", sessionId: "history" })
+    expect(context.mcpServers).toEqual([])
+    expect(context.appendSystemPrompt).toContain("Workspace knowledge")
   } finally {
     error.mockRestore()
   }

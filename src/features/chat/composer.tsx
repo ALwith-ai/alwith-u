@@ -1,4 +1,5 @@
-import { isSelectOption } from "@alwith/module-chat/client"
+import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
+import { isSelectOption, type PromptOptions } from "@alwith/module-chat/client"
 /**
  * U's composer: the package composer with U's dictation and realtime voice, native file drops,
  * model catalog and prediction preference.
@@ -9,6 +10,7 @@ import { useTranslation } from "react-i18next"
 import { useStore } from "zustand"
 
 import { observeVoiceTurn } from "@/core/voice-turn"
+import { useImageAvailability } from "@/features/images/availability"
 import { RealtimeVoiceButton } from "@/features/voice/realtime-voice-button"
 import type { VoiceResume } from "@/features/voice/use-voice-handoff"
 import { VoiceButton } from "@/features/voice/voice-button"
@@ -16,6 +18,9 @@ import { useWorkspace } from "@/features/workspace/context"
 import { client } from "@/lib/client"
 
 import { AccountModelRecovery } from "./composer/account-model-recovery"
+import { ImageModelSelect } from "./composer/image-model-select"
+import { ImageInputTools } from "./composer/image-tools"
+import { useInputMode } from "./composer/input-mode"
 import { chatModelMenu } from "./composer/model-catalog"
 import { nativeAttachmentPolicy, NativeFileDrop } from "./composer/native-file-drop"
 import { predictionPreference } from "./composer/prediction-preference"
@@ -99,10 +104,23 @@ function ComposerFileDrop() {
   )
 }
 
+export type ChatSubmit = (
+  prompt: acp.ContentBlock[],
+  accept?: (receipt: string) => void,
+  options?: PromptOptions
+) => Promise<void>
+
 export function ChatComposer({
   voiceResume,
   ...props
-}: Omit<ComposerProps, "actions" | "children" | "attachmentPolicy" | "predictions"> & { voiceResume?: VoiceResume }) {
+}: Omit<ComposerProps, "actions" | "children" | "attachmentPolicy" | "predictions" | "onSubmit"> & {
+  voiceResume?: VoiceResume
+  onSubmit?: ChatSubmit
+}) {
+  const { t } = useTranslation()
+  const inputMode = useInputMode()
+  const imageMode = inputMode?.mode === "image"
+  const availability = useImageAvailability(imageMode, inputMode?.selection)
   const predictions = useStore(predictionPreference, (state) => state.enabled)
   const predictionUnavailable = props.session.configOptions.some(
     (option) =>
@@ -111,16 +129,62 @@ export function ChatComposer({
         (option.configId === "collaboration_mode" && option.currentValue === "plan"))
   )
   const accountRecovery = useStore(client.store, (state) => state.accountModelRecovery?.[props.session.id] ?? false)
+  const submit: ComposerProps["onSubmit"] = imageMode
+    ? async (prompt, accept) => {
+        if (!availability.canGenerate) throw new Error(t("images.connectServices"))
+        const options: PromptOptions = {
+          meta: {
+            alwith: {
+              imageIntent: "generate",
+              imageSelection: { ...inputMode.selection },
+              imageAspectRatio: inputMode.aspect
+            }
+          }
+        }
+        if (props.onSubmit) await props.onSubmit(prompt, accept, options)
+        else {
+          const receipt = await client.prompt(props.session.id, prompt, options)
+          accept?.(receipt)
+        }
+      }
+    : props.onSubmit
   return (
     <>
       {accountRecovery && <AccountModelRecovery key={props.session.id} session={props.session} />}
       <Composer
         modelMenu={chatModelMenu}
         {...props}
-        predictions={predictions && !predictionUnavailable}
+        disabled={props.disabled || inputMode?.ready === false || (imageMode && !availability.canGenerate)}
+        allowPendingInput={imageMode || props.allowPendingInput}
+        agentControls={imageMode ? false : props.agentControls}
+        onSubmit={submit}
+        placeholder={imageMode ? t("chat.inputMode.placeholder") : props.placeholder}
+        leadingTools={
+          imageMode ? (
+            <ImageInputTools
+              value={inputMode.aspect}
+              onChange={inputMode.setAspect}
+              disabled={Boolean(props.disabled || props.preparing || props.session.readOnly)}
+            />
+          ) : (
+            props.leadingTools
+          )
+        }
+        modelSelector={
+          imageMode ? (
+            <ImageModelSelect
+              selection={inputMode.selection}
+              onChange={inputMode.setSelection}
+              disabled={!inputMode.draft || Boolean(props.disabled || props.preparing || props.session.readOnly)}
+            />
+          ) : (
+            props.modelSelector
+          )
+        }
+        predictions={!imageMode && predictions && !predictionUnavailable}
         attachmentPolicy={nativeAttachmentPolicy}
-        onShellCommand={(command) => client.executeShell(props.session.id, command)}
-        actions={<ComposerVoice voiceResume={voiceResume} />}
+        onShellCommand={imageMode ? undefined : (command) => client.executeShell(props.session.id, command)}
+        actions={imageMode ? undefined : <ComposerVoice voiceResume={voiceResume} />}
       >
         <ComposerFileDrop />
       </Composer>

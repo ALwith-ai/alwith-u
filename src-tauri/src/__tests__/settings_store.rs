@@ -4,6 +4,22 @@ fn changes(value: Value) -> BTreeMap<String, Value> {
     serde_json::from_value(value).unwrap()
 }
 #[test]
+fn image_configuration_is_atomic_private_and_revision_checked() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut store = SettingsStore::load(dir.path().into()).unwrap();
+    let revision = store.snapshot().unwrap().0;
+    store.save_image_provider("https://images.example/v1", Some("private-image-key"), revision).unwrap();
+    assert!(!std::fs::read_to_string(dir.path().join("settings.json")).unwrap().contains("private-image-key"));
+    assert!(store.update(changes(json!({"images.seedream.apiKey":"exposed"})), None).is_err());
+    assert!(store.save_image_provider("https://wrong.example/v1", Some("wrong-key"), revision).is_err());
+    let mut restored = SettingsStore::load(dir.path().into()).unwrap();
+    assert_eq!(restored.values["images.seedream.baseUrl"], "https://images.example/v1");
+    assert_eq!(restored.secret("images.seedream.apiKey").unwrap().as_deref(), Some("private-image-key"));
+    let revision = restored.snapshot().unwrap().0;
+    restored.save_image_provider("https://images.example/v1", Some(""), revision).unwrap();
+    assert!(SettingsStore::load(dir.path().into()).unwrap().secret("images.seedream.apiKey").unwrap().is_none());
+}
+#[test]
 fn migrates_preferences_and_voice_once_without_resurrecting_keys() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("preferences.json"), r#"{"language":"zh-CN","zoomLevel":1.2}"#).unwrap();
@@ -368,7 +384,7 @@ fn mobile_bridge_preference_survives_restart_and_rejects_non_boolean_values() {
 #[test]
 fn retired_credentials_survive_startup_and_writes_without_becoming_accessible() {
     let dir = tempfile::tempdir().unwrap();
-    let retired = "images.seedream.apiKey";
+    let retired = "retired.images.apiKey";
     let credentials = BTreeMap::from([(retired.to_owned(), "retired-secret".to_owned())]);
     write_json(&dir.path().join("credentials.json"), &credentials).unwrap();
     let mut store = SettingsStore::load(dir.path().into()).unwrap();
@@ -387,7 +403,7 @@ fn retired_credentials_survive_startup_and_writes_without_becoming_accessible() 
 fn transaction_recovery_preserves_retired_credentials() {
     let dir = tempfile::tempdir().unwrap();
     let store = SettingsStore::load(dir.path().into()).unwrap();
-    let credentials = BTreeMap::from([("images.seedream.apiKey".into(), "retired-secret".into())]);
+    let credentials = BTreeMap::from([("retired.images.apiKey".into(), "retired-secret".into())]);
     let tx = Transaction { settings: store.document(&BTreeMap::new(), 3, true), credentials: credentials.clone() };
     write_json(&dir.path().join(".settings-transaction.json"), &tx).unwrap();
     let recovered = SettingsStore::load(dir.path().into()).unwrap();

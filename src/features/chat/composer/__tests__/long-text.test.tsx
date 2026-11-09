@@ -29,6 +29,36 @@ function paste(text: string, input = screen.getByRole("textbox")) {
   return event
 }
 
+const windowsFiles = [
+  [String.raw`C:\Users\Test\Downloads\function list.xlsx`, "file:///C:/Users/Test/Downloads/function%20list.xlsx"],
+  [String.raw`\\server\share\报告 #1%.xlsx`, "file://server/share/%E6%8A%A5%E5%91%8A%20%231%25.xlsx"],
+  [String.raw`\\?\C:\Users\Test\pasted-text.txt`, "file:///C:/Users/Test/pasted-text.txt"]
+] as const
+
+test.each(windowsFiles)("submits a Windows file reference with a valid URI: %s", async (path, uri) => {
+  const submit = vi.fn().mockResolvedValue(undefined)
+  drafts.set("paste-session", { text: "read this", attachments: [], mentions: [path], modelId: null })
+  render(<Composer session={session()} onSubmit={submit} />)
+  fireEvent.click(screen.getByRole("button", { name: "Send" }))
+  await waitFor(() =>
+    expect(submit).toHaveBeenCalledWith([
+      { type: "resource_link", uri, name: path.split("\\").at(-1) },
+      { type: "text", text: "read this" }
+    ])
+  )
+  expect(new URL(uri).protocol).toBe("file:")
+})
+
+test.each(windowsFiles)("submits a native Windows text attachment with a valid URI: %s", async (path, uri) => {
+  vi.mocked(commands.chatWriteTextAttachment).mockResolvedValue(path)
+  const submit = vi.fn().mockResolvedValue(undefined)
+  render(<Composer session={session()} onSubmit={submit} />)
+  paste(longText)
+  await screen.findByText("5000 characters")
+  fireEvent.click(screen.getByRole("button", { name: "Send" }))
+  await waitFor(() => expect(submit).toHaveBeenCalledWith([{ type: "resource_link", uri, name: "Pasted text.txt" }]))
+})
+
 test("converts a single 5000-character paste, not 4999 characters or accumulated input", async () => {
   const submit = vi.fn().mockResolvedValue(undefined)
   render(<Composer session={session()} onSubmit={submit} />)

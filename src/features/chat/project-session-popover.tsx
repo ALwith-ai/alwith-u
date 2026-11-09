@@ -18,6 +18,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Separator } from "@/components/ui/separator"
 import { CollectionPicker } from "@/features/collection/collection-menu"
 import { ProjectPathAction } from "@/features/sessions/project-path-action"
+import { SessionImageIcon } from "@/features/sessions/session-image-icon"
 import { SessionListHostProvider } from "@/features/sessions/session-list-host"
 import { useChatWindowSurface, useMainWindowSurface } from "@/lib/chat-window-state"
 import { client, useApp } from "@/lib/client"
@@ -319,7 +320,7 @@ function ProjectContents({
                 aria-label={sessionRow.title ?? t("sidebar.untitled")}
                 onClick={() => onSelect(sessionRow)}
               >
-                <MessageSquareIcon />
+                <SessionImageIcon sessionId={sessionRow.sessionId} plain />
                 <OverflowMarquee className="flex-1 text-start">
                   {sessionRow.title ?? t("sidebar.untitled")}
                 </OverflowMarquee>

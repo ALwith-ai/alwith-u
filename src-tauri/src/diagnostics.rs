@@ -73,6 +73,7 @@ struct ModelProxyDiagnostic {
     target_port: Option<u16>,
     endpoint: String,
     status: Option<u16>,
+    forwarded_status: Option<u16>,
     close_code: Option<u16>,
     upstream_request_id: Option<String>,
     sent_bytes: u64,
@@ -129,6 +130,7 @@ impl ModelProxyDiagnostic {
                     })
             })
             && self.status.is_none_or(|status| (100..=599).contains(&status))
+            && self.forwarded_status.is_none_or(|status| (100..=599).contains(&status))
             && self.close_code.is_none_or(|code| (1000..=4999).contains(&code))
             && self.upstream_request_id.as_deref().is_none_or(|id| {
                 !id.is_empty()

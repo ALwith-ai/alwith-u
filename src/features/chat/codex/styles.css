@@ -1,5 +1,29 @@
 @import "@alwith/module-chat/styles.css";
 
+/* Generated images are previews; the lightbox retains the original dimensions. */
+.codex-generated-image {
+  max-width: min(25rem, 100%);
+  border-radius: 1rem;
+}
+
+.codex-generated-image-preview img {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: min(25rem, 50vh);
+  object-fit: contain;
+}
+
+.codex-generated-image-download {
+  inset-inline-start: auto;
+  right: 0.75rem;
+}
+
+.codex-image-generation {
+  width: min(25rem, 100%, 50vh);
+  border-radius: 1rem;
+}
+
 /* The project picker belongs to the host, outside the shared composer. */
 @media (hover: hover) {
   .chat-project-picker:not(:disabled):not([aria-disabled="true"]):not([data-disabled]):hover {

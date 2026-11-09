@@ -29,6 +29,7 @@ const AUTH_REQUEST = "settings:auth-request"
 const AUTH_RESULT = "settings:auth-result"
 const REQUEST_ACCOUNT = "settings:request-account"
 const ACCOUNT = "settings:account"
+export const ACCOUNT_CHANGED = "settings:account-changed"
 
 type AuthRequest = { id: string } & (
   | { action: "login"; methodId: string; extra: Record<string, unknown> }
@@ -102,6 +103,11 @@ export function serveSettingsBridge(
               case "respond":
                 options.respond(request.actionId, request.answer)
                 break
+            }
+            if (request.action === "login" || request.action === "logout") {
+              void Promise.all([emitTo("main", ACCOUNT_CHANGED, null), emitTo("chat", ACCOUNT_CHANGED, null)]).catch(
+                (error: unknown) => console.error("Account change notification failed", error)
+              )
             }
             await emitTo("settings", AUTH_RESULT, { id: request.id, error: null } satisfies AuthResult)
           } catch (error) {

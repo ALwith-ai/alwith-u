@@ -27,6 +27,23 @@ pre,
 
 @custom-variant dark (&:is(.dark *));
 
+.chat-mode-toggle-indicator {
+  --mode-toggle-direction: 1;
+  width: calc(100% + 9px);
+  border-width: 0.5px;
+  margin-block: -0.5px;
+  margin-inline-start: -0.5px;
+}
+
+.chat-mode-toggle-indicator:dir(rtl) {
+  --mode-toggle-direction: -1;
+}
+
+.chat-mode-toggle:has(button:focus-visible) .chat-mode-toggle-indicator {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
 @theme inline {
   --font-heading: var(--font-sans);
   --font-sans: "Inter Variable", sans-serif;
@@ -345,6 +362,7 @@ body,
   ):not(
     :where(
       [data-atlas-footer-navigation] *,
+      .chat-mode-toggle button,
       .main-sidebar-panel [role="tablist"] [role="tab"],
       .vibemon-lounge button[aria-label="Vibémon"],
       .codex-assistant-turn [data-codex-disclosure],

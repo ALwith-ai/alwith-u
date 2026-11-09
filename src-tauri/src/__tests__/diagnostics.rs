@@ -460,6 +460,32 @@ fn model_proxy_events_survive_bounded_export_with_transport_evidence() {
 }
 
 #[test]
+fn model_proxy_forwarded_status_preserves_current_and_legacy_events() {
+    let original: Value = serde_json::from_str(proxy_line().strip_prefix("[alwith-model-proxy] ").unwrap()).unwrap();
+    for forwarded in [None, Some(Value::Null), Some(json!(429))] {
+        let mut payload = original.clone();
+        if let Some(status) = &forwarded {
+            payload["forwardedStatus"] = status.clone();
+        }
+        let context = model_proxy_context(&format!("[alwith-model-proxy] {payload}"))
+            .expect("current adapter metadata and legacy events must both be retained");
+        let directory = tempfile::tempdir().unwrap();
+        let collector = Collector::new(directory.path().into());
+        collector.record("agent_stderr", "failed", context);
+        let report = collector.report();
+        let proxy = &report["events"][0]["context"]["proxy"];
+        assert_eq!(proxy["forwardedStatus"], forwarded.unwrap_or(Value::Null));
+        assert_eq!(proxy["targetHost"], "api.deepseek.com");
+        assert_eq!(proxy["errors"][0], "ECONNRESET");
+    }
+    for status in [json!(99), json!(600), json!("429")] {
+        let mut payload = original.clone();
+        payload["forwardedStatus"] = status;
+        assert!(model_proxy_context(&format!("[alwith-model-proxy] {payload}")).is_none());
+    }
+}
+
+#[test]
 fn model_proxy_projection_rejects_unknown_fields_and_unbounded_or_private_values() {
     let original: Value = serde_json::from_str(proxy_line().strip_prefix("[alwith-model-proxy] ").unwrap()).unwrap();
     for (field, value) in [
