@@ -1,4 +1,5 @@
 import path from "node:path"
+import { readdirSync } from "node:fs"
 
 import { shadcn } from "@nyssance/shadcn/vite"
 import type { StorybookConfig } from "@storybook/react-vite"
@@ -9,6 +10,7 @@ const boundaries = {
   "features/appearance/wallpaper/controller": "wallpaper.ts",
   "lib/chat-window": "chat-window.ts",
   "features/vibemon/window-client": "pet-window.ts",
+  "features/vibemon/main-host": "vibemon-main.ts",
   "lib/runtime": "runtime.ts",
   "lib/settings-bridge": "settings-bridge.ts",
   "features/auth/store": "auth.ts",
@@ -17,11 +19,16 @@ const boundaries = {
   "features/workspace/html-preview": "html-preview.ts"
 }
 
+// Keep standalone layout fixtures and duplicate page boards available to checks without listing them in the catalog.
+const standaloneBoards = /^(thread-details|model-menu-details|markdown-details|composer-details|composer-pressure|reasoning-details|subagents|chat-new)-/
+const pageBoards = process.env.STORYBOOK_LAYOUT_TESTS === "1"
+  ? ["./stories/page-boards/**/*.stories.tsx"]
+  : readdirSync(path.resolve(import.meta.dirname, "stories/page-boards"))
+      .filter((name) => name.endsWith(".stories.tsx") && !standaloneBoards.test(name))
+      .map((name) => `./stories/page-boards/${name}`)
+
 const config: StorybookConfig = {
-  stories:
-    process.env.ATLAS_LAYOUT_TEST === "1"
-      ? ["./stories/pages/canvas-details.stories.tsx"]
-      : ["./stories/page-boards/**/*.stories.tsx", "./stories/flows/**/*.stories.tsx"],
+  stories: [...pageBoards, "./stories/flows/**/*.stories.tsx", "./stories/docs/**/*.mdx"],
   docs: { defaultName: "说明文档" },
   staticDirs: [
     "../public",

@@ -4,8 +4,27 @@ import * as source from "../pages/login.stories.tsx"
 const meta = {
   ...source.default,
   id: "page-login-6",
-  title: "页面/账号与登录/密码登录"
+  title: "页面/注册登录/注册/异常流程"
 }
 export default meta
 
-export const WrongPassword = { ...source.WrongPassword, name: "密码错误" }
+export const RegisterMissingEmail = { ...source.RegisterMissingEmail, name: "09 异常 · 邮箱未填写" }
+export const RegisterInvalidEmailSubmit = { ...source.RegisterInvalidEmailSubmit, name: "10 异常 · 提交时邮箱格式错误" }
+export const RegisterMissingCode = { ...source.RegisterMissingCode, name: "11 异常 · 验证码未填写" }
+export const RegisterMissingPassword = { ...source.RegisterMissingPassword, name: "12 异常 · 密码未填写" }
+export const WeakPassword = { ...source.WeakPassword, name: "13 异常 · 密码不符合规则" }
+export const RegisterMissingEmailSend = { ...source.RegisterMissingEmailSend, name: "14 异常 · 发送时邮箱未填写" }
+export const RegisterInvalidEmailSend = { ...source.RegisterInvalidEmailSend, name: "15 异常 · 发送时邮箱格式错误" }
+export const Registered = { ...source.Registered, name: "16 异常 · 邮箱已注册" }
+export const RegisterEmailCheckNetwork = { ...source.RegisterEmailCheckNetwork, name: "17 异常 · 检查邮箱失败" }
+export const RegisterSendNetwork = { ...source.RegisterSendNetwork, name: "18 异常 · 发送验证码 · 网络连接失败" }
+export const RegisterSendWaitlisted = { ...source.RegisterSendWaitlisted, name: "19 异常 · 发送验证码 · 候补名单" }
+export const RegisterSendDisabled = { ...source.RegisterSendDisabled, name: "20 异常 · 发送验证码 · 账号已停用" }
+export const RegisterSendServiceFailure = { ...source.RegisterSendServiceFailure, name: "21 异常 · 发送验证码 · 服务返回错误" }
+export const RegisterWrongCode = { ...source.RegisterWrongCode, name: "22 异常 · 验证码错误或已过期" }
+export const RegisterSubmitNetwork = { ...source.RegisterSubmitNetwork, name: "23 异常 · 注册 · 网络连接失败" }
+export const RegisterSubmitWaitlisted = { ...source.RegisterSubmitWaitlisted, name: "24 异常 · 注册 · 候补名单" }
+export const RegisterSubmitDisabled = { ...source.RegisterSubmitDisabled, name: "25 异常 · 注册 · 账号已停用" }
+export const RegisterSubmitServiceFailure = { ...source.RegisterSubmitServiceFailure, name: "26 异常 · 注册 · 服务返回错误" }
+export const RegisterSubmitEmptyFailure = { ...source.RegisterSubmitEmptyFailure, name: "27 异常 · 注册 · 服务未返回错误说明" }
+export const RegisterSubmitSessionFailure = { ...source.RegisterSubmitSessionFailure, name: "28 异常 · 注册 · 保存登录状态失败" }

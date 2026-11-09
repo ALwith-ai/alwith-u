@@ -17,7 +17,7 @@ const config = { labels, id: "workflow-account-invalidemail" }
 const meta = {
   ...base,
   id: "workflow-account-invalidemail",
-  title: "流程/账号与登录/04 邮箱校验",
+  title: "流程/注册登录/04 邮箱校验",
   loaders: [prepareWorkflow],
   render: (args, context) => (
     <WorkflowPreview

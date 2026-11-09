@@ -10,7 +10,7 @@ const config = { labels, id: "workflow-account-disabled" }
 const meta = {
   ...base,
   id: "workflow-account-disabled",
-  title: "流程/账号与登录/06 账号禁用处理",
+  title: "流程/注册登录/06 账号禁用处理",
   loaders: [prepareWorkflow],
   render: (args, context) => (
     <WorkflowPreview

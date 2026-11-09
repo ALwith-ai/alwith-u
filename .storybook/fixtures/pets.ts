@@ -56,6 +56,7 @@ export type PetCase =
   | "drawError"
   | "insufficient"
   | "desktop"
+  | "hidden"
 export async function resetPets(kind: PetCase = "home", bubbleCase?: BubbleCase): Promise<void> {
   stopSettings()
   stop()
@@ -63,7 +64,7 @@ export async function resetPets(kind: PetCase = "home", bubbleCase?: BubbleCase)
   const scope = accountKey(account)
   storageValues = {
     "vibemon.accounts": {
-      [scope]: { pet: kind === "desktop" ? "pet-0" : "", enabled: kind === "desktop", position: { x: 300, y: 300 } }
+      [scope]: { pet: kind === "desktop" || kind === "hidden" ? "pet-0" : "", enabled: kind === "desktop", position: { x: 300, y: 300 } }
     },
     "vibemon.introSeen": { [scope]: kind !== "firstVisit" },
     "vibemon.onboardingStep": {},

@@ -4,7 +4,7 @@ import * as source from "../pages/voice-states.stories.tsx"
 const meta = {
   ...source.default,
   id: "page-voice-states-2",
-  title: "页面/主窗聊天/语音输入/语音输入"
+  title: "页面/主窗聊天/输入框/02 输入框功能/04 语音输入"
 }
 export default meta
 
@@ -13,4 +13,3 @@ export const Recording = { ...source.Recording, name: "录音中 · 波形与取
 export const Transcribing = { ...source.Transcribing, name: "完成识别中" }
 export const Error = { ...source.Error, name: "语音识别失败" }
 export const NoSpeech = { ...source.NoSpeech, name: "未识别到语音" }
-export const Unconfigured = { ...source.Unconfigured, name: "语音未配置 · 跳转设置" }

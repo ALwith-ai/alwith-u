@@ -91,6 +91,7 @@ export const chatCases = [
   "fileResource",
   "userText",
   "userImage",
+  "userFile",
   "running",
   "awaitingResponse",
   "compacting",
@@ -129,11 +130,23 @@ export const chatCases = [
   "history",
   "long",
   "files",
+  "filesMultiple",
+  "filesUndone",
+  "filesReadOnly",
+  "filesFailed",
+  "filesPartial",
+  "messageActions",
+  "messageForkPending",
+  "messageForkError",
+  "messageForkOrigin",
+  "messageForkReadOnly",
+  "messageForkSourceMissing",
   "image",
   "imagePreview"
 ] as const
 export type ChatCase = (typeof chatCases)[number]
 
+let fileSequence = 0
 let questionSequence = 0
 export function makeSession(kind: ChatCase, id: string = kind): Session {
   let session: Session = {
@@ -159,10 +172,12 @@ export function makeSession(kind: ChatCase, id: string = kind): Session {
     state: "idle",
     lastStopReason: "cancelled"
   }
-  if (kind === "userText" || kind === "userImage") {
+  if (kind === "userText" || kind === "userImage" || kind === "userFile") {
     const content: acp.ContentBlock[] = kind === "userImage"
       ? [{ type: "text", text: "请查看这张图片。" }, { type: "image", mimeType: chatImage.mimeType, data: chatImage.data }]
-      : [{ type: "text", text: "请整理本周的交付进度。" }]
+      : kind === "userFile"
+        ? [{ type: "resource_link", uri: encodeURI(`file://${PROJECT_DIRECTORY}/README.md`), name: "README.md" }, { type: "text", text: "请查看这个文件。" }]
+        : [{ type: "text", text: "请整理本周的交付进度。" }]
     const promptId = `local:${id}-user`
     session = acknowledgePrompt(addPrompt(session, content, promptId), promptId, `${id}-user`)
     return {
@@ -176,6 +191,14 @@ export function makeSession(kind: ChatCase, id: string = kind): Session {
     }
   }
   session = userMessage(session, "请检查产品工作台的页面和交互，整理本周的交付内容，并把结果保存到项目中。")
+  if (["messageActions", "messageForkPending", "messageForkError", "messageForkOrigin", "messageForkReadOnly", "messageForkSourceMissing"].includes(kind)) {
+    session = applyUpdate(session, {
+      sessionUpdate: "agent_message", messageId: `${id}-answer`,
+      content: [{ type: "text", text: "已整理本周的交付进度，可以继续检查项目文件。" }],
+      _meta: { codex: { turnId: `turn:${id}-user`, phase: "final_answer" } }
+    })
+    return { ...session, lastStopReason: "end_turn", readOnly: kind === "messageForkReadOnly" }
+  }
   if (kind === "completedActivities") {
     const activities: { kind: acp.ToolKind; name: string; title: string; rawInput?: Record<string, string> }[] = [
       { kind: "read", name: "read_file", title: "读取项目文件" },
@@ -291,7 +314,7 @@ export function makeSession(kind: ChatCase, id: string = kind): Session {
     })
     return { ...session, state: "running" }
   }
-  if (kind === "tools" || kind === "files") {
+  if (kind === "tools" || kind.startsWith("files")) {
     session = applyUpdate(session, {
       sessionUpdate: "tool_call_update",
       toolCallId: `${id}-read`,
@@ -307,26 +330,37 @@ export function makeSession(kind: ChatCase, id: string = kind): Session {
         }
       ]
     })
+    const fileId = kind.startsWith("files") ? `${id}-edit-${++fileSequence}` : `${id}-edit`
     session = applyUpdate(session, {
       sessionUpdate: "tool_call_update",
-      toolCallId: `${id}-edit`,
+      toolCallId: fileId,
       name: "apply_patch",
       title: "更新交付清单",
       kind: "edit",
       status: kind === "tools" ? "in_progress" : "completed",
-      locations: [{ path: `${PROJECT_DIRECTORY}/docs/交付清单.md`, line: 1 }],
+      locations: [{ path: `${PROJECT_DIRECTORY}/docs/checklist.md`, line: 1 }],
       content: [
         {
           type: "diff",
-          changes: [{ operation: "modify", path: `${PROJECT_DIRECTORY}/docs/交付清单.md` }],
+          changes: [{ operation: "modify", path: `${PROJECT_DIRECTORY}/docs/checklist.md` }],
           patch: {
             format: "git_patch",
-            text: "--- a/docs/交付清单.md\n+++ b/docs/交付清单.md\n@@ -1,2 +1,4 @@\n # 交付清单\n-- 页面梳理\n+- 页面梳理：已完成\n+- 交互验证：已完成\n+- 文件预览：待复核\n"
+            text: "--- a/docs/checklist.md\n+++ b/docs/checklist.md\n@@ -1,2 +1,2 @@\n # 交付清单\n-- 页面梳理：待完成\n+- 页面梳理：已完成\n"
           }
         }
       ]
     })
     if (kind === "tools") return { ...session, state: "running" }
+    if (["filesMultiple", "filesPartial"].includes(kind)) {
+      session = applyUpdate(session, {
+        sessionUpdate: "tool_call_update", toolCallId: `${fileId}-second`, name: "apply_patch",
+        title: "更新交互说明", kind: "edit", status: "completed",
+        locations: [{ path: `${PROJECT_DIRECTORY}/docs/interaction.md`, line: 1 }],
+        content: [{ type: "diff", changes: [{ operation: "modify", path: `${PROJECT_DIRECTORY}/docs/interaction.md` }],
+          patch: { format: "git_patch", text: "--- a/docs/interaction.md\n+++ b/docs/interaction.md\n@@ -1 +1 @@\n-交互检查：待完成\n+交互检查：已完成\n" } }]
+      })
+    }
+
   }
   if (kind === "plan") {
     session = applyUpdate(session, {
@@ -450,6 +484,10 @@ export function makeSession(kind: ChatCase, id: string = kind): Session {
         meta: { codex: { error: { message: "连接中断，本轮生成已停止。", retryable: false } } }
       }
     }
+  }
+  if (kind.startsWith("files")) {
+    session = assistantMessage(session, "已更新交付资料。")
+    return { ...session, lastStopReason: "end_turn", readOnly: kind === "filesReadOnly" }
   }
   session = assistantMessage(
     session,

@@ -212,6 +212,7 @@ test("replayed user images render thumbnails above the body without attachment p
   expect(view.getByRole("dialog").querySelector("img")?.getAttribute("src")).toBe("data:image/png;base64,aGVsbG8=")
 })
 
+
 test("external file links bypass the project workspace and preserve line locations", async () => {
   const openFile = vi.fn().mockResolvedValue(undefined)
   const openPreview = vi.spyOn(preview, "openFilePreview").mockImplementation(() => {})

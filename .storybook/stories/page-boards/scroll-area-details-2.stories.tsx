@@ -4,7 +4,7 @@ import * as source from "../pages/scroll-area-details.stories.tsx"
 const meta = {
   ...source.default,
   id: "page-scroll-area-details-2",
-  title: "页面/其他/通用细节/滚动区域/页面状态"
+  title: "页面/其他/通用细节/滚动区域"
 }
 export default meta
 

@@ -4,10 +4,15 @@ import * as source from "../pages/login.stories.tsx"
 const meta = {
   ...source.default,
   id: "page-login-1",
-  title: "页面/账号与登录/登录方式"
+  title: "页面/注册登录/验证码登录/正常主流程"
 }
 export default meta
 
-export const Code = { ...source.Code, name: "验证码登录" }
-export const Password = { ...source.Password, name: "密码登录" }
-export const Register = { ...source.Register, name: "注册" }
+export const Loading = { ...source.Loading, name: "01 读取本机登录信息" }
+export const Code = { ...source.Code, name: "02 打开验证码登录" }
+export const CodeEmail = { ...source.CodeEmail, name: "03 填写邮箱" }
+export const Sending = { ...source.Sending, name: "04 正在发送验证码" }
+export const CodeSent = { ...source.CodeSent, name: "05 验证码已发送 · 60 秒重发冷却" }
+export const CodeFilled = { ...source.CodeFilled, name: "06 填写验证码 · 待登录" }
+export const SigningIn = { ...source.SigningIn, name: "07 正在登录" }
+export const CodeSuccess = { ...source.CodeSuccess, name: "08 登录成功 · 进入主窗" }

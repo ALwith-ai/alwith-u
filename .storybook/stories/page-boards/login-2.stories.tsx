@@ -4,9 +4,23 @@ import * as source from "../pages/login.stories.tsx"
 const meta = {
   ...source.default,
   id: "page-login-2",
-  title: "页面/账号与登录/验证码发送"
+  title: "页面/注册登录/验证码登录/异常流程"
 }
 export default meta
 
-export const InvalidEmail = { ...source.InvalidEmail, name: "邮箱校验" }
-export const CodeSent = { ...source.CodeSent, name: "验证码已发送 · 倒计时" }
+export const CodeMissingEmail = { ...source.CodeMissingEmail, name: "09 异常 · 邮箱未填写" }
+export const CodeInvalidEmailSubmit = { ...source.CodeInvalidEmailSubmit, name: "10 异常 · 提交时邮箱格式错误" }
+export const CodeMissingCode = { ...source.CodeMissingCode, name: "11 异常 · 验证码未填写" }
+export const CodeMissingEmailSend = { ...source.CodeMissingEmailSend, name: "12 异常 · 发送时邮箱未填写" }
+export const InvalidEmail = { ...source.InvalidEmail, name: "13 异常 · 发送时邮箱格式错误" }
+export const Network = { ...source.Network, name: "14 异常 · 发送验证码 · 网络连接失败" }
+export const Waitlisted = { ...source.Waitlisted, name: "15 异常 · 发送验证码 · 候补名单" }
+export const Disabled = { ...source.Disabled, name: "16 异常 · 发送验证码 · 账号已停用" }
+export const CodeSendServiceFailure = { ...source.CodeSendServiceFailure, name: "17 异常 · 发送验证码 · 服务返回错误" }
+export const WrongCode = { ...source.WrongCode, name: "18 异常 · 验证码错误或已过期" }
+export const CodeSubmitNetwork = { ...source.CodeSubmitNetwork, name: "19 异常 · 登录 · 网络连接失败" }
+export const CodeSubmitWaitlisted = { ...source.CodeSubmitWaitlisted, name: "20 异常 · 登录 · 候补名单" }
+export const CodeSubmitDisabled = { ...source.CodeSubmitDisabled, name: "21 异常 · 登录 · 账号已停用" }
+export const CodeSubmitServiceFailure = { ...source.CodeSubmitServiceFailure, name: "22 异常 · 登录 · 服务返回错误" }
+export const CodeSubmitEmptyFailure = { ...source.CodeSubmitEmptyFailure, name: "23 异常 · 登录 · 服务未返回错误说明" }
+export const CodeSubmitSessionFailure = { ...source.CodeSubmitSessionFailure, name: "24 异常 · 登录 · 保存登录状态失败" }

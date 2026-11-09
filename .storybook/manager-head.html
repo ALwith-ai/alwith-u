@@ -1,0 +1,23 @@
+<style>
+  /* Match component icons for feature groups at the same navigation level. */
+  .sidebar-item > button:has(.sidebar-feature-label) > div > svg:last-child {
+    display: none;
+  }
+  .sidebar-feature-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .sidebar-feature-label > svg {
+    flex-shrink: 0;
+    align-self: flex-start;
+    margin-top: 2px;
+    color: #029cfd;
+  }
+  .sidebar-item[data-selected="true"] .sidebar-feature-label > svg {
+    color: inherit;
+  }
+  .sidebar-category-label > svg {
+    color: #6f2cac;
+  }
+</style>

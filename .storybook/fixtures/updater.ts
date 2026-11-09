@@ -1,4 +1,11 @@
-import { type UpdaterState, useUpdaterStore } from "../../src/features/updater/store"
+import type { DesktopUpdaterState as UpdaterState } from "@alwith/module-desktop-shell/native"
+import { emit } from "@tauri-apps/api/event"
+
+export let updaterState: UpdaterState = { type: "idle" }
+function publish(state: UpdaterState): void {
+  updaterState = state
+  void emit("alwith-desktop-shell:updater-state", state)
+}
 export type UpdateCase =
   "idle" | "disabled" | "checkingForUpdates" | "downloading" | "indeterminate" | "ready" | "restarting"
 const update = {
@@ -21,8 +28,8 @@ export function resetUpdater(kind: UpdateCase = "idle"): void {
         : kind === "ready" || kind === "restarting"
           ? { type: kind, update }
           : { type: kind }
-  useUpdaterStore.setState({ state, initialized: true })
+  publish(state)
 }
 export function restartPreview(): void {
-  useUpdaterStore.setState({ state: { type: "restarting", update } })
+  publish({ type: "restarting", update })
 }

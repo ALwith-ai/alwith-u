@@ -50,6 +50,8 @@ export const UserText: Story = { name: "用户消息 · 纯文本", parameters: 
 
 export const UserImage: Story = { name: "用户消息 · 图片附件", parameters: { pageStateGroup: "01 内容类型/01 用户发送" }, args: { chatCase: "userImage" } }
 
+export const UserFile: Story = { name: "用户消息 · 文件引用", parameters: { pageStateGroup: "01 内容类型/01 用户发送" }, args: { chatCase: "userFile" } }
+
 export const Text: Story = { name: "纯文本回复", parameters: { pageStateGroup: "01 内容类型/02 AI 回复" }, args: { chatCase: "plainText" } }
 
 export const Markdown: Story = { name: "Markdown · 标题、列表与引用", parameters: { pageStateGroup: "01 内容类型/02 AI 回复" }, args: { chatCase: "markdown" } }
@@ -235,10 +237,57 @@ export const History: Story = { name: "历史多轮内容", parameters: { pageSt
 export const Long: Story = { name: "长会话 · 32轮", parameters: { pageStateGroup: "05 历史与访问" }, args: { chatCase: "long" } }
 
 export const Files: Story = {
-  name: "文件修改 · 展开变更与差异", parameters: { pageStateGroup: "04 文件变更" }, args: { chatCase: "files" },
+  name: "单文件修改 · 查看变更", parameters: { pageStateGroup: "04 文件变更" }, args: { chatCase: "files" },
   play: async (context) => {
     const work = await context.canvasElement.querySelector<HTMLButtonElement>(".codex-work-trigger")
     if (work?.getAttribute("aria-expanded") === "false") await context.userEvent.click(work)
     await expandChatDetails(context)
   }
+}
+
+
+const fileChangePlay: NonNullable<Story["play"]> = async (context) => {
+  await expandChatDetails(context)
+}
+const undoFileChange: NonNullable<Story["play"]> = async (context) => {
+  await fileChangePlay(context)
+  const button = await context.canvas.findByRole("button", { name: "撤销修改" })
+  await context.userEvent.click(button)
+}
+export const FilesMultiple: Story = { name: "多文件修改 · 查看变更", parameters: { pageStateGroup: "04 文件变更" }, args: { chatCase: "filesMultiple" }, play: fileChangePlay }
+export const FilesUndone: Story = { name: "撤销成功 · 可重新应用", parameters: { pageStateGroup: "04 文件变更" }, args: { chatCase: "filesUndone" }, play: undoFileChange }
+export const FilesReadOnly: Story = { name: "只读会话 · 不可撤销", parameters: { pageStateGroup: "04 文件变更" }, args: { chatCase: "filesReadOnly" }, play: fileChangePlay }
+export const FilesFailed: Story = { name: "撤销失败 · 可重试", parameters: { pageStateGroup: "04 文件变更" }, args: { chatCase: "filesFailed" }, play: undoFileChange }
+export const FilesPartial: Story = { name: "部分撤销 · 可重试或重新应用", parameters: { pageStateGroup: "04 文件变更" }, args: { chatCase: "filesPartial" }, play: undoFileChange }
+
+
+export const ReplyActions: Story = {
+  name: "回复操作 · 复制与创建分支", parameters: { pageStateGroup: "01 内容类型/03 消息操作" }, args: { chatCase: "messageActions" },
+  play: async ({ canvas }) => { await canvas.findByRole("button", { name: "创建聊天分支" }) }
+}
+
+export const ReplyForkDisconnected: Story = {
+  name: "连接断开 · 暂不可创建分支", parameters: { pageStateGroup: "01 内容类型/03 消息操作" }, args: { chatCase: "messageActions", connection: "disconnected" },
+  play: async ({ canvas }) => { await canvas.findByRole("button", { name: "创建聊天分支" }) }
+}
+export const ReplyForkPending: Story = {
+  name: "创建分支 · 进行中", parameters: { pageStateGroup: "01 内容类型/03 消息操作" }, args: { chatCase: "messageForkPending" },
+  play: async ({ canvas, userEvent }) => { await userEvent.click(await canvas.findByRole("button", { name: "创建聊天分支" })); await canvas.findByText("正在创建分支会话…") }
+}
+export const ReplyForkOrigin: Story = {
+  name: "分支聊天 · 返回原聊天", parameters: { pageStateGroup: "01 内容类型/03 消息操作" }, args: { chatCase: "messageForkOrigin" },
+  play: async ({ canvas }) => { await canvas.findByRole("button", { name: "从原聊天继续" }) }
+}
+export const ReplyForkError: Story = {
+  name: "创建分支 · 失败", parameters: { pageStateGroup: "01 内容类型/03 消息操作" }, args: { chatCase: "messageForkError" },
+  play: async ({ canvas, userEvent }) => { await userEvent.click(await canvas.findByRole("button", { name: "创建聊天分支" })) }
+}
+
+export const ReplyForkReadOnly: Story = {
+  name: "只读会话 · 创建聊天分叉", parameters: { pageStateGroup: "01 内容类型/03 消息操作" }, args: { chatCase: "messageForkReadOnly" },
+  play: async ({ canvas }) => { await canvas.findByRole("button", { name: "创建聊天分叉" }) }
+}
+export const ReplyForkSourceMissing: Story = {
+  name: "返回原聊天 · 原会话不可用", parameters: { pageStateGroup: "01 内容类型/03 消息操作" }, args: { chatCase: "messageForkSourceMissing" },
+  play: async ({ canvas, userEvent }) => { await userEvent.click(await canvas.findByRole("button", { name: "从原聊天继续" })) }
 }

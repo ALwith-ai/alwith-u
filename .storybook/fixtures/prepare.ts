@@ -14,11 +14,11 @@ import { zoomStore } from "../../src/lib/zoom"
 import { type AuthCase, demoUser, resetAuth, usePlatformAuth } from "./auth"
 import { type ChatCase, makeSession, pendingAction, PROJECT_DIRECTORY, QUICK_DIRECTORY } from "./catalog"
 import { resetChatWindow } from "./chat-window"
-import { client, resetClient, runState } from "./client"
+import { client, resetClient, runState, setForkScenario } from "./client"
 import { type ComposerCase, resetComposer } from "./composer"
 import { type DriveCase, resetDrive } from "./drive"
 import { type ExtensionCase, resetExtensions } from "./extensions"
-import { type FileCase, resetFiles } from "./filesystem"
+import { type FileCase, resetFiles, virtualFiles } from "./filesystem"
 import { type GamepadCase, resetGamepad } from "./gamepad"
 import { installNativeMock, resetNative, setComputerStatus } from "./native"
 import type { BubbleCase } from "./pet-session"
@@ -61,7 +61,7 @@ export interface PreviewState {
     | "deleteError"
     | "partialDelete"
   extensionId?: string
-  chatDetail?: "usage" | "usageWarning" | "usageFull" | "fork"
+  chatDetail?: "usage" | "usageWarning" | "usageCritical" | "usageFull" | "fork"
   authCase?: AuthCase
   accountCase?: AccountCase
   updateCase?: UpdateCase
@@ -86,6 +86,7 @@ export const preparePreview: LoaderFunction = async ({ args, globals }) => {
   toast.dismiss()
   disposePlaybackClock()
   const state = args as PreviewState
+  setForkScenario(state.chatCase === "messageForkPending" ? "pending" : state.chatCase === "messageForkError" ? "error" : "ready")
   resetNative(state.providerCase, state.voiceCase, globals.theme === "dark" ? "dark" : "light")
   resetGamepad(state.gamepadCase)
   installNativeMock(state.platform)
@@ -115,6 +116,13 @@ export const preparePreview: LoaderFunction = async ({ args, globals }) => {
     usePlatformAuth.setState({ user: { ...demoUser, login_email: "lin.ran@example.test" } })
   for (const key of Object.keys(localStorage)) if (key.startsWith("workspace:")) localStorage.removeItem(key)
   await resetFiles(state.emptyFiles, state.binaryFiles, state.fileCase)
+  if (state.chatCase?.startsWith("files")) {
+    const conflict = state.chatCase === "filesFailed" || state.chatCase === "filesPartial"
+    virtualFiles.set(`${PROJECT_DIRECTORY}/docs/checklist.md`, new TextEncoder().encode(
+      `# 交付清单\n- 页面梳理：${conflict ? "用户后续修改" : "已完成"}\n`
+    ))
+    virtualFiles.set(`${PROJECT_DIRECTORY}/docs/interaction.md`, new TextEncoder().encode("交互检查：已完成\n"))
+  }
   resetComposer(state.composerCase)
   predictionPreference.setState({ enabled: true })
   resetDrive(state.driveCase)
@@ -147,7 +155,7 @@ export const preparePreview: LoaderFunction = async ({ args, globals }) => {
   for (const chatCase of new Set([state.chatCase, state.floatingChatCase])) {
     if (!chatCase || chatCase === "welcome" || chatCase === "project") continue
     let session = makeSession(chatCase)
-    if (state.composerCase === "prediction" || state.composerCase === "predictionError") {
+    if (state.composerCase === "prediction") {
       session = { ...session, state: "idle", lastStopReason: "end_turn" }
       client.store.setState((previous) => ({
         agent: previous.agent && {
@@ -163,7 +171,7 @@ export const preparePreview: LoaderFunction = async ({ args, globals }) => {
       session = {
         ...session,
         usage: {
-          used: state.chatDetail === "usageFull" ? 128000 : state.chatDetail === "usageWarning" ? 110000 : 42000,
+          used: state.chatDetail === "usageFull" ? 128000 : state.chatDetail === "usageCritical" ? 118000 : state.chatDetail === "usageWarning" ? 110000 : 42000,
           size: 128000
         },
         lastTurnUsage: {
@@ -174,9 +182,9 @@ export const preparePreview: LoaderFunction = async ({ args, globals }) => {
           totalTokens: 11650
         }
       }
-    if (state.chatDetail === "fork")
+    if (state.chatDetail === "fork" || chatCase === "messageForkOrigin" || chatCase === "messageForkSourceMissing")
       client.store.setState({
-        forkOrigins: { [session.id]: { sourceId: "conversation", boundaryTurnId: `turn:${session.id}-user` } }
+        forkOrigins: { [session.id]: { sourceId: chatCase === "messageForkSourceMissing" ? "missing-original" : "conversation", boundaryTurnId: `turn:${session.id}-user` } }
       })
     client.store.setState((previous) => ({ sessions: { ...previous.sessions, [session.id]: session } }))
     if (["permission", "form", "formQueue", "url"].includes(chatCase)) {

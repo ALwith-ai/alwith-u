@@ -10,7 +10,7 @@ const config = { labels, id: "workflow-login-states-registered" }
 const meta = {
   ...base,
   id: "workflow-login-states-registered",
-  title: "流程/账号与登录/登录状态/09 注册邮箱重复",
+  title: "流程/注册登录/登录状态/09 注册邮箱重复",
   loaders: [prepareWorkflow],
   render: (args, context) => (
     <WorkflowPreview

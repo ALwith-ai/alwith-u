@@ -10,7 +10,7 @@ const config = { labels, id: "workflow-account-password" }
 const meta = {
   ...base,
   id: "workflow-account-password",
-  title: "流程/账号与登录/02 密码登录",
+  title: "流程/注册登录/02 密码登录",
   loaders: [prepareWorkflow],
   render: (args, context) => (
     <WorkflowPreview

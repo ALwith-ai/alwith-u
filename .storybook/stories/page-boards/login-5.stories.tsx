@@ -4,10 +4,15 @@ import * as source from "../pages/login.stories.tsx"
 const meta = {
   ...source.default,
   id: "page-login-5",
-  title: "页面/账号与登录/账户注册"
+  title: "页面/注册登录/注册/正常主流程"
 }
 export default meta
 
-export const Registered = { ...source.Registered, name: "注册邮箱已存在" }
-export const WeakPassword = { ...source.WeakPassword, name: "注册密码不符合规则" }
-export const Registering = { ...source.Registering, name: "正在注册" }
+export const Register = { ...source.Register, name: "01 打开注册" }
+export const RegisterEmail = { ...source.RegisterEmail, name: "02 填写邮箱" }
+export const RegisterCheckingEmail = { ...source.RegisterCheckingEmail, name: "03 检查邮箱是否已注册" }
+export const RegisterSending = { ...source.RegisterSending, name: "04 正在发送验证码" }
+export const RegisterCodeSent = { ...source.RegisterCodeSent, name: "05 验证码已发送 · 60 秒重发冷却" }
+export const RegisterFilled = { ...source.RegisterFilled, name: "06 填写验证码和密码 · 待注册" }
+export const Registering = { ...source.Registering, name: "07 正在注册" }
+export const RegisterSuccess = { ...source.RegisterSuccess, name: "08 注册成功 · 进入主窗" }

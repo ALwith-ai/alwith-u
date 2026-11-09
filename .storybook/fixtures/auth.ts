@@ -13,8 +13,16 @@ export type AuthCase =
   | "network"
   | "wrongCode"
   | "wrongPassword"
+  | "checkingEmail"
+  | "emailCheckNetwork"
+  | "emptyFailure"
+  | "sessionFailure"
 let mode: AuthCase = "ready"
 let failure: string | null = null
+export function configureAuthScenario(kind: AuthCase = "ready", error: string | null = null): void {
+  mode = kind
+  failure = error
+}
 export const usePlatformAuth = create<AuthState & AuthActions>((set) => ({
   user: demoUser,
   isAuthenticated: true,
@@ -47,10 +55,15 @@ async function loginResponse(): Promise<LoginResponse> {
   if (mode === "wrongCode") throw new Error("验证码错误或已过期，请重新获取。")
   if (mode === "wrongPassword") throw new Error("邮箱或密码错误，请重试。")
   if (mode === "network") throw new Error("网络连接失败，请稍后重试。")
+  if (mode === "emptyFailure") throw new Error("")
   return { ...demoUser, access_token: "storybook", refresh_token: "storybook", status: "ACTIVE" }
 }
 export const authClient = {
-  emailExists: () => Promise.resolve({ registered: mode === "registered" }),
+  emailExists: async () => {
+    if (mode === "checkingEmail") return new Promise<{ registered: boolean }>(() => {})
+    if (mode === "emailCheckNetwork") throw new Error("网络连接失败，请稍后重试。")
+    return { registered: mode === "registered" }
+  },
   sendVerificationCode: async () => {
     if (mode === "sending") return new Promise<void>(() => {})
     if (mode === "network") throw new Error("网络连接失败，请稍后重试。")
@@ -60,7 +73,10 @@ export const authClient = {
   loginWithPassword: loginResponse,
   loginWithCode: loginResponse
 }
-export const loginPlatform = async (response: LoginResponse) => usePlatformAuth.getState().login(response)
+export const loginPlatform = async (response: LoginResponse) => {
+  if (mode === "sessionFailure") throw new Error("保存登录状态失败，请重试。")
+  await usePlatformAuth.getState().login(response)
+}
 export const logoutPlatform = async () => usePlatformAuth.getState().logout()
 export const initPlatformAuth = async () => {}
 export function platformApiRequest<T>(): Promise<T> {

@@ -4,8 +4,20 @@ import * as source from "../pages/navigation.stories.tsx"
 const meta = {
   ...source.default,
   id: "page-navigation-1",
-  title: "页面/主窗整体/导航与项目/默认状态"
+  title: "页面/侧栏导航/01 窗口与侧栏开关",
+  parameters: {
+    ...source.default.parameters,
+    docs: {
+      ...source.default.parameters.docs,
+      description: {
+        ...source.default.parameters.docs.description,
+        component: source.pageDocumentation["01 窗口与侧栏开关"] ?? source.default.parameters.docs.description.component
+      }
+    }
+  }
 }
 export default meta
 
-export const Projects = { ...source.Projects, name: "项目分组与最近聊天" }
+export const Pinned = { ...source.Pinned, name: "固定侧栏 · 始终显示" }
+export const Unpinned = { ...source.Unpinned, name: "收起侧栏 · 保留展开入口" }
+export const Peek = { ...source.Peek, name: "悬停开关 · 临时展开" }

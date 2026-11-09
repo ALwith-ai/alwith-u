@@ -33,10 +33,13 @@ const binaryAssets = new Map<string, Uint8Array>()
 export const virtualFiles = new Map<string, Uint8Array>()
 const folders = new Set<string>()
 let version = 1
+let cancelPendingSave: (() => void) | null = null
 export async function resetFiles(empty = false, binary = false, kind: FileCase = "ready"): Promise<void> {
+  cancelPendingSave?.()
+  cancelPendingSave = null
   mode = kind
   if (binary && !binaryAssets.size) {
-    for (const name of ["sample.pdf", "sample.docx", "sample.xlsx", "sample.tiff", "sample.wav", "sample.webm"]) {
+    for (const name of ["sample.pdf", "sample.docx", "sample.xlsx", "sample.pptx", "sample.tiff", "sample.wav", "sample.webm"]) {
       const response = await fetch(`/storybook-fixtures/${name}`)
       if (!response.ok) throw new Error(`Missing synthetic preview asset: ${name}`)
       binaryAssets.set(`samples/${name}`, new Uint8Array(await response.arrayBuffer()))
@@ -78,7 +81,18 @@ export function fileRequest(request: NativeRequest): unknown {
     mode = "ready"
     throw new Error(`模拟文件操作失败: ${operation}`)
   }
-  if (operation === "writeFile" && mode === "savePending") return new Promise(() => {})
+  if (operation === "writeFile" && mode === "savePending") {
+    mode = "ready"
+    return new Promise<void>((resolve) => {
+      const timer = setTimeout(() => {
+        cancelPendingSave = null
+        virtualFiles.set(path, new Uint8Array(request.data ?? []))
+        version++
+        resolve()
+      }, 10000)
+      cancelPendingSave = () => { clearTimeout(timer); resolve() }
+    })
+  }
   if (operation === "stat")
     return virtualFiles.has(path)
       ? { kind: "file", size: virtualFiles.get(path)!.length, version: String(version) }

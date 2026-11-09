@@ -18,7 +18,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Source components with isolated in-memory host data. Every example can be reset by selecting it again."
+          "使用真实产品组件和独立的内存模拟数据。重新选择示例即可重置页面状态。"
       }
     }
   },

@@ -4,7 +4,7 @@ import * as source from "../pages/model-menu-details.stories.tsx"
 const meta = {
   ...source.default,
   id: "page-model-menu-details-2",
-  title: "页面/主窗聊天/模型菜单/页面状态"
+  title: "页面/主窗聊天/模型菜单"
 }
 export default meta
 

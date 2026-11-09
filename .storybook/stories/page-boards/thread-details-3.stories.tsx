@@ -4,7 +4,7 @@ import * as source from "../pages/thread-details.stories.tsx"
 const meta = {
   ...source.default,
   id: "page-thread-details-3",
-  title: "页面/主窗聊天/滚动与错误保留/页面状态"
+  title: "页面/主窗聊天/滚动与错误保留"
 }
 export default meta
 

@@ -6,7 +6,7 @@ import { productPreviewArgTypes } from "../preview-options"
 import { ProductPreview } from "../product-preview"
 
 const meta = {
-  title: "流程/账号与登录/登录状态",
+  title: "流程/注册登录/登录状态",
   component: ProductPreview,
   loaders: [preparePreview],
   args: { page: "login", authenticated: false },
@@ -17,7 +17,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Source components with isolated in-memory host data. Every example can be reset by selecting it again."
+          "使用真实产品组件和独立的内存模拟数据。重新选择示例即可重置页面状态。"
       }
     }
   },

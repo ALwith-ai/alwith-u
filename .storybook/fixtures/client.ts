@@ -1,9 +1,10 @@
 import type { SessionRunState } from "@alwith/api"
 import type { Session } from "@alwith/module-chat/client"
-import { applyUpdate, createSession, isSelectOption, isText } from "@alwith/module-chat/client"
+import { applyUpdate, codexTurnId, createSession, isSelectOption, isText } from "@alwith/module-chat/client"
 import { useStore } from "zustand"
 
 import { type AppState, CodexClient } from "../../src/agent/client"
+import { forkTitle } from "../../src/agent/fork-title"
 import {
   assistantMessage,
   configOptions,
@@ -341,16 +342,28 @@ const deleteSession: typeof client.delete = (id) => {
   actionsTaken.push({ type: "delete", id })
   return Promise.resolve()
 }
-client.fork = (id, cwd) => {
+export let forkScenario: "ready" | "pending" | "error" = "ready"
+export function setForkScenario(value: typeof forkScenario): void { forkScenario = value }
+client.fork = (id, cwd, options) => {
+  const turnId = typeof options === "string" ? options : options?.lastTurnId
+  if (forkScenario === "pending") return new Promise(() => {})
+  if (forkScenario === "error") return Promise.resolve("storybook-missing-fork")
   const next = `${id}-fork-${++sequence}`
+  const source = client.session(id)
+  const boundary = turnId ? source.items.findLastIndex((item) => codexTurnId(item._meta) === turnId) : source.items.length - 1
+  const originTurnId = turnId ?? source.items.slice(0, boundary + 1).map((item) => codexTurnId(item._meta)).findLast((id) => id !== null) ?? null
+  if (boundary < 0) return Promise.reject(new Error("Fork turn is unavailable"))
+  const title = forkTitle(source.title ?? "新聊天", [...client.state.sessionList, ...client.state.archivedSessions].flatMap((row) => row.title ? [row.title] : []))
   publish({
-    ...client.session(id),
+    ...source,
+    items: source.items.slice(0, boundary + 1).map((item) => ({ ...item, replayed: true })),
     id: next,
     cwd,
     readOnly: false,
     attached: true,
-    title: `${client.session(id).title} · 分支`
+    title
   })
+  client.store.setState((state) => ({ forkOrigins: { ...state.forkOrigins, [next]: { sourceId: id, boundaryTurnId: originTurnId } } }))
   client.includeSession({
     sessionId: next,
     cwd,

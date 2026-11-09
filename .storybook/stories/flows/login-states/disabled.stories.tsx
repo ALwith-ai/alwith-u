@@ -10,7 +10,7 @@ const config = { labels, id: "workflow-login-states-disabled" }
 const meta = {
   ...base,
   id: "workflow-login-states-disabled",
-  title: "流程/账号与登录/登录状态/06 停用账号提示",
+  title: "流程/注册登录/登录状态/06 停用账号提示",
   loaders: [prepareWorkflow],
   render: (args, context) => (
     <WorkflowPreview
