@@ -134,6 +134,7 @@
     },
   },
   "patchedDependencies": {
+    "vite@8.3.7": "patches/vite@8.3.7.patch",
     "@alwith/module-file-tree@0.6.1": "patches/@alwith%2Fmodule-file-tree@0.6.1.patch",
   },
   "overrides": {

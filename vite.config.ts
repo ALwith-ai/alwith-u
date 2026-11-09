@@ -7,6 +7,7 @@ import react from "@vitejs/plugin-react"
 import { defineConfig, type UserConfig } from "vite"
 
 import { loadAppEnv } from "./scripts/lib/app-env.ts"
+import { dependencyPatchReload } from "./scripts/lib/dependency-patches.ts"
 import { moduleIdentityGuard } from "./scripts/lib/module-identity.ts"
 import { productionJsxGuard } from "./scripts/lib/production-jsx.ts"
 
@@ -21,6 +22,7 @@ export const config = (mode = "development"): UserConfig => ({
     react(),
     tailwindcss(),
     desktopShellPages(),
+    dependencyPatchReload(),
     productionJsxGuard(),
     moduleIdentityGuard()
   ],

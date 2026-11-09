@@ -1,5 +1,5 @@
 diff --git a/dist/node/chunks/node.js b/dist/node/chunks/node.js
-index f60f0b5227c69d4676884a4ff7fb1f40c660d074..9d976740c3958ab7421d6ea520be03653835972b 100644
+index 51580d61df0c53a2cd8ae7edc8f92545a5a9cd9c..53460baa52d10aee2893c150a20f439897edacfe 100644
 --- a/dist/node/chunks/node.js
 +++ b/dist/node/chunks/node.js
 @@ -34291,7 +34291,7 @@ The app bundles dependencies which contain the following licenses:
