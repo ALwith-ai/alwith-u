@@ -19,7 +19,7 @@ hasgard-testing = ["dep:tauri-plugin-hasgard"]
 [dependencies]
 alwith-enterprise-client = { path = "../node_modules/@alwith/enterprise-client/rust" }
 alwith-editor = "0.6"
-alwith-desktop-shell = "0.6"
+alwith-desktop-shell = "0.6.4"
 keepawake = "0.6"
 alwith-browser = "0.6"
 alwith-mobile = "0.6"

@@ -15,7 +15,6 @@ export type Preferences = {
   chatWindowShortcut?: string
   lastProjectDirectory: string | null
   language: string | null
-  zoomLevel: number | null
   /** Explicit model choices are independent for the main and floating chat slots. */
   modelSelections: { main: string | null; chat: string | null }
   /** Sounds the user-message navigation rail plays (ALwith Desktop's navigation melody). */
@@ -31,7 +30,6 @@ const preferenceKeys: Record<keyof Preferences, string> = {
   chatWindowShortcut: "chat.windowShortcut",
   lastProjectDirectory: "general.lastProjectDirectory",
   language: "general.language",
-  zoomLevel: "appearance.zoomLevel",
   modelSelections: "chat.modelSelections",
   navigationSoundMode: "chat.navigationSoundMode",
   navigationInstrument: "chat.navigationInstrument",
@@ -50,7 +48,6 @@ export async function loadPreferences(): Promise<Preferences> {
   const [
     lastProjectDirectory,
     language,
-    zoomLevel,
     modelSelections,
     navigationSoundMode,
     navigationInstrument,
@@ -59,7 +56,6 @@ export async function loadPreferences(): Promise<Preferences> {
   ] = await Promise.all([
     store.get<string>("lastProjectDirectory"),
     store.get<string>("language"),
-    store.get<number>("zoomLevel"),
     store.get<Preferences["modelSelections"]>("modelSelections"),
     store.get<NavigationSoundMode>("navigationSoundMode"),
     store.get<NavigationInstrument>("navigationInstrument"),
@@ -85,7 +81,6 @@ export async function loadPreferences(): Promise<Preferences> {
     chatWindowShortcut: (await store.get<string>("chatWindowShortcut")) ?? "Alt+Space",
     lastProjectDirectory: restoredDirectory,
     language: language ?? null,
-    zoomLevel: zoomLevel ?? null,
     modelSelections: modelSelections ?? { main: null, chat: null },
     navigationSoundMode: navigationSoundMode ?? "scale",
     navigationInstrument: navigationInstrument ?? "acoustic_grand_piano",

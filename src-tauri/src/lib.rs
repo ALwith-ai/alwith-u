@@ -18,8 +18,6 @@ mod enterprise;
 mod extension_capabilities;
 mod extension_inbox;
 mod extension_wire;
-#[cfg(target_os = "macos")]
-mod fullscreen_controls;
 mod gamepad;
 mod html_preview;
 mod imports;
@@ -113,7 +111,7 @@ pub fn run() {
         .plugin(tauri_plugin_global_shortcut::Builder::new().build());
 
     #[cfg(target_os = "macos")]
-    let builder = builder.plugin(tauri_nspanel::init()).plugin(fullscreen_controls::init());
+    let builder = builder.plugin(tauri_nspanel::init());
 
     #[cfg(target_os = "windows")]
     let builder = builder.plugin(tauri_plugin_decoration::init());
@@ -204,12 +202,6 @@ pub fn run() {
     let builder = builder.plugin(tauri_plugin_hasgard::init());
 
     let app = builder
-        .on_window_event(|window, event| {
-            #[cfg(target_os = "macos")]
-            fullscreen_controls::on_window_event(window, event);
-            #[cfg(not(target_os = "macos"))]
-            let _ = (window, event);
-        })
         .on_menu_event(|app, event| {
             if event.id().0 == menu::QUIT_ID {
                 app.exit(0);
@@ -271,17 +263,9 @@ pub fn run() {
         })
         .invoke_handler({
             let typed = bindings().invoke_handler();
-            #[cfg(target_os = "macos")]
-            let binary: fn(tauri::ipc::Invoke) -> bool =
-                tauri::generate_handler![settings::settings_request, fullscreen_controls::set_traffic_light_zoom];
-            #[cfg(not(target_os = "macos"))]
             let binary: fn(tauri::ipc::Invoke) -> bool = tauri::generate_handler![settings::settings_request];
             move |invoke| {
-                if matches!(invoke.message.command(), "settings_request" | "set_traffic_light_zoom") {
-                    binary(invoke)
-                } else {
-                    typed(invoke)
-                }
+                if invoke.message.command() == "settings_request" { binary(invoke) } else { typed(invoke) }
             }
         })
         .build(context)
@@ -430,9 +414,6 @@ pub fn bindings() -> tauri3_specta::Bindings {
             .event::<menu::EditRedo>()
             .event::<menu::CommandPalette>()
             .event::<menu::OpenHotkeys>()
-            .event::<menu::ZoomIn>()
-            .event::<menu::ZoomOut>()
-            .event::<menu::ActualSize>()
         };
     }
     commands![]

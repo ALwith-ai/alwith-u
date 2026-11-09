@@ -96,7 +96,6 @@ const windowPreferences: Preferences = {
   sidebarPinned: false,
   lastProjectDirectory: "/tmp/window-original",
   language: "en",
-  zoomLevel: null,
   modelSelections: { main: null, chat: null },
   navigationSoundMode: "none",
   navigationInstrument: "acoustic_grand_piano",

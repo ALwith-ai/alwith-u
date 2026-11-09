@@ -37,9 +37,9 @@ pub fn event_name(id: &str) -> Option<&'static str> {
         EDIT_REDO_ID => <EditRedo as tauri3_specta::Event>::NAME,
         COMMAND_PALETTE_ID => <CommandPalette as tauri3_specta::Event>::NAME,
         OPEN_HOTKEYS_ID => <OpenHotkeys as tauri3_specta::Event>::NAME,
-        ZOOM_IN_ID => <ZoomIn as tauri3_specta::Event>::NAME,
-        ZOOM_OUT_ID => <ZoomOut as tauri3_specta::Event>::NAME,
-        ACTUAL_SIZE_ID => <ActualSize as tauri3_specta::Event>::NAME,
+        ZOOM_IN_ID => "alwith-shell:zoom-in",
+        ZOOM_OUT_ID => "alwith-shell:zoom-out",
+        ACTUAL_SIZE_ID => "alwith-shell:actual-size",
         _ => return None,
     })
 }
@@ -272,18 +272,6 @@ pub struct CommandPalette;
 pub struct OpenHotkeys;
 
 #[derive(Clone, serde::Serialize, specta::Type, tauri3_specta::Event)]
-#[event(name = "menu:zoom-in")]
-pub struct ZoomIn;
-
-#[derive(Clone, serde::Serialize, specta::Type, tauri3_specta::Event)]
-#[event(name = "menu:zoom-out")]
-pub struct ZoomOut;
-
-#[derive(Clone, serde::Serialize, specta::Type, tauri3_specta::Event)]
-#[event(name = "menu:actual-size")]
-pub struct ActualSize;
-
-#[derive(Clone, serde::Serialize, specta::Type, tauri3_specta::Event)]
 #[event(name = "menu:project-tree")]
 pub struct ProjectTree;
 
@@ -301,6 +289,13 @@ pub struct ReopenTab;
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn zoom_menu_events_target_the_shared_shell() {
+        assert_eq!(super::event_name(super::ZOOM_IN_ID), Some("alwith-shell:zoom-in"));
+        assert_eq!(super::event_name(super::ZOOM_OUT_ID), Some("alwith-shell:zoom-out"));
+        assert_eq!(super::event_name(super::ACTUAL_SIZE_ID), Some("alwith-shell:actual-size"));
+    }
+
     #[test]
     fn editor_menu_events_target_tabs() {
         assert_eq!(super::event_name(super::NEW_TAB_ID), Some("menu:new-tab"));

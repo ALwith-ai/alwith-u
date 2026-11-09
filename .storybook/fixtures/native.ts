@@ -202,7 +202,7 @@ export function handleNativeRequest(command: string, payload?: unknown): unknown
     command === "workspace_watch" ||
     command === "attach_window_to_main" ||
     command === "workspace_dirty" ||
-    command === "set_traffic_light_zoom" ||
+    command === "plugin:alwith-desktop-shell|set_traffic_light_zoom" ||
     command === "plugin:webview|set_webview_zoom"
   )
     return

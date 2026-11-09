@@ -1,3 +1,4 @@
+import { useDesktopZoom } from "@alwith/module-desktop-shell/react"
 import { ThemeModePicker } from "@alwith/module-desktop-shell/settings"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -23,14 +24,13 @@ import {
   setNavigationInstrument,
   setNavigationSoundMode
 } from "@/features/chat/codex/navigation-sound-store"
-import { setZoomLevel, ZOOM_LEVELS, zoomStore } from "@/lib/zoom"
 
 import { SettingGroup, SettingRow } from "./shared"
 
 export function AppearanceSection() {
   const { t } = useTranslation()
   const { theme, setTheme } = useTheme()
-  const zoom = useStore(zoomStore, (state) => state.level)
+  const { level: zoom, levels: ZOOM_LEVELS, setLevel: setZoomLevel } = useDesktopZoom()
   const navigationInstrument = useStore(navigationSoundStore, (state) => state.instrument)
   const navigationSoundMode = useStore(navigationSoundStore, (state) => state.soundMode)
   const navigationInstrumentGroup = NAVIGATION_INSTRUMENT_GROUPS.find((group) =>

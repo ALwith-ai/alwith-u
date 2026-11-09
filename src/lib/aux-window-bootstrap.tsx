@@ -10,17 +10,16 @@ import { ErrorBoundary } from "@/components/error-boundary"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
-import { ZoomFeedback } from "@/features/appearance/zoom-feedback"
+import { DesktopZoomFeedback } from "@/features/appearance/desktop-zoom-feedback"
 import { AuthGate } from "@/features/auth/auth-gate"
 import { initPlatformAuth } from "@/features/auth/store"
 import { hydrateNavigationSound } from "@/features/chat/codex/navigation-sound-store"
 import { predictionPreference } from "@/features/chat/composer/prediction-preference"
+import { initializeZoom } from "@/lib/desktop-zoom"
 import { initI18n } from "@/lib/i18n"
 import { startPreferenceSync } from "@/lib/preference-sync"
 import { loadPreferences, type Preferences } from "@/lib/preferences"
 import { bootstrapSettings } from "@/lib/settings-store"
-import { hydrateZoom } from "@/lib/zoom"
-import { startZoomViewport } from "@/lib/zoom-viewport"
 import "../index.css"
 
 export function bootstrapAuxWindow(opts: {
@@ -44,8 +43,7 @@ export function bootstrapAuxWindow(opts: {
     const preferences = await loadPreferences()
     predictionPreference.setState({ enabled: preferences.composerPredictions ?? true })
     await initI18n(preferences.language)
-    if (opts.zoomControls) await startZoomViewport()
-    await hydrateZoom(preferences.zoomLevel)
+    await initializeZoom()
     hydrateNavigationSound({ soundMode: preferences.navigationSoundMode, instrument: preferences.navigationInstrument })
     void startPreferenceSync()
     await initPlatformAuth()
@@ -64,7 +62,7 @@ export function bootstrapAuxWindow(opts: {
               <ErrorBoundary>
                 <AuthGate auxiliary>
                   <Component preferences={preferences} />
-                  {opts.zoomControls ? <ZoomFeedback showFeedback={opts.zoomControls === "feedback"} /> : null}
+                  {opts.zoomControls ? <DesktopZoomFeedback showFeedback={opts.zoomControls === "feedback"} /> : null}
                 </AuthGate>
               </ErrorBoundary>
               {opts.toaster ? <Toaster position="top-center" /> : null}

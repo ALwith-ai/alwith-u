@@ -13,8 +13,8 @@ import { SidebarInset } from "@/components/ui/sidebar"
 
 import type { SessionSummary } from "../../src/agent/client"
 import { WindowsMainWindowShell } from "../../src/components/alwith-ui/windows-main-window-shell"
+import { DesktopZoomFeedback } from "../../src/features/appearance/desktop-zoom-feedback"
 import { WallpaperBackground } from "../../src/features/appearance/wallpaper/background"
-import { ZoomFeedback } from "../../src/features/appearance/zoom-feedback"
 import { AuthGate } from "../../src/features/auth/auth-gate"
 import { ChatWindow } from "../../src/features/chat-window/chat-window"
 import { ActionCard, ElicitationFormDialog } from "../../src/features/chat/action-card"
@@ -391,7 +391,7 @@ export function ProductPreview({
           </WallpaperBackground>
         </WindowsMainWindowShell>
       )}
-      {!["vibemonWindow", "vibemonBubble", "login"].includes(page) && <ZoomFeedback />}
+      {!["vibemonWindow", "vibemonBubble", "login"].includes(page) && <DesktopZoomFeedback />}
       <DriveDeleteConfirmation />
       <Toaster duration={Infinity} />
     </div>

@@ -3,20 +3,19 @@ import {
   type DesktopCanvasRegion,
   DesktopNavigationOverlayContext,
   type DesktopScreen,
-  DesktopWorkspace
+  DesktopWorkspace,
+  useDesktopZoom
 } from "@alwith/module-desktop-shell/react"
 import { MIN_PREVIEW_WIDTH } from "@nyssance/atlas/layout"
 import "@nyssance/atlas/styles.css"
 import { type ReactNode, useCallback, useContext, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
-import { useStore } from "zustand"
 
 import { type PreviewPane, PreviewPaneContext } from "@/features/workspace/preview-pane-context"
 import { openExternal } from "@/lib/open"
 import { savePreference } from "@/lib/preferences"
 import { useThreeFingerSwipeEnabled } from "@/lib/trackpad-preference"
-import { zoomStore } from "@/lib/zoom"
 
 export type MainScreen = DesktopScreen
 
@@ -58,7 +57,7 @@ export function MainSidebarLayout({
   children?: ReactNode
 }) {
   const { t, i18n } = useTranslation()
-  const zoom = useStore(zoomStore, (state) => state.level)
+  const { level: zoom } = useDesktopZoom()
   const trackpad = useThreeFingerSwipeEnabled()
   // Chat, then the preview the file workspace fills from inside chat; hidden until it opens.
   const [previewSlot, setPreviewSlot] = useState<HTMLElement | null>(null)

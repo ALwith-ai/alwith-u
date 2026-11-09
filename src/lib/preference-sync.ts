@@ -8,7 +8,6 @@ import { navigationSoundStore } from "@/features/chat/codex/navigation-sound-sto
 import { predictionPreference } from "@/features/chat/composer/prediction-preference"
 import i18n, { isLanguageCode } from "@/lib/i18n"
 import { type PreferenceChange, PREFERENCES_CHANGED } from "@/lib/preferences"
-import { syncZoomLevel } from "@/lib/zoom"
 
 import { setProjectAppPreference } from "./project-app-preference"
 
@@ -31,11 +30,6 @@ export function startPreferenceSync(): Promise<() => void> {
           case "language": {
             const language = change.value
             if (typeof language === "string" && isLanguageCode(language)) await i18n.changeLanguage(language)
-            return
-          }
-          case "zoomLevel": {
-            if (change.value !== null && typeof change.value !== "number") throw new Error("Invalid zoom preference")
-            await syncZoomLevel(change.value ?? 1)
             return
           }
           case "navigationSoundMode":

@@ -14,7 +14,7 @@ import { ErrorBoundary } from "@/components/error-boundary"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
-import { ZoomFeedback } from "@/features/appearance/zoom-feedback"
+import { DesktopZoomFeedback } from "@/features/appearance/desktop-zoom-feedback"
 import { AuthGate } from "@/features/auth/auth-gate"
 import { initPlatformAuth } from "@/features/auth/store"
 import { hydrateNavigationSound } from "@/features/chat/codex/navigation-sound-store"
@@ -24,13 +24,12 @@ import { reportExtensionError } from "@/features/extensions/runtime"
 import { startStartupImports } from "@/features/extensions/startup-import-control"
 import { initializeMobile } from "@/features/mobile/bridge"
 import { initializeVibemonMain } from "@/features/vibemon/main-host"
+import { initializeZoom } from "@/lib/desktop-zoom"
 import { initI18n } from "@/lib/i18n"
 import { startPreferenceSync } from "@/lib/preference-sync"
 import { loadPreferences } from "@/lib/preferences"
 import { bootstrapSettings } from "@/lib/settings-store"
 import { showStartupFailure, startupStep } from "@/lib/startup-step"
-import { hydrateZoom } from "@/lib/zoom"
-import { startZoomViewport } from "@/lib/zoom-viewport"
 import "./index.css"
 
 const driveNotices = {
@@ -86,8 +85,7 @@ async function bootstrap(): Promise<void> {
     void startupStep("computer", restoreComputer).catch((error: unknown) => surfaceGlobalError(describe(error)))
     void startStartupImports().catch(reportExtensionError)
   }
-  await startupStep("viewport", startZoomViewport)
-  await startupStep("zoom", () => hydrateZoom(preferences.zoomLevel))
+  await startupStep("zoom", initializeZoom)
   hydrateNavigationSound({ soundMode: preferences.navigationSoundMode, instrument: preferences.navigationInstrument })
   void startPreferenceSync()
   await startupStep("auth listeners", initPlatformAuth)
@@ -104,7 +102,7 @@ async function bootstrap(): Promise<void> {
                 <WindowsMainWindowShell>
                   <AuthGate>
                     <App initialPreferences={preferences} />
-                    <ZoomFeedback />
+                    <DesktopZoomFeedback />
                   </AuthGate>
                 </WindowsMainWindowShell>
               </DriveNotificationProvider>

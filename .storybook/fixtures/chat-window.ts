@@ -23,7 +23,6 @@ export const previewPreferences: Preferences = {
   sidebarPinned: true,
   lastProjectDirectory: PROJECT_DIRECTORY,
   language: "zh-CN",
-  zoomLevel: null,
   modelSelections: { main: null, chat: null },
   navigationSoundMode: "none",
   navigationInstrument: "acoustic_grand_piano",

@@ -391,27 +391,6 @@ export const events = {
     once: (handler: __t3Callback<OpenHotkeys>) => __t3Once<OpenHotkeys>("menu:open-hotkeys", handler),
     emit: (payload: OpenHotkeys) => __t3Emit("menu:open-hotkeys", payload),
     emitTo: (target: string | __t3Target, payload: OpenHotkeys) => __t3EmitTo(target, "menu:open-hotkeys", payload)
-  },
-  "menu:zoom-in": {
-    name: "menu:zoom-in",
-    listen: (handler: __t3Callback<ZoomIn>) => __t3Listen<ZoomIn>("menu:zoom-in", handler),
-    once: (handler: __t3Callback<ZoomIn>) => __t3Once<ZoomIn>("menu:zoom-in", handler),
-    emit: (payload: ZoomIn) => __t3Emit("menu:zoom-in", payload),
-    emitTo: (target: string | __t3Target, payload: ZoomIn) => __t3EmitTo(target, "menu:zoom-in", payload)
-  },
-  "menu:zoom-out": {
-    name: "menu:zoom-out",
-    listen: (handler: __t3Callback<ZoomOut>) => __t3Listen<ZoomOut>("menu:zoom-out", handler),
-    once: (handler: __t3Callback<ZoomOut>) => __t3Once<ZoomOut>("menu:zoom-out", handler),
-    emit: (payload: ZoomOut) => __t3Emit("menu:zoom-out", payload),
-    emitTo: (target: string | __t3Target, payload: ZoomOut) => __t3EmitTo(target, "menu:zoom-out", payload)
-  },
-  "menu:actual-size": {
-    name: "menu:actual-size",
-    listen: (handler: __t3Callback<ActualSize>) => __t3Listen<ActualSize>("menu:actual-size", handler),
-    once: (handler: __t3Callback<ActualSize>) => __t3Once<ActualSize>("menu:actual-size", handler),
-    emit: (payload: ActualSize) => __t3Emit("menu:actual-size", payload),
-    emitTo: (target: string | __t3Target, payload: ActualSize) => __t3EmitTo(target, "menu:actual-size", payload)
   }
 } as const
 
@@ -419,8 +398,6 @@ export type Account = {
   apiBaseUrl: string
   userUuid: string
 }
-
-export type ActualSize = null
 
 export type AutostartStatus = {
   supported: boolean
@@ -690,7 +667,3 @@ export type TrackpadGesture_Serialize = {
 }
 
 export type Value = null | boolean | number | string | Value[] | { [key in string]: Value }
-
-export type ZoomIn = null
-
-export type ZoomOut = null

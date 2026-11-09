@@ -1,7 +1,7 @@
+import { zoomIn, zoomLevel } from "@alwith/module-desktop-shell/zoom"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { expect, waitFor, within } from "storybook/test"
 
-import { zoomIn, zoomStore } from "../../../src/lib/zoom"
 import { client } from "../../fixtures/client"
 import { preparePreview } from "../../fixtures/prepare"
 import { productPreviewArgTypes } from "../preview-options"
@@ -121,6 +121,6 @@ export const ZoomFeedback: Story = {
     const body = within(canvasElement.ownerDocument.body)
     await body.findByText("110%")
     await userEvent.click(body.getByRole("button", { name: /重置|还原|实际大小/ }))
-    await waitFor(() => expect(zoomStore.getState().level).toBe(1))
+    await waitFor(() => expect(zoomLevel()).toBe(1))
   }
 }

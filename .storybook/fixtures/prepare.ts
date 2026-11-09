@@ -1,4 +1,5 @@
 import { drafts } from "@alwith/module-chat/conversation"
+import { resetZoom } from "@alwith/module-desktop-shell/zoom"
 import { toast } from "sonner"
 import type { LoaderFunction } from "storybook/internal/types"
 
@@ -9,7 +10,6 @@ import { pluginsStore } from "../../src/features/plugins/instance"
 import { createPluginsStore } from "../../src/features/plugins/store"
 import { useSessionsUiStore } from "../../src/features/sessions/store"
 import { settingsStore } from "../../src/lib/settings-store"
-import { zoomStore } from "../../src/lib/zoom"
 import { type AuthCase, demoUser, resetAuth, usePlatformAuth } from "./auth"
 import { type ChatCase, makeSession, pendingAction, PROJECT_DIRECTORY, QUICK_DIRECTORY } from "./catalog"
 import { resetChatWindow } from "./chat-window"
@@ -85,7 +85,7 @@ export const preparePreview: LoaderFunction = async ({ args, globals }) => {
   resetNative(state.providerCase, state.voiceCase, globals.theme === "dark" ? "dark" : "light")
   resetGamepad(state.gamepadCase)
   installNativeMock(state.platform)
-  zoomStore.setState({ level: 1, interaction: 0 })
+  await resetZoom()
   wallpaperController.bind().show(
     state.wallpaper
       ? {

@@ -1,9 +1,9 @@
+import { setZoomLevel } from "@alwith/module-desktop-shell/zoom"
 import { act, cleanup, render } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
 import { MainSidebarLayout } from "@/features/layout/components/main-sidebar-layout"
 import { initI18n } from "@/lib/i18n"
-import { zoomStore } from "@/lib/zoom"
 
 const { native, fullscreen, stop, resized } = vi.hoisted(() => ({
   native: vi.fn(() => true),
@@ -17,6 +17,7 @@ vi.mock("@tauri-apps/api/core", async (importOriginal) => ({
 }))
 vi.mock("@tauri-apps/api/webviewWindow", () => ({
   getCurrentWebviewWindow: () => ({
+    setZoom: vi.fn(async () => {}),
     isFullscreen: fullscreen,
     onResized: (callback: () => void) => {
       resized.callback = callback
@@ -25,12 +26,14 @@ vi.mock("@tauri-apps/api/webviewWindow", () => ({
   })
 }))
 
+vi.mock("@tauri-apps/api/event", () => ({ emit: vi.fn(async () => {}) }))
+
 await initI18n("en")
-beforeEach(() => {
+beforeEach(async () => {
   vi.clearAllMocks()
   native.mockReturnValue(true)
   fullscreen.mockResolvedValue(false)
-  zoomStore.setState({ level: 1, interaction: 0 })
+  await setZoomLevel(1)
   vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel")
 })
 afterEach(() => {
@@ -54,7 +57,7 @@ test("macOS chrome moves left in fullscreen on both screens and restores its zoo
   })
   expect(root?.style.getPropertyValue("--sidebar-toggle-left")).toBe("8px")
   view.rerender(layout("leading"))
-  act(() => zoomStore.setState({ level: 2 }))
+  await act(() => setZoomLevel(2))
   expect(root?.style.getPropertyValue("--sidebar-toggle-left")).toBe("8px")
   fullscreen.mockResolvedValue(false)
   await act(() => {

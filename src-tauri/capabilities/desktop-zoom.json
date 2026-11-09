@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "desktop-zoom",
+  "description": "Keep native window controls aligned with the shared page zoom",
+  "windows": ["main", "settings", "chat", "guide", "gamepad", "vibemon", "bubble-menu-vibemon"],
+  "permissions": ["alwith-desktop-shell:allow-set-traffic-light-zoom"]
+}

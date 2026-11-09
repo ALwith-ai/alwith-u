@@ -1,22 +1,25 @@
 import { DesktopExtensionControlsContext as WindowsExtensionControlsContext } from "@alwith/module-desktop-shell/react"
+import { setZoomLevel } from "@alwith/module-desktop-shell/zoom"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { type ReactElement, useContext } from "react"
 import { createPortal } from "react-dom"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
-import { zoomStore } from "@/lib/zoom"
-
 import { WindowsMainWindowShell } from "../windows-main-window-shell"
 
 const native = vi.hoisted(() => ({ os: "windows", tauri: true }))
 vi.mock("@tauri-apps/api/core", () => ({ isTauri: () => native.tauri }))
+vi.mock("@tauri-apps/api/webviewWindow", () => ({
+  getCurrentWebviewWindow: () => ({ setZoom: vi.fn(async () => {}) })
+}))
+vi.mock("@tauri-apps/api/event", () => ({ emit: vi.fn(async () => {}) }))
 vi.mock("@tauri-apps/plugin-os", () => ({ platform: () => native.os }))
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string): string => key }) }))
 
-beforeEach(() => {
+beforeEach(async () => {
   native.os = "windows"
   native.tauri = true
-  zoomStore.setState({ level: 1 })
+  await setZoomLevel(1)
 })
 afterEach(cleanup)
 
@@ -68,8 +71,8 @@ test("Windows reserves plugin controls without drawing a second button set", () 
   expect(screen.getByRole("main")).toHaveTextContent("Content")
 })
 
-test("plugin titlebar height follows page zoom", () => {
-  zoomStore.setState({ level: 2 })
+test("plugin titlebar height follows page zoom", async () => {
+  await setZoomLevel(2)
   render(
     <WindowsMainWindowShell>
       <main>Content</main>
