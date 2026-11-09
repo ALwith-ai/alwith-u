@@ -26,7 +26,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@agentclientprotocol/sdk": "^2.4.0",
+    "@agentclientprotocol/sdk": "^2.5.0",
     "@alwith/api": "^0.6.1",
     "@alwith/enterprise-client": "0.6.2",
     "@alwith/module-auth": "^0.6.1",
