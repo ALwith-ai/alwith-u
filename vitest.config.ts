@@ -21,6 +21,7 @@ export default mergeConfig(
           inline: [
             "@nyssance/atlas",
             "@alwith/module-fs",
+            "@alwith/module-file-tree",
             "@alwith/module-installed-apps",
             "@alwith/module-gamepad",
             "@alwith/module-auth",

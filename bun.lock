@@ -133,6 +133,9 @@
       },
     },
   },
+  "patchedDependencies": {
+    "@alwith/module-file-tree@0.6.1": "patches/@alwith%2Fmodule-file-tree@0.6.1.patch",
+  },
   "overrides": {
     "effect": "^4.0.6",
   },
