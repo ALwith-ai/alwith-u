@@ -39,7 +39,7 @@
     "@alwith/module-drive": "^0.6.2",
     "@alwith/module-editor": "^0.6.1",
     "@alwith/module-extension": "^0.6.0",
-    "@alwith/module-file-tree": "^0.6.0",
+    "@alwith/module-file-tree": "^0.6.1",
     "@alwith/module-fs": "^0.6.2",
     "@alwith/module-gamepad": "^0.6.1",
     "@alwith/module-installed-apps": "^0.6.1",
