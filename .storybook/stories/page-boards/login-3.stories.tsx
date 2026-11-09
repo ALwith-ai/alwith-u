@@ -4,10 +4,12 @@ import * as source from "../pages/login.stories.tsx"
 const meta = {
   ...source.default,
   id: "page-login-3",
-  title: "页面/账号与登录/验证码登录"
+  title: "页面/注册登录/密码登录/正常主流程"
 }
 export default meta
 
-export const Waitlisted = { ...source.Waitlisted, name: "候补名单" }
-export const Disabled = { ...source.Disabled, name: "账号已停用" }
-export const WrongCode = { ...source.WrongCode, name: "验证码错误或已过期" }
+export const Password = { ...source.Password, name: "01 打开密码登录" }
+export const PasswordEmail = { ...source.PasswordEmail, name: "02 填写邮箱" }
+export const PasswordFilled = { ...source.PasswordFilled, name: "03 填写密码 · 待登录" }
+export const PasswordSigningIn = { ...source.PasswordSigningIn, name: "04 正在登录" }
+export const PasswordSuccess = { ...source.PasswordSuccess, name: "05 登录成功 · 进入主窗" }

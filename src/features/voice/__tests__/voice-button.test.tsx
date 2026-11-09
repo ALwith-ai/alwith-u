@@ -215,6 +215,23 @@ test("a cancelled pending settings read cannot fail the next recording", async (
   expect(screen.getByRole("button", { name: "voice.stop" })).toBeEnabled()
 })
 
+test("an unconfigured selected voice provider opens voice settings without starting capture", async () => {
+  fake.profiles.mockResolvedValue({ vui: false, doubao: false })
+  render(
+    <VoiceButton
+      draft={new RevisionDraft("unconfigured", "", [0, 0])}
+      cwd="/tmp"
+      enabled
+      cancelRef={{ current: null }}
+      waitForTurn={async () => {}}
+      supportsHandsfree
+    />
+  )
+  fireEvent.click(screen.getByRole("button", { name: "voice.start" }))
+  await waitFor(() => expect(fake.openSettings).toHaveBeenCalledExactlyOnceWith("voice"))
+  expect(fake.instances).toHaveLength(0)
+})
+
 test("a late unconfigured profile cannot replace the active recording", async () => {
   let resolveOld!: (profiles: { vui: boolean; doubao: boolean }) => void
   fake.profiles.mockImplementationOnce(

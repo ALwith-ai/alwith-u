@@ -4,8 +4,11 @@ import * as source from "../pages/browser-bridge.stories.tsx"
 const meta = {
   ...source.default,
   id: "page-browser-bridge-1",
-  title: "页面/主窗整体/浏览器连接/页面操作"
+  title: "页面/右侧隐藏屏/浏览器连接"
 }
 export default meta
 
-export const NotInstalled = { ...source.NotInstalled, name: "未安装连接器" }
+export const NotInstalled = { ...source.NotInstalled, name: "01 扩展未安装" }
+export const Disabled = { ...source.Disabled, name: "02 开关关闭 · 扩展已安装，控制未启用" }
+export const Disconnected = { ...source.Disconnected, name: "03 开关打开 · 控制已启用，连接未建立" }
+export const Connected = { ...source.Connected, name: "04 已连接" }

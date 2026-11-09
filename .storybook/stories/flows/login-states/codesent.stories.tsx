@@ -10,7 +10,7 @@ const config = { labels, id: "workflow-login-states-codesent" }
 const meta = {
   ...base,
   id: "workflow-login-states-codesent",
-  title: "流程/账号与登录/登录状态/04 验证码发送冷却",
+  title: "流程/注册登录/登录状态/04 验证码发送冷却",
   loaders: [prepareWorkflow],
   render: (args, context) => (
     <WorkflowPreview

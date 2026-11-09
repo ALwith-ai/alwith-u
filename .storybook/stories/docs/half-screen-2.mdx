@@ -1,0 +1,16 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import * as Stories from '../page-boards/trailing-board-2.stories';
+
+<Meta of={Stories} name="说明文档" />
+
+# 工具窗口：不显示与显示
+
+## 01 不显示工具窗口卡片
+
+设置、聊天浮窗、用户指南和 Gamepad 均未打开或已隐藏时，不显示工具窗口卡片。桌宠休息区仍按自身状态显示。
+
+## 02 显示工具窗口卡片
+
+四类窗口都存在且可见时，同时显示四张真实卡片，顺序为：设置、聊天浮窗、用户指南、Gamepad。实际使用中只显示符合条件的窗口。
+
+点击卡片唤回对应窗口。悬停或键盘聚焦后显示关闭按钮，点击关闭相应窗口并移除卡片。上方卡片区域可滚动，下方桌宠休息区保持原有定位。

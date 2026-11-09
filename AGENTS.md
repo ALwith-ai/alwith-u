@@ -173,3 +173,26 @@ Develop, debug and validate with local candidate packages in isolated environmen
 ## Shared chat dependency boundary
 
 Application code imports the client and session projections from `@alwith/module-chat/client`, import helpers from `@alwith/module-chat/import`, and adapter staging from `@alwith/module-chat/stage`. The shared chat package owns codex-acp; do not declare it directly or locate its files through the application's node_modules. The adapter still owns protocol implementation, and Runtime owns agent processes.
+
+## Refresh previews after every change
+
+- After every change affecting the product UI or Storybook, proactively refresh the affected open page and verify that the latest change is visible before reporting completion. Do not wait for the user to request a refresh.
+- Keep the relevant preview service running. If hot reload does not update the page, refresh explicitly; if the service is stale, restart the current project's service and reload the affected page. Storybook navigation labels and generated story changes must also appear in the running preview.
+- Verify the displayed result after refresh; a dispatched refresh action, successful build, or HTTP response alone does not prove that the page shows the latest change. Keep the verified page open for the user.
+- If computer access is unavailable or refresh cannot be verified, state the specific blocker and clearly mark visual verification as incomplete. Follow the active computer-tool rules; never substitute an unauthorized automation channel.
+
+Origin: explicit user instruction (2026-11-03).
+
+## Verify the live Storybook catalog before reporting completion
+
+For every Storybook change, follow this sequence:
+
+1. Update the source stories and their generated page-board exports together. Run `bun run storybook:check`.
+2. Read `/index.json` from the running preview. Check the affected story IDs, names and category paths against the intended result. Added stories must be present; renamed stories must have their new names; removed stories must be absent. HTTP 200 alone is insufficient.
+3. If the catalog is stale or indexing fails, inspect the response and server logs, confirm that the listener belongs to this checkout, restart that preview service, then recheck `/index.json`. Do this before repeatedly refreshing the browser. Do not assume hot reload has reindexed story exports or file additions/deletions.
+4. Open the affected stories in the browser, refresh and inspect the resulting screenshots. Verify every requested state against the actual product component and its conditions, including content, counts, expanded/collapsed behavior, menus and dialogs as applicable. Confirm that the browser sidebar also shows the current catalog. Keep the checked page open.
+5. Report completion only after both the live catalog and rendered states are verified. Distinguish source/type-check results, catalog verification and visual verification; none substitutes for another. If a step is blocked, report the specific blocker and the unfinished step without claiming full parity or asking the user to perform the verification themselves.
+
+When browser control is slow or an action is unverified, inspect the result before retrying. Use the server catalog and logs to diagnose stale/missing stories first; avoid repeated blind clicks, navigation or refresh loops. Follow the active computer-tool restrictions and stop computer actions on connection failure or revocation.
+
+Origin: explicit user instruction following stale Storybook catalog verification (2026-11-03).

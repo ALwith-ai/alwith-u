@@ -9,7 +9,7 @@ export const productPreviewArgTypes = {
   wallpaper: { control: "select", options: [undefined, "cover", "contain", "error"] },
   composerCase: {
     control: "select",
-    options: ["ready", "textPending", "textError", "mentionEmpty", "mentionError", "prediction", "predictionError"]
+    options: ["ready", "textPending", "textError", "mentionEmpty", "mentionError", "prediction"]
   },
   fileCase: {
     control: "select",
@@ -51,7 +51,8 @@ export const productPreviewArgTypes = {
     ]
   },
   chatCase: { control: "select", options: [...chatCases] },
-  sidebarView: { control: "inline-radio", options: ["sessions", "activity", "drive"] },
+  floatingChatCase: { control: "select", options: [undefined, ...chatCases] },
+  sidebarView: { control: "inline-radio", options: ["collections", "sessions", "activity", "drive"] },
   sidebarPinned: { control: "boolean" },
   connection: { control: "select", options: ["ready", "connecting", "disconnected", "failed"] },
   response: { control: "select", options: ["complete", "permission", "question", "error"] },
@@ -175,7 +176,11 @@ export const productPreviewArgTypes = {
       "registered",
       "network",
       "wrongCode",
-      "wrongPassword"
+      "wrongPassword",
+      "checkingEmail",
+      "emailCheckNetwork",
+      "emptyFailure",
+      "sessionFailure"
     ]
   },
   accountCase: {
@@ -218,7 +223,7 @@ export const productPreviewArgTypes = {
     control: "select",
     options: ["disabled", "idle", "starting", "recording", "transcribing", "error", "unconfigured", "noSpeech"]
   },
-  chatDetail: { control: "select", options: [undefined, "usage", "usageWarning", "usageFull", "fork"] },
+  chatDetail: { control: "select", options: [undefined, "usage", "usageWarning", "usageCritical", "usageFull", "fork"] },
   accountSignedIn: { control: "boolean" },
   companyAccount: { control: "boolean" },
   emptyThreads: { control: "boolean" },

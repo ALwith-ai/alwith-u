@@ -5,7 +5,7 @@ import { preparePreview } from "../../fixtures/prepare"
 import { ProductPreview } from "../product-preview"
 const meta = {
   id: "页面-聊天-语音输入",
-  title: "页面/主窗聊天/语音输入",
+  title: "页面/主窗聊天/输入框/02 输入框功能/04 语音输入",
   component: ProductPreview,
   loaders: [preparePreview],
   args: { page: "chat", chatCase: "conversation", voiceCase: "idle" },
@@ -61,4 +61,3 @@ export const NoSpeech: Story = {
     await within(canvasElement.ownerDocument.body).findByText("未识别到语音，已停止录音")
   }
 }
-export const Unconfigured: Story = { name: "语音未配置 · 跳转设置", args: { voiceCase: "unconfigured" } }

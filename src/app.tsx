@@ -16,13 +16,12 @@ import { watchSessionList } from "@/agent/session-list-refresh"
 import { events } from "@/bindings"
 import { Pane } from "@/components/alwith-ui/pane"
 import { toolboxContentClassName } from "@/components/alwith-ui/toolbox-layout"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Button } from "@/components/ui/button"
 import { SidebarInset } from "@/components/ui/sidebar"
 import { WallpaperBackground } from "@/features/appearance/wallpaper/background"
 import { useSidebarChatWindow } from "@/features/chat-window/use-sidebar-chat-window"
 import { ActionCard, ElicitationFormDialog } from "@/features/chat/action-card"
 import { ChatView } from "@/features/chat/chat-view"
+import { ConnectionNotice } from "@/features/chat/connection-notice"
 import { DRAFT_SESSION_ID, DraftChat } from "@/features/chat/draft-chat"
 import { newChatDirectory } from "@/features/chat/new-chat-directory"
 import { ChatProjectMenu } from "@/features/chat/project-session-popover"
@@ -506,22 +505,6 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   }, [newChat])
 
   const main = (() => {
-    // The engine starts in the background; the home screen is there from the first frame, as
-    // in Desktop and the official app. Only a failed or dropped connection says so, inline.
-    const connectionNotice =
-      connection === "failed" || connection === "disconnected" ? (
-        <div className="mx-auto w-full max-w-3xl px-6 pt-12">
-          <Alert variant="destructive">
-            <AlertTitle>{connection === "failed" ? t("connection.failed") : t("connection.disconnected")}</AlertTitle>
-            <AlertDescription className="flex flex-wrap items-center gap-2">
-              {connectionError !== null && <span className="font-mono">{connectionError}</span>}
-              <Button size="sm" variant="outline" onClick={() => void connect()}>
-                {t("connection.reconnect")}
-              </Button>
-            </AlertDescription>
-          </Alert>
-        </div>
-      ) : null
     if (view === "story") return <StoryPage />
     // Keyed: the thread and the composer keep per-session state (draft, scroll memory) and start fresh per session.
     const moveToWindow = (): void => {
@@ -570,8 +553,8 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
         />
       )
     return (
-      <>
-        {connectionNotice}
+      <div className="relative flex min-h-0 flex-1 flex-col">
+        <ConnectionNotice connection={connection} error={connectionError} onReconnect={connect} />
         <DraftChat
           collectionId={draftCollection?.generation === surfaceGeneration ? draftCollection.id : undefined}
           owner="main"
@@ -597,7 +580,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           runOperation={operation.run}
           onOpenWindow={moveToWindow}
         />
-      </>
+      </div>
     )
   })()
 

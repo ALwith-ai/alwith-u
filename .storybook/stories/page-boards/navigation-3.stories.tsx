@@ -4,9 +4,25 @@ import * as source from "../pages/navigation.stories.tsx"
 const meta = {
   ...source.default,
   id: "page-navigation-3",
-  title: "页面/主窗整体/导航与项目/页面状态"
+  title: "页面/侧栏导航/03 聊天浮窗",
+  parameters: {
+    ...source.default.parameters,
+    docs: {
+      ...source.default.parameters.docs,
+      description: {
+        ...source.default.parameters.docs.description,
+        component: source.pageDocumentation["03 聊天浮窗"] ?? source.default.parameters.docs.description.component
+      }
+    }
+  }
 }
 export default meta
 
-export const PersonalAccount = { ...source.PersonalAccount, name: "个人账号导航" }
-export const Hotkeys = { ...source.Hotkeys, name: "快捷键" }
+export const OpenFloating = { ...source.OpenFloating, name: "首次打开 · 新建浮窗聊天" }
+export const OpenFloatingRunning = { ...source.OpenFloatingRunning, name: "生成中唤回 · 保留当前进度" }
+export const OpenFloatingTools = { ...source.OpenFloatingTools, name: "执行工具时唤回 · 保留执行状态" }
+export const OpenFloatingCompleted = { ...source.OpenFloatingCompleted, name: "完成后唤回 · 查看回答并继续聊" }
+export const OpenFloatingCancelled = { ...source.OpenFloatingCancelled, name: "主动中断后唤回 · 保留已有内容" }
+export const OpenFloatingStopped = { ...source.OpenFloatingStopped, name: "停止会话后唤回 · 查看保留记录" }
+export const OpenFloatingPermission = { ...source.OpenFloatingPermission, name: "待确认时唤回 · 处理权限请求" }
+export const OpenFloatingError = { ...source.OpenFloatingError, name: "出错后唤回 · 查看错误信息" }

@@ -4,7 +4,7 @@ import * as source from "../pages/markdown-details.stories.tsx"
 const meta = {
   ...source.default,
   id: "page-markdown-details-1",
-  title: "页面/主窗聊天/内容排版/页面状态"
+  title: "页面/主窗聊天/内容排版"
 }
 export default meta
 

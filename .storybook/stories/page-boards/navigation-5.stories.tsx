@@ -4,9 +4,19 @@ import * as source from "../pages/navigation.stories.tsx"
 const meta = {
   ...source.default,
   id: "page-navigation-5",
-  title: "页面/主窗整体/导航与项目/页面操作"
+  title: "页面/侧栏导航/05 工具箱",
+  parameters: {
+    ...source.default.parameters,
+    docs: {
+      ...source.default.parameters.docs,
+      description: {
+        ...source.default.parameters.docs.description,
+        component: source.pageDocumentation["05 工具箱"] ?? source.default.parameters.docs.description.component
+      }
+    }
+  }
 }
 export default meta
 
-export const AccountMenu = { ...source.AccountMenu, name: "用户菜单" }
-export const ProjectPicker = { ...source.ProjectPicker, name: "选择项目" }
+export const Toolbox = { ...source.Toolbox, name: "已安装扩展" }
+export const ToolboxEmpty = { ...source.ToolboxEmpty, name: "尚未安装扩展" }

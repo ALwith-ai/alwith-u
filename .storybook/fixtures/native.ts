@@ -1,9 +1,10 @@
-import type { NativeRequest } from "@alwith/module-fs/tauri"
+import { setTrailingScenario, trailingRequest } from "./trailing-board"
+import type { NativeRequest } from "./filesystem"
 import { emit } from "@tauri-apps/api/event"
 import { mockIPC, mockWindows } from "@tauri-apps/api/mocks"
 
 import { version } from "../../package.json"
-import type { ComputerStatus } from "../../src/bindings"
+import type { ComputerStatus_Serialize as ComputerStatus } from "@alwith/module-computer/commands"
 import type { ProviderSnapshot } from "../../src/lib/providers"
 import type { SettingsRequest } from "../../src/lib/settings-store"
 import { PROJECT_DIRECTORY, QUICK_DIRECTORY } from "./catalog"
@@ -11,7 +12,7 @@ import { consumeTextAttachmentFault } from "./composer"
 import { extensionRequest } from "./extensions"
 import { fileRequest, virtualFiles } from "./filesystem"
 import { gamepadRequest, resetGamepad } from "./gamepad"
-import { resetUpdater, restartPreview } from "./updater"
+import { resetUpdater, restartPreview, updaterState } from "./updater"
 import { resetVoice, type VoiceCase, voiceRequest } from "./voice"
 
 export let providers: ProviderSnapshot = {
@@ -55,6 +56,7 @@ export function resetNative(
   voice: VoiceCase = "disabled",
   theme: "light" | "dark" = "light"
 ): void {
+  setTrailingScenario(null)
   providerMode = kind
   resetVoice(voice)
   resetUpdater()
@@ -98,6 +100,8 @@ export function setComputerStatus(patch: Partial<ComputerStatus>): void {
   computerStatus = { ...computerStatus, ...patch }
 }
 
+let nativeMockInstalled = false
+
 export function installNativeMock(os: "macos" | "windows" | "linux" = "macos"): void {
   Object.defineProperty(navigator, "platform", {
     configurable: true,
@@ -124,13 +128,43 @@ export function installNativeMock(os: "macos" | "windows" | "linux" = "macos"): 
       eol: "\n"
     }
   })
-  mockIPC(handleNativeRequest, { shouldMockEvents: true })
+  if (!nativeMockInstalled) {
+    mockIPC(handleNativeRequest, { shouldMockEvents: true })
+    nativeMockInstalled = true
+  }
 }
 
 export function handleNativeRequest(command: string, payload?: unknown): unknown {
   const args = (payload ?? {}) as Record<string, unknown>
   nativeCalls.push({ command, payload })
+  const trailing = trailingRequest(command, args)
+  if (trailing) return trailing.value
   if (command === "plugin:log|log" || command === "plugin:app|set_app_theme") return
+  if (command === "parse_spreadsheet") {
+    return import("xlsx").then((xlsx) => {
+      const book = xlsx.read(new Uint8Array(args.bytes as number[]), { type: "array", cellText: true, codepage: 65001 })
+      return {
+        date1904: Boolean(book.Workbook?.WBProps?.date1904),
+        sheets: book.SheetNames.map((name) => {
+          const sheet = book.Sheets[name]!
+          const range = xlsx.utils.decode_range(sheet["!ref"] ?? "A1:A1")
+          const rows: Record<number, { cells: Record<number, { text: string; number: number | null; style: null }> }> = {}
+          for (const address of Object.keys(sheet)) {
+            if (address.startsWith("!")) continue
+            const cell = sheet[address]!
+            const { r, c } = xlsx.utils.decode_cell(address)
+            rows[r] ??= { cells: {} }
+            rows[r].cells[c] = { text: xlsx.utils.format_cell(cell), number: typeof cell.v === "number" ? cell.v : null, style: null }
+          }
+          return {
+            name, rows, rowCount: range.e.r + 1, columnCount: range.e.c + 1,
+            styles: [], merges: (sheet["!merges"] ?? []).map(({ s, e }) => [s.r, s.c, e.r, e.c]), truncated: false
+          }
+        })
+      }
+    })
+  }
+  if (command === "codex_status") return { version: "0.166.0", local: null }
   if (command === "plugin:app|version") return version
   if (command === "plugin:app|identifier") return "ai.alwith.u.storybook"
   if (command === "plugin:window|get_all_windows") return ["main", "settings", "gamepad", "guide", "chat"]
@@ -159,6 +193,12 @@ export function handleNativeRequest(command: string, payload?: unknown): unknown
     virtualFiles.set(path, new TextEncoder().encode(String(args.text)))
     return path
   }
+  if (command === "chat_read_image") {
+    const path = String(args.path)
+    const bytes = virtualFiles.get(path)
+    if (!bytes || !path.endsWith(".svg")) throw new Error(`Image not found: ${path}`)
+    return { data: btoa(new TextDecoder().decode(bytes)), mimeType: "image/svg+xml" }
+  }
   if (command === "chat_read_dropped_file") {
     const path = String(args.path)
     const bytes = virtualFiles.get(path)
@@ -185,7 +225,38 @@ export function handleNativeRequest(command: string, payload?: unknown): unknown
     return { kind: "text", text: new TextDecoder().decode(bytes) }
   }
   if (command === "draft_directory") return args.cwd ?? QUICK_DIRECTORY
+  if (command === "workspace_apply_patches") {
+    const patches = args.patches as { oldPath: string; newPath: string; patch: string }[]
+    const reverse = Boolean(args.reverse)
+    const applied: number[] = []
+    const indices = patches.map((_, index) => index)
+    if (reverse) indices.reverse()
+    for (const index of indices) {
+      const entry = patches[index]
+      const path = reverse ? entry.newPath : entry.oldPath
+      const text = new TextDecoder().decode(virtualFiles.get(path) ?? new Uint8Array())
+      const oldLine = entry.patch.split("\n").find((line) => line.startsWith("-") && !line.startsWith("---"))?.slice(1)
+      const newLine = entry.patch.split("\n").find((line) => line.startsWith("+") && !line.startsWith("+++"))?.slice(1)
+      if (oldLine === undefined || newLine === undefined) throw new Error("Unsupported Storybook patch")
+      const from = reverse ? newLine : oldLine
+      const to = reverse ? oldLine : newLine
+      if (!text.includes(from)) {
+        const relative = path.slice(`${PROJECT_DIRECTORY}/`.length)
+        return { applied, failed: { index, message: `error: patch failed: ${relative}:1\nerror: ${relative}: patch does not apply\n` } }
+      }
+      virtualFiles.set(path, new TextEncoder().encode(text.replace(from, to)))
+      applied.push(index)
+    }
+    return { applied, failed: null }
+  }
   if (command === "workspace_open") return args.path ?? PROJECT_DIRECTORY
+  if (command.startsWith("plugin:alwith-fs|workspace_")) {
+    const operation = command.slice("plugin:alwith-fs|workspace_".length)
+    const mapping: Record<string, string> = { stat: "stat", read_directory: "readDirectory", read_file: "readFile", write_file: "writeFile", create_directory: "createDirectory", move: "move", copy: "copy", remove: "remove" }
+    if (mapping[operation]) return fileRequest({ ...args, operation: mapping[operation] } as NativeRequest)
+    if (operation === "watch") return
+    if (operation === "open") return args.path
+  }
   if (command === "workspace_file") return fileRequest(args.request as NativeRequest)
   if (command === "show_main_window") {
     navigatePreview("chat")
@@ -299,8 +370,11 @@ export function handleNativeRequest(command: string, payload?: unknown): unknown
     return
   if (command === "plugin:path|resolve_directory") return "/Users/demo/Library/Application Support/ALwith U"
   if (command === "plugin:path|join") return (args.paths as string[]).join("/")
-  if (command === "updater_get_state") return { type: "idle" }
-  if (command === "updater_install_and_relaunch") {
+  if (command === "plugin:alwith-desktop-shell|status")
+    return { platform: "macos", backdrop: "opaque", updates: true }
+  if (command === "plugin:alwith-desktop-shell|updater_state" || command === "plugin:alwith-desktop-shell|updater_check") return updaterState
+  if (command === "updater_get_state") return updaterState
+  if (command === "updater_install_and_relaunch" || command === "plugin:alwith-desktop-shell|updater_install_and_relaunch") {
     restartPreview()
     return
   }
@@ -315,7 +389,7 @@ export function handleNativeRequest(command: string, payload?: unknown): unknown
   if (command === "extension_cleanup_grants" || command === "extension_inbox_finish") return
   if (command === "extension_inbox_scan" || command === "extension_inbox_scan_extension")
     return { operationId: "storybook-inbox", tasks: [], errors: [] }
-  if (command === "plugin:extension|dispatch")
+  if (command === "plugin:alwith-extension|dispatch")
     return extensionRequest(args.request as Parameters<typeof extensionRequest>[0])
   if (command === "gamepad_permission") return { supported: true, authorized: true, mayPrompt: false, known: true }
   if (command === "gamepad_capture") return

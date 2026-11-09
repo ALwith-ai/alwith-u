@@ -10,7 +10,7 @@ const config = { labels, id: "workflow-account-waitlisted" }
 const meta = {
   ...base,
   id: "workflow-account-waitlisted",
-  title: "流程/账号与登录/05 账号开通等待",
+  title: "流程/注册登录/05 账号开通等待",
   loaders: [prepareWorkflow],
   render: (args, context) => (
     <WorkflowPreview

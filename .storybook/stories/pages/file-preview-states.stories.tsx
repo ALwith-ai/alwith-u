@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
+import { toast } from "sonner"
 import { expect, waitFor, within } from "storybook/test"
 
 import { PROJECT_DIRECTORY } from "../../fixtures/catalog"
@@ -11,7 +12,7 @@ import { workflowAction } from "../workflow-driver"
 
 const meta = {
   id: "页面-文件工作区-文档媒体与异常",
-  title: "页面/文件树和预览区/文档媒体与异常",
+  title: "页面/文件树和预览区/页面状态",
   component: ProductPreview,
   loaders: [preparePreview],
   args: { page: "chat", chatCase: "files", binaryFiles: true },
@@ -21,6 +22,7 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 export const Pdf: Story = {
+  parameters: { pageStateGroup: "01 文件预览/01 可以正常预览" },
   name: "PDF · 两页文档",
   args: { file: "samples/sample.pdf" },
   play: async ({ canvasElement }) => {
@@ -31,6 +33,7 @@ export const Pdf: Story = {
   }
 }
 export const Word: Story = {
+  parameters: { pageStateGroup: "01 文件预览/01 可以正常预览" },
   name: "Word · DOCX 文档",
   args: { file: "samples/sample.docx" },
   play: async ({ canvasElement }) => {
@@ -44,6 +47,7 @@ export const Word: Story = {
   }
 }
 export const Excel: Story = {
+  parameters: { pageStateGroup: "01 文件预览/01 可以正常预览", docs: { description: { story: "桌面应用通过原生解析器解析表格。Storybook 使用浏览器解析样例文件，仅用于展示表格与工作表操作；复杂格式样式可能与桌面不同。" } } },
   name: "Excel · 多工作表",
   args: { file: "samples/sample.xlsx" },
   play: async ({ canvasElement }) => {
@@ -52,6 +56,7 @@ export const Excel: Story = {
   }
 }
 export const ExcelSwitch: Story = {
+  parameters: { pageStateGroup: "02 文件操作/01 常用操作" },
   ...Excel,
   name: "Excel · 切换工作表",
   play: async ({ canvasElement, userEvent }) => {
@@ -60,6 +65,7 @@ export const ExcelSwitch: Story = {
   }
 }
 export const Tiff: Story = {
+  parameters: { pageStateGroup: "01 文件预览/01 可以正常预览" },
   name: "TIFF 图片",
   args: { file: "samples/sample.tiff" },
   play: async ({ canvasElement }) => {
@@ -70,6 +76,7 @@ export const Tiff: Story = {
   }
 }
 export const Audio: Story = {
+  parameters: { pageStateGroup: "01 文件预览/01 可以正常预览" },
   name: "音频 · WAV 播放器",
   args: { file: "samples/sample.wav" },
   play: async ({ canvasElement }) => {
@@ -78,6 +85,7 @@ export const Audio: Story = {
   }
 }
 export const Video: Story = {
+  parameters: { pageStateGroup: "01 文件预览/01 可以正常预览" },
   name: "视频 · WebM 播放器",
   args: { file: "samples/sample.webm" },
   play: async ({ canvasElement }) => {
@@ -86,20 +94,21 @@ export const Video: Story = {
   }
 }
 export const LegacyWord: Story = {
+  parameters: { pageStateGroup: "01 文件预览/02 无法正常预览" },
   name: "旧版 Word · 外部打开提示",
   args: { file: "samples/legacy.doc" },
   play: async ({ canvas }) => {
     await canvas.findByText("旧版 Word 文件需要使用外部应用打开。")
   }
 }
-export const Unsupported: Story = {
-  name: "不支持的二进制预览",
-  args: { file: "samples/unsupported.bin" },
-  play: async ({ canvas }) => {
-    await canvas.findByText("此文件没有可用的预览。")
-  }
+export const PowerPoint: Story = {
+  name: "PowerPoint · 不支持预览",
+  parameters: { pageStateGroup: "01 文件预览/02 无法正常预览" },
+  args: { file: "samples/sample.pptx" },
+  play: async ({ canvas }) => { await canvas.findByText("此文件没有可用的预览。") }
 }
 export const CorruptPdf: Story = {
+  parameters: { pageStateGroup: "01 文件预览/02 无法正常预览" },
   name: "PDF 损坏 · 解析失败",
   args: { file: "samples/corrupt.pdf" },
   play: async ({ canvasElement }) => {
@@ -107,6 +116,7 @@ export const CorruptPdf: Story = {
   }
 }
 export const ReadError: Story = {
+  parameters: { pageStateGroup: "01 文件预览/02 无法正常预览" },
   name: "文件读取失败",
   args: { file: "notes.txt", fileCase: "readError", binaryFiles: false },
   play: async ({ canvasElement }) => {
@@ -114,6 +124,7 @@ export const ReadError: Story = {
   }
 }
 export const SaveError: Story = {
+  parameters: { pageStateGroup: "02 文件操作/02 异常与恢复" },
   name: "保存失败 · 保留更改",
   args: { file: "notes.txt", fileCase: "saveError", binaryFiles: false },
   play: async ({ canvasElement, userEvent }) => {
@@ -129,7 +140,8 @@ export const SaveError: Story = {
 }
 export const SaveRetry: Story = {
   ...SaveError,
-  name: "保存失败 → 再次保存成功",
+  name: "再次保存成功 · 未保存标记消失",
+  parameters: { pageStateGroup: "02 文件操作/02 异常与恢复", docs: { description: { story: "再次保存成功后，文件标签的未保存标记消失；正式页面没有单独的成功提示。示例在保存成功后清除此前的失败提示。" } } },
   play: async (context) => {
     await SaveError.play!(context)
     await context.userEvent.keyboard("{Meta>}s{/Meta}")
@@ -138,10 +150,13 @@ export const SaveRetry: Story = {
         "保存失败后仍可编辑"
       )
     )
+    toast.dismiss()
+    await waitFor(() => expect(within(context.canvasElement.ownerDocument.body).queryByText(/模拟文件操作失败/)).not.toBeInTheDocument())
   }
 }
 export const SavePending: Story = {
-  name: "保存处理中",
+  parameters: { pageStateGroup: "02 文件操作/02 异常与恢复" },
+  name: "保存处理中 · 菜单显示保存中",
   args: { file: "notes.txt", fileCase: "savePending", binaryFiles: false },
   play: async ({ canvasElement, userEvent }) => {
     const editor = await within(canvasElement).findByRole(
@@ -154,10 +169,16 @@ export const SavePending: Story = {
     await expect(new TextDecoder().decode(virtualFiles.get(`${PROJECT_DIRECTORY}/notes.txt`))).not.toContain(
       "等待保存完成"
     )
+    const panel = canvasElement.querySelector<HTMLElement>("#file-workspace-panel")
+    if (!panel) throw new Error("File workspace is missing")
+    const buttons = within(panel).getAllByRole("button", { name: "更多操作" })
+    await userEvent.click(buttons[0]!)
+    await expect(await within(canvasElement.ownerDocument.body).findByRole("menuitem", { name: "保存中…" })).toBeDisabled()
   }
 }
 export const MoveError: Story = {
-  name: "移动失败 · 原文件保留",
+  parameters: { pageStateGroup: "02 文件操作/02 异常与恢复" },
+  name: "移动失败 · 显示错误",
   args: { file: "notes.txt", fileCase: "moveError", binaryFiles: false },
   play: async ({ canvas, canvasElement, userEvent }) => {
     await userEvent.pointer({
@@ -174,7 +195,8 @@ export const MoveError: Story = {
   }
 }
 export const DeleteError: Story = {
-  name: "删除失败 · 原文件保留",
+  parameters: { pageStateGroup: "02 文件操作/02 异常与恢复" },
+  name: "删除失败 · 显示错误",
   args: { file: "notes.txt", fileCase: "deleteError", binaryFiles: false },
   play: async ({ canvas, canvasElement, userEvent }) => {
     await userEvent.pointer({

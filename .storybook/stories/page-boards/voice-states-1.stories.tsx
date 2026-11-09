@@ -4,7 +4,7 @@ import * as source from "../pages/voice-states.stories.tsx"
 const meta = {
   ...source.default,
   id: "page-voice-states-1",
-  title: "页面/主窗聊天/语音输入/默认状态"
+  title: "页面/主窗聊天/输入框/02 输入框功能/04 语音输入"
 }
 export default meta
 

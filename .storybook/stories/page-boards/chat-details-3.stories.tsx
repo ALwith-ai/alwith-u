@@ -4,7 +4,7 @@ import * as source from "../pages/chat-details.stories.tsx"
 const meta = {
   ...source.default,
   id: "page-chat-details-3",
-  title: "页面/主窗聊天/用量与诊断/页面操作"
+  title: "页面/主窗聊天/对话流/07 文件预览"
 }
 export default meta
 

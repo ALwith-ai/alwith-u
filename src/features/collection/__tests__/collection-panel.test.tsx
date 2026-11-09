@@ -90,3 +90,16 @@ test("collection rows receive their group and omit the global remove action", as
   expect(await screen.findByRole("menuitemradio", { name: "Work" })).toBeVisible()
   expect(screen.queryByRole("menuitem", { name: /Remove from all/ })).toBeNull()
 })
+
+test("favorite picker expands the real create-collection form", async () => {
+  const view = render(<CollectionPicker sessionId="one" favorite />)
+  const trigger = view.getByRole("button", { name: "Favorite" })
+  fireEvent.mouseEnter(trigger)
+  fireEvent.mouseMove(trigger)
+  fireEvent.click(await view.findByRole("menuitem", { name: "Create Collection" }))
+  const input = await view.findByRole("textbox", { name: "Collection name" })
+  const confirm = view.getByRole("button", { name: "Confirm" })
+  expect(confirm).toBeDisabled()
+  fireEvent.change(input, { target: { value: "Work" } })
+  expect(confirm).toBeEnabled()
+})

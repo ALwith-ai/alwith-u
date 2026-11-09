@@ -4,10 +4,20 @@ import * as source from "../pages/navigation.stories.tsx"
 const meta = {
   ...source.default,
   id: "page-navigation-2",
-  title: "页面/主窗整体/导航与项目/侧栏导航"
+  title: "页面/侧栏导航/02 搜索",
+  parameters: {
+    ...source.default.parameters,
+    docs: {
+      ...source.default.parameters.docs,
+      description: {
+        ...source.default.parameters.docs.description,
+        component: source.pageDocumentation["02 搜索"] ?? source.default.parameters.docs.description.component
+      }
+    }
+  }
 }
 export default meta
 
-export const Activity = { ...source.Activity, name: "活动 · 生成、待确认、完成" }
-export const EmptyActivity = { ...source.EmptyActivity, name: "活动 · 空" }
-export const Drive = { ...source.Drive, name: "云盘项目" }
+export const Palette = { ...source.Palette, name: "搜索入口 · 打开搜索与命令" }
+export const PaletteResults = { ...source.PaletteResults, name: "输入关键词 · 匹配聊天" }
+export const PaletteEmpty = { ...source.PaletteEmpty, name: "输入关键词 · 无匹配结果" }

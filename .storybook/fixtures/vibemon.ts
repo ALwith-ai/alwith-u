@@ -12,7 +12,7 @@ import {
   requestVibemonView
 } from "@alwith/module-auth/vibemon/core"
 
-import spriteConfig from "../../node_modules/@alwith/module-auth/assets/vibemon/vibemon/dino-sena-m/config.json"
+import spriteConfig from "../../node_modules/@alwith/module-auth/assets/vibemon/dino-sena-m/config.json"
 import { type BubbleCase, resetVibemonSession, vibemonSessions, vibemonWindows } from "./vibemon-session"
 
 const account: VibemonAccount = { apiHost: "api.example.test", userId: "storybook-user", revision: 1 }
@@ -25,7 +25,7 @@ const image = new URL(
   import.meta.url
 ).href
 const equipBackground = new URL(
-  "../../node_modules/@alwith/module-auth/assets/vibemon/vibemon/equip/page-bg.webp",
+  "../../node_modules/@alwith/module-auth/assets/vibemon/equip/page-bg.webp",
   import.meta.url
 ).href
 const pullBackground = new URL(
@@ -33,7 +33,7 @@ const pullBackground = new URL(
   import.meta.url
 ).href
 const spriteUrl = new URL(
-  "../../node_modules/@alwith/module-auth/assets/vibemon/vibemon/dino-sena-m/sprite-sheet.png",
+  "../../node_modules/@alwith/module-auth/assets/vibemon/dino-sena-m/sprite-sheet.png",
   import.meta.url
 ).href
 const storage = {
@@ -56,6 +56,7 @@ export type VibemonCase =
   | "drawError"
   | "insufficient"
   | "desktop"
+  | "hidden"
 export async function resetVibemon(kind: VibemonCase = "home", bubbleCase?: BubbleCase): Promise<void> {
   stopSettings()
   stop()
@@ -64,7 +65,7 @@ export async function resetVibemon(kind: VibemonCase = "home", bubbleCase?: Bubb
   storageValues = {
     "vibemon.accounts": {
       [scope]: {
-        vibemon: kind === "desktop" ? "vibemon-0" : "",
+        vibemon: kind === "desktop" || kind === "hidden" ? "vibemon-0" : "",
         enabled: kind === "desktop",
         position: { x: 300, y: 300 }
       }
@@ -108,7 +109,7 @@ export async function resetVibemon(kind: VibemonCase = "home", bubbleCase?: Bubb
     uuid: vibemon.vibemon_uuid,
     rarity_uuid: "demo-rarity",
     category_uuid: "demo-category",
-    resource_url: "/storybook-vibemon/vibemon/dino-sena-m",
+    resource_url: "/storybook-vibemon/dino-sena-m",
     resource_version: 1,
     sheet_url: spriteUrl,
     layout: JSON.stringify(layout),
