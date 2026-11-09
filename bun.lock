@@ -18,7 +18,7 @@
         "@alwith/module-drive": "^0.6.2",
         "@alwith/module-editor": "^0.6.1",
         "@alwith/module-extension": "^0.6.0",
-        "@alwith/module-file-tree": "^0.6.0",
+        "@alwith/module-file-tree": "^0.6.1",
         "@alwith/module-fs": "^0.6.2",
         "@alwith/module-gamepad": "^0.6.1",
         "@alwith/module-installed-apps": "^0.6.1",
@@ -168,7 +168,7 @@
 
     "@alwith/module-extension": ["@alwith/module-extension@0.6.0", "", { "dependencies": { "@babel/parser": "^8.1.0", "@base-ui/react": "^1.9.0", "class-variance-authority": "^0.7.1", "cn": "^0.5.2", "effect": "^4.1.2", "lucide-react": "^1.66.0", "semver": "^7.8.6" }, "peerDependencies": { "@tauri-apps/api": "^3.0.0-alpha.3", "@tauri-apps/plugin-http": "^3.0.0-alpha.1", "react": "^19.3.1", "react-dom": "^19.3.1" }, "optionalPeers": ["@tauri-apps/api", "@tauri-apps/plugin-http", "react", "react-dom"] }, "sha512-ZsAo01KmoM6on7st5e41y6B2pH5unMcVfnae28gmTWSbm+Ol3GS3oKlzVS9gsKDcGuJttqr0AH2PmpTHsC5SOw=="],
 
-    "@alwith/module-file-tree": ["@alwith/module-file-tree@0.6.0", "", { "dependencies": { "@alwith/module-fs": "^0.6.0", "@base-ui/react": "^1.9.0", "@iconify-json/vscode-icons": "1.2.95", "@iconify/react": "^6.0.4", "@tanstack/react-virtual": "^3.14.25", "@vscode/codicons": "^0.0.46-24", "lucide-react": "^1.66.0" }, "peerDependencies": { "react": "^19.3.1", "react-dom": "^19.3.1" } }, "sha512-64wCzI4JOKhRfat+YUcB2IzsoNNntiKNIHROIVBjBWQPb4PH8cS89HvlvGiGKbKZ4mZMeWydcvPvmW9Fev/BBQ=="],
+    "@alwith/module-file-tree": ["@alwith/module-file-tree@0.6.1", "", { "dependencies": { "@alwith/module-fs": "^0.6.0", "@base-ui/react": "^1.9.0", "@iconify-json/vscode-icons": "1.2.95", "@iconify/react": "^6.0.4", "@tanstack/react-virtual": "^3.14.26", "@vscode/codicons": "^0.0.46-24", "lucide-react": "^1.70.0" }, "peerDependencies": { "react": "^19.3.1", "react-dom": "^19.3.1" } }, "sha512-YfUPC/hxfGMQ2s9X23D3xy/PA5qP3kR/amwfUUpHcA7pGuNrbXoECgg1oWVxQPF9SX/LbFhUWjs/UDQtfe1RGQ=="],
 
     "@alwith/module-fs": ["@alwith/module-fs@0.6.2", "", { "peerDependencies": { "@tauri-apps/api": "^3.0.0-alpha.3" } }, "sha512-x4VeE/1UpxfiijOLZ4Y8MZGSBzXn5eaSI9hGB3wwfBTEFo6fXga2uZwwPpEAUfP91bBaLbqku66QIZcXXGxI4A=="],
 

@@ -1,10 +1,10 @@
+import type { DriveContentHost } from "@alwith/module-drive/content"
 import { commands } from "@alwith/module-editor/commands"
-import {
-  createPreviewProviders,
-  type NativeSpreadsheetWorkbook,
-  type PreviewHost
-} from "@alwith/module-editor/previews"
+import { type NativeSpreadsheetWorkbook, type PreviewHost } from "@alwith/module-editor/previews"
 import pdfWorkerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url"
+
+import { scopedDrivePreviewProviders } from "@/features/drive/preview-providers"
+
 async function parseSpreadsheet(
   bytes: Uint8Array,
   signal?: AbortSignal,
@@ -17,6 +17,9 @@ async function parseSpreadsheet(
   signal?.throwIfAborted()
   return result
 }
-export function localPreviewProviders(host: Omit<PreviewHost, "pdfWorkerSrc" | "parseSpreadsheet">) {
-  return createPreviewProviders({ ...host, pdfWorkerSrc, parseSpreadsheet })
+export function localPreviewProviders(
+  host: Omit<PreviewHost, "pdfWorkerSrc" | "parseSpreadsheet">,
+  contentHost: DriveContentHost
+) {
+  return scopedDrivePreviewProviders({ ...host, pdfWorkerSrc, parseSpreadsheet }, contentHost)
 }
