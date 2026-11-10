@@ -66,8 +66,9 @@ function PlatformLogin() {
     if (mode === "register" && (await authClient.emailExists(email.trim())).registered)
       throw new Error(t("platformAuth.registered"))
     await authClient.sendVerificationCode(email.trim(), mode === "register" ? "REGISTER" : "LOGIN")
-    setCooldowns((current) => ({ ...current, [cooldownKey]: Date.now() + 60_000 }))
-    setNow(Date.now())
+    const sentAt = Date.now()
+    setCooldowns((current) => ({ ...current, [cooldownKey]: sentAt + 60_000 }))
+    setNow(sentAt)
   }
   async function submit() {
     if (mode === "register" && !isValidPassword(password)) throw new Error(t("platformAuth.passwordRule"))
