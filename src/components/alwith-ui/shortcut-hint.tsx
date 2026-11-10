@@ -25,16 +25,18 @@ export function ShortcutHint({ label, shortcut }: { label: ReactNode; shortcut: 
 export function ShortcutTooltip({
   label,
   shortcut,
+  side,
   children
 }: {
   label: ReactNode
   shortcut: string
+  side?: ComponentProps<typeof TooltipContent>["side"]
   children: ReactElement
 }) {
   return (
     <Tooltip>
       <TooltipTrigger render={children} />
-      <TooltipContent role="tooltip">
+      <TooltipContent role="tooltip" side={side}>
         <ShortcutHint label={label} shortcut={shortcut} />
       </TooltipContent>
     </Tooltip>

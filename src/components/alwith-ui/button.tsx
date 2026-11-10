@@ -9,9 +9,13 @@ export function Button({
   className,
   variant = "default",
   shortcut,
+  tooltipSide,
   title,
   ...props
-}: ComponentProps<typeof BaseButton> & { shortcut?: string }) {
+}: ComponentProps<typeof BaseButton> & {
+  shortcut?: string
+  tooltipSide?: ComponentProps<typeof ShortcutTooltip>["side"]
+}) {
   const button = (
     <BaseButton {...props} title={shortcut === undefined ? title : undefined} variant={variant} className={className} />
   )
@@ -19,7 +23,7 @@ export function Button({
   const label = title ?? props["aria-label"]
   if (label === undefined) throw new Error("Shortcut buttons require a label")
   return (
-    <ShortcutTooltip label={label} shortcut={shortcut}>
+    <ShortcutTooltip label={label} shortcut={shortcut} side={tooltipSide}>
       {button}
     </ShortcutTooltip>
   )

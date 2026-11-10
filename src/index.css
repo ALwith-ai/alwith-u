@@ -101,6 +101,11 @@ pre,
     background: transparent;
   }
 }
+/* Account for the header buttons' own inset when aligning their icons to the surface gutter. */
+[data-main-chat-header] {
+  padding-inline: 8px;
+}
+
 /* All sidebar tabs share the host's horizontal inset, including the shared drive launcher. */
 .main-sidebar-panel .alwith-drive-launcher {
   padding-inline: 0;

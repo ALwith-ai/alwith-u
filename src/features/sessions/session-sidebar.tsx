@@ -210,7 +210,7 @@ function SidebarPanels({
     >
       <SidebarHeader className="desktop-shell-navigation-header shrink-0 gap-0.5" data-tauri-drag-region>
         <NavigationHeader
-          title={t("app.name")}
+          title={<span className="ps-2">{t("app.name")}</span>}
           actions={[
             {
               key: "search",
