@@ -215,11 +215,11 @@ export function DraftChat({
     }
     onSendingChange(target, true)
     try {
-      await inputMode?.saveForSession(target)
       const receipt = await (options === undefined
         ? client.prompt(target, prompt)
         : client.prompt(target, prompt, options))
       accept?.(receipt)
+      await inputMode?.saveForSession(target)
       if (collectionId !== undefined)
         reportCollection(dispatchCollection({ type: "add", collectionId, sessionId: target }))
     } finally {

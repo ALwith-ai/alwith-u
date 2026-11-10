@@ -12,7 +12,7 @@ import { DesktopCodexClient } from "../desktop-client"
 const initialFiles = vi.hoisted(() => vi.fn())
 vi.mock("../initial-file-results", () => ({ initialFileResults: initialFiles }))
 const inputModes = vi.hoisted(() => ({ delete: vi.fn<(id: string) => Promise<void>>() }))
-vi.mock("@/features/chat/composer/input-mode-preferences", () => ({ deleteSessionInputMode: inputModes.delete }))
+vi.mock("@/features/chat/composer/input-mode-config", () => ({ deleteSessionInputMode: inputModes.delete }))
 
 test("floating draft refreshes project context through its connected main owner", async () => {
   const fake = createFakeAgent()

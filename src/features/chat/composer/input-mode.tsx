@@ -13,7 +13,7 @@ import {
   readSessionInputMode,
   saveSessionImageSelection,
   saveSessionInputMode
-} from "./input-mode-preferences"
+} from "./input-mode-config"
 
 const InputModeContext = createContext<{
   mode: InputMode
@@ -68,7 +68,7 @@ export function MainInputModeProvider({
     }
   }, [draft, sessionId])
   const saveForSession = async (id: string) => {
-    await saveSessionInputMode(id, mode, selection)
+    await saveSessionInputMode(id, mode, mode === "image" ? selection : {})
     setRestored({ sessionId: id, mode, selection })
   }
   const [aspect, setAspect] = useState<ImageInputAspect>("auto")

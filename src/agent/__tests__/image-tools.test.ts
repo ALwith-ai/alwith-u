@@ -2,6 +2,7 @@ import type { ImageSelection } from "@alwith/module-chat/image"
 import { expect, test, vi } from "vitest"
 
 import { CodexClient } from "../client"
+import { resolveInputMode } from "../input-modes"
 import { createFakeAgent } from "./fake-agent"
 import { FakeHubPort } from "./fake-runtime-client"
 
@@ -149,7 +150,7 @@ test("aspect ratio is frozen per prompt and translated to instructions without i
     expect(result).toMatchObject({ success: true })
     expect(generateExternal).toHaveBeenCalledWith(
       { model: "doubao-seedream-4-5-251128", size: "2K" },
-      expect.stringContaining("aspect ratio of 16:9"),
+      expect.stringContaining("aspect ratio of 16:9") as unknown,
       [],
       expect.any(AbortSignal)
     )
@@ -206,10 +207,25 @@ test("image intent stays on its image session while ordinary chat uses native ge
     const ordinary = await client.newSession("/tmp")
     await client.prompt(ordinary, [{ type: "text", text: "Explain the result" }])
     const calls = request.mock.calls.filter((call) => call[1] === "session/prompt").map((call) => call[2])
-    expect(calls[0]).toMatchObject({ prompt, _meta: { alwith: { imageIntent: "generate" } } })
+    expect(calls[0]).toMatchObject({
+      prompt,
+      _meta: {
+        alwith: {
+          applicationContext: {
+            "alwith.imageIntent": expect.stringContaining("application generate_image tool") as unknown
+          }
+        }
+      }
+    })
     expect(calls[1]).toMatchObject({
       prompt: [{ type: "text", text: "Explain the result" }],
-      _meta: { alwith: { imageIntent: null } }
+      _meta: {
+        alwith: {
+          applicationContext: {
+            "alwith.imageIntent": expect.stringContaining("use the native image generation tool") as unknown
+          }
+        }
+      }
     })
   } finally {
     client.disconnect()
@@ -224,10 +240,19 @@ test("ordinary conversations do not advertise or execute the application image t
     const id = await client.newSession("/tmp")
     await client.prompt(id, [{ type: "text", text: "Draw a tree" }])
     const created = request.mock.calls.find((call) => call[1] === "session/new")?.[2]
-    expect(created).toMatchObject({ _meta: { alwith: { inputMode: "chat" } } })
+    expect(created).toMatchObject({ _meta: { alwith: { nativeTools: {} } } })
     expect(created).not.toHaveProperty("_meta.alwith.tools")
+    expect(created).toMatchObject({ _meta: { alwith: { nativeTools: {} } } })
     const prompt = request.mock.calls.find((call) => call[1] === "session/prompt")?.[2]
-    expect(prompt).toMatchObject({ _meta: { alwith: { imageIntent: null } } })
+    expect(prompt).toMatchObject({
+      _meta: {
+        alwith: {
+          applicationContext: {
+            "alwith.imageIntent": expect.stringContaining("use the native image generation tool") as unknown
+          }
+        }
+      }
+    })
     expect(prompt).not.toHaveProperty("_meta.alwith.imageSelection")
     expect(prompt).not.toHaveProperty("_meta.alwith.imageInstructions")
     // A tool left in an older rollout must not reach the configured provider.
@@ -244,7 +269,15 @@ test("ordinary conversations do not advertise or execute the application image t
       meta: { alwith: { imageIntent: "edit" } }
     })
     const prompts = request.mock.calls.filter((call) => call[1] === "session/prompt").map((call) => call[2])
-    expect(prompts.at(-1)).toMatchObject({ _meta: { alwith: { imageIntent: null } } })
+    expect(prompts.at(-1)).toMatchObject({
+      _meta: {
+        alwith: {
+          applicationContext: {
+            "alwith.imageIntent": expect.stringContaining("use the native image generation tool") as unknown
+          }
+        }
+      }
+    })
     expect(generateExternal).not.toHaveBeenCalled()
   } finally {
     client.disconnect()
@@ -261,7 +294,9 @@ test("restoring a saved image conversation restores its application tools before
     expect(inputMode).toHaveBeenCalledWith("saved-image")
     const setup = request.mock.calls.find((call) => call[1] === "session/resume")?.[2]
     expect(setup).toMatchObject({
-      _meta: { alwith: { inputMode: "image", tools: { definitions: [{ name: "generate_image" }] } } }
+      _meta: {
+        alwith: { nativeTools: { imageGeneration: false }, tools: { definitions: [{ name: "generate_image" }] } }
+      }
     })
     await client.prompt("saved-image", [{ type: "text", text: "Edit the image" }], {
       meta: { alwith: { imageIntent: "edit", imageSelection: { model: "doubao-seedream-5-0-pro-260628", size: "1K" } } }
@@ -296,7 +331,9 @@ test("changing the main draft mode replaces its tool registration and floating d
     const creations = request.mock.calls.filter((call) => call[1] === "session/new").map((call) => call[2])
     expect(creations[0]).not.toHaveProperty("_meta.alwith.tools")
     expect(creations[1]).toMatchObject({
-      _meta: { alwith: { inputMode: "image", tools: { definitions: [{ name: "generate_image" }] } } }
+      _meta: {
+        alwith: { nativeTools: { imageGeneration: false }, tools: { definitions: [{ name: "generate_image" }] } }
+      }
     })
     await expect(client.open(image, "/tmp", "chat")).rejects.toThrow("main window")
     await expect(client.transferDraft(image, "chat")).rejects.toThrow("main window")
@@ -304,7 +341,122 @@ test("changing the main draft mode replaces its tool registration and floating d
     const floating = await client.prepareDraft("chat", "/tmp")
     await client.prompt(floating, [{ type: "text", text: "Draw a tree" }])
     const prompts = request.mock.calls.filter((call) => call[1] === "session/prompt").map((call) => call[2])
-    expect(prompts.at(-1)).toMatchObject({ _meta: { alwith: { imageIntent: null } } })
+    expect(prompts.at(-1)).toMatchObject({
+      _meta: {
+        alwith: {
+          applicationContext: {
+            "alwith.imageIntent": expect.stringContaining("use the native image generation tool") as unknown
+          }
+        }
+      }
+    })
+  } finally {
+    client.disconnect()
+  }
+})
+
+test("reopening reads native mode and image selection without a UI read priming the client cache", async () => {
+  const { client, port, selection, inputMode, fake, generateExternal } = fixture()
+  inputMode.mockImplementation(async (id) => resolveInputMode((await client.readInputConfig(id)).inputConfig))
+  const request = vi.spyOn(port, "acpRequest")
+  const saved: ImageSelection = { model: "doubao-seedream-5-0-pro-260628", size: "2K" }
+  await client.connect()
+  try {
+    const id = await client.newSession("/tmp", { meta: { alwith: { inputMode: "image" } } })
+    await client.writeInputConfig(id, { mode: "image", config: saved })
+    await client.close(id)
+    selection.current = { model: "wham", size: "auto" }
+    await client.open(id, "/tmp")
+    const resumed = request.mock.calls.findLast((call) => call[1] === "session/resume")?.[2]
+    expect(resumed).toMatchObject({
+      _meta: {
+        alwith: { nativeTools: { imageGeneration: false }, tools: { definitions: [{ name: "generate_image" }] } }
+      }
+    })
+    await client.prompt(id, [{ type: "text", text: "A blue tree" }])
+    const sent = request.mock.calls.findLast((call) => call[1] === "session/prompt")?.[2]
+    expect(sent).toMatchObject({
+      sessionId: id,
+      _meta: {
+        alwith: {
+          applicationContext: {
+            "alwith.imageIntent": expect.stringContaining("application generate_image tool") as unknown
+          }
+        }
+      }
+    })
+    expect(sent).not.toHaveProperty("_meta.alwith.imageSelection")
+    expect(sent).not.toHaveProperty("_meta.alwith.imageIntent")
+    await fake.requestTool({
+      sessionId: id,
+      name: "generate_image",
+      toolSetRevision: "images-v1",
+      arguments: { prompt: "A blue tree" }
+    })
+    expect(generateExternal).toHaveBeenCalledWith(saved, "A blue tree", [], expect.any(AbortSignal))
+    expect(selection.current).toEqual({ model: "wham", size: "auto" })
+  } finally {
+    client.disconnect()
+  }
+})
+
+test("restoration reads mode before registering tools and never falls back after a read failure", async () => {
+  const { client, inputMode, port } = fixture()
+  const request = vi.spyOn(port, "acpRequest")
+  await client.connect()
+  try {
+    inputMode.mockRejectedValue(new Error("Native config read failed"))
+    await expect(client.open("unread", "/tmp")).rejects.toThrow("Native config read failed")
+    expect(request.mock.calls.filter((call) => call[1] === "session/resume")).toHaveLength(0)
+  } finally {
+    client.disconnect()
+  }
+})
+
+test("ordinary mode removes inherited application tools and execution overrides before creating the session", async () => {
+  const { client, port } = fixture()
+  const request = vi.spyOn(port, "acpRequest")
+  await client.connect()
+  try {
+    await client.newSession("/tmp", {
+      meta: {
+        alwith: {
+          inputMode: "chat",
+          nativeTools: { imageGeneration: false },
+          tools: { revision: "stale", definitions: [] }
+        }
+      }
+    })
+    const created = request.mock.calls.find((call) => call[1] === "session/new")?.[2]
+    expect(created).toMatchObject({ _meta: { alwith: { nativeTools: {} } } })
+    expect(created).not.toHaveProperty("_meta.alwith.tools")
+    expect(created).not.toHaveProperty("_meta.alwith.inputMode")
+  } finally {
+    client.disconnect()
+  }
+})
+
+test("ordinary restore stays native without writing a configuration even when recent image choices exist", async () => {
+  const { client, inputMode, port, selection } = fixture()
+  inputMode.mockImplementation(async (id) => resolveInputMode((await client.readInputConfig(id)).inputConfig))
+  const request = vi.spyOn(port, "acpRequest")
+  await client.connect()
+  try {
+    const id = await client.newSession("/tmp")
+    await client.close(id)
+    selection.current = { model: "doubao-seedream-5-0-pro-260628", size: "4K" }
+    await client.open(id, "/tmp")
+    await client.prompt(id, [{ type: "text", text: "Hello" }])
+    const restored = request.mock.calls.findLast((call) => call[1] === "session/resume")?.[2]
+    expect(restored).toMatchObject({ _meta: { alwith: { nativeTools: {} } } })
+    expect(restored).not.toHaveProperty("_meta.alwith.tools")
+    expect(request.mock.calls.filter((call) => call[1] === "_codex/session_input_config_set")).toHaveLength(0)
+    const prompt = request.mock.calls.findLast((call) => call[1] === "session/prompt")?.[2]
+    expect(prompt).toHaveProperty(
+      ["_meta", "alwith", "applicationContext", "alwith.imageIntent"],
+      expect.stringContaining("use the native image generation tool")
+    )
+    expect(prompt).not.toHaveProperty("_meta.alwith.imageSelection")
   } finally {
     client.disconnect()
   }

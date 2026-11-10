@@ -5,6 +5,7 @@ import { act, fireEvent, render, waitFor } from "@testing-library/react"
 import type { ComponentProps } from "react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
+import type { SessionInputConfig } from "@/agent/input-config"
 import { useImagePreferences } from "@/features/images/preferences"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
@@ -29,9 +30,10 @@ const savedModes = vi.hoisted(() => ({
   readImage: vi.fn<(id: string) => Promise<ImageSelection | undefined>>(),
   saveImage: vi.fn<(id: string, selection: ImageSelection) => Promise<void>>(),
   read: vi.fn<(id: string) => Promise<"chat" | "image">>(),
-  save: vi.fn<(id: string, mode: "chat" | "image", selection: ImageSelection) => Promise<void>>()
+  save: vi.fn<(id: string, mode: "chat" | "image", config: SessionInputConfig["config"]) => Promise<void>>()
 }))
-vi.mock("../composer/input-mode-preferences", () => ({
+vi.mock("../composer/input-mode-config", () => ({
+  configureSessionInputConfig: () => {},
   readSessionInputMode: savedModes.read,
   saveSessionInputMode: savedModes.save,
   readSessionImageSelection: savedModes.readImage,
@@ -58,8 +60,8 @@ beforeEach(() => {
     return Promise.resolve()
   })
   savedModes.read.mockReset().mockImplementation((id) => Promise.resolve(savedModes.values.get(id) ?? "chat"))
-  savedModes.save.mockReset().mockImplementation((id, mode, selection) => {
-    savedModes.images.set(id, selection)
+  savedModes.save.mockReset().mockImplementation((id, mode, config) => {
+    if (mode === "image") savedModes.images.set(id, config as ImageSelection)
     savedModes.values.set(id, mode)
     return Promise.resolve()
   })
@@ -113,9 +115,11 @@ test("image model and resolution restore per session while new drafts inherit th
   const selected: ImageSelection = { model: "doubao-seedream-5-0-pro-260628", size: "2K" }
   const draft = render(
     <MainInputModeProvider>
+      <MainInputModeSwitch />
       <ModeStatus />
     </MainInputModeProvider>
   )
+  fireEvent.click(draft.getByRole("button", { name: "Images" }))
   fireEvent.click(draft.getByRole("button", { name: "Select image model" }))
   fireEvent.click(draft.getByRole("button", { name: "Remember mode" }))
   await waitFor(() => expect(savedModes.images.get("image-session")).toEqual(selected))

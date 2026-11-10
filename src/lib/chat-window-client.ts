@@ -28,6 +28,8 @@ const METHODS = [
   "transferDraft",
   "fork",
   "readSessionSummary",
+  "readInputConfig",
+  "writeInputConfig",
   "listSessions",
   "listArchived",
   "open",
@@ -370,6 +372,12 @@ export class RemoteChatClient extends CodexClient {
     ...args: Parameters<CodexClient["refreshProjectContext"]>
   ): ReturnType<CodexClient["refreshProjectContext"]> {
     return this.request("refreshProjectContext", args)
+  }
+  override readInputConfig(...args: Parameters<CodexClient["readInputConfig"]>) {
+    return this.request("readInputConfig", args)
+  }
+  override writeInputConfig(...args: Parameters<CodexClient["writeInputConfig"]>) {
+    return this.request("writeInputConfig", args)
   }
   override listSessions(...args: Parameters<CodexClient["listSessions"]>): Promise<void> {
     return this.request("listSessions", args)

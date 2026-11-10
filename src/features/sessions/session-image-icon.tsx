@@ -1,21 +1,12 @@
-import type { RunState } from "@alwith/api"
-import { RUN_STATE_TEXT, SessionStateDot } from "@alwith/module-chat/session-list"
+import { RUN_STATE_TEXT } from "@alwith/module-chat/session-list"
 import { ImageIcon, MessageSquareIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
-import { type InputMode, watchSessionInputMode } from "@/features/chat/composer/input-mode-preferences"
+import { type InputMode, watchSessionInputMode } from "@/features/chat/composer/input-mode-config"
 
 /** Session presentation follows the native preference, including changes from other windows. */
-export function SessionImageIcon({
-  sessionId,
-  plain = false,
-  state
-}: {
-  sessionId: string
-  plain?: boolean
-  state?: RunState
-}) {
+export function SessionImageIcon({ sessionId, plain = false }: { sessionId: string; plain?: boolean }) {
   const [saved, setSaved] = useState<{ sessionId: string; mode: InputMode } | null>(null)
   useEffect(() => {
     let active = true
@@ -40,5 +31,5 @@ export function SessionImageIcon({
   }, [sessionId])
   if (saved?.sessionId === sessionId && saved.mode === "image")
     return <ImageIcon className={plain ? "size-4 shrink-0" : `size-3.5 shrink-0 ${RUN_STATE_TEXT.done}`} />
-  return plain ? <MessageSquareIcon /> : state === "idle" ? <SessionStateDot state="idle" /> : null
+  return plain ? <MessageSquareIcon /> : null
 }

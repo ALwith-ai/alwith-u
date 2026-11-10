@@ -10,7 +10,7 @@ import { useStore } from "zustand"
 
 import type { AppState } from "@/agent/client"
 import { macProjectPaths } from "@/agent/project-path"
-import { readSessionInputMode } from "@/features/chat/composer/input-mode-preferences"
+import { configureSessionInputConfig, readSessionInputMode } from "@/features/chat/composer/input-mode-config"
 import { computerRuntimeEnv } from "@/features/computer/runtime-config"
 import { hostSessionContext } from "@/features/computer/session-context"
 import { useImagePreferences } from "@/features/images/preferences"
@@ -60,6 +60,11 @@ export const client =
           await device.stopSession({ sessionId }).catch(() => undefined)
         }
       })
+
+configureSessionInputConfig({
+  read: (id) => client.readInputConfig(id),
+  write: (id, preferences) => client.writeInputConfig(id, preferences)
+})
 
 /** Mirrors the Runtime's run states into the client store for the lifetime of the app. */
 export async function watchRunStates(): Promise<() => void> {

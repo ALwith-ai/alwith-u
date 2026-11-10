@@ -37,6 +37,10 @@ import {
   type ImageRequestAspect,
   imageRequestAspect
 } from "./image-request"
+import { parseInputSnapshot, type SessionInputConfig, type SessionInputConfigSnapshot } from "./input-config"
+import { type InputMode, inputModeDefinition, isInputMode } from "./input-modes"
+import { executionMeta } from "./input-modes/execution-meta"
+import { imageInputMode } from "./input-modes/image"
 
 export type { ForkOrigin, PendingAction }
 
@@ -63,7 +67,7 @@ export type ClientOptions = BaseClientOptions & {
   /** Resolve a slot selection against the host's applied provider configuration. */
   resolveModel?: (model: string | null, purpose: "session" | "draft") => Promise<string | null>
   imageService?: {
-    inputMode: (sessionId: string) => Promise<"chat" | "image">
+    inputMode: (sessionId: string) => Promise<InputMode>
     selection: () => ImageSelection
     generateExternal: (
       selection: ImageSelection,
@@ -138,7 +142,37 @@ export class CodexClient extends CodexAcpClient<AppState> {
   }
 
   private readonly imageService: ClientOptions["imageService"]
-  private readonly inputModes = new Map<string, "chat" | "image">()
+  private readonly inputModes = new Map<string, InputMode>()
+  private readonly inputSelections = new Map<string, ImageSelection>()
+
+  async readInputConfig(sessionId: string): Promise<SessionInputConfigSnapshot> {
+    const agent = this.live()
+    const value = await agent.request("_codex/session_input_config_get", { sessionId })
+    if (agent !== this.agent) throw new Error("Session input configuration belongs to a disconnected agent")
+    return this.acceptInputConfig(sessionId, value)
+  }
+
+  async writeInputConfig(sessionId: string, inputConfig: SessionInputConfig): Promise<SessionInputConfigSnapshot> {
+    const agent = this.live()
+    const value = await agent.request("_codex/session_input_config_set", { sessionId, inputConfig })
+    if (agent !== this.agent) throw new Error("Session input configuration belongs to a disconnected agent")
+    return this.acceptInputConfig(sessionId, value)
+  }
+
+  private acceptInputConfig(sessionId: string, value: unknown): SessionInputConfigSnapshot {
+    const snapshot = parseInputSnapshot(value, sessionId)
+    this.inputModes.delete(sessionId)
+    this.inputSelections.delete(sessionId)
+    const inputConfig = snapshot.inputConfig
+    if (inputConfig && isInputMode(inputConfig.mode)) {
+      inputModeDefinition(inputConfig.mode).parseConfig(inputConfig.config)
+      this.inputModes.set(sessionId, inputConfig.mode)
+      if (inputConfig.mode === "image")
+        this.inputSelections.set(sessionId, imageInputMode.parseConfig(inputConfig.config))
+    }
+    return snapshot
+  }
+
   private readonly imageRequests = new Map<
     string,
     { selection: ImageSelection; references: Map<string, string>; aspect?: ImageRequestAspect }
@@ -152,16 +186,24 @@ export class CodexClient extends CodexAcpClient<AppState> {
         return this.prompt(id, prompt, options)
       })
     }
-    if (this.inputModes.get(id) !== "image") {
-      return super.prompt(id, prompt, {
-        ...options,
-        meta: mergeMeta(options.meta, { alwith: { imageIntent: null } })
-      })
-    }
+    return inputModeDefinition(this.inputModes.get(id)!).routePrompt({
+      native: () =>
+        super.prompt(id, prompt, {
+          ...options,
+          meta: mergeMeta(options.meta, {
+            alwith: { imageIntent: null, applicationContext: inputModeDefinition("chat").applicationContext(null) }
+          })
+        }),
+      image: () => this.promptImage(id, prompt, options)
+    })
+  }
+
+  private promptImage(id: string, prompt: acp.ContentBlock[], options: PromptOptions): Promise<string> {
+    if (!this.imageService) throw new Error("Image service is not connected")
     imageRequestAspect((options.meta?.alwith as { imageAspectRatio?: unknown } | undefined)?.imageAspectRatio)
     const requested = (options.meta?.alwith as { imageSelection?: ImageSelection } | undefined)?.imageSelection
     if (requested !== undefined) imageModel(requested)
-    const nextSelection = requested === undefined ? this.imageService.selection() : requested
+    const nextSelection = requested ?? this.inputSelections.get(id) ?? this.imageService.selection()
     const selection = {
       ...(this.session(id).state !== "idle" ? (this.imageRequests.get(id)?.selection ?? nextSelection) : nextSelection)
     }
@@ -182,7 +224,10 @@ export class CodexClient extends CodexAcpClient<AppState> {
           alwith: {
             imageSelection: selection,
             imageRequestId: requestId,
-            imageInstructions: IMAGE_WORKFLOW_INSTRUCTIONS,
+            applicationContext: imageInputMode.applicationContext(
+              (options.meta?.alwith as { imageIntent?: unknown } | undefined)?.imageIntent ?? "generate",
+              IMAGE_WORKFLOW_INSTRUCTIONS
+            ),
             imageIntent: (options.meta?.alwith as { imageIntent?: unknown } | undefined)?.imageIntent ?? "generate"
           }
         })
@@ -207,7 +252,7 @@ export class CodexClient extends CodexAcpClient<AppState> {
       const aspect = imageRequestAspect((options.meta?.alwith as { imageAspectRatio?: unknown }).imageAspectRatio)
       this.imageRequests.set(id, { selection, references, ...(aspect ? { aspect } : {}) })
     }
-    return super.promptMeta(id, options)
+    return executionMeta(super.promptMeta(id, options))
   }
 
   private readonly activeImages = new Map<string, Set<AbortController>>()
@@ -554,7 +599,7 @@ export class CodexClient extends CodexAcpClient<AppState> {
     cwd: string | undefined,
     model: string | null,
     owner: DraftOwner | null,
-    inputMode: "chat" | "image" = "chat"
+    inputMode: InputMode = "chat"
   ): Promise<string> {
     const id = await super.newSession(cwd, {
       draft: owner !== null,
@@ -625,13 +670,20 @@ export class CodexClient extends CodexAcpClient<AppState> {
         operation.kind === "resume" ? operation.sessionId : operation.kind === "fork" ? operation.sourceSessionId : null
       const inputMode =
         sourceId === null
-          ? ((options.meta?.alwith as { inputMode?: "chat" | "image" } | undefined)?.inputMode ?? "chat")
-          : (this.inputModes.get(sourceId) ?? (await this.imageService.inputMode(sourceId)))
+          ? ((options.meta?.alwith as { inputMode?: InputMode } | undefined)?.inputMode ?? "chat")
+          : await this.imageService.inputMode(sourceId)
+      const definition = inputModeDefinition(inputMode)
+      const tools = definition.tools
+      const meta = executionMeta(options.meta)
+      const alwith: Record<string, unknown> = {
+        ...(meta?.alwith as Record<string, unknown> | undefined),
+        nativeTools: definition.nativeTools
+      }
+      delete alwith.tools
+      if (tools) alwith.tools = tools
       const context = await this.requestModelContext(cwd, operation, {
         ...options,
-        meta: mergeMeta(options.meta, {
-          alwith: { inputMode, ...(inputMode === "image" ? { tools: imageToolSet } : {}) }
-        })
+        meta: { ...meta, alwith }
       })
       return {
         ...context,
@@ -779,7 +831,7 @@ export class CodexClient extends CodexAcpClient<AppState> {
     cwd: string | undefined,
     model: string | null = null,
     nativeDefault = false,
-    inputMode: "chat" | "image" = "chat"
+    inputMode: InputMode = "chat"
   ): Promise<string> {
     if (owner === "chat" && inputMode !== "chat") throw new Error("The floating chat only supports chat input")
     const version = ++this.slotVersions[owner]
@@ -894,6 +946,7 @@ export class CodexClient extends CodexAcpClient<AppState> {
   protected override onSessionDropped(id: string): void {
     super.onSessionDropped(id)
     this.inputModes.delete(id)
+    this.inputSelections.delete(id)
     this.draftDirectoryIntents.delete(id)
     this.gatewayModels.delete(id)
     this.accountRevocations.delete(id)

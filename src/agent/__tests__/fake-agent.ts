@@ -2,6 +2,7 @@
 // async prompts, steering, permissions, cancellation, replay and archive.
 import * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 
+import type { SessionInputConfig, SessionInputConfigSnapshot } from "../input-config"
 import { projectContext } from "./project-context"
 export const fakeProjectContext = projectContext()
 
@@ -116,6 +117,7 @@ export function createFakeAgent(): FakeAgent {
   const changingConfig = new Set<string>()
   const renamed = new Map<string, string>()
   const fileSearches: string[] = []
+  const inputConfig = new Map<string, SessionInputConfigSnapshot>()
   const resumeResponse: FakeAgent["resumeResponse"] = { current: null }
   const replayUpdates: acp.SessionUpdate[] = []
   const historyRequests: Array<Record<string, unknown>> = []
@@ -163,6 +165,24 @@ export function createFakeAgent(): FakeAgent {
     spendControlReached: null,
     planType: "plus"
   })
+  app.onRequest(
+    "_codex/session_input_config_get",
+    (value) => value as { sessionId: string },
+    ({ params }) => inputConfig.get(params.sessionId) ?? { sessionId: params.sessionId, revision: 0, inputConfig: null }
+  )
+  app.onRequest(
+    "_codex/session_input_config_set",
+    (value) => value as { sessionId: string; inputConfig: SessionInputConfig },
+    ({ params }) => {
+      const snapshot = {
+        sessionId: params.sessionId,
+        revision: (inputConfig.get(params.sessionId)?.revision ?? 0) + 1,
+        inputConfig: params.inputConfig
+      }
+      inputConfig.set(params.sessionId, snapshot)
+      return snapshot
+    }
+  )
   app.onRequest("session/set_title", async ({ params, client }) => {
     renamed.set(params.sessionId, params.title)
     await client.notify("session/update", {
@@ -224,6 +244,8 @@ export function createFakeAgent(): FakeAgent {
   app.onRequest("session/fork", async ({ params, client }) => {
     forks.push(params)
     const id = sessionId()
+    const input = inputConfig.get(params.sessionId)
+    if (input) inputConfig.set(id, { ...input, sessionId: id })
     const hint = modelHintOf(params)
     modelHints.set(id, hint)
     const codex = {
@@ -454,6 +476,7 @@ export function createFakeAgent(): FakeAgent {
   })
   app.onRequest("session/delete", ({ params }) => {
     deleted.add(params.sessionId)
+    inputConfig.delete(params.sessionId)
     return {}
   })
   app.onRequest("session/unarchive", ({ params }) => {
