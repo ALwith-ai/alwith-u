@@ -9,6 +9,7 @@
 @import "@alwith/module-auth/vibemon/styles.css";
 
 @source "../node_modules/@alwith/module-chat/dist";
+@source "../node_modules/@alwith/module-tabs/dist";
 @source "../node_modules/@alwith/module-drive/dist";
 @source "../node_modules/@alwith/module-device/dist";
 @source "../node_modules/@nyssance/shadcn/dist/vega";

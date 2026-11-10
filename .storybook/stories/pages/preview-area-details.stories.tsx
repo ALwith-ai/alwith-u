@@ -1,4 +1,5 @@
-import { createEditorController, createEditorWorkspace } from "@alwith/module-editor"
+import { createEditorController } from "@alwith/module-editor"
+import { createFileTabs } from "@alwith/module-editor/tabs/core"
 import { createFileTreeController, FileTree } from "@alwith/module-file-tree"
 import { createFileSystem } from "@alwith/module-fs"
 import { createMemoryAdapter } from "@alwith/module-fs/testing"
@@ -39,14 +40,14 @@ function PreviewExample(): ReactNode {
       reportError
     })
     const editor = createEditorController({ fs, reportError, confirmClose: () => Promise.resolve("cancel") })
-    const tabs = createEditorWorkspace(editor)
+    const tabs = createFileTabs(editor)
     const tree = createFileTreeController({
       fs,
       root: "/ALwith",
       expanded: ["/ALwith", "/ALwith/.alwith"],
       reportError
     })
-    const opener = createTreeOpener(editor, (path) => Promise.resolve(path), tabs)
+    const opener = createTreeOpener(tabs)
     return { tree, editor, tabs, opener, reportError }
   })
   useEffect(() => {

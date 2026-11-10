@@ -10,10 +10,8 @@ import { DriveBadge, useDrive } from "@alwith/module-drive/react"
 import {
   type CloseDecision,
   createEditorController,
-  createEditorWorkspace,
   type EditorController,
   type EditorLabels,
-  type EditorWorkspaceController,
   ImagePreview
 } from "@alwith/module-editor"
 import {
@@ -49,12 +47,12 @@ import {
   DesktopCanvasContext as CanvasContext,
   DesktopWorkspaceControlsContext as WindowsWorkspaceControlsContext
 } from "@alwith/module-desktop-shell/react"
+import { createFileTabs, type FileTabsController } from "@alwith/module-editor/tabs/core"
 import { invoke, isTauri } from "@tauri-apps/api/core"
 import { listen } from "@tauri-apps/api/event"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import { open as openDialog } from "@tauri-apps/plugin-dialog"
 import { revealItemsInDir } from "@tauri-apps/plugin-opener"
-import { FolderTree } from "lucide-react"
 import {
   lazy,
   type ReactNode,
@@ -71,7 +69,6 @@ import { createPortal } from "react-dom"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
-import { Button } from "@/components/alwith-ui/button"
 import { useTheme } from "@/components/theme-provider"
 import { ChatDirectoryContext } from "@/features/chat/file-actions"
 import { DeviceWorkspaceMenu, DeviceWorkspacePane } from "@/features/device/device-workspace"
@@ -111,7 +108,7 @@ interface Workspace {
   fs: FileSystem
   tree: FileTreeController
   editor: EditorController
-  tabs: EditorWorkspaceController
+  tabs: FileTabsController
   treeOpener: ReturnType<typeof createTreeOpener>
   iconTheme: IconTheme
 }
@@ -431,7 +428,7 @@ export function FileWorkspace({
           (stop) => Effect.sync(stop)
         )
         const tabs = yield* Effect.acquireRelease(
-          Effect.sync(() => createEditorWorkspace(editor, saved?.tabLayout)),
+          Effect.sync(() => createFileTabs(editor, saved?.tabLayout)),
           (tabs) => Effect.sync(() => tabs.dispose())
         )
         const created = {
@@ -441,15 +438,12 @@ export function FileWorkspace({
           tabs,
           tree,
           iconTheme: saved?.iconTheme ?? "vscode-icons",
-          treeOpener: createTreeOpener(
-            editor,
-            (path) =>
-              prepareWorkspaceFile(path, {
-                readFile: async (target) =>
-                  (containsPath(root, target) ? fs : await driveFileSystem(target)).readFile(target),
-                openTarget: (target) => routeDriveTarget.current(target)
-              }),
-            tabs
+          treeOpener: createTreeOpener(tabs, (path) =>
+            prepareWorkspaceFile(path, {
+              readFile: async (target) =>
+                (containsPath(root, target) ? fs : await driveFileSystem(target)).readFile(target),
+              openTarget: (target) => routeDriveTarget.current(target)
+            })
           )
         }
         yield* Effect.addFinalizer(() => Effect.sync(() => created.treeOpener.dispose()))
@@ -515,7 +509,7 @@ export function FileWorkspace({
         openTarget: (value) => routeDriveTarget.current(value)
       })
       if (destination === null) return
-      await target.editor.open(destination)
+      await target.tabs.openFile(destination, true)
       if (generation !== requestGeneration.current || owner !== currentCwd.current) return
       setWorkspace(target)
       setNavigation(position ? { path: destination, position } : null)
@@ -896,24 +890,11 @@ export function FileWorkspace({
                   setVisible(false)
                   setViewMode(false)
                 }}
-                tree={
+                tree={(treeToggle) => (
                   <FileTree
+                    explorerControl={treeToggle}
                     controller={workspace.tree}
                     collapsed={!treeVisible}
-                    explorerControl={
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        className="workspace-explorer-toggle"
-                        aria-label={t(treeVisible ? "workspace.hideTree" : "workspace.showTree")}
-                        title={t(treeVisible ? "workspace.hideTree" : "workspace.showTree")}
-                        shortcut="CmdOrCtrl+Shift+E"
-                        aria-expanded={treeVisible}
-                        onClick={() => setTreeVisible((value) => !value)}
-                      >
-                        <FolderTree />
-                      </Button>
-                    }
                     isDark={resolvedTheme === "dark"}
                     iconTheme={iconTheme ?? workspace.iconTheme}
                     activePath={activeDocument ? activeDocument.path : null}
@@ -966,7 +947,7 @@ export function FileWorkspace({
                     onPinFile={(path) => {
                       const target = fileReference.current
                       if (target !== null) target.add(path)
-                      else return workspace.treeOpener.open(path, true)
+                      return workspace.treeOpener.open(path, true)
                     }}
                     onOpenExternal={openExternal}
                     onReveal={(path) => revealItemsInDir(path)}
@@ -1026,7 +1007,7 @@ export function FileWorkspace({
                       })) === "delete"
                     }
                   />
-                }
+                )}
                 editor={({ leading, trailing }) => (
                   <DriveDocumentSurface host={contentHost} path={activeDocument?.path ?? null}>
                     <ChatDirectoryContext.Provider value={workspace.root}>
@@ -1131,11 +1112,10 @@ export function FileWorkspace({
               open: async (path, pinned, active) => {
                 const match = resolveDriveRoot(path, drive.getSnapshot().snapshot?.roots ?? [])
                 const target = await ensure(match?.base ?? directory)
-                const previousActive = target.editor.getSnapshot().activeId
-                const document = await target.editor.open(path)
-                if (pinned) target.editor.pin(document.id)
+                const previousActive = target.tabs.getSnapshot().activeId
+                await target.tabs.openFile(path, pinned)
                 if (active) setWorkspace(target)
-                else if (previousActive !== null) target.editor.activate(previousActive)
+                else if (previousActive !== null) target.tabs.activate(previousActive)
               }
             })
           }

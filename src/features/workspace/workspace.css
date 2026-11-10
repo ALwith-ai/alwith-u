@@ -192,21 +192,6 @@
   background-color: color-mix(in oklab, var(--foreground) 8%, transparent);
 }
 
-.workspace-explorer-toggle {
-  width: 32px;
-  height: 32px;
-  padding: 3px;
-  border: 0;
-  box-shadow: none;
-  background: transparent;
-  color: var(--muted-foreground);
-  flex-shrink: 0;
-}
-.workspace-explorer-toggle:hover {
-  background: var(--accent);
-  color: var(--foreground);
-}
-
 .workspace-new-tab-panel {
   display: flex;
   flex: 1;
@@ -241,22 +226,39 @@
 .file-workspace-tree .alwith-file-tree {
   background: transparent;
 }
-.alwith-workspace-tabbar > [data-slot="button"] {
-  width: 32px;
-  height: 32px;
-  border: 0;
-  background: transparent;
-  padding: 0;
-}
-.alwith-workspace-tabbar > [data-slot="button"]:hover {
-  background: var(--accent);
-}
-.alwith-workspace-tabbar > [data-slot="button"] svg {
-  width: 16px;
-  height: 16px;
-}
-
 /* The main window's parent canvas supplies width and translation. Detached chats retain their local viewport. */
 [data-unified-canvas="true"] > .file-workspace-viewport {
   overflow: visible;
+}
+
+.workspace-preview-surface {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+.workspace-tab-host.alwith-editor {
+  display: block;
+  flex: none;
+  width: 100%;
+  height: 40px;
+  min-height: 40px;
+}
+.workspace-preview-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+.workspace-editor-column {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+.workspace-editor-column > .file-workspace-editor {
+  flex: 1;
+  height: auto;
 }

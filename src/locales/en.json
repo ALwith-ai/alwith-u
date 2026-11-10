@@ -1014,7 +1014,6 @@
     "updateReloadSuccess": "{{name}} updated and reloaded"
   },
   "workspace": {
-    "closePreview": "Close preview",
     "previousPane": "Previous pane",
     "nextPane": "Next pane",
     "thumbnails": "Page thumbnails",

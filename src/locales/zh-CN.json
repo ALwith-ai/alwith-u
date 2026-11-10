@@ -1014,7 +1014,6 @@
     "updateReloadSuccess": "{{name}} 已更新并重新加载"
   },
   "workspace": {
-    "closePreview": "关闭预览",
     "previousPane": "上一个浮板",
     "nextPane": "下一个浮板",
     "thumbnails": "页面缩略图",

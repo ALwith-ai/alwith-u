@@ -1,6 +1,7 @@
 import type { EditorController, TextEditorProps } from "@alwith/module-editor"
 import type { MonacoAction } from "@alwith/module-editor/monaco"
 import { createMonacoEngine } from "@alwith/module-editor/monaco"
+import { preserveFileTabView, releaseFileTabViews } from "@alwith/module-editor/tabs/view-state"
 import * as monaco from "monaco-editor"
 import EditorWorker from "monaco-editor/editor/editor.worker?worker"
 import CssWorker from "monaco-editor/language/css/css.worker?worker"
@@ -25,6 +26,7 @@ self.MonacoEnvironment = {
 }
 const engines = new WeakMap<EditorController, ReturnType<typeof createMonacoEngine>>()
 export function releaseMonaco(controller: EditorController): void {
+  releaseFileTabViews(controller)
   const engine = engines.get(controller)
   if (engine) {
     engine.dispose()
@@ -61,6 +63,11 @@ export default function CodeEditor(
     }),
     [props.settings]
   )
+  useEffect(() => {
+    const editor = monaco.editor.getEditors().find((editor) => element.current?.contains(editor.getContainerDomNode()))
+    if (!editor) throw new Error("The file tab's Monaco editor is missing")
+    return preserveFileTabView(props.controller, editor, () => props.document.path, props.position)
+  }, [props.controller, props.document.id, props.document.path, props.position])
   useEffect(() => {
     const run = (event: Event): void => {
       if (!element.current?.closest(".alwith-editor")?.contains(document.activeElement)) return

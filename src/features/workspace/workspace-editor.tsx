@@ -2,10 +2,9 @@ import {
   type EditorShortcutRenderer,
   EditorWorkbench,
   type EditorWorkbenchProps,
-  type EditorWorkspaceController,
-  NewTabPage,
-  WorkspaceTabs
+  NewTabPage
 } from "@alwith/module-editor"
+import type { FileTabsController } from "@alwith/module-editor/tabs/core"
 import { FileVisualIcon, getFileVisual, useFileIconTheme } from "@alwith/module-file-tree"
 import { FileText } from "lucide-react"
 import { cloneElement, type ReactNode, useSyncExternalStore } from "react"
@@ -16,6 +15,7 @@ import { ShortcutKey } from "@/components/alwith-ui/shortcut-hint"
 import { openGuideWindow } from "@/features/guide/guide-window"
 import { openSettingsWindow } from "@/lib/window-manager"
 
+import { FileTabs } from "./file-tabs"
 import type { IconTheme } from "./workspace-state"
 
 const EDITOR_SHORTCUTS = { save: "CmdOrCtrl+S" } as const
@@ -37,7 +37,7 @@ export function WorkspaceEditor({
   isDark,
   ...props
 }: EditorWorkbenchProps & {
-  tabs: EditorWorkspaceController
+  tabs: FileTabsController
   leading: ReactNode
   trailing: ReactNode
   iconTheme: IconTheme
@@ -50,9 +50,10 @@ export function WorkspaceEditor({
   return (
     <EditorWorkbench
       {...props}
+      showToolbarActions={false}
       renderShortcutHint={renderShortcutHint}
       tabBar={(prefix) => (
-        <WorkspaceTabs
+        <FileTabs
           workspace={tabs}
           editor={props.controller}
           prefix={prefix}

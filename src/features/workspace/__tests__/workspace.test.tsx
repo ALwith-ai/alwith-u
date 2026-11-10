@@ -340,12 +340,12 @@ test("right workspace edits, renames and saves through installed packages", asyn
   fireEvent.change(name, { target: { value: "renamed.txt" } })
   fireEvent.keyDown(name, { key: "Enter" })
   await waitFor(() => expect(document.body).toContainOneByRole("tab", { name: "renamed.txt •" }))
-  fireEvent.click(
-    within(required(document.querySelector<HTMLElement>(".alwith-editor-toolbar"))).getByRole("button", {
+  expect(
+    within(required(document.querySelector<HTMLElement>(".alwith-editor-toolbar"))).queryByRole("button", {
       name: "More actions"
     })
-  )
-  fireEvent.click(await screen.findByRole("menuitem", { name: "Save" }))
+  ).toBeNull()
+  fireEvent.keyDown(screen.getByRole("textbox", { name: "Code" }), { key: "s", metaKey: true })
   await waitFor(() => expect(document.body).toContainOneByRole("tab", { name: "renamed.txt" }))
   expect(new TextDecoder().decode(await adapter.readFile("/a/renamed.txt"))).toBe("edited")
   expect(await adapter.stat("/a/one.txt")).toBeNull()
@@ -383,7 +383,7 @@ test("switching projects retains unsaved documents and cancelling close retains 
   await screen.findByRole("treeitem", { name: /two.txt/ })
   view.rerender(<Surface cwd="/a" />)
   await waitFor(() => expect(document.body).toContainOneByDisplayValue("draft"))
-  fireEvent.click(required(screen.getByRole("tab", { name: "one.txt •" }).querySelector(".alwith-workspace-tab-close")))
+  fireEvent.click(screen.getByRole("button", { name: "Close one.txt" }))
   await screen.findByRole("dialog")
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }))
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
@@ -401,12 +401,12 @@ test("native dirty state follows the aggregate across workspace switches", async
   await screen.findByRole("textbox", { name: "Code" })
   view.rerender(<Surface cwd="/a" />)
   await waitFor(() => expect(document.body).toContainOneByDisplayValue("changed a"))
-  fireEvent.click(
-    within(required(document.querySelector<HTMLElement>(".alwith-editor-toolbar"))).getByRole("button", {
+  expect(
+    within(required(document.querySelector<HTMLElement>(".alwith-editor-toolbar"))).queryByRole("button", {
       name: "More actions"
     })
-  )
-  fireEvent.click(await screen.findByRole("menuitem", { name: "Save" }))
+  ).toBeNull()
+  fireEvent.keyDown(screen.getByRole("textbox", { name: "Code" }), { key: "s", metaKey: true })
   await waitFor(() => expect(document.body).toContainOneByRole("tab", { name: "one.txt" }))
   view.rerender(<Surface cwd="/b" />)
   await waitFor(() => expect(document.body).toContainOneByDisplayValue("second"))
@@ -474,7 +474,9 @@ test("preview controls switch view mode and retain edits across hiding", async (
   fireEvent.click(screen.getByRole("button", { name: "Restore" }))
   expect(layout).toHaveAttribute("data-view-mode", "false")
   fireEvent.click(screen.getByRole("button", { name: "Maximize" }))
-  fireEvent.click(screen.getByRole("button", { name: "Close preview" }))
+  fireEvent.click(
+    within(required(document.querySelector(".workspace-tab-host"))).getByRole("button", { name: "Close workspace" })
+  )
   expect(screen.queryByRole("button", { name: "Maximize" })).toBeNull()
   fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
   await waitFor(() => expect(document.body).toContainOneByDisplayValue("retained draft"))
@@ -495,7 +497,10 @@ test("chat reveal requests restore the chat pane without closing the preview or 
   await waitFor(() => expect(layout).toHaveAttribute("data-view-mode", "false"))
   expect(screen.getByText("Chat /a")).toBeVisible()
   expect(screen.getByRole("textbox", { name: "Code" })).toHaveValue("retained draft")
-  expect(screen.getByRole("button", { name: "Close workspace" })).toHaveAttribute("aria-expanded", "true")
+  expect(screen.getByRole("button", { name: "Close workspace", expanded: true })).toHaveAttribute(
+    "aria-expanded",
+    "true"
+  )
 })
 
 test("Desktop-style context menu, inline rename cancellation, and search keyboard controls", async () => {
@@ -522,7 +527,7 @@ test("reopening the preview reuses the authorized workspace", async () => {
   render(<Surface cwd="/a" />)
   fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
   await screen.findByRole("treeitem", { name: /one.txt/ })
-  fireEvent.click(screen.getByRole("button", { name: "Close workspace" }))
+  fireEvent.click(screen.getByRole("button", { name: "Close workspace", expanded: true }))
   fireEvent.click(screen.getByRole("button", { name: "Open preview area" }))
   await screen.findByRole("treeitem", { name: /one.txt/ })
   expect(native.invoke.mock.calls.filter(([command]) => command === `${FS}workspace_open`)).toHaveLength(1)
@@ -653,7 +658,8 @@ test("Desktop root context menu omits rename, copy and delete", async () => {
   for (const name of ["Rename", "Copy", "Delete"]) expect(screen.queryByRole("menuitem", { name })).toBeNull()
 })
 
-test("double-click references a file in the registered conversation while single-click still previews", async () => {
+test("double-click both keeps a preview and references it in the registered conversation", async () => {
+  adapter = createMemoryAdapter({ "/a/one.txt": "first", "/a/two.txt": "second" })
   const add = vi.fn()
   function ComposerTarget() {
     const register = useWorkspace()?.registerFileReference
@@ -669,9 +675,22 @@ test("double-click references a file in the registered conversation while single
   const row = await screen.findByRole("treeitem", { name: "one.txt" })
   fireEvent.click(row)
   await screen.findByRole("tab", { name: "one.txt" })
+  expect(screen.getByRole("tab", { name: "one.txt" }).closest("[data-transient]")).toHaveAttribute(
+    "data-transient",
+    "true"
+  )
   expect(add).not.toHaveBeenCalled()
   fireEvent.doubleClick(row)
   expect(add).toHaveBeenCalledExactlyOnceWith("/a/one.txt")
+  await waitFor(() =>
+    expect(screen.getByRole("tab", { name: "one.txt" }).closest("[data-transient]")).toHaveAttribute(
+      "data-transient",
+      "false"
+    )
+  )
+  fireEvent.click(screen.getByRole("treeitem", { name: "two.txt" }))
+  await screen.findByRole("tab", { name: "two.txt" })
+  expect(screen.getByRole("tab", { name: "one.txt" })).toBeInTheDocument()
 })
 
 test("single-click replaces a clean preview, double-click pins it, and editing pins it", async () => {
@@ -699,7 +718,7 @@ test("workspace switch opens and closes the preview while retaining the chat", a
   expect(closed).toHaveAttribute("aria-controls", "file-workspace-panel")
   fireEvent.click(closed)
   await screen.findByRole("treeitem", { name: "one.txt" })
-  const opened = screen.getByRole("button", { name: "Close workspace" })
+  const opened = screen.getByRole("button", { name: "Close workspace", expanded: true })
   expect(opened).toHaveAttribute("aria-expanded", "true")
   fireEvent.click(opened)
   expect(screen.queryByRole("tree")).toBeNull()
@@ -1019,7 +1038,7 @@ test("the preview renders in the layout's preview pane and reports how the pane 
     fireEvent.click(await within(slot).findByRole("treeitem", { name: "one.txt" }))
     fireEvent.change(await within(slot).findByRole("textbox", { name: "Code" }), { target: { value: "retained edit" } })
     expect(show).toHaveBeenLastCalledWith({ hidden: false, maximized: false })
-    fireEvent.click(screen.getByRole("button", { name: "Close workspace" }))
+    fireEvent.click(screen.getByRole("button", { name: "Close workspace", expanded: true }))
     expect(show).toHaveBeenLastCalledWith({ hidden: true, maximized: false })
     expect(screen.getByRole("button", { name: "Open preview area" })).toHaveAttribute("aria-expanded", "false")
     view.unmount()

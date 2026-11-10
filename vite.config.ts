@@ -39,6 +39,7 @@ export const config = (mode = "development"): UserConfig => ({
       "@alwith/module-fs",
       "@alwith/module-file-tree",
       "@alwith/module-editor",
+      "@alwith/module-tabs",
       "@alwith/module-drive",
       "@alwith/module-auth"
     ],

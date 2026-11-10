@@ -73,6 +73,10 @@ const config: StorybookConfig = {
         exclude: ["@alwith/module-chat"],
         // The excluded module's CommonJS dependencies still need prebundling, as in vite.config.ts.
         include: [
+          "@alwith/module-editor/tabs",
+          "@alwith/module-editor/tabs/core",
+          "@alwith/module-tabs/react",
+          "@alwith/module-tabs/core",
           "@base-ui/react/radio",
           "@base-ui/react/radio-group",
           "diff2html",

@@ -1,46 +1,29 @@
-import type { EditorController, EditorWorkspaceController } from "@alwith/module-editor"
+import type { FileTabsController } from "@alwith/module-editor/tabs/core"
 
 /** Desktop selectFile policy: one transient preview; double-click and edits pin it. */
 export function createTreeOpener(
-  editor: EditorController,
-  prepare: (path: string) => Promise<string | null> = (path) => Promise.resolve(path),
-  tabs?: EditorWorkspaceController
+  tabs: FileTabsController,
+  prepare: (path: string) => Promise<string | null> = (path) => Promise.resolve(path)
 ): {
   open: (path: string, pinned?: boolean) => Promise<void>
   dispose: () => void
 } {
-  let preview: string | null = editor.getSnapshot().documents.find((document) => !document.pinned)?.id ?? null
+  let disposed = false
   let pending: Promise<void> = Promise.resolve()
-  const unsubscribe = editor.subscribe(() => {
-    preview = editor.getSnapshot().documents.find((document) => !document.pinned && !document.dirty)?.id ?? null
-  })
   return {
     open(path, pinned = false) {
       const open = async (): Promise<void> => {
+        if (disposed) return
         const destination = await prepare(path)
-        if (destination === null) return
-        path = destination
-        const existing = editor.getSnapshot().documents.find((doc) => doc.path === path)
-        const previous = tabs?.getSnapshot().tabs.at(-1)?.kind === "new" ? null : preview
-        const document = await editor.open(path)
-        if (pinned) {
-          editor.pin(document.id)
-          if (preview === document.id) preview = null
-          return
-        }
-        if (existing) return
-        if (previous !== null && preview === previous) {
-          const old = editor.getSnapshot().documents.find((doc) => doc.id === previous)
-          if (old && !old.pinned && !old.dirty && !old.saving) {
-            tabs?.reorder(document.id, previous)
-            await editor.requestClose(previous)
-          }
-        }
+        if (destination === null || disposed) return
+        await tabs.openFile(destination, pinned)
       }
       // Both branches run the next user action; each returned rejection is still reported by the caller.
       pending = pending.then(open, open)
       return pending
     },
-    dispose: unsubscribe
+    dispose: () => {
+      disposed = true
+    }
   }
 }
