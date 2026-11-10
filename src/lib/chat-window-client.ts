@@ -48,6 +48,7 @@ const METHODS = [
   "resumeAccountModel",
   "respond",
   "readRateLimits",
+  "installedApps",
   "fuzzyFileSearch",
   "renameSession",
   "delete"
@@ -459,6 +460,9 @@ export class RemoteChatClient extends CodexClient {
   }
   override readRateLimits(): Promise<RateLimitSnapshot> {
     return this.request("readRateLimits", [])
+  }
+  override installedApps(...args: Parameters<CodexClient["installedApps"]>): ReturnType<CodexClient["installedApps"]> {
+    return this.request("installedApps", args)
   }
   override fuzzyFileSearch(
     ...args: Parameters<CodexClient["fuzzyFileSearch"]>

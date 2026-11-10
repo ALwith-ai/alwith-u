@@ -14,6 +14,32 @@ vi.mock("../initial-file-results", () => ({ initialFileResults: initialFiles }))
 const inputModes = vi.hoisted(() => ({ delete: vi.fn<(id: string) => Promise<void>>() }))
 vi.mock("@/features/chat/composer/input-mode-config", () => ({ deleteSessionInputMode: inputModes.delete }))
 
+test("floating composer loads apps through its main owner and preserves failures", async () => {
+  const fake = createFakeAgent()
+  const port = new FakeHubPort(() => fake.app)
+  const owner = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
+  const transport = eventBus()
+  const stop = await serveChatClient(owner, transport)
+  const remote = new RemoteChatClient(transport)
+  const apps = vi.spyOn(owner, "installedApps").mockResolvedValue({ apps: [] })
+  try {
+    await remote.connect()
+    expect(await remote.installedApps()).toEqual({ apps: [] })
+    expect(apps).toHaveBeenLastCalledWith()
+    const params = { threadId: "thread-apps", forceRefresh: true }
+    expect(await remote.installedApps(params)).toEqual({ apps: [] })
+    expect(apps).toHaveBeenLastCalledWith(params)
+    apps.mockRejectedValueOnce(new Error("Apps unavailable"))
+    await expect(remote.installedApps()).rejects.toThrow("Apps unavailable")
+    expect(await remote.installedApps()).toEqual({ apps: [] })
+  } finally {
+    apps.mockRestore()
+    remote.disconnect()
+    stop()
+    owner.disconnect()
+  }
+})
+
 test("floating draft refreshes project context through its connected main owner", async () => {
   const fake = createFakeAgent()
   const port = new FakeHubPort(() => fake.app)
