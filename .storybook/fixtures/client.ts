@@ -362,7 +362,6 @@ client.loadOlderHistory = async () => {}
 client.loadHistoryNavigation = async () => {}
 client.previewHistoryTurn = async () => {}
 client.loadHistoryTurn = async () => {}
-client.requestPrediction = async () => {}
 client.retrySession = (id) => Promise.resolve(finish(id, "重试成功，页面检查已完成。"))
 client.readAccount = () =>
   Promise.resolve({

@@ -132,7 +132,6 @@ export const Unified: Story = {
                   controlsRef={panelControls}
                   visible={visible}
                   maximized={maximized}
-                  onVisibleChange={setVisible}
                   onMaximizedChange={setMaximized}
                   chat={
                     <div className="p-4">

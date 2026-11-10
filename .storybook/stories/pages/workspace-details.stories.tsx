@@ -57,7 +57,6 @@ function WorkspaceExample({ width = 1200, comments = false }: { width?: number; 
       <WorkspacePanels
         visible={visible}
         maximized={maximized}
-        onVisibleChange={setVisible}
         onMaximizedChange={setMaximized}
         chat={
           <>

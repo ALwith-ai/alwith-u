@@ -1,4 +1,11 @@
-import type { NativeRequest } from "@alwith/module-fs/tauri"
+export type NativeRequest = {
+  operation: "stat" | "readDirectory" | "readFile" | "writeFile" | "createDirectory" | "remove" | "move" | "copy"
+  root: string
+  path: string
+  to?: string
+  data?: number[]
+  showHidden?: boolean
+}
 
 import { OTHER_DIRECTORY, PROJECT_DIRECTORY, QUICK_DIRECTORY } from "./catalog"
 

@@ -5,6 +5,7 @@ import type { SettingsAccount, SettingsAgent } from "../../src/lib/settings-brid
 import { client } from "./client"
 
 export type { SettingsAccount, SettingsAgent } from "../../src/lib/settings-bridge"
+export const ACCOUNT_CHANGED = "settings:account-changed"
 export const accountPreview = createStore<{ account: SettingsAccount | undefined }>(() => ({ account: undefined }))
 export type AccountCase =
   | "ready"

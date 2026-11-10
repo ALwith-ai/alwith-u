@@ -333,7 +333,7 @@ export const WorkspaceHeaderLayout: Story = {
     await waitFor(() => expect(scroll.scrollLeft).toBeGreaterThan(0))
     expect(add.getBoundingClientRect().left).toBe(before)
     expect(controls.getBoundingClientRect().left - add.getBoundingClientRect().right).toBe(16)
-    await userEvent.click(canvas.getByRole("button", { name: "Show file tree", exact: true }))
+    await userEvent.click(canvas.getByRole("button", { name: "Show file tree" }))
     await waitFor(() => {
       const tree = canvasElement.querySelector<HTMLElement>(".file-workspace-tree")!
       const editor = canvasElement.querySelector<HTMLElement>(".file-workspace-editor")!
@@ -344,16 +344,16 @@ export const WorkspaceHeaderLayout: Story = {
       expect(bar.getBoundingClientRect().width).toBeLessThan(surface.getBoundingClientRect().width)
       expect(editor.getBoundingClientRect().top).toBe(bar.getBoundingClientRect().bottom)
     })
-    const hide = canvas.getByRole("button", { name: "Hide file tree", exact: true })
+    const hide = canvas.getByRole("button", { name: "Hide file tree" })
     expect(hide.closest(".file-workspace-tree")).not.toBeNull()
     expect(bar.contains(hide)).toBe(false)
     await userEvent.click(hide)
     await waitFor(() => {
-      const show = canvas.getByRole("button", { name: "Show file tree", exact: true })
+      const show = canvas.getByRole("button", { name: "Show file tree" })
       expect(bar.contains(show)).toBe(true)
       expect(bar.getBoundingClientRect().width).toBe(surface.getBoundingClientRect().width)
     })
-    expect(canvas.getByRole("button", { name: "Close workspace", exact: true })).toBeVisible()
+    expect(canvas.getByRole("button", { name: "Close workspace" })).toBeVisible()
   }
 }
 

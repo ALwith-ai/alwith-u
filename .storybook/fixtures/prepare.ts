@@ -139,7 +139,14 @@ export const preparePreview: LoaderFunction = async ({ args, globals }) => {
   if (state.chatCase && state.chatCase !== "welcome" && state.chatCase !== "project") {
     let session = makeSession(state.chatCase)
     if (state.composerCase === "prediction" || state.composerCase === "predictionError") {
-      session = { ...session, state: "idle", lastStopReason: "end_turn" }
+      session = {
+        ...session,
+        state: "idle",
+        lastStopReason: "end_turn",
+        ...(state.composerCase === "prediction"
+          ? { _meta: { promptSuggestions: { suggestions: [{ text: "请继续核对文件预览" }] } } }
+          : {})
+      }
       client.store.setState((previous) => ({
         agent: previous.agent && {
           ...previous.agent,

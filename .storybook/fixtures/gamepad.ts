@@ -51,13 +51,13 @@ export async function gamepadRequest(request: Request_Deserialize): Promise<Resp
       id: request.id,
       revision: profile.revision + 1,
       config: { ...profile.config, ...request.config } as Profile_Serialize["config"],
-      color: request.color
+      color: request.color ?? null
     }
     return { type: "saved", profile, snapshot }
   }
   if (request.type === "start" || request.type === "stop")
     snapshot = { ...snapshot, sequence: snapshot.sequence + 1, state: request.type === "start" ? "running" : "stopped" }
-  if (request.type === "selectDevice") snapshot = { ...snapshot, activeDevice: request.id }
+  if (request.type === "selectDevice") snapshot = { ...snapshot, activeDevice: request.id ?? null }
   if (request.type === "activateProfile") snapshot = { ...snapshot, activeProfile: request.id }
   if (request.type === "snapshot") return { type: "snapshot", snapshot }
   await emit("gamepad:event", { type: "snapshot", snapshot })

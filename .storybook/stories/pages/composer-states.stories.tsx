@@ -191,10 +191,9 @@ export const PredictionAccept: Story = {
   }
 }
 export const PredictionError: Story = {
-  name: "输入预测 · 服务失败",
+  name: "输入预测 · 无可用建议",
   args: { composerCase: "predictionError" },
   play: async ({ canvas, userEvent }) => {
-    await waitFor(() => expect(actionsTaken.some((action) => action.type === "prediction")).toBe(true))
     const input = canvas.getByRole("textbox", { name: "发送消息" })
     await userEvent.type(input, "继续检查交付内容")
     await expect(input).toHaveValue("继续检查交付内容")

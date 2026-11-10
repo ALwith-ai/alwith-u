@@ -1,5 +1,5 @@
 import { PROJECT_DIRECTORY } from "./catalog"
-import { actionsTaken, client } from "./client"
+import { client } from "./client"
 
 export type ComposerCase =
   "ready" | "textPending" | "textError" | "mentionEmpty" | "mentionError" | "prediction" | "predictionError"
@@ -28,21 +28,5 @@ export function resetComposer(kind: ComposerCase = "ready"): void {
                 indices: null
               }))
     })
-  }
-  client.requestPrediction = (id, sourceTurnId) => {
-    actionsTaken.push({ type: "prediction", id })
-    if (kind === "predictionError") return Promise.reject(new Error("模拟输入预测服务不可用"))
-    if (kind !== "prediction") return Promise.resolve()
-    const session = client.session(id)
-    client.store.setState((state) => ({
-      sessions: {
-        ...state.sessions,
-        [id]: {
-          ...session,
-          _meta: { codex: { prediction: { sourceTurnId, result: { type: "completed", text: "请继续核对文件预览" } } } }
-        }
-      }
-    }))
-    return Promise.resolve()
   }
 }

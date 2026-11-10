@@ -1,17 +1,16 @@
-import type { NativeRequest } from "@alwith/module-fs/tauri"
+import type { ComputerStatus_Serialize as ComputerStatus } from "@alwith/module-computer/commands"
 import { emit } from "@tauri-apps/api/event"
 import { mockIPC, mockWindows } from "@tauri-apps/api/mocks"
 
 import { version } from "../../package.json"
-import type { ComputerStatus } from "../../src/bindings"
 import type { ProviderSnapshot } from "../../src/lib/providers"
 import type { SettingsRequest } from "../../src/lib/settings-store"
 import { PROJECT_DIRECTORY, QUICK_DIRECTORY } from "./catalog"
 import { consumeTextAttachmentFault } from "./composer"
 import { extensionRequest } from "./extensions"
-import { fileRequest, virtualFiles } from "./filesystem"
+import { fileRequest, type NativeRequest, virtualFiles } from "./filesystem"
 import { gamepadRequest, resetGamepad } from "./gamepad"
-import { resetUpdater, restartPreview } from "./updater"
+import { resetUpdater, restartPreview, updaterState } from "./updater"
 import { resetVoice, type VoiceCase, voiceRequest } from "./voice"
 
 export let providers: ProviderSnapshot = {
@@ -299,8 +298,12 @@ export function handleNativeRequest(command: string, payload?: unknown): unknown
     return
   if (command === "plugin:path|resolve_directory") return "/Users/demo/Library/Application Support/ALwith U"
   if (command === "plugin:path|join") return (args.paths as string[]).join("/")
-  if (command === "updater_get_state") return { type: "idle" }
-  if (command === "updater_install_and_relaunch") {
+  if (
+    command === "plugin:alwith-desktop-shell|updater_state" ||
+    command === "plugin:alwith-desktop-shell|updater_check"
+  )
+    return updaterState
+  if (command === "plugin:alwith-desktop-shell|updater_install_and_relaunch") {
     restartPreview()
     return
   }
