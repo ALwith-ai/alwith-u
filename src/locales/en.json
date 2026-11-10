@@ -133,10 +133,12 @@
       "welcome": {
         "chat": {
           "title": "What would you like to talk about?",
+          "projectTitle": "What would you like to talk about in <project>{{project}}</project>?",
           "description": "Start a conversation, or choose a project folder."
         },
         "image": {
           "title": "What would you like to create?",
+          "projectTitle": "What image would you like to create in <project>{{project}}</project>?",
           "description": "Describe your idea, or add a reference image to edit."
         }
       },

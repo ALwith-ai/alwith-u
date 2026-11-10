@@ -102,7 +102,7 @@ function Conversation({
         <ForkTurnButton labelled turnId={lastNativeItem === undefined ? null : nativeTurnId(lastNativeItem)} />
       }
       composer={<ChatComposer session={session} voiceResume={voiceResume} />}
-      welcome={<ChatWelcome />}
+      welcome={<ChatWelcome cwd={session.cwd} />}
     >
       <FilePreviewModal />
       <ImageLightbox

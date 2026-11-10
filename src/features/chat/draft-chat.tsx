@@ -250,7 +250,7 @@ export function DraftChat({
           />
         </ChatHeader>
         {owner === "main" && <MainInputModeSwitch />}
-        <ChatWelcome />
+        <ChatWelcome cwd={cwd} />
         {!preparing && (error !== null || connection !== "ready") && (
           <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center gap-2 px-6 py-2 text-sm" role="status">
             <span>{error !== null ? text(error) : t("connection.disconnected")}</span>

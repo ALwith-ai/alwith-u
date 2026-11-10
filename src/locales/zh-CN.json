@@ -132,11 +132,13 @@
       "image": "图片",
       "welcome": {
         "chat": {
-          "title": "聊点什么？",
+          "title": "想聊点什么？",
+          "projectTitle": "想在 <project>{{project}}</project> 中聊点什么？",
           "description": "直接开始对话，也可以选择项目文件夹。"
         },
         "image": {
           "title": "想创作什么图片？",
+          "projectTitle": "想在 <project>{{project}}</project> 中创作什么图片？",
           "description": "描述你的想法，或添加参考图进行编辑。"
         }
       },
