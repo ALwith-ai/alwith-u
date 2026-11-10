@@ -1,12 +1,10 @@
 import type { ImageSelection } from "@alwith/module-chat/image"
-import { motion, useReducedMotion } from "motion/react"
 import { createContext, type ReactNode, useContext, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
-import { Button } from "@/components/ui/button"
+import { SegmentedControl } from "@/components/alwith-ui/segmented-control"
 import { saveImageSelection, useImagePreferences, useImagePreferenceSync } from "@/features/images/preferences"
-import { cn } from "@/lib/utils"
 
 import type { ImageInputAspect } from "./image-tools"
 import {
@@ -110,61 +108,19 @@ export function useInputMode() {
 /** Mode selection belongs to the top of the main conversation content. */
 export function MainInputModeSwitch() {
   const inputMode = useInputMode()
+  const { t } = useTranslation()
   if (!inputMode) return null
   return (
     <div data-input-mode-switch className="flex shrink-0 justify-center px-6 pt-6 pb-2">
-      <InputModeToggle value={inputMode.mode} onChange={inputMode.setMode} />
-    </div>
-  )
-}
-
-/** The overlapping thumb and translation retain the ChatGPT home toggle's geometry. */
-function InputModeToggle({ value, onChange }: { value: InputMode; onChange: (mode: InputMode) => void }) {
-  const { t } = useTranslation()
-  const reduceMotion = useReducedMotion()
-  return (
-    <div
-      role="group"
-      aria-label={t("chat.inputMode.label")}
-      className="chat-mode-toggle relative isolate inline-grid h-9 w-54 max-w-full min-w-0 grid-cols-2 rounded-full select-none"
-      onKeyDown={(event) => {
-        if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return
-        event.preventDefault()
-        const rtl = getComputedStyle(event.currentTarget).direction === "rtl"
-        const first = event.key === "Home" || (rtl ? event.key === "ArrowRight" : event.key === "ArrowLeft")
-        onChange(first ? "chat" : "image")
-        event.currentTarget.querySelectorAll<HTMLButtonElement>("button")[first ? 0 : 1].focus()
-      }}
-    >
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-px top-1/2 z-0 h-8.5 -translate-y-1/2 rounded-full bg-muted"
+      <SegmentedControl
+        aria-label={t("chat.inputMode.label")}
+        items={[
+          { value: "chat", label: t("chat.inputMode.chat") },
+          { value: "image", label: t("chat.inputMode.image") }
+        ]}
+        value={inputMode.mode}
+        onValueChange={inputMode.setMode}
       />
-      <motion.span
-        aria-hidden="true"
-        className="chat-mode-toggle-indicator pointer-events-none relative z-10 col-start-1 row-start-1 rounded-full border-border bg-background shadow-md"
-        initial={false}
-        animate={{ x: value === "chat" ? "0%" : "calc((100% - 17px) * var(--mode-toggle-direction))" }}
-        transition={{ duration: reduceMotion ? 0 : 0.3, ease: [0.23, 1, 0.32, 1] }}
-      />
-      {(["chat", "image"] as const).map((mode) => (
-        <Button
-          key={mode}
-          type="button"
-          variant="ghost"
-          aria-pressed={value === mode}
-          className={cn(
-            "relative z-10 row-start-1 h-full min-w-0 rounded-full text-sm font-medium hover:bg-transparent focus-visible:border-transparent focus-visible:ring-0 active:bg-transparent aria-pressed:bg-transparent dark:hover:bg-transparent dark:active:bg-transparent",
-            mode === "chat" ? "col-start-1 ps-11 pe-9" : "col-start-2 ps-9 pe-11",
-            value === mode ? "text-foreground" : "text-foreground/80 hover:text-foreground"
-          )}
-          onClick={() => {
-            if (value !== mode) onChange(mode)
-          }}
-        >
-          {t(`chat.inputMode.${mode}`)}
-        </Button>
-      ))}
     </div>
   )
 }

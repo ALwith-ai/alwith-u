@@ -1,0 +1,16 @@
+.segmented-control-indicator {
+  --segmented-control-direction: 1;
+  width: calc(100% + 9px);
+  border-width: 0.5px;
+  margin-block: -0.5px;
+  margin-inline-start: -0.5px;
+}
+
+.segmented-control-indicator:dir(rtl) {
+  --segmented-control-direction: -1;
+}
+
+.segmented-control:has(button:focus-visible) .segmented-control-indicator {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
