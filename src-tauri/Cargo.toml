@@ -1,6 +1,6 @@
 [package]
 name = "alwith-u"
-version = "26.11.9"
+version = "26.11.10"
 description = "An independent desktop client for the OpenAI Codex CLI"
 authors = ["alwith.ai"]
 license = "Apache-2.0"

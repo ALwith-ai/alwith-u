@@ -1,7 +1,7 @@
 {
   "name": "alwith-u",
   "private": true,
-  "version": "26.11.9",
+  "version": "26.11.10",
   "description": "An independent desktop client for the OpenAI Codex CLI",
   "license": "Apache-2.0",
   "type": "module",
