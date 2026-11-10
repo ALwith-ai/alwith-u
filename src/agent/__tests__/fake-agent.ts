@@ -144,7 +144,6 @@ export function createFakeAgent(): FakeAgent {
             sessionLineage: true,
             archive: true,
             providerCatalog: true,
-            rename: true,
             account: true,
             fuzzyFileSearch: true,
             sessionHistory: { version: 2, items: true, modes: ["browse", "export"] },
