@@ -31,7 +31,7 @@ export function ChatWelcome({ cwd = null }: { cwd?: string | null }) {
                 project: (
                   <Button
                     variant="link"
-                    className="inline h-auto max-w-full rounded-none p-0 align-baseline text-[length:inherit] leading-[inherit] font-normal whitespace-normal text-foreground underline decoration-muted-foreground/50 decoration-dashed decoration-1 underline-offset-6 hover:decoration-foreground"
+                    className="inline h-auto max-w-full rounded-none p-0 align-baseline text-[length:inherit] leading-[inherit] font-normal whitespace-normal text-foreground underline decoration-muted-foreground/50 decoration-dashed decoration-1 underline-offset-6 hover:decoration-foreground active:bg-none!"
                     title={project}
                     aria-label={`${t("actions.openFolder")}: ${basename(project)}`}
                     onClick={() => void openPath(project).catch((error: unknown) => toast.error(text(error)))}

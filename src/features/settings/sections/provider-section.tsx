@@ -51,6 +51,7 @@ import { useProviders } from "@/lib/use-providers"
 import { cn } from "@/lib/utils"
 
 import { CodexProviderSection } from "./codex-provider-section"
+import { ProviderBaseUrl, ProviderConnectionSettings } from "./provider-connection-settings"
 import { SettingGroup, SettingLabel } from "./shared"
 
 /** Fetch on entry; failed network refreshes retry the fetch rather than cached configuration application. */
@@ -555,11 +556,7 @@ export function ProviderRow({
           </Select>
         )}
       </div>
-      <Separator />
-      <section className="space-y-4" aria-labelledby={`${provider.id}-connection`}>
-        <h4 id={`${provider.id}-connection`} className="text-sm font-medium">
-          {t("provider.connectionSettings")}
-        </h4>
+      <ProviderConnectionSettings id={`${provider.id}-connection`}>
         <Field className="gap-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <FieldLabel htmlFor={inputId}>{t("provider.apiKey")}</FieldLabel>
@@ -600,34 +597,14 @@ export function ProviderRow({
             </InputGroupAddon>
           </InputGroup>
         </Field>
-        <Collapsible className="space-y-2">
-          <CollapsibleTrigger className="group inline-flex items-center gap-1 bg-none! p-0 text-sm leading-snug font-medium">
-            {t("provider.baseUrl")}
-            <ChevronDownIcon
-              className="size-4 transition-transform group-aria-expanded:rotate-180"
-              aria-hidden="true"
-            />
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <Field className="gap-2">
-              <FieldLabel htmlFor={`${provider.id}-base-url`} className="sr-only">
-                {t("provider.baseUrl")}
-              </FieldLabel>
-              <InputGroup>
-                <InputGroupInput
-                  id={`${provider.id}-base-url`}
-                  type="url"
-                  spellCheck={false}
-                  placeholder={providerRegion(provider, region)?.baseUrl ?? provider.baseUrl}
-                  value={baseUrl}
-                  onChange={(event) => setBaseUrl(event.target.value)}
-                />
-              </InputGroup>
-              <FieldDescription className="text-xs">{t("provider.baseUrlDescription")}</FieldDescription>
-            </Field>
-          </CollapsibleContent>
-        </Collapsible>
-      </section>
+        <ProviderBaseUrl
+          id={`${provider.id}-base-url`}
+          placeholder={providerRegion(provider, region)?.baseUrl ?? provider.baseUrl}
+          value={baseUrl}
+          onChange={setBaseUrl}
+          description={t("provider.baseUrlDescription")}
+        />
+      </ProviderConnectionSettings>
       <ProviderActions
         busy={busy}
         canTest={!canSave}

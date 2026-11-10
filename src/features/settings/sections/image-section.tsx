@@ -6,14 +6,14 @@ import { toast } from "sonner"
 
 import { commands, type ImageSettings } from "@/bindings"
 import { Button } from "@/components/ui/button"
-import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
+import { Field, FieldLabel } from "@/components/ui/field"
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group"
 import { Spinner } from "@/components/ui/spinner"
 import { ImageModelIcon } from "@/features/images/model-icon"
 import { IMAGE_PROVIDERS_CHANGED } from "@/features/images/provider-events"
 import { openExternal } from "@/lib/open"
 
+import { ProviderBaseUrl, ProviderConnectionSettings } from "./provider-connection-settings"
 import { SettingGroup, SettingLabel, SettingRow } from "./shared"
 
 export function ImageSection({ onOpenModels }: { onOpenModels: () => void }) {
@@ -97,7 +97,7 @@ export function ImageSection({ onOpenModels }: { onOpenModels: () => void }) {
       <SettingGroup>
         <SettingLabel>{t("images.otherModels")}</SettingLabel>
         <form
-          className="space-y-4 rounded-xl border p-4"
+          className="space-y-5 rounded-xl border p-4"
           onSubmit={(event) => {
             event.preventDefault()
             if (canSave) void save()
@@ -107,70 +107,65 @@ export function ImageSection({ onOpenModels }: { onOpenModels: () => void }) {
             <ImageModelIcon provider="seedream" className="size-6" />
             <h3 className="text-sm font-medium">Seedream</h3>
           </div>
-          <Field className="gap-2">
-            <FieldLabel htmlFor="seedream-base-url">{t("provider.baseUrl")}</FieldLabel>
-            <Input
+          <ProviderConnectionSettings id="seedream-connection">
+            <Field className="gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <FieldLabel htmlFor="seedream-api-key">{t("provider.apiKey")}</FieldLabel>
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  className="h-auto p-0 text-xs text-muted-foreground"
+                  onClick={() =>
+                    void openExternal("https://ark.volcengine.com/region:cn-beijing/apikey").catch((cause: unknown) =>
+                      toast.error(cause instanceof Error ? cause.message : String(cause))
+                    )
+                  }
+                >
+                  {t("images.getKey")}
+                  <ExternalLinkIcon className="size-3" aria-hidden="true" />
+                </Button>
+              </div>
+              <InputGroup>
+                <InputGroupInput
+                  id="seedream-api-key"
+                  type={showKey ? "text" : "password"}
+                  autoComplete="off"
+                  spellCheck={false}
+                  aria-label={t("images.seedreamKey")}
+                  value={key}
+                  disabled={settings === null || saving}
+                  onChange={(event) => {
+                    dirty.current = true
+                    setKey(event.target.value)
+                  }}
+                  placeholder={settings?.configured ? t("images.configured") : t("images.enterKey")}
+                />
+                <InputGroupAddon align="inline-end">
+                  <InputGroupButton
+                    type="button"
+                    size="icon-xs"
+                    disabled={settings === null || saving}
+                    aria-label={t(showKey ? "provider.hideKey" : "provider.showKey")}
+                    onClick={() => setShowKey((value) => !value)}
+                  >
+                    {showKey ? <EyeIcon /> : <EyeOffIcon />}
+                  </InputGroupButton>
+                </InputGroupAddon>
+              </InputGroup>
+            </Field>
+            <ProviderBaseUrl
               id="seedream-base-url"
-              type="url"
-              autoComplete="off"
-              autoCapitalize="none"
-              spellCheck={false}
               value={baseUrl}
               disabled={settings === null || saving}
               placeholder={settings?.defaultBaseUrl}
-              onChange={(event) => {
+              onChange={(value) => {
                 dirty.current = true
-                setBaseUrl(event.target.value)
+                setBaseUrl(value)
               }}
+              description={t("images.baseUrlHint")}
             />
-            <FieldDescription>{t("images.baseUrlHint")}</FieldDescription>
-          </Field>
-          <Field className="gap-2">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <FieldLabel htmlFor="seedream-api-key">{t("provider.apiKey")}</FieldLabel>
-              <Button
-                type="button"
-                variant="link"
-                size="sm"
-                className="h-auto p-0 text-xs text-muted-foreground"
-                onClick={() =>
-                  void openExternal("https://ark.volcengine.com/region:cn-beijing/apikey").catch((cause: unknown) =>
-                    toast.error(cause instanceof Error ? cause.message : String(cause))
-                  )
-                }
-              >
-                {t("images.getKey")}
-                <ExternalLinkIcon className="size-3" aria-hidden="true" />
-              </Button>
-            </div>
-            <InputGroup>
-              <InputGroupInput
-                id="seedream-api-key"
-                type={showKey ? "text" : "password"}
-                autoComplete="off"
-                spellCheck={false}
-                aria-label={t("images.seedreamKey")}
-                value={key}
-                disabled={settings === null || saving}
-                onChange={(event) => {
-                  dirty.current = true
-                  setKey(event.target.value)
-                }}
-                placeholder={settings?.configured ? t("images.configured") : t("images.enterKey")}
-              />
-              <InputGroupAddon align="inline-end">
-                <InputGroupButton
-                  type="button"
-                  size="icon-xs"
-                  disabled={settings === null || saving}
-                  aria-label={t(showKey ? "provider.hideKey" : "provider.showKey")}
-                  onClick={() => setShowKey((value) => !value)}
-                >
-                  {showKey ? <EyeIcon /> : <EyeOffIcon />}
-                </InputGroupButton>
-              </InputGroupAddon>
-            </InputGroup>
-          </Field>
+          </ProviderConnectionSettings>
           <div className="flex justify-end gap-2">
             {settings?.configured && (
               <Button type="button" variant="ghost" size="sm" disabled={saving} onClick={() => void save(true)}>

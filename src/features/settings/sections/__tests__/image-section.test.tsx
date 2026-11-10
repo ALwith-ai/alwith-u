@@ -31,6 +31,10 @@ beforeEach(() => {
 test("image credentials are saved and removed through the native settings boundary", async () => {
   render(<ImageSection onOpenModels={vi.fn()} />)
   const input = screen.getByLabelText("Seedream API key", { selector: "input" })
+  const addressToggle = screen.getByRole("button", { name: "API base URL" })
+  expect(addressToggle).toHaveAttribute("aria-expanded", "false")
+  expect(screen.queryByLabelText("API base URL", { selector: "input" })).toBeNull()
+  fireEvent.click(addressToggle)
   const baseUrl = screen.getByLabelText("API base URL", { selector: "input" })
   await waitFor(() => expect(input).toBeEnabled())
   expect(input).toHaveAttribute("type", "password")
