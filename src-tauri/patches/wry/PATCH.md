@@ -80,7 +80,7 @@ contains both serialized response delivery and abandoned-responder cleanup.
       and local snapshot together, then refresh Cargo.lock and verify its registry source.
 
 Restored after accidental removal during snapshot cleanup. The application's
-minimum supported macOS version is 26.6. Restoration has not been compiled
+minimum supported macOS version is 26.0. Restoration has not been compiled
 or runtime-tested in this maintenance session.
 
 File drops read individual `NSPasteboardTypeFileURL` items and decode file URLs

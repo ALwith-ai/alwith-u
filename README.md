@@ -12,7 +12,7 @@ Read the [ALwith U Guide](guide/index.md), or click the question-mark button nex
 
 ## Install from source
 
-Install the Bun version pinned in `package.json`, Rust stable, and the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for your platform. macOS requires 26.6+ on Apple Silicon.
+Install the Bun version pinned in `package.json`, Rust stable, and the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for your platform. macOS requires 26.0+ on Apple Silicon; iOS simulators need 26.6 (Xcode 27).
 
 ```sh
 git clone https://github.com/ALwith-ai/alwith-u.git
