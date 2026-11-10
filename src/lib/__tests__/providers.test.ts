@@ -114,7 +114,7 @@ test("account-managed models keep their own group and can be selected explicitly
 })
 
 test("account-sourced providers are excluded from manual key configuration", () => {
-  expect(PROVIDERS.map((provider) => provider.id)).toEqual(["deepseek", "openrouter", "qwen", "xai"])
+  expect(PROVIDERS.map((provider) => provider.id)).toEqual(["anthropic", "deepseek", "openrouter", "qwen", "xai"])
   expect(
     providerGroups({
       revision: 0,
@@ -150,7 +150,7 @@ test.each(["gateway:litellm:old", "gateway:finture-enterprise:old"])(
     }
     expect(resolveSessionModel(model, snapshot, "draft")).toBeNull()
     snapshot.providers.deepseek = { configured: true, region: null, base_url: null }
-    expect(resolveSessionModel(model, snapshot, "draft")).toBe(gatewayModelId("deepseek", PROVIDERS[0]!.models[0]!.id))
+    expect(resolveSessionModel(model, snapshot, "draft")).toBe(gatewayModelId("deepseek", PROVIDERS.find((provider) => provider.id === "deepseek")!.models[0]!.id))
     expect(() => resolveSessionModel(model, snapshot)).toThrow(/unavailable/i)
   }
 )
