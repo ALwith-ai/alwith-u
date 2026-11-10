@@ -257,7 +257,7 @@ test("floating chat returns to main immediately before Rename and the main menu 
     agent: {
       protocolVersion: 2,
       info: { name: "fake-codex", version: "1" },
-      capabilities: { _meta: { codex: { rename: true } } }
+      capabilities: { session: { title: {} }, _meta: { codex: { rename: true } } }
     }
   })
   let returned = false

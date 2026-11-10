@@ -137,7 +137,7 @@ export function createFakeAgent(): FakeAgent {
       protocolVersion: 2,
       info: { name: "fake-codex", version: "1" },
       capabilities: {
-        session: { fork: {}, systemPrompt: {}, prompt: { image: {} } },
+        session: { fork: {}, title: {}, systemPrompt: {}, prompt: { image: {} } },
         _meta: {
           codex: {
             forkAtTurn: true,
