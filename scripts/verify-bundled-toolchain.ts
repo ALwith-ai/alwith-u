@@ -5,12 +5,15 @@ import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 
 import { ProcessRuntimeClient } from "@alwith/api/node"
-import providers from "@alwith/module-chat/assets/provider-catalog.json"
+import sharedProviders from "@alwith/module-chat/assets/provider-catalog.json"
 
 import manifest from "../package.json"
 import { joinModelCatalogPaths } from "./lib/model-catalog"
 import { assertVersion, codexSidecars, toolchainVersions } from "./lib/toolchain"
 import { deadline, removeTemporaryDirectory, stopRuntime, withCleanup } from "./lib/toolchain-cleanup"
+
+// U does not support or package Anthropic; all other provider resources remain required.
+const providers = sharedProviders.filter((provider) => provider.id !== "anthropic")
 
 const argument = process.argv[2]
 if (!argument)

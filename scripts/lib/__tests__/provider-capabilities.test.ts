@@ -2,9 +2,12 @@ import { expect, test } from "bun:test"
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 
-import providers from "@alwith/module-chat/assets/provider-catalog.json"
+import sharedProviders from "@alwith/module-chat/assets/provider-catalog.json"
 
 import tauri from "../../../src-tauri/tauri.conf.json"
+
+// U does not support or package Anthropic; all other provider resources remain required.
+const providers = sharedProviders.filter((provider) => provider.id !== "anthropic")
 
 interface CatalogModel {
   slug: string

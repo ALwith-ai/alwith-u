@@ -9,6 +9,7 @@ import {
   isAccountModel as sharedAccountModel,
   providerGroups,
   type ProviderInput,
+  PROVIDERS as sharedProviders,
   type ProviderSnapshot,
   type ProviderTestResult
 } from "@alwith/module-chat/settings"
@@ -28,8 +29,7 @@ export {
   parseCustomModels,
   providerGroups,
   providerKeyUrl,
-  providerRegion,
-  PROVIDERS
+  providerRegion
 } from "@alwith/module-chat/settings"
 import { listen } from "@tauri-apps/api/event"
 
@@ -40,6 +40,9 @@ import {
   isEnterpriseModel,
   projectEnterpriseProviders
 } from "@/features/auth/enterprise-providers"
+
+// U does not expose Anthropic key configuration.
+export const PROVIDERS = sharedProviders.filter((provider) => provider.id !== "anthropic")
 
 /** The chat plugin's provider commands; every window shares the native state. */
 const rawProvidersPort = createProvidersPort()

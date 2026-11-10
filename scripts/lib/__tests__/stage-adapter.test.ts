@@ -3,10 +3,13 @@ import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync 
 import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 
-import providers from "@alwith/module-chat/assets/provider-catalog.json"
+import sharedProviders from "@alwith/module-chat/assets/provider-catalog.json"
 import { chatAdapterArtifact } from "@alwith/module-chat/stage"
 
 import { codexSidecars } from "../toolchain"
+
+// U does not support or package Anthropic; all other provider resources remain required.
+const providers = sharedProviders.filter((provider) => provider.id !== "anthropic")
 
 const HOST_TRIPLES: Partial<Record<`${NodeJS.Platform}-${string}`, string>> = {
   "darwin-arm64": "aarch64-apple-darwin",
