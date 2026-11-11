@@ -52,6 +52,35 @@ export const Text: Story = {
 export const Missing: Story = {
   parameters: { pageStateGroup: "01 文件预览/02 无法正常预览" }, name: "文件加载失败", args: { file: "missing.md" } }
 
+export const FolderContextMenu: Story = {
+  parameters: { pageStateGroup: "02 文件操作/01 常用操作" },
+  name: "文件夹右键菜单",
+  play: async ({ canvas, canvasElement, userEvent }) => {
+    const target = await canvas.findByRole("treeitem", { name: /assets/ })
+    const rect = target.getBoundingClientRect()
+    await userEvent.pointer({ keys: "[MouseRight]", target, coords: { clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2 } })
+    await within(canvasElement.ownerDocument.body).findByRole("menuitem", { name: "新建文件夹" })
+  }
+}
+export const FileContextMenu: Story = {
+  parameters: { pageStateGroup: "02 文件操作/01 常用操作" },
+  name: "文件右键菜单",
+  play: async ({ canvas, canvasElement, userEvent }) => {
+    const target = await canvas.findByRole("treeitem", { name: /notes.txt/ })
+    const rect = target.getBoundingClientRect()
+    await userEvent.pointer({ keys: "[MouseRight]", target, coords: { clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2 } })
+    await within(canvasElement.ownerDocument.body).findByRole("menuitem", { name: "重命名" })
+  }
+}
+export const ExcelSwitch: Story = {
+  parameters: { pageStateGroup: "02 文件操作/01 常用操作" },
+  name: "Excel · 切换工作表",
+  args: { file: "samples/sample.xlsx", binaryFiles: true },
+  play: async ({ canvasElement, userEvent }) => {
+    await userEvent.click(await within(canvasElement).findByText("Details", { selector: "li" }, { timeout: 15000 }))
+    await expect(within(canvasElement).getByText("Details", { selector: "li" })).toBeVisible()
+  }
+}
 export const NewFileDialog: Story = {
   parameters: { pageStateGroup: "02 文件操作/01 常用操作" },
   name: "新建文件弹窗",

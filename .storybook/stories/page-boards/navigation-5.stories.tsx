@@ -4,14 +4,14 @@ import * as source from "../pages/navigation.stories.tsx"
 const meta = {
   ...source.default,
   id: "page-navigation-5",
-  title: "页面/侧栏导航/05 工具箱",
+  title: "页面/侧栏导航/05 自定义",
   parameters: {
     ...source.default.parameters,
     docs: {
       ...source.default.parameters.docs,
       description: {
         ...source.default.parameters.docs.description,
-        component: source.pageDocumentation["05 工具箱"] ?? source.default.parameters.docs.description.component
+        component: source.pageDocumentation["05 自定义"] ?? source.default.parameters.docs.description.component
       }
     }
   }

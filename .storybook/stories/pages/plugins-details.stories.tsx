@@ -102,7 +102,7 @@ const meta = {
   id: "页面-插件-详情细节",
   tags: ["layout"],
   globals: { locale: "en" },
-  title: "页面/负一屏/插件/详情细节",
+  title: "页面/负一屏/自定义/插件/详情细节",
   component: DetailPreview,
   parameters: { layout: "fullscreen" }
 } satisfies Meta<typeof DetailPreview>

@@ -199,3 +199,57 @@ export const PredictionError: Story = {
     await expect(input).toHaveValue("继续检查交付内容")
   }
 }
+
+export const TextInput: Story = {
+  name: "文本输入",
+  parameters: { pageStateGroup: "01 输入内容/01 文本输入" },
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.type(await canvas.findByRole("textbox", { name: "发送消息" }), "请整理本周的交付进度。")
+  }
+}
+
+export const ModelPicker: Story = {
+  name: "模型选择菜单",
+  parameters: { pageStateGroup: "02 输入框功能/02 模型选择" },
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(await canvas.findByTestId("model-trigger"))
+  }
+}
+
+export const SlashCommands: Story = {
+  name: "斜杠命令菜单",
+  parameters: { pageStateGroup: "01 输入内容/01 文本输入" },
+  play: async ({ canvas, userEvent }) => {
+    client.store.setState((state) => ({
+      sessions: {
+        ...state.sessions,
+        conversation: {
+          ...state.sessions.conversation,
+          commands: [{ type: "command", name: "plan", description: "Plan a task" }]
+        }
+      }
+    }))
+    await userEvent.type(await canvas.findByRole("textbox", { name: "发送消息" }), "/")
+    await canvas.findByRole("listbox")
+  }
+}
+
+export const MentionSearch: Story = {
+  name: "文件引用 · 搜索",
+  parameters: { pageStateGroup: "01 输入内容/03 文件引用" },
+  play: async ({ canvas, canvasElement, userEvent }) => {
+    await userEvent.type(await canvas.findByRole("textbox", { name: "发送消息" }), "@README")
+    await within(canvasElement.ownerDocument.body).findByRole("option", { name: /README.md/ })
+  }
+}
+
+export const SendEmpty: Story = {
+  name: "输入为空 · 无法发送",
+  parameters: { pageStateGroup: "02 输入框功能/05 发送与停止" }
+}
+
+export const StopRunning: Story = {
+  name: "执行中 · 停止生成",
+  parameters: { pageStateGroup: "02 输入框功能/05 发送与停止" },
+  args: { chatCase: "running" }
+}

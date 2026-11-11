@@ -10,7 +10,7 @@ const config = { labels, id: "workflow-plugins-uninstall" }
 const meta = {
   ...base,
   id: "workflow-plugins-uninstall",
-  title: "流程/负一屏/插件/03 插件卸载",
+  title: "流程/负一屏/自定义/插件/03 插件卸载",
   loaders: [prepareWorkflow],
   render: (args, context) => (
     <WorkflowPreview

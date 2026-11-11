@@ -10,7 +10,7 @@ const config = { labels, id: "workflow-archive-deleteone" }
 const meta = {
   ...base,
   id: "workflow-archive-deleteone",
-  title: "流程/负一屏/归档/02 删除归档聊天",
+  title: "流程/负一屏/已归档/02 删除归档聊天",
   loaders: [prepareWorkflow],
   render: (args, context) => (
     <WorkflowPreview

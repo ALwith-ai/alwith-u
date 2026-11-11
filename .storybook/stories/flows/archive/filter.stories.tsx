@@ -10,7 +10,7 @@ const config = { labels, id: "workflow-archive-filter" }
 const meta = {
   ...base,
   id: "workflow-archive-filter",
-  title: "流程/负一屏/归档/06 筛选归档",
+  title: "流程/负一屏/已归档/06 筛选归档",
   loaders: [prepareWorkflow],
   render: (args, context) => (
     <WorkflowPreview

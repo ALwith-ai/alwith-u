@@ -7,7 +7,7 @@ import { ProductPreview } from "../product-preview"
 
 const meta = {
   id: "页面-插件-插件列表",
-  title: "页面/负一屏/插件/插件列表",
+  title: "页面/负一屏/自定义/插件/插件列表",
   component: ProductPreview,
   loaders: [preparePreview],
   args: { page: "plugins" },

@@ -4,7 +4,7 @@ import * as source from "../pages/archives.stories.tsx"
 const meta = {
   ...source.default,
   id: "page-archives-2",
-  title: "页面/负一屏/归档/归档列表"
+  title: "页面/负一屏/已归档/归档列表"
 }
 export default meta
 

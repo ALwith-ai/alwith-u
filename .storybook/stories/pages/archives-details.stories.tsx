@@ -37,7 +37,7 @@ const chats: SessionSummary[] = [
 const meta = {
   id: "页面-聊天归档-布局细节",
   tags: ["layout"],
-  title: "页面/负一屏/归档/布局细节",
+  title: "页面/负一屏/已归档/布局细节",
   component: ArchivedChatsPage,
   globals: { locale: "zh-CN" },
   beforeEach: () => {

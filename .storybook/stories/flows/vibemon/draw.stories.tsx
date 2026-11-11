@@ -10,7 +10,7 @@ const config = { labels, id: "workflow-vibemon-draw" }
 const meta = {
   ...base,
   id: "workflow-vibemon-draw",
-  title: "流程/负一屏/Vibémon伙伴/04 伙伴单次抽取",
+  title: "流程/负一屏/宠物/04 伙伴单次抽取",
   loaders: [prepareWorkflow],
   render: (args, context) => (
     <WorkflowPreview

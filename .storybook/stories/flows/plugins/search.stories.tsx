@@ -10,7 +10,7 @@ const config = { labels, id: "workflow-plugins-search" }
 const meta = {
   ...base,
   id: "workflow-plugins-search",
-  title: "流程/负一屏/插件/05 插件搜索",
+  title: "流程/负一屏/自定义/插件/05 插件搜索",
   loaders: [prepareWorkflow],
   render: (args, context) => (
     <WorkflowPreview

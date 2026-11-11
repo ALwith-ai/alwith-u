@@ -9,15 +9,16 @@ import { predictionPreference } from "../../src/features/chat/composer/predictio
 import { pluginsStore } from "../../src/features/plugins/instance"
 import { createPluginsStore } from "../../src/features/plugins/store"
 import { useSessionsUiStore } from "../../src/features/sessions/store"
+import { useChatWindowSurface } from "../../src/lib/chat-window-state"
 import { settingsStore } from "../../src/lib/settings-store"
 import { type AuthCase, demoUser, resetAuth, usePlatformAuth } from "./auth"
 import { type ChatCase, makeSession, pendingAction, PROJECT_DIRECTORY, QUICK_DIRECTORY } from "./catalog"
 import { resetChatWindow } from "./chat-window"
-import { client, resetClient, runState } from "./client"
+import { client, resetClient, runState, setForkScenario } from "./client"
 import { type ComposerCase, resetComposer } from "./composer"
 import { type DriveCase, resetDrive } from "./drive"
 import { type ExtensionCase, resetExtensions } from "./extensions"
-import { type FileCase, resetFiles } from "./filesystem"
+import { type FileCase, resetFiles, virtualFiles } from "./filesystem"
 import { type GamepadCase, resetGamepad } from "./gamepad"
 import { installNativeMock, resetNative, setComputerStatus } from "./native"
 import { disposePlaybackClock } from "./playback-clock"
@@ -38,7 +39,9 @@ export interface PreviewState {
   binaryFiles?: boolean
   page?: string
   chatCase?: ChatCase
-  sidebarView?: "sessions" | "activity" | "drive"
+  floatingChatCase?: ChatCase
+  initialDirectory?: string | null
+  sidebarView?: "collections" | "sessions" | "activity" | "drive"
   sidebarPinned?: boolean
   emptyThreads?: boolean
   connection?: "ready" | "connecting" | "disconnected" | "failed"
@@ -58,7 +61,7 @@ export interface PreviewState {
     | "deleteError"
     | "partialDelete"
   extensionId?: string
-  chatDetail?: "usage" | "usageWarning" | "usageFull" | "fork"
+  chatDetail?: "usage" | "usageWarning" | "usageCritical" | "usageFull" | "fork"
   authCase?: AuthCase
   accountCase?: AccountCase
   updateCase?: UpdateCase
@@ -70,6 +73,7 @@ export interface PreviewState {
   companyAccount?: boolean
   response?: "complete" | "permission" | "question" | "error"
   draftFailure?: string | null
+  draftFailureCode?: number | null
   file?: string | null
   emptyFiles?: boolean
   computerCase?: "enabled" | "disabled" | "permissions" | "unavailable"
@@ -82,6 +86,7 @@ export const preparePreview: LoaderFunction = async ({ args, globals }) => {
   toast.dismiss()
   disposePlaybackClock()
   const state = args as PreviewState
+  setForkScenario(state.chatCase === "messageForkPending" ? "pending" : state.chatCase === "messageForkError" ? "error" : "ready")
   resetNative(state.providerCase, state.voiceCase, globals.theme === "dark" ? "dark" : "light")
   resetGamepad(state.gamepadCase)
   installNativeMock(state.platform)
@@ -96,17 +101,28 @@ export const preparePreview: LoaderFunction = async ({ args, globals }) => {
         }
       : null
   )
+  const floatingCase = state.floatingChatCase ?? state.chatCase
   resetChatWindow(
-    state.chatCase && !["welcome", "project"].includes(state.chatCase) ? state.chatCase : null,
-    state.chatCase === "welcome" ? null : PROJECT_DIRECTORY
+    floatingCase && !["welcome", "project"].includes(floatingCase) ? floatingCase : null,
+    floatingCase === "welcome" ? null : PROJECT_DIRECTORY,
+    null,
+    state.page === "floating" ? state.connection : undefined
   )
-  resetClient({ connection: state.connection, response: state.response, draftFailure: state.draftFailure })
+  useChatWindowSurface.setState({ sessionId: null, visible: false })
+  resetClient({ connection: state.connection, response: state.response, draftFailure: state.draftFailure, draftFailureCode: state.draftFailureCode })
   resetAuth(state.authenticated ?? state.page !== "login", state.authError, state.authCase)
   await resetVibemon(state.vibemonCase, state.bubbleCase)
   if (state.companyAccount === false)
     usePlatformAuth.setState({ user: { ...demoUser, login_email: "lin.ran@example.test" } })
   for (const key of Object.keys(localStorage)) if (key.startsWith("workspace:")) localStorage.removeItem(key)
   await resetFiles(state.emptyFiles, state.binaryFiles, state.fileCase)
+  if (state.chatCase?.startsWith("files")) {
+    const conflict = state.chatCase === "filesFailed" || state.chatCase === "filesPartial"
+    virtualFiles.set(`${PROJECT_DIRECTORY}/docs/checklist.md`, new TextEncoder().encode(
+      `# 交付清单\n- 页面梳理：${conflict ? "用户后续修改" : "已完成"}\n`
+    ))
+    virtualFiles.set(`${PROJECT_DIRECTORY}/docs/interaction.md`, new TextEncoder().encode("交互检查：已完成\n"))
+  }
   resetComposer(state.composerCase)
   predictionPreference.setState({ enabled: true })
   resetDrive(state.driveCase)
@@ -136,17 +152,11 @@ export const preparePreview: LoaderFunction = async ({ args, globals }) => {
     activitySeen: new Map(),
     activityCollapsedGroups: new Set()
   })
-  if (state.chatCase && state.chatCase !== "welcome" && state.chatCase !== "project") {
-    let session = makeSession(state.chatCase)
-    if (state.composerCase === "prediction" || state.composerCase === "predictionError") {
-      session = {
-        ...session,
-        state: "idle",
-        lastStopReason: "end_turn",
-        ...(state.composerCase === "prediction"
-          ? { _meta: { promptSuggestions: { suggestions: [{ text: "请继续核对文件预览" }] } } }
-          : {})
-      }
+  for (const chatCase of new Set([state.chatCase, state.floatingChatCase])) {
+    if (!chatCase || chatCase === "welcome" || chatCase === "project") continue
+    let session = makeSession(chatCase)
+    if (state.composerCase === "prediction") {
+      session = { ...session, state: "idle", lastStopReason: "end_turn" }
       client.store.setState((previous) => ({
         agent: previous.agent && {
           ...previous.agent,
@@ -161,7 +171,14 @@ export const preparePreview: LoaderFunction = async ({ args, globals }) => {
       session = {
         ...session,
         usage: {
-          used: state.chatDetail === "usageFull" ? 128000 : state.chatDetail === "usageWarning" ? 110000 : 42000,
+          used:
+            state.chatDetail === "usageFull"
+              ? 128000
+              : state.chatDetail === "usageCritical"
+                ? 118000
+                : state.chatDetail === "usageWarning"
+                  ? 110000
+                  : 42000,
           size: 128000
         },
         lastTurnUsage: {
@@ -172,14 +189,51 @@ export const preparePreview: LoaderFunction = async ({ args, globals }) => {
           totalTokens: 11650
         }
       }
-    if (state.chatDetail === "fork")
+    if (state.chatDetail === "fork" || chatCase === "messageForkOrigin" || chatCase === "messageForkSourceMissing")
       client.store.setState({
-        forkOrigins: { [session.id]: { sourceId: "conversation", boundaryTurnId: `turn:${session.id}-user` } }
+        forkOrigins: {
+          [session.id]: {
+            sourceId: chatCase === "messageForkSourceMissing" ? "missing-original" : "conversation",
+            boundaryTurnId: `turn:${session.id}-user`
+          }
+        }
       })
     client.store.setState((previous) => ({ sessions: { ...previous.sessions, [session.id]: session } }))
-    if (["permission", "form", "url"].includes(state.chatCase))
-      client.store.setState({ actions: [pendingAction(state.chatCase as "permission" | "form" | "url", session.id)] })
-    if (["running", "reasoning", "tools", "plan", "question"].includes(state.chatCase))
+    if (["permission", "form", "formQueue", "url"].includes(chatCase)) {
+      const actionKind = chatCase === "formQueue" ? "form" : chatCase
+      const action = pendingAction(actionKind as "permission" | "form" | "url", session.id)
+      client.store.setState({
+        actions:
+          chatCase === "formQueue"
+            ? [action, { ...action, id: `${action.id}-2` }, { ...action, id: `${action.id}-3` }]
+            : [action]
+      })
+    }
+    if (
+      [
+        "running",
+        "streaming",
+        "awaitingResponse",
+        "compacting",
+        "compacted",
+        "steering",
+        "reasoning",
+        "tools",
+        "plan",
+        "question",
+        "questionSubmitting",
+        "questionUnavailable",
+        "questionAnswered",
+        "activityEdit",
+        "activityRun",
+        "activitySearch",
+        "activityWeb",
+        "activityDelete",
+        "activityMove",
+        "completedActivities",
+        "errorRetrying"
+      ].includes(chatCase)
+    )
       client.store.setState((previous) => ({
         runStates: { ...previous.runStates, [session.id]: runState(session.id, "running") }
       }))

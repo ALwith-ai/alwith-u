@@ -10,7 +10,7 @@ const config = { labels, id: "workflow-plugins-upgrade" }
 const meta = {
   ...base,
   id: "workflow-plugins-upgrade",
-  title: "流程/负一屏/插件/06 插件目录升级",
+  title: "流程/负一屏/自定义/插件/06 插件目录升级",
   loaders: [prepareWorkflow],
   render: (args, context) => (
     <WorkflowPreview

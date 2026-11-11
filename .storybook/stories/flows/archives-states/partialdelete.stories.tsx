@@ -10,7 +10,7 @@ const config = { labels, id: "workflow-archives-states-partialdelete" }
 const meta = {
   ...base,
   id: "workflow-archives-states-partialdelete",
-  title: "流程/负一屏/归档/错误与等待/05 归档批量删除异常",
+  title: "流程/负一屏/已归档/错误与等待/05 归档批量删除异常",
   loaders: [prepareWorkflow],
   render: (args, context) => (
     <WorkflowPreview

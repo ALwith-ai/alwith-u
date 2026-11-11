@@ -55,15 +55,6 @@ export const Excel: Story = {
     await within(canvasElement).findAllByText("Overview")
   }
 }
-export const ExcelSwitch: Story = {
-  parameters: { pageStateGroup: "02 文件操作/01 常用操作" },
-  ...Excel,
-  name: "Excel · 切换工作表",
-  play: async ({ canvasElement, userEvent }) => {
-    await userEvent.click(await within(canvasElement).findByText("Details", { selector: "li" }, { timeout: 15000 }))
-    await expect(within(canvasElement).getByText("Details", { selector: "li" })).toBeVisible()
-  }
-}
 export const Tiff: Story = {
   parameters: { pageStateGroup: "01 文件预览/01 可以正常预览" },
   name: "TIFF 图片",

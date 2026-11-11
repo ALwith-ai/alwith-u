@@ -4,7 +4,7 @@ import * as source from "../pages/plugin-operation-states.stories.tsx"
 const meta = {
   ...source.default,
   id: "page-plugin-operation-states-1",
-  title: "页面/负一屏/插件/操作与失败恢复/插件操作"
+  title: "页面/负一屏/自定义/插件/操作与失败恢复/插件操作"
 }
 export default meta
 

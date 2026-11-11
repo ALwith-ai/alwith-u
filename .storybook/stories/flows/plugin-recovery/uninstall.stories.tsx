@@ -10,7 +10,7 @@ const config = { labels, id: "workflow-plugin-recovery-uninstall" }
 const meta = {
   ...base,
   id: "workflow-plugin-recovery-uninstall",
-  title: "流程/负一屏/插件/失败恢复/03 插件卸载重试",
+  title: "流程/负一屏/自定义/插件/失败恢复/03 插件卸载重试",
   loaders: [prepareWorkflow],
   render: (args, context) => (
     <WorkflowPreview

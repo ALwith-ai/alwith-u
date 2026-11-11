@@ -10,7 +10,7 @@ const config = { labels, id: "workflow-archives-states-deleting" }
 const meta = {
   ...base,
   id: "workflow-archives-states-deleting",
-  title: "流程/负一屏/归档/错误与等待/04 归档删除等待",
+  title: "流程/负一屏/已归档/错误与等待/04 归档删除等待",
   loaders: [prepareWorkflow],
   render: (args, context) => (
     <WorkflowPreview

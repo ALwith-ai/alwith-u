@@ -7,7 +7,7 @@ import { productPreviewArgTypes } from "../preview-options"
 import { ProductPreview } from "../product-preview"
 
 const meta = {
-  title: "流程/负一屏/插件/失败恢复",
+  title: "流程/负一屏/自定义/插件/失败恢复",
   component: ProductPreview,
   loaders: [preparePreview],
   args: { page: "plugins" },

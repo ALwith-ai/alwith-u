@@ -10,7 +10,7 @@ const config = { labels, id: "workflow-archive-canceldelete" }
 const meta = {
   ...base,
   id: "workflow-archive-canceldelete",
-  title: "流程/负一屏/归档/04 取消清空归档",
+  title: "流程/负一屏/已归档/04 取消清空归档",
   loaders: [prepareWorkflow],
   render: (args, context) => (
     <WorkflowPreview

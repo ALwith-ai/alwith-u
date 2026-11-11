@@ -5,7 +5,7 @@ import { preparePreview } from "../../fixtures/prepare"
 import { productPreviewArgTypes } from "../preview-options"
 import { ProductPreview } from "../product-preview"
 const meta = {
-  title: "流程/负一屏/Vibémon伙伴",
+  title: "流程/负一屏/宠物",
   component: ProductPreview,
   argTypes: productPreviewArgTypes,
   loaders: [preparePreview],

@@ -7,7 +7,7 @@ import { ProductPreview } from "../product-preview"
 
 const meta = {
   id: "页面-聊天归档",
-  title: "页面/负一屏/归档/页面状态",
+  title: "页面/负一屏/已归档/页面状态",
   component: ProductPreview,
   loaders: [preparePreview],
   args: { page: "archives" },

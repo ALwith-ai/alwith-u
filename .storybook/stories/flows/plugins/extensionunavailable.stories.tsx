@@ -10,7 +10,7 @@ const config = { labels, id: "workflow-plugins-extensionunavailable" }
 const meta = {
   ...base,
   id: "workflow-plugins-extensionunavailable",
-  title: "流程/负一屏/扩展/08 扩展不可用处理",
+  title: "流程/负一屏/自定义/扩展/08 扩展不可用处理",
   loaders: [prepareWorkflow],
   render: (args, context) => (
     <WorkflowPreview
