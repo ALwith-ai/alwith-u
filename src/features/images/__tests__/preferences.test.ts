@@ -1,7 +1,13 @@
 import { DEFAULT_IMAGE_SELECTION, type ImageSelection } from "@alwith/module-chat/image"
 import { beforeEach, expect, test, vi } from "vitest"
 
-import { saveImageSelection, useImagePreferences, watchImagePreferences } from "../preferences"
+import {
+  refreshImageProviders,
+  saveImageSelection,
+  selectableImageModels,
+  useImagePreferences,
+  watchImagePreferences
+} from "../preferences"
 
 const native = vi.hoisted(() => ({
   configured: vi.fn(),
@@ -18,7 +24,11 @@ const pro: ImageSelection = { model: "doubao-seedream-5-0-pro-260628", size: "1K
 
 beforeEach(() => {
   vi.resetAllMocks()
-  useImagePreferences.setState({ selection: DEFAULT_IMAGE_SELECTION, seedreamConfigured: null })
+  useImagePreferences.setState({
+    selection: DEFAULT_IMAGE_SELECTION,
+    seedreamConfigured: null,
+    minimaxConfigured: null
+  })
   native.configured.mockResolvedValue(true)
   native.receive = null
   native.get.mockResolvedValue(seedream)
@@ -74,4 +84,27 @@ test("invalid persisted models fail explicitly and release the native listener",
   await expect(watchImagePreferences()).rejects.toThrow()
   expect(native.stop).toHaveBeenCalledOnce()
   expect(useImagePreferences.getState().selection).toEqual(DEFAULT_IMAGE_SELECTION)
+})
+
+test("MiniMax selection remains available independently of Seedream and resets on removal", async () => {
+  const minimax: ImageSelection = { model: "MiniMax-H3-Image-Highspeed", size: "4K" }
+  native.get.mockResolvedValue(minimax)
+  native.configured.mockImplementation(async ({ provider }: { provider: string }) => provider === "minimax")
+  const stop = await watchImagePreferences()
+  expect(useImagePreferences.getState().selection).toEqual(minimax)
+  expect(useImagePreferences.getState().seedreamConfigured).toBe(false)
+  native.configured.mockResolvedValue(false)
+  await refreshImageProviders()
+  expect(useImagePreferences.getState().selection).toEqual(DEFAULT_IMAGE_SELECTION)
+  stop()
+})
+
+test("image models retain the existing provider order before newly added providers", () => {
+  expect(selectableImageModels.map((model) => model.id)).toEqual([
+    "wham",
+    "doubao-seedream-5-0-lite-260128",
+    "doubao-seedream-5-0-pro-260628",
+    "MiniMax-H3-Image",
+    "MiniMax-H3-Image-Highspeed"
+  ])
 })

@@ -19,6 +19,7 @@ const availability = vi.hoisted(() => ({
   available: true,
   chatgptConnected: true,
   seedreamConfigured: true,
+  minimaxConfigured: false,
   canGenerate: true,
   checking: false,
   error: null,
@@ -69,6 +70,7 @@ beforeEach(() => {
   availability.canGenerate = true
   availability.chatgptConnected = true
   availability.seedreamConfigured = true
+  availability.minimaxConfigured = false
   useImagePreferences.setState({ selection: DEFAULT_IMAGE_SELECTION })
 })
 
@@ -337,3 +339,16 @@ test("image input on an existing ordinary conversation routes the selected model
     { meta: { alwith: { imageIntent: "generate", imageSelection: DEFAULT_IMAGE_SELECTION, imageAspectRatio: "auto" } } }
   ])
 })
+
+test.each(["MiniMax H3 Image", "MiniMax H3 Image Highspeed"])(
+  "configured %s is selectable through the existing image model menu",
+  async (label) => {
+    availability.minimaxConfigured = true
+    availability.seedreamConfigured = false
+    const view = setup()
+    fireEvent.click(view.getByRole("button", { name: "Images" }))
+    fireEvent.click(view.getByRole("button", { name: "Image model" }))
+    fireEvent.click(await view.findByRole("menuitemradio", { name: label }))
+    expect(view.getByRole("button", { name: "Image model" })).toHaveTextContent(`${label} · 1K`)
+  }
+)

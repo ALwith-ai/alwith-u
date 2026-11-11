@@ -39,13 +39,14 @@ async function refreshAvailability(): Promise<void> {
       account.setState({
         error: failure == null ? null : failure instanceof Error ? failure.message : JSON.stringify(failure)
       })
-      const { selection, seedreamConfigured } = useImagePreferences.getState()
+      const { selection, seedreamConfigured, minimaxConfigured } = useImagePreferences.getState()
       const connected = account.getState().connected
+      const configured = { seedream: seedreamConfigured, minimax: minimaxConfigured }
       const selected = imageModel(selection)
-      const usable = selected.provider === "chatgpt" ? connected === true : seedreamConfigured === true
+      const usable = selected.provider === "chatgpt" ? connected === true : configured[selected.provider] === true
       if (!usable) {
         const next = selectableImageModels.find((model) =>
-          model.provider === "chatgpt" ? connected === true : seedreamConfigured === true
+          model.provider === "chatgpt" ? connected === true : configured[model.provider] === true
         )
         if (next) await saveImageSelection({ model: next.id, size: next.sizes[0] })
       }
@@ -61,6 +62,7 @@ export function useImageAvailability(enabled = true, selected?: ImageSelection) 
   const connected = account((state) => state.connected)
   const error = account((state) => state.error)
   const configured = useImagePreferences((state) => state.seedreamConfigured)
+  const minimaxConfigured = useImagePreferences((state) => state.minimaxConfigured)
   const selection = useImagePreferences((state) => state.selection)
   useEffect(() => {
     if (!enabled) return
@@ -91,14 +93,22 @@ export function useImageAvailability(enabled = true, selected?: ImageSelection) 
       )
     }
   }, [connection, enabled])
-  const available = connected === true || configured === true
+  const available = connected === true || configured === true || minimaxConfigured === true
   const provider = imageModel(selected ?? selection).provider
   return {
     available,
     chatgptConnected: connected,
     seedreamConfigured: configured,
-    canGenerate: connection === "ready" && (provider === "chatgpt" ? connected === true : configured === true),
-    checking: !error && (connection !== "ready" || connected === null || configured === null),
+    minimaxConfigured,
+    canGenerate:
+      connection === "ready" &&
+      (provider === "chatgpt"
+        ? connected === true
+        : provider === "seedream"
+          ? configured === true
+          : minimaxConfigured === true),
+    checking:
+      !error && (connection !== "ready" || connected === null || configured === null || minimaxConfigured === null),
     error,
     retry: refreshAvailability
   }

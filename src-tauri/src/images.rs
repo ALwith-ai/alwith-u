@@ -9,12 +9,67 @@ use std::{
     sync::{Mutex, OnceLock},
 };
 use tauri::State;
+mod key_test;
 mod references;
+pub use key_test::ImageKeyTestResult;
 pub use references::ImageReferencesInput;
 
 type Requests = BTreeMap<(String, String), tokio::sync::watch::Sender<bool>>;
 static REQUESTS: OnceLock<Mutex<Requests>> = OnceLock::new();
 const DEFAULT_BASE_URL: &str = "https://ark.cn-beijing.volces.com/api/v3";
+#[derive(Clone, Copy, Default, Deserialize, Serialize, specta::Type)]
+#[serde(rename_all = "lowercase")]
+pub enum ImageProvider {
+    #[default]
+    Seedream,
+    Minimax,
+}
+#[derive(Clone, Copy, Default, Deserialize, Serialize, specta::Type)]
+#[serde(rename_all = "lowercase")]
+pub enum ImageRegion {
+    #[default]
+    Cn,
+    Intl,
+}
+impl ImageRegion {
+    fn key(self) -> &'static str {
+        match self {
+            Self::Cn => "cn",
+            Self::Intl => "intl",
+        }
+    }
+    fn base_url(self) -> &'static str {
+        match self {
+            Self::Cn => "https://api.minimax.cn/v1",
+            Self::Intl => "https://api.minimax.io/v1",
+        }
+    }
+}
+impl ImageProvider {
+    fn key(self) -> &'static str {
+        match self {
+            Self::Seedream => "seedream",
+            Self::Minimax => "minimax",
+        }
+    }
+    fn default_url(self) -> &'static str {
+        match self {
+            Self::Seedream => DEFAULT_BASE_URL,
+            Self::Minimax => "https://api.minimax.cn/v1",
+        }
+    }
+    fn secret(self) -> String {
+        format!("images.{}.apiKey", self.key())
+    }
+}
+fn model_provider(model: &str) -> Result<ImageProvider, String> {
+    model_limits(model)?;
+    Ok(if matches!(model, "MiniMax-H3-Image" | "MiniMax-H3-Image-Highspeed") {
+        ImageProvider::Minimax
+    } else {
+        ImageProvider::Seedream
+    })
+}
 const MAX_MEDIA_BYTES: usize = 15 * 1024 * 1024;
 fn requests() -> &'static Mutex<Requests> {
     REQUESTS.get_or_init(|| Mutex::new(BTreeMap::new()))
@@ -35,15 +90,19 @@ fn check(window: &tauri::Window) -> Result<(), String> {
     if matches!(window.label(), "main" | "settings" | "chat") { Ok(()) } else { Err("Image access denied".into()) }
 }
 #[tauri3_specta::command]
-pub fn images_configured(window: tauri::Window, state: State<'_, SharedSettings>) -> Result<bool, String> {
+pub fn images_configured(
+    window: tauri::Window, state: State<'_, SharedSettings>, provider: Option<ImageProvider>,
+) -> Result<bool, String> {
     check(&window)?;
-    Ok(state.0.lock().map_err(|_| "Settings lock poisoned")?.secret("images.seedream.apiKey")?.is_some())
+    Ok(state.0.lock().map_err(|_| "Settings lock poisoned")?.secret(&provider.unwrap_or_default().secret())?.is_some())
 }
 #[tauri3_specta::command]
-pub fn images_read_settings(window: tauri::Window, state: State<'_, SharedSettings>) -> Result<ImageSettings, String> {
+pub fn images_read_settings(
+    window: tauri::Window, state: State<'_, SharedSettings>, provider: Option<ImageProvider>,
+) -> Result<ImageSettings, String> {
     check(&window)?;
     let store = state.0.lock().map_err(|_| "Settings lock poisoned")?;
-    settings(&store)
+    settings(&store, provider.unwrap_or_default())
 }
 #[tauri3_specta::command]
 pub fn images_save_settings(
@@ -51,13 +110,45 @@ pub fn images_save_settings(
 ) -> Result<ImageSettings, String> {
     check(&window)?;
     let base_url = normalize_base_url(&input.base_url)?;
+    if matches!(input.provider, ImageProvider::Seedream) && input.region.is_some() {
+        return Err("This image provider does not support regions".into());
+    }
     let mut store = state.0.lock().map_err(|_| "Settings lock poisoned")?;
-    store.save_image_provider(&base_url, input.api_key.as_deref().map(str::trim), input.expected_revision)?;
-    settings(&store)
+    store.save_image_provider_for(
+        input.provider.key(),
+        &base_url,
+        input.api_key.as_deref().map(str::trim),
+        input.expected_revision,
+        input.region.map(ImageRegion::key),
+    )?;
+    settings(&store, input.provider)
 }
+#[tauri3_specta::command]
+pub async fn images_test_key(
+    window: tauri::Window, state: State<'_, SharedSettings>, provider: ImageProvider,
+) -> Result<ImageKeyTestResult, String> {
+    check(&window)?;
+    let (key, base_url) = {
+        let store = state.0.lock().map_err(|_| "Settings lock poisoned")?;
+        (
+            store.secret(&provider.secret())?.ok_or("Configure this provider API key in image settings")?,
+            effective_base_url(&store, provider)?,
+        )
+    };
+    let result = key_test::probe(provider, &key, &base_url).await;
+    let store = state.0.lock().map_err(|_| "Settings lock poisoned")?;
+    if store.secret(&provider.secret())?.as_deref() != Some(key.as_str())
+        || effective_base_url(&store, provider)? != base_url
+    {
+        return Err("Image provider connection changed during verification".into());
+    }
+    Ok(result)
+}
+
 #[derive(Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ImageSettings {
+    region: Option<ImageRegion>,
     revision: u64,
     base_url: String,
     default_base_url: String,
@@ -66,6 +157,9 @@ pub struct ImageSettings {
 #[derive(Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ImageSettingsInput {
+    #[serde(default)]
+    provider: ImageProvider,
+    region: Option<ImageRegion>,
     expected_revision: u64,
     base_url: String,
     api_key: Option<String>,
@@ -95,19 +189,33 @@ fn normalize_base_url(value: &str) -> Result<String, String> {
     url.set_path(&path);
     Ok(url.to_string().trim_end_matches('/').to_owned())
 }
-fn settings(store: &SettingsStore) -> Result<ImageSettings, String> {
+fn settings(store: &SettingsStore, provider: ImageProvider) -> Result<ImageSettings, String> {
     let (revision, values) = store.snapshot()?;
-    let base_url = normalize_base_url(values.get("images.seedream.baseUrl").and_then(|v| v.as_str()).unwrap_or(""))?;
+    let base_url = normalize_base_url(
+        values.get(&format!("images.{}.baseUrl", provider.key())).and_then(|v| v.as_str()).unwrap_or(""),
+    )?;
+    let region = if matches!(provider, ImageProvider::Minimax) {
+        Some(match values.get("images.minimax.region").and_then(|value| value.as_str()) {
+            Some("cn") => ImageRegion::Cn,
+            Some("intl") => ImageRegion::Intl,
+            None if base_url == "https://api.minimax.io/v1" => ImageRegion::Intl,
+            None => ImageRegion::Cn,
+            Some(_) => return Err("Invalid MiniMax region".into()),
+        })
+    } else {
+        None
+    };
     Ok(ImageSettings {
+        region,
         revision,
         base_url,
-        default_base_url: DEFAULT_BASE_URL.into(),
-        configured: store.secret("images.seedream.apiKey")?.is_some(),
+        default_base_url: region.map(ImageRegion::base_url).unwrap_or_else(|| provider.default_url()).into(),
+        configured: store.secret(&provider.secret())?.is_some(),
     })
 }
-fn effective_base_url(store: &SettingsStore) -> Result<String, String> {
-    let value = settings(store)?.base_url;
-    Ok(if value.is_empty() { DEFAULT_BASE_URL.into() } else { value })
+fn effective_base_url(store: &SettingsStore, provider: ImageProvider) -> Result<String, String> {
+    let settings = settings(store, provider)?;
+    Ok(if settings.base_url.is_empty() { settings.default_base_url } else { settings.base_url })
 }
 #[derive(Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -130,6 +238,7 @@ pub struct ImageResult {
 }
 fn model_limits(model: &str) -> Result<(&'static [&'static str], usize, bool), String> {
     Ok(match model {
+        "MiniMax-H3-Image" | "MiniMax-H3-Image-Highspeed" => (&["1K", "2K", "4K"], 16, false),
         "doubao-seedream-4-5-251128" => (&["2K", "4K"], 14, true),
         "doubao-seedream-5-0-lite-260128" => (&["2K", "3K", "4K"], 14, false),
         "doubao-seedream-5-0-pro-260628" => (&["1K", "2K"], 10, false),
@@ -140,7 +249,7 @@ fn validate(input: &ImageInput) -> Result<bool, String> {
     let (sizes, limit, jpeg) = model_limits(&input.model)?;
     if !sizes.contains(&input.size.as_str())
         || input.prompt.trim().is_empty()
-        || input.prompt.len() > 32000
+        || input.prompt.chars().count() > 32000
         || input.images.len() > limit
     {
         return Err("Invalid image prompt, resolution or references".into());
@@ -163,16 +272,17 @@ pub async fn images_prepare_references(
 }
 
 #[tauri3_specta::command]
-pub async fn images_generate_seedream(
+pub async fn images_generate(
     window: tauri::Window, state: State<'_, SharedSettings>, mut input: ImageInput,
 ) -> Result<ImageResult, String> {
     check(&window)?;
     let jpeg = validate(&input)?;
+    let provider = model_provider(&input.model)?;
     let (key, base_url) = {
         let store = state.0.lock().map_err(|_| "Settings lock poisoned")?;
         (
-            store.secret("images.seedream.apiKey")?.ok_or("Configure a Seedream API key in image settings")?,
-            effective_base_url(&store)?,
+            store.secret(&provider.secret())?.ok_or("Configure this provider API key in image settings")?,
+            effective_base_url(&store, provider)?,
         )
     };
     if input.request_id.len() > 128 || input.request_id.is_empty() {
@@ -205,8 +315,8 @@ pub async fn images_generate_seedream(
     requests().lock().map_err(|_| "Image request lock poisoned")?.remove(&identity);
     {
         let store = state.0.lock().map_err(|_| "Settings lock poisoned")?;
-        if store.secret("images.seedream.apiKey")?.as_deref() != Some(key.as_str())
-            || effective_base_url(&store)? != base_url
+        if store.secret(&provider.secret())?.as_deref() != Some(key.as_str())
+            || effective_base_url(&store, provider)? != base_url
         {
             return Err("Image provider connection changed during generation".into());
         }
@@ -214,6 +324,7 @@ pub async fn images_generate_seedream(
     outcome
 }
 async fn generate(input: &ImageInput, jpeg: bool, key: &str, base_url: &str) -> Result<ImageResult, String> {
+    let minimax = matches!(model_provider(&input.model)?, ImageProvider::Minimax);
     let mut body =
         json!({"model":input.model,"prompt":input.prompt,"size":input.size,"response_format":"url","watermark":false});
     if !input.images.is_empty() {
@@ -222,20 +333,32 @@ async fn generate(input: &ImageInput, jpeg: bool, key: &str, base_url: &str) -> 
     if !jpeg {
         body["output_format"] = json!("png");
     }
+    let endpoint = if minimax {
+        body = json!({"model": input.model, "prompt": input.prompt, "size": "auto",
+            "area": input.size, "n": 1, "response_format": "url", "output_format": "png"});
+        if input.images.is_empty() {
+            "images/generations"
+        } else {
+            body["images"] = json!(input.images.iter().map(|image| json!({"image_url": image})).collect::<Vec<_>>());
+            "images/edits"
+        }
+    } else {
+        "images/generations"
+    };
     let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
-        .timeout(std::time::Duration::from_secs(180))
+        .timeout(std::time::Duration::from_secs(if minimax { 600 } else { 180 }))
         .build()
         .map_err(|_| "Image HTTP initialization failed")?;
     let mut response = client
-        .post(format!("{base_url}/images/generations"))
+        .post(format!("{base_url}/{endpoint}"))
         .bearer_auth(key)
         .json(&body)
         .send()
         .await
         .map_err(|_| "Image request failed; outcome is unknown, check before retrying")?;
     if !response.status().is_success() {
-        let mut message = format!("Seedream {} failed (HTTP {})", input.model, response.status().as_u16());
+        let mut message = format!("{} failed (HTTP {})", input.model, response.status().as_u16());
         let request_id =
             response.headers().get("x-request-id").and_then(|value| value.to_str().ok()).map(str::to_owned);
         let mut bytes = Vec::new();
@@ -273,6 +396,10 @@ async fn generate(input: &ImageInput, jpeg: bool, key: &str, base_url: &str) -> 
     let mut images = Vec::new();
     let mut total = 0;
     for item in data {
+        if let Some(error) = item.get("error") {
+            let detail = error.get("message").and_then(|value| value.as_str()).unwrap_or("Image generation failed");
+            return Err(detail.replace(key, "[redacted]").chars().take(1024).collect());
+        }
         let (bytes, encoded) = if let Some(encoded) = item["b64_json"].as_str().filter(|value| !value.is_empty()) {
             (STANDARD.decode(encoded).map_err(|_| "Invalid image encoding")?, encoded.to_owned())
         } else {
@@ -410,3 +537,7 @@ mod tests {
         assert!(validate(&input).is_err());
     }
 }
+
+#[cfg(test)]
+#[path = "images/__tests__/minimax.rs"]
+mod minimax_tests;

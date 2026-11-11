@@ -602,6 +602,9 @@
     "testDescription": "连接测试会发送一次最小真实请求，可能消耗少量供应商额度。",
     "testSuccess": "连接成功，耗时 {{latency}} 毫秒",
     "testErrors": {
+      "forbidden": "此 Key 无权访问校验接口，无法确认其有效性",
+      "verification_unsupported": "此接口不支持免生成校验",
+      "verification_invalid_response": "校验接口返回了无效响应",
       "unauthorized": "API 密钥无效或无权访问",
       "not_found": "接口或模型不存在",
       "rate_limited": "请求受限或账户余额不足",
@@ -1523,6 +1526,9 @@
     "generating": "正在创作图片…",
     "invalidFile": "请使用小于 8 MiB 的 PNG、JPEG 或 WebP 图片。",
     "openPage": "在图像页打开此对话",
-    "noResult": "本次未生成图片，输入已保留，可以重试。"
+    "noResult": "本次未生成图片，输入已保留，可以重试。",
+    "minimaxKey": "MiniMax API Key",
+    "minimaxBaseUrlHint": "默认使用所选地区的接口；也可填写兼容 H3 图片 API 的自定义服务地址。",
+    "testDescription": "仅校验已保存 API Key 的鉴权，不生成图片、不消耗生成额度。"
   }
 }

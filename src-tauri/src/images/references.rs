@@ -1,4 +1,4 @@
-//! One send-copy policy for preview edits and Seedream references. Originals are never overwritten.
+//! One send-copy policy for preview edits and provider references. Originals are never overwritten.
 use base64::{Engine, engine::general_purpose::STANDARD};
 use image::{DynamicImage, ImageFormat, ImageReader, imageops::FilterType};
 use std::io::Cursor;
@@ -23,6 +23,7 @@ struct Limits {
     image_bytes: usize,
     pixels: u64,
     min_side: u32,
+    max_side: u32,
 }
 
 impl Limits {
@@ -36,6 +37,7 @@ impl Limits {
             image_bytes: usize::MAX,
             pixels: u64::MAX,
             min_side: 1,
+            max_side: u32::MAX,
         };
         match model {
             None => {}
@@ -50,6 +52,12 @@ impl Limits {
                 let (_, maximum, _) = super::model_limits(model)?;
                 if count > maximum {
                     return Err(format!("This image model supports at most {maximum} references"));
+                }
+                if matches!(super::model_provider(model)?, super::ImageProvider::Minimax) {
+                    limits.image_bytes = 64 * 1024 * 1024;
+                    limits.min_side = 128;
+                    limits.max_side = 8192;
+                    return Ok(limits);
                 }
                 limits.image_bytes = SEEDREAM_IMAGE_BYTES;
                 limits.pixels = SEEDREAM_IMAGE_PIXELS;
@@ -92,11 +100,17 @@ impl Reference {
         {
             return Err("Seedream reference aspect ratios must be between 1:16 and 16:1".into());
         }
+        if limits.min_side == 128 && (width > height.saturating_mul(4) || height > width.saturating_mul(4)) {
+            return Err("MiniMax reference aspect ratios must be between 1:4 and 4:1".into());
+        }
         Ok(Self { url, bytes, format, width, height })
     }
 
     fn within_service_limits(&self, limits: &Limits) -> bool {
-        self.bytes.len() <= limits.image_bytes && u64::from(self.width) * u64::from(self.height) <= limits.pixels
+        self.width <= limits.max_side
+            && self.height <= limits.max_side
+            && self.bytes.len() <= limits.image_bytes
+            && u64::from(self.width) * u64::from(self.height) <= limits.pixels
     }
 
     fn compress(&mut self, target: usize, limits: &Limits, keep_readable: bool) -> Result<(), String> {
@@ -111,6 +125,7 @@ impl Reference {
             minimum
         };
         let mut scale = ((limits.pixels as f64 / (f64::from(self.width) * f64::from(self.height))).sqrt()).min(1.0);
+        scale = scale.min(f64::from(limits.max_side) / f64::from(self.width.max(self.height)));
         loop {
             let width = ((f64::from(self.width) * scale).floor() as u32).max(limits.min_side);
             let height = ((f64::from(self.height) * scale).floor() as u32).max(limits.min_side);

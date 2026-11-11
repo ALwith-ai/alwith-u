@@ -3,7 +3,7 @@ import { isImage } from "@alwith/module-chat/client"
 
 import { commands } from "@/bindings"
 
-/** Native preparation shares Seedream's budgets and never changes gallery/download sources. */
+/** Native preparation uses the selected provider's budgets and never changes gallery/download sources. */
 export async function prepareImageEdit(
   prompt: acp.ContentBlock[],
   sessionId: string,

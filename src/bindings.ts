@@ -49,14 +49,18 @@ export const commands = {
     __t3Invoke<string>("chat_write_text_attachment", args),
   chatReadImage: (args: { path: string; cwd: string }): Promise<ChatImage> =>
     __t3Invoke<ChatImage>("chat_read_image", args),
-  imagesConfigured: (): Promise<boolean> => __t3Invoke<boolean>("images_configured"),
-  imagesReadSettings: (): Promise<ImageSettings> => __t3Invoke<ImageSettings>("images_read_settings"),
-  imagesSaveSettings: (args: { input: ImageSettingsInput_Deserialize }): Promise<ImageSettings> =>
-    __t3Invoke<ImageSettings>("images_save_settings", args),
+  imagesConfigured: (args: { provider: "seedream" | "minimax" | null }): Promise<boolean> =>
+    __t3Invoke<boolean>("images_configured", args),
+  imagesReadSettings: (args: { provider: "seedream" | "minimax" | null }): Promise<ImageSettings_Serialize> =>
+    __t3Invoke<ImageSettings_Serialize>("images_read_settings", args),
+  imagesSaveSettings: (args: { input: ImageSettingsInput_Deserialize }): Promise<ImageSettings_Serialize> =>
+    __t3Invoke<ImageSettings_Serialize>("images_save_settings", args),
+  imagesTestKey: (args: { provider: ImageProvider }): Promise<ImageKeyTestResult_Serialize> =>
+    __t3Invoke<ImageKeyTestResult_Serialize>("images_test_key", args),
   imagesPrepareReferences: (args: { input: ImageReferencesInput_Deserialize }): Promise<string[]> =>
     __t3Invoke<string[]>("images_prepare_references", args),
-  imagesGenerateSeedream: (args: { input: ImageInput }): Promise<ImageResult> =>
-    __t3Invoke<ImageResult>("images_generate_seedream", args),
+  imagesGenerate: (args: { input: ImageInput }): Promise<ImageResult> =>
+    __t3Invoke<ImageResult>("images_generate", args),
   imagesCancel: (args: { requestId: string }): Promise<null> => __t3Invoke<null>("images_cancel", args),
   /**
    *  Explicit file-link clicks may preview one external file without authorizing
@@ -239,8 +243,9 @@ export type CommandErrors = {
   imagesConfigured: string
   imagesReadSettings: string
   imagesSaveSettings: string
+  imagesTestKey: string
   imagesPrepareReferences: string
-  imagesGenerateSeedream: string
+  imagesGenerate: string
   imagesCancel: string
   chatPreviewFile: string
   chatReadDroppedFile: string
@@ -544,6 +549,26 @@ export type ImageInput = {
   images: string[]
 }
 
+export type ImageKeyTestResult = ImageKeyTestResult_Serialize | ImageKeyTestResult_Deserialize
+
+export type ImageKeyTestResult_Deserialize = {
+  ok: boolean
+  code: string
+  message: string
+  status?: number | null
+  latencyMs?: number | null
+}
+
+export type ImageKeyTestResult_Serialize = {
+  ok: boolean
+  code: string
+  message: string
+  status: number | null
+  latencyMs: number | null
+}
+
+export type ImageProvider = "seedream" | "minimax"
+
 export type ImageReferencesInput = ImageReferencesInput_Serialize | ImageReferencesInput_Deserialize
 
 export type ImageReferencesInput_Deserialize = {
@@ -558,29 +583,46 @@ export type ImageReferencesInput_Serialize = {
   envelopeBytes: number
 }
 
+export type ImageRegion = "cn" | "intl"
+
 export type ImageResult = {
   images: ImageData[]
 }
 
-export type ImageSettings = {
-  revision: number
-  baseUrl: string
-  defaultBaseUrl: string
-  configured: boolean
-}
+export type ImageSettings = ImageSettings_Serialize | ImageSettings_Deserialize
 
 export type ImageSettingsInput = ImageSettingsInput_Serialize | ImageSettingsInput_Deserialize
 
 export type ImageSettingsInput_Deserialize = {
+  provider?: ImageProvider
+  region?: ImageRegion | null
   expectedRevision: number
   baseUrl: string
   apiKey?: string | null
 }
 
 export type ImageSettingsInput_Serialize = {
+  provider: ImageProvider
+  region: ImageRegion | null
   expectedRevision: number
   baseUrl: string
   apiKey: string | null
+}
+
+export type ImageSettings_Deserialize = {
+  region?: ImageRegion | null
+  revision: number
+  baseUrl: string
+  defaultBaseUrl: string
+  configured: boolean
+}
+
+export type ImageSettings_Serialize = {
+  region: ImageRegion | null
+  revision: number
+  baseUrl: string
+  defaultBaseUrl: string
+  configured: boolean
 }
 
 export type ImportedImage = {

@@ -8,10 +8,18 @@ import { openStore } from "@/lib/store"
 
 const store = openStore("image-preferences")
 const retiredModels = new Set(["doubao-seedream-4-5-251128"])
-export const selectableImageModels = IMAGE_MODELS.filter((model) => !retiredModels.has(model.id))
-export const useImagePreferences = create<{ selection: ImageSelection; seedreamConfigured: boolean | null }>(() => ({
+const providerOrder = { chatgpt: 0, seedream: 1, minimax: 2 }
+export const selectableImageModels = IMAGE_MODELS.filter((model) => !retiredModels.has(model.id)).toSorted(
+  (a, b) => providerOrder[a.provider] - providerOrder[b.provider]
+)
+export const useImagePreferences = create<{
+  selection: ImageSelection
+  seedreamConfigured: boolean | null
+  minimaxConfigured: boolean | null
+}>(() => ({
   selection: DEFAULT_IMAGE_SELECTION,
-  seedreamConfigured: null
+  seedreamConfigured: null,
+  minimaxConfigured: null
 }))
 let revision = 0
 let providerRequest: Promise<boolean> | null = null
@@ -21,21 +29,25 @@ function applySelection(value: ImageSelection | undefined) {
   ++revision
   useImagePreferences.setState({
     selection:
-      model.provider === "seedream" && useImagePreferences.getState().seedreamConfigured === false
+      model.provider !== "chatgpt" && useImagePreferences.getState()[`${model.provider}Configured`] === false
         ? DEFAULT_IMAGE_SELECTION
         : selection
   })
 }
 
-/** Credentials remain native; webviews only receive whether Seedream is available. */
+/** Credentials remain native; webviews only receive provider availability. */
 export function refreshImageProviders(): Promise<boolean> {
-  return (providerRequest ??= commands
-    .imagesConfigured()
-    .then((seedreamConfigured) => {
-      const reset = !seedreamConfigured && imageModel(useImagePreferences.getState().selection).provider === "seedream"
+  return (providerRequest ??= Promise.all([
+    commands.imagesConfigured({ provider: "seedream" }),
+    commands.imagesConfigured({ provider: "minimax" })
+  ])
+    .then(([seedreamConfigured, minimaxConfigured]) => {
+      const availability = { seedreamConfigured, minimaxConfigured }
+      const provider = imageModel(useImagePreferences.getState().selection).provider
+      const reset = provider !== "chatgpt" && !availability[`${provider}Configured`]
       if (reset) ++revision
-      useImagePreferences.setState({ seedreamConfigured, ...(reset ? { selection: DEFAULT_IMAGE_SELECTION } : {}) })
-      return seedreamConfigured
+      useImagePreferences.setState({ ...availability, ...(reset ? { selection: DEFAULT_IMAGE_SELECTION } : {}) })
+      return seedreamConfigured || minimaxConfigured
     })
     .finally(() => {
       providerRequest = null

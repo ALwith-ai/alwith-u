@@ -110,3 +110,27 @@ fn provider_selection_and_the_complete_message_budget_are_checked() {
     let chatgpt = Limits::for_request(Some("wham"), 2, 0).unwrap();
     assert_eq!(chatgpt.encoded_bytes, CHATGPT_REFERENCE_BYTES);
 }
+
+#[test]
+fn minimax_checks_reference_count_dimensions_and_ratio_without_changing_valid_originals() {
+    for model in ["MiniMax-H3-Image", "MiniMax-H3-Image-Highspeed"] {
+        assert!(Limits::for_request(Some(model), 16, 0).is_ok());
+        assert!(Limits::for_request(Some(model), 17, 0).is_err());
+        let limits = Limits::for_request(Some(model), 1, 0).unwrap();
+        assert!(Reference::read(png(transparent(127, 128), 0), &limits).is_err());
+        assert!(Reference::read(png(transparent(128, 513), 0), &limits).is_err());
+        let source = png(transparent(128, 512), 0);
+        assert_eq!(
+            prepare(ImageReferencesInput {
+                model: Some(model.into()),
+                images: vec![source.clone()],
+                envelope_bytes: 0
+            })
+            .unwrap(),
+            vec![source]
+        );
+        let mut reference = Reference::read(png(transparent(128, 128), 0), &limits).unwrap();
+        reference.width = 8193;
+        assert!(!reference.within_service_limits(&limits));
+    }
+}

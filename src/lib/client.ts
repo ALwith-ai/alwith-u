@@ -37,7 +37,7 @@ export const client =
             signal?.throwIfAborted()
             signal?.addEventListener("abort", cancel, { once: true })
             try {
-              return await invoke("images_generate_seedream", { input: { ...selection, prompt, images, requestId } })
+              return await invoke("images_generate", { input: { ...selection, prompt, images, requestId } })
             } finally {
               signal?.removeEventListener("abort", cancel)
             }

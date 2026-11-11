@@ -243,16 +243,28 @@ impl SettingsStore {
         credentials.insert(key.into(), value.into());
         self.commit(self.values.clone(), credentials)
     }
-    pub fn save_image_provider(&mut self, base_url: &str, api_key: Option<&str>, expected: u64) -> Result<(), String> {
-        let changes = BTreeMap::from([("images.seedream.baseUrl".into(), json!(base_url))]);
+    pub fn save_image_provider_for(
+        &mut self, provider: &str, base_url: &str, api_key: Option<&str>, expected: u64, region: Option<&str>,
+    ) -> Result<(), String> {
+        if !matches!(provider, "seedream" | "minimax") {
+            return Err("Unknown image provider".into());
+        }
+        let secret = format!("images.{provider}.apiKey");
+        let mut changes = BTreeMap::from([(format!("images.{provider}.baseUrl"), json!(base_url))]);
+        if let Some(region) = region {
+            if provider != "minimax" || !matches!(region, "cn" | "intl") {
+                return Err("Invalid image provider region".into());
+            }
+            changes.insert("images.minimax.region".into(), json!(region));
+        }
         let values = self.next(changes, Some(expected))?;
         let mut credentials = self.secrets.snapshot();
         if let Some(api_key) = api_key {
             if api_key.is_empty() {
-                credentials.remove("images.seedream.apiKey");
+                credentials.remove(&secret);
             } else {
-                validate_secret("images.seedream.apiKey", api_key)?;
-                credentials.insert("images.seedream.apiKey".into(), api_key.into());
+                validate_secret(&secret, api_key)?;
+                credentials.insert(secret, api_key.into());
             }
         }
         self.commit(values, credentials)
@@ -300,7 +312,7 @@ fn normalize(values: &mut BTreeMap<String, Value>) {
     }
 }
 fn validate_secret_key(key: &str) -> Result<(), String> {
-    if matches!(key, "voice.doubao.apiKey" | "voice.vui.apiKey" | "images.seedream.apiKey") {
+    if matches!(key, "voice.doubao.apiKey" | "voice.vui.apiKey" | "images.seedream.apiKey" | "images.minimax.apiKey") {
         Ok(())
     } else {
         Err("Unknown credential key".into())
@@ -360,7 +372,8 @@ fn setting_validity(key: &str, value: &Value) -> Option<bool> {
         "voice.doubao.resourceId" => {
             value.as_str().is_some_and(|v| v.trim().bytes().all(|b| b.is_ascii_alphanumeric() || b"._-".contains(&b)))
         }
-        "images.seedream.baseUrl" => value.as_str().is_some_and(|v| v.len() <= 2048),
+        "images.minimax.region" => matches!(value.as_str(), Some("cn" | "intl")),
+        "images.seedream.baseUrl" | "images.minimax.baseUrl" => value.as_str().is_some_and(|v| v.len() <= 2048),
         "collections.data" => valid_collections(value),
         "appearance.theme" => matches!(value.as_str(), Some("light" | "dark" | "system")),
         "appearance.zoomLevel" => value.as_f64().is_some_and(|n| n > 0.0 && n <= 5.0),

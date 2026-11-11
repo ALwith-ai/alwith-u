@@ -461,3 +461,41 @@ test("ordinary restore stays native without writing a configuration even when re
     client.disconnect()
   }
 })
+
+test.each(["MiniMax-H3-Image", "MiniMax-H3-Image-Highspeed"] as const)(
+  "%s uses the existing image tool for generation and follow-up reference editing",
+  async (model) => {
+    const { fake, selection, generateExternal, client } = fixture()
+    selection.current = { model, size: "4K" }
+    try {
+      await client.connect()
+      const sessionId = await client.newSession("/tmp", { meta: { alwith: { inputMode: "image" } } })
+      await client.promptWithImages(sessionId, [{ type: "text", text: "A tree" }])
+      const generate = await fake.requestTool({
+        sessionId,
+        toolCallId: "minimax-original",
+        name: "generate_image",
+        toolSetRevision: "images-v1",
+        arguments: { prompt: "A tree" }
+      })
+      expect(generate).toMatchObject({ success: true })
+      expect(generateExternal).toHaveBeenLastCalledWith({ model, size: "4K" }, "A tree", [], expect.any(AbortSignal))
+      const edit = await fake.requestTool({
+        sessionId,
+        toolCallId: "minimax-edit",
+        name: "generate_image",
+        toolSetRevision: "images-v1",
+        arguments: { prompt: "Make the leaves blue", references: ["minimax-original:1"] }
+      })
+      expect(edit).toMatchObject({ success: true })
+      expect(generateExternal).toHaveBeenLastCalledWith(
+        { model, size: "4K" },
+        "Make the leaves blue",
+        ["data:image/png;base64,aGVsbG8="],
+        expect.any(AbortSignal)
+      )
+    } finally {
+      client.disconnect()
+    }
+  }
+)

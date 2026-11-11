@@ -8,15 +8,21 @@ fn image_configuration_is_atomic_private_and_revision_checked() {
     let dir = tempfile::tempdir().unwrap();
     let mut store = SettingsStore::load(dir.path().into()).unwrap();
     let revision = store.snapshot().unwrap().0;
-    store.save_image_provider("https://images.example/v1", Some("private-image-key"), revision).unwrap();
+    store
+        .save_image_provider_for("seedream", "https://images.example/v1", Some("private-image-key"), revision, None)
+        .unwrap();
     assert!(!std::fs::read_to_string(dir.path().join("settings.json")).unwrap().contains("private-image-key"));
     assert!(store.update(changes(json!({"images.seedream.apiKey":"exposed"})), None).is_err());
-    assert!(store.save_image_provider("https://wrong.example/v1", Some("wrong-key"), revision).is_err());
+    assert!(
+        store
+            .save_image_provider_for("seedream", "https://wrong.example/v1", Some("wrong-key"), revision, None)
+            .is_err()
+    );
     let mut restored = SettingsStore::load(dir.path().into()).unwrap();
     assert_eq!(restored.values["images.seedream.baseUrl"], "https://images.example/v1");
     assert_eq!(restored.secret("images.seedream.apiKey").unwrap().as_deref(), Some("private-image-key"));
     let revision = restored.snapshot().unwrap().0;
-    restored.save_image_provider("https://images.example/v1", Some(""), revision).unwrap();
+    restored.save_image_provider_for("seedream", "https://images.example/v1", Some(""), revision, None).unwrap();
     assert!(SettingsStore::load(dir.path().into()).unwrap().secret("images.seedream.apiKey").unwrap().is_none());
 }
 #[test]
@@ -433,4 +439,20 @@ fn legacy_voice_migration_preserves_retired_provider_credentials() {
     assert_eq!(store.secret("voice.doubao.apiKey").unwrap().as_deref(), Some("current-secret"));
     assert!(store.secret("voice.retired.apiKey").is_err());
     assert_eq!(store.secrets.snapshot()["voice.retired.apiKey"], "old-secret");
+}
+
+#[test]
+fn image_provider_credentials_are_independent() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut store = SettingsStore::load(dir.path().into()).unwrap();
+    let revision = store.snapshot().unwrap().0;
+    store.save_image_provider_for("seedream", "", Some("seedream-key"), revision, None).unwrap();
+    let revision = store.snapshot().unwrap().0;
+    store.save_image_provider_for("minimax", "https://api.minimax.cn/v1", Some("minimax-key"), revision, None).unwrap();
+    assert!(store.update(changes(json!({"images.minimax.apiKey":"exposed"})), None).is_err());
+    assert!(!std::fs::read_to_string(dir.path().join("settings.json")).unwrap().contains("minimax-key"));
+    let revision = store.snapshot().unwrap().0;
+    store.save_image_provider_for("minimax", "", Some(""), revision, None).unwrap();
+    assert!(store.secret("images.minimax.apiKey").unwrap().is_none());
+    assert_eq!(store.secret("images.seedream.apiKey").unwrap().as_deref(), Some("seedream-key"));
 }

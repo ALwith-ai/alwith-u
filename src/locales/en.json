@@ -602,6 +602,9 @@
     "testDescription": "Connection tests send a minimal real request and may use a small amount of provider credit.",
     "testSuccess": "Connected in {{latency}} ms",
     "testErrors": {
+      "forbidden": "This key cannot access the verification endpoint; validity could not be confirmed",
+      "verification_unsupported": "This endpoint does not support verification without generation",
+      "verification_invalid_response": "The verification endpoint returned an invalid response",
       "unauthorized": "The API key was rejected",
       "not_found": "The endpoint or model was not found",
       "rate_limited": "The provider is rate-limiting requests or the account has insufficient balance",
@@ -1523,6 +1526,9 @@
     "generating": "Creating your image…",
     "invalidFile": "Use PNG, JPEG or WebP images smaller than 8 MiB.",
     "openPage": "Open images in this conversation",
-    "noResult": "No image was produced. Your prompt is ready to retry."
+    "noResult": "No image was produced. Your prompt is ready to retry.",
+    "minimaxKey": "MiniMax API key",
+    "minimaxBaseUrlHint": "Uses the selected region’s endpoint by default. Set a custom URL only for an H3 image-compatible gateway.",
+    "testDescription": "Verify the saved API key without generating images or using generation credits."
   }
 }

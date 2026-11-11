@@ -36,7 +36,7 @@ export function ImageModelSelect({
   const model = imageModel(selection)
   const hasResolution = model.sizes.length > 1
   const visibleModels = models.filter(
-    (entry) => entry.provider === "chatgpt" || availability.seedreamConfigured === true
+    (entry) => entry.provider === "chatgpt" || availability[`${entry.provider}Configured`] === true
   )
   const openSettings = () => {
     void openSettingsWindow("images").catch((error: unknown) => toast.error(String(error)))
