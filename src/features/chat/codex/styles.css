@@ -24,10 +24,21 @@
   border-radius: 1rem;
 }
 
-/* The project picker belongs to the host, outside the shared composer. */
+/* The split project control shares one capsule surface across both buttons. */
+.chat-project-picker > button {
+  background-color: transparent;
+  background-image: none;
+}
+
 @media (hover: hover) {
-  .chat-project-picker:not(:disabled):not([aria-disabled="true"]):not([data-disabled]):hover {
+  .chat-project-picker:hover {
     background-color: color-mix(in srgb, var(--foreground) 5%, transparent);
     background-image: none;
   }
+}
+
+.chat-project-picker:has(> button:active),
+.chat-project-picker:has(> button[aria-expanded="true"]) {
+  background-color: color-mix(in srgb, var(--foreground) 10%, transparent);
+  background-image: none;
 }
