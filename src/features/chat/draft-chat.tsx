@@ -7,7 +7,6 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import type { DraftOwner } from "@/agent/client"
-import { Button } from "@/components/ui/button"
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
 import { dispatchCollection, reportCollection } from "@/features/collection/store"
 import { client, useApp, useSession } from "@/lib/client"
@@ -19,7 +18,6 @@ import { ChatActionsMenu } from "./chat-actions-menu"
 import { ChatHeader } from "./chat-header"
 import { ChatHostProvider } from "./chat-host"
 import { ChatComposer } from "./composer"
-import { DraftModelSelect } from "./composer/draft-model-select"
 import { chatModelMenu } from "./composer/model-catalog"
 import { FilePreviewModal } from "./dialogs/file-preview-modal"
 import { DraftProjectPicker } from "./draft-project-picker"
@@ -34,7 +32,6 @@ export function DraftChat({
   collectionId,
   onSendingChange,
   onVoiceHandoff,
-  onAuthRequired,
   providerSnapshot,
   onOpenWindow,
   onReturnToMain,
@@ -74,7 +71,6 @@ export function DraftChat({
   const pendingComposer = useMemo(() => createSession(DRAFT_SESSION_ID, cwd ?? ""), [cwd])
   const [preparing, setPreparing] = useState(true)
   const [error, setError] = useState<unknown>(null)
-  const [attempt, setAttempt] = useState(0)
   const [model, setModel] = useState<string | null>(null)
   const callbacks = useRef({ onCwdChange, onCreated })
   callbacks.current = { onCwdChange, onCreated }
@@ -103,8 +99,7 @@ export function DraftChat({
   )
 
   useEffect(() => {
-    // Explicit retries and provider revisions invalidate preparation.
-    void attempt
+    // Provider revisions invalidate preparation.
     void providerRevision
     void providerSnapshot?.status
     let active = true
@@ -162,7 +157,7 @@ export function DraftChat({
     return () => {
       active = false
     }
-  }, [owner, cwd, providerRevision, providerSnapshot?.status, attempt, model])
+  }, [owner, cwd, providerRevision, providerSnapshot?.status, model])
 
   const send = async (prompt: acp.ContentBlock[], accept?: (receipt: string) => void): Promise<void> => {
     let target: string | null
@@ -222,24 +217,8 @@ export function DraftChat({
           </EmptyHeader>
         </Empty>
         {!preparing && (error !== null || connection !== "ready") && (
-          <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center gap-2 px-6 py-2 text-sm" role="status">
-            <span>{error !== null ? text(error) : t("connection.disconnected")}</span>
-            <Button variant="outline" size="sm" onClick={() => setAttempt((value) => value + 1)}>
-              {t("actions.retry")}
-            </Button>
-            <>
-              <Button variant="outline" size="sm" onClick={onAuthRequired}>
-                {t("chat.draft.configureProvider")}
-              </Button>
-              <DraftModelSelect
-                snapshot={providerSnapshot}
-                model={model}
-                onChange={(value) => {
-                  setPreparing(true)
-                  setModel(value)
-                }}
-              />
-            </>
+          <div className="mx-auto w-full max-w-3xl px-6 py-2 text-sm" role="status">
+            {error !== null ? text(error) : t("connection.disconnected")}
           </div>
         )}
         {id !== null && <SessionActions sessionId={id} />}
