@@ -4,7 +4,7 @@ import * as source from "../pages/vibemon.stories.tsx"
 const meta = {
   ...source.default,
   id: "page-vibemon-1",
-  title: "页面/负一屏/宠物/宠物伙伴"
+  title: "页面/负一屏/宠物/Vibémon伙伴"
 }
 export default meta
 
