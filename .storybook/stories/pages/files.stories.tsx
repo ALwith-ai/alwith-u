@@ -19,7 +19,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Source components with isolated in-memory host data. Every example can be reset by selecting it again."
+          "使用真实产品组件和独立的内存模拟数据。重新选择示例即可重置页面状态。"
       }
     }
   },
@@ -28,27 +28,32 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Markdown: Story = { name: "Markdown · 预览与编辑" }
+export const Markdown: Story = {
+  parameters: { pageStateGroup: "01 文件预览/01 可以正常预览" }, name: "Markdown · 预览与编辑" }
 
-export const Delivery: Story = { name: "交付清单", args: { file: "docs/交付清单.md" } }
+export const Code: Story = {
+  parameters: { pageStateGroup: "01 文件预览/01 可以正常预览" }, name: "代码文件", args: { file: "src/dashboard.tsx" } }
 
-export const Code: Story = { name: "代码文件", args: { file: "src/dashboard.tsx" } }
+export const Json: Story = {
+  parameters: { pageStateGroup: "01 文件预览/01 可以正常预览" }, name: "JSON 文件", args: { file: "data/projects.json" } }
 
-export const Json: Story = { name: "JSON 文件", args: { file: "data/projects.json" } }
+export const Csv: Story = {
+  parameters: { pageStateGroup: "01 文件预览/01 可以正常预览", docs: { description: { story: "桌面应用使用原生表格解析器；Storybook 使用浏览器解析样例内容。" } } }, name: "表格 CSV", args: { file: "data/tasks.csv" } }
 
-export const Csv: Story = { name: "表格 CSV", args: { file: "data/tasks.csv" } }
+export const Image: Story = {
+  parameters: { pageStateGroup: "01 文件预览/01 可以正常预览" }, name: "图片 SVG", args: { file: "assets/brand.svg" } }
 
-export const Image: Story = { name: "图片 SVG", args: { file: "assets/brand.svg" } }
+export const Html: Story = {
+  parameters: { pageStateGroup: "01 文件预览/01 可以正常预览" }, name: "HTML 预览", args: { file: "preview.html" } }
 
-export const Html: Story = { name: "HTML 预览", args: { file: "preview.html" } }
+export const Text: Story = {
+  parameters: { pageStateGroup: "01 文件预览/01 可以正常预览" }, name: "纯文本", args: { file: "notes.txt" } }
 
-export const Text: Story = { name: "纯文本", args: { file: "notes.txt" } }
-
-export const Missing: Story = { name: "文件加载失败", args: { file: "missing.md" } }
-
-export const Narrow: Story = { name: "窄窗口工作区", args: { width: 760 } }
+export const Missing: Story = {
+  parameters: { pageStateGroup: "01 文件预览/02 无法正常预览" }, name: "文件加载失败", args: { file: "missing.md" } }
 
 export const NewFileDialog: Story = {
+  parameters: { pageStateGroup: "02 文件操作/01 常用操作" },
   name: "新建文件弹窗",
   play: async ({ canvasElement, userEvent }) => {
     const body = within(canvasElement.ownerDocument.body)
@@ -57,6 +62,7 @@ export const NewFileDialog: Story = {
   }
 }
 export const NewFolderDialog: Story = {
+  parameters: { pageStateGroup: "02 文件操作/01 常用操作" },
   name: "新建文件夹弹窗",
   play: async ({ canvasElement, userEvent }) => {
     const body = within(canvasElement.ownerDocument.body)
@@ -65,6 +71,7 @@ export const NewFolderDialog: Story = {
   }
 }
 export const RenameDialog: Story = {
+  parameters: { pageStateGroup: "02 文件操作/01 常用操作" },
   name: "文件重命名 · 行内编辑",
   play: async ({ canvas, canvasElement, userEvent }) => {
     await userEvent.pointer({
@@ -77,6 +84,7 @@ export const RenameDialog: Story = {
   }
 }
 export const DeleteDialog: Story = {
+  parameters: { pageStateGroup: "02 文件操作/01 常用操作" },
   name: "文件删除确认弹窗",
   play: async ({ canvas, canvasElement, userEvent }) => {
     await userEvent.pointer({
@@ -89,6 +97,7 @@ export const DeleteDialog: Story = {
   }
 }
 export const MoveDialog: Story = {
+  parameters: { pageStateGroup: "02 文件操作/01 常用操作" },
   name: "移动到 · 选择目标文件夹",
   play: async ({ canvas, canvasElement, userEvent }) => {
     await userEvent.pointer({
@@ -101,6 +110,7 @@ export const MoveDialog: Story = {
   }
 }
 export const CrossProjectMove: Story = {
+  parameters: { pageStateGroup: "02 文件操作/01 常用操作" },
   name: "移动到 · 跨项目提示",
   play: async ({ canvas, canvasElement, userEvent }) => {
     await userEvent.pointer({
@@ -115,6 +125,7 @@ export const CrossProjectMove: Story = {
   }
 }
 export const UnsavedDialog: Story = {
+  parameters: { pageStateGroup: "02 文件操作/01 常用操作" },
   name: "未保存文件 · 保存／放弃／取消",
   args: { file: "notes.txt" },
   play: async ({ canvasElement, userEvent }) => {

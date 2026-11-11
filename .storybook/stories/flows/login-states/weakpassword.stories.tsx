@@ -17,7 +17,7 @@ const config = { labels, id: "workflow-login-states-weakpassword" }
 const meta = {
   ...base,
   id: "workflow-login-states-weakpassword",
-  title: "流程/账号与登录/登录状态/14 注册密码校验",
+  title: "流程/注册登录/登录状态/14 注册密码校验",
   loaders: [prepareWorkflow],
   render: (args, context) => (
     <WorkflowPreview

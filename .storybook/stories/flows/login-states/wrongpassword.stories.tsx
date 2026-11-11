@@ -10,7 +10,7 @@ const config = { labels, id: "workflow-login-states-wrongpassword" }
 const meta = {
   ...base,
   id: "workflow-login-states-wrongpassword",
-  title: "流程/账号与登录/登录状态/12 密码错误处理",
+  title: "流程/注册登录/登录状态/12 密码错误处理",
   loaders: [prepareWorkflow],
   render: (args, context) => (
     <WorkflowPreview

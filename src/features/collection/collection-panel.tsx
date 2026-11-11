@@ -2,9 +2,11 @@ import { NavigationGroup, NavigationLeading, NavigationStack } from "@alwith/mod
 import { type Collection, DEFAULT_COLLECTION_ID, getCollectionName } from "@alwith/module-collection"
 import {
   closestCorners,
+  type CollisionDetection,
   DndContext,
   type DragEndEvent,
   KeyboardSensor,
+  type KeyboardCoordinateGetter,
   PointerSensor,
   useSensor,
   useSensors
@@ -53,6 +55,39 @@ import { cn } from "@/lib/utils"
 
 import { CollectionEmoji } from "./collection-emoji"
 import { dispatchCollection, reportCollection, useCollectionStore } from "./store"
+
+// Nested session targets must not intercept collection sorting.
+const collectionCollisions: CollisionDetection = (args) =>
+  closestCorners({
+    ...args,
+    droppableContainers:
+      args.active.data.current?.type === "collection"
+        ? args.droppableContainers.filter(
+            (item) => item.data.current?.type === "collection" && item.id !== DEFAULT_COLLECTION_ID
+          )
+        : args.droppableContainers.filter(
+            (item) => item.data.current?.type === "session" || !args.droppableContainers.some(
+              (row) => row.data.current?.type === "session" && row.data.current.collectionId === item.id
+            )
+          )
+  })
+
+const collectionKeyboardCoordinates: KeyboardCoordinateGetter = (event, args) => {
+  const { active, over, collisionRect, droppableContainers, droppableRects } = args.context
+  if (active?.data.current?.type !== "collection") return sortableKeyboardCoordinates(event, args)
+  if (!collisionRect || !["ArrowUp", "ArrowDown"].includes(event.code)) return
+  event.preventDefault()
+  const targets = droppableContainers
+    .getEnabled()
+    .filter((item) =>
+      item.data.current?.type === "collection" && item.id !== DEFAULT_COLLECTION_ID && droppableRects.has(item.id)
+    )
+    .sort((a, b) => droppableRects.get(a.id)!.top - droppableRects.get(b.id)!.top)
+  const index = targets.findIndex((item) => item.id === (over?.id ?? active.id))
+  const target = targets[index + (event.code === "ArrowUp" ? -1 : 1)]
+  const rect = target && droppableRects.get(target.id)
+  if (rect) return { x: args.currentCoordinates.x, y: args.currentCoordinates.y + rect.top - collisionRect.top }
+}
 
 function SortableRow({
   collectionId,
@@ -200,7 +235,7 @@ export function CollectionPanel({
   const [busy, setBusy] = useState(false)
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    useSensor(KeyboardSensor, { coordinateGetter: collectionKeyboardCoordinates })
   )
   const flat = order.flatMap((id) =>
     collections[id].collapsed
@@ -272,7 +307,7 @@ export function CollectionPanel({
               </Button>
             </div>
           )}
-          <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={onDragEnd}>
+          <DndContext sensors={sensors} collisionDetection={collectionCollisions} onDragEnd={onDragEnd}>
             <SortableContext items={order} strategy={verticalListSortingStrategy}>
               <NavigationStack>
                 {order.map((id) => (

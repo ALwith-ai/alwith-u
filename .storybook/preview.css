@@ -1,0 +1,11 @@
+/* Native window styles must not lock the Storybook documentation viewport. */
+html:has(.sbdocs-wrapper) {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+body:has(.sbdocs-wrapper) {
+  height: auto;
+  min-height: 100%;
+  overflow: visible;
+}

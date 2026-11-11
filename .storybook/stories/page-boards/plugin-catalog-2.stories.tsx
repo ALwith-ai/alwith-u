@@ -4,7 +4,7 @@ import * as source from "../pages/plugin-catalog.stories.tsx"
 const meta = {
   ...source.default,
   id: "page-plugin-catalog-2",
-  title: "页面/负一屏/插件/目录布局/页面状态"
+  title: "页面/负一屏/插件/目录布局"
 }
 export default meta
 

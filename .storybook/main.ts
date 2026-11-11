@@ -9,6 +9,7 @@ const boundaries = {
   "features/appearance/wallpaper/controller": "wallpaper.ts",
   "lib/chat-window": "chat-window.ts",
   "features/vibemon/window-client": "vibemon-window.ts",
+  "features/vibemon/main-host": "vibemon-main.ts",
   "lib/runtime": "runtime.ts",
   "lib/settings-bridge": "settings-bridge.ts",
   "features/auth/store": "auth.ts",

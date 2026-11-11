@@ -9,7 +9,7 @@ import { ProductPreview } from "../product-preview"
 import { workflowAction } from "../workflow-driver"
 const meta = {
   id: "页面-聊天-用量与诊断",
-  title: "页面/主窗聊天/用量与诊断",
+  title: "页面/主窗聊天/输入框/02 输入框功能/03 上下文用量",
   component: ProductPreview,
   loaders: [preparePreview],
   args: { page: "chat", chatCase: "conversation" },
@@ -25,16 +25,9 @@ export const Usage: Story = {
     await within(canvasElement.ownerDocument.body).findByText("上下文窗口")
   }
 }
-export const Warning: Story = { ...Usage, name: "上下文用量较高", args: { chatDetail: "usageWarning" } }
+export const Warning: Story = { ...Usage, name: "上下文已用 86%", args: { chatDetail: "usageWarning" } }
+export const Critical: Story = { ...Usage, name: "上下文已用 92%", args: { chatDetail: "usageCritical" } }
 export const Full: Story = { ...Usage, name: "上下文窗口已满", args: { chatDetail: "usageFull" } }
-export const ForkOrigin: Story = {
-  name: "分支来源与返回原聊天",
-  args: { chatCase: "files", chatDetail: "fork" },
-  play: async ({ canvas }) => {
-    await canvas.findByRole("button", { name: "从原聊天继续" })
-  }
-}
-
 export const ReadOnlyFile: Story = {
   name: "独立只读文件预览",
   play: async ({ canvasElement }) => {

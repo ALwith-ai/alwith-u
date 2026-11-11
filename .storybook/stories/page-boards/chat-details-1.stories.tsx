@@ -4,10 +4,11 @@ import * as source from "../pages/chat-details.stories.tsx"
 const meta = {
   ...source.default,
   id: "page-chat-details-1",
-  title: "页面/主窗聊天/用量与诊断/聊天详情"
+  title: "页面/主窗聊天/输入框/02 输入框功能/03 上下文用量"
 }
 export default meta
 
 export const Usage = { ...source.Usage, name: "Token 用量详情" }
-export const Warning = { ...source.Warning, name: "上下文用量较高" }
+export const Warning = { ...source.Warning, name: "上下文已用 86%" }
+export const Critical = { ...source.Critical, name: "上下文已用 92%" }
 export const Full = { ...source.Full, name: "上下文窗口已满" }

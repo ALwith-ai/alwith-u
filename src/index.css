@@ -553,9 +553,9 @@ body,
   background-color: transparent !important;
   background-image: none !important;
 }
-/* Context warnings use the approval control's muted foreground. */
+/* Keep context warnings visible while the usage details are hovered. */
 button.text-destructive:has(> svg[viewBox="0 0 18 18"]) {
-  color: var(--muted-foreground);
+  color: var(--destructive);
 }
 
 @source "../node_modules/@alwith/module-desktop-shell/*.js";

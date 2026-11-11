@@ -4,7 +4,7 @@ import * as source from "../pages/drive-surfaces.stories.tsx"
 const meta = {
   ...source.default,
   id: "page-drive-surfaces-3",
-  title: "页面/其他/云盘/共享与归纳/页面状态"
+  title: "页面/其他/云盘/共享与归纳"
 }
 export default meta
 

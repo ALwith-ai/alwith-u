@@ -195,6 +195,19 @@ export function resetDrive(kind: DriveCase = "ready"): void {
   state = { connected: kind !== "offline", snapshot, error: kind === "error" ? snapshot.error : null }
   for (const listener of listeners) listener()
 }
+export function separateDriveRootsFromChat(): void {
+  const snapshot = state.snapshot
+  if (!snapshot) throw new Error("Drive preview snapshot is missing")
+  state = {
+    ...state,
+    snapshot: {
+      ...snapshot,
+      roots: snapshot.roots.map((root) => ({ ...root, localPath: `${snapshot.localRoot}/${root.name}` }))
+    }
+  }
+  for (const listener of listeners) listener()
+}
+
 export const drive: DriveController = {
   getSnapshot: () => state,
   subscribe: (listener) => {

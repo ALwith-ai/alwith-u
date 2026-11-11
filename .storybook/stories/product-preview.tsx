@@ -4,14 +4,13 @@ import { exportDraft } from "@alwith/module-chat/conversation"
 import type { FormAction } from "@alwith/module-chat/conversation"
 import { useEffect, useState } from "react"
 import { createPortal } from "react-dom"
-import { useTranslation } from "react-i18next"
 import { toast, Toaster } from "sonner"
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Button } from "@/components/ui/button"
 import { SidebarInset } from "@/components/ui/sidebar"
 
 import type { SessionSummary } from "../../src/agent/client"
+import { Pane } from "../../src/components/alwith-ui/pane"
+import { toolboxContentClassName } from "../../src/components/alwith-ui/toolbox-layout"
 import { WindowsMainWindowShell } from "../../src/components/alwith-ui/windows-main-window-shell"
 import { DesktopZoomFeedback } from "../../src/features/appearance/desktop-zoom-feedback"
 import { WallpaperBackground } from "../../src/features/appearance/wallpaper/background"
@@ -19,6 +18,7 @@ import { AuthGate } from "../../src/features/auth/auth-gate"
 import { ChatWindow } from "../../src/features/chat-window/chat-window"
 import { ActionCard, ElicitationFormDialog } from "../../src/features/chat/action-card"
 import { ChatView } from "../../src/features/chat/chat-view"
+import { ConnectionNotice } from "../../src/features/chat/connection-notice"
 import { DRAFT_SESSION_ID, DraftChat } from "../../src/features/chat/draft-chat"
 import { ChatProjectMenu } from "../../src/features/chat/project-session-popover"
 import { DriveDeleteConfirmation, DrivePage, DriveStatus } from "../../src/features/drive/drive"
@@ -43,10 +43,11 @@ import { VibemonCenter } from "../../src/features/vibemon/vibemon-center"
 import { useWorkspace, WorkspaceHeaderContext } from "../../src/features/workspace/context"
 import { FileWorkspace } from "../../src/features/workspace/file-workspace"
 import { PROJECT_DIRECTORY } from "../fixtures/catalog"
-import { type ChatTransfer, previewPreferences, resetChatWindow } from "../fixtures/chat-window"
+import { type ChatTransfer, openChatWindow, previewPreferences, resetChatWindow } from "../fixtures/chat-window"
 import { client, useApp, useSession } from "../fixtures/client"
 import { useExtensions } from "../fixtures/extensions"
 import { navigatePreview, providers } from "../fixtures/native"
+import { resetMainDraft } from "../fixtures/new-chat"
 import { pluginEntry } from "../fixtures/plugins"
 import type { PreviewState } from "../fixtures/prepare"
 
@@ -87,6 +88,7 @@ function OpenFixtureFile({ file }: { file?: string | null }) {
 export function ProductPreview({
   page: initialPage = "chat",
   chatCase = "welcome",
+  initialDirectory,
   settingsSection = "general",
   extensionId = "unavailable",
   sidebarPinned = true,
@@ -96,7 +98,6 @@ export function ProductPreview({
   width,
   height
 }: ProductPreviewProps) {
-  const { t } = useTranslation()
   const { host: extensions, state: extensionState } = useExtensions()
   const reportError = (error: unknown) => toast.error(error instanceof Error ? error.message : String(error))
   const openExtension = (id: string) => {
@@ -118,7 +119,9 @@ export function ProductPreview({
   const [selectedId, setSelectedId] = useState<string | null>(
     chatCase === "welcome" || chatCase === "project" ? null : chatCase
   )
-  const [cwd, setCwd] = useState<string | null>(chatCase === "welcome" ? null : PROJECT_DIRECTORY)
+  const [cwd, setCwd] = useState<string | null>(
+    initialDirectory === undefined ? (chatCase === "welcome" ? null : PROJECT_DIRECTORY) : initialDirectory
+  )
   const [generation, setGeneration] = useState(0)
   const [toolbar, setToolbar] = useState<HTMLDivElement | null>(null)
   const [driveTarget, setDriveTarget] = useState<HTMLDivElement | null>(null)
@@ -172,12 +175,13 @@ export function ProductPreview({
       setPage("chat")
     })()
   }
-  const newChat = (directory: string | null = cwd) => {
-    void client.discardDraft("main")
-    setCwd(directory)
-    setSelectedId(null)
-    setGeneration((value) => value + 1)
-    setPage("chat")
+  const newChat = (directory?: string | null) => {
+    void resetMainDraft(directory === undefined ? (session?.cwd ?? cwd) : directory).then((target) => {
+      setCwd(target)
+      setSelectedId(null)
+      setGeneration((value) => value + 1)
+      setPage("chat")
+    }).catch(reportError)
   }
   const projectMenu = (
     <ChatProjectMenu
@@ -208,20 +212,12 @@ export function ProductPreview({
         onDeleted={() => newChat()}
       />
     ) : (
-      <>
-        {(connection === "failed" || connection === "disconnected") && (
-          <div className="mx-auto w-full max-w-3xl px-6 pt-12">
-            <Alert variant="destructive">
-              <AlertTitle>{t(connection === "failed" ? "connection.failed" : "connection.disconnected")}</AlertTitle>
-              <AlertDescription className="flex flex-wrap items-center gap-2">
-                {error !== null && <span className="font-mono">{error}</span>}
-                <Button size="sm" variant="outline" onClick={() => void client.connect()}>
-                  {t("connection.reconnect")}
-                </Button>
-              </AlertDescription>
-            </Alert>
-          </div>
-        )}
+      <div className="relative flex min-h-0 flex-1 flex-col">
+        <ConnectionNotice
+          connection={connection}
+          error={error}
+          onReconnect={async () => { await client.connect().catch(reportError) }}
+        />
         <DraftChat
           key={generation}
           owner="main"
@@ -235,7 +231,7 @@ export function ProductPreview({
           onNewChat={() => newChat()}
           onOpenWindow={moveToWindow}
         />
-      </>
+      </div>
     )
   const fullPage =
     page === "vibemonWindow" ? (
@@ -253,7 +249,11 @@ export function ProductPreview({
         <ProductPreview page="chat" />
       </AuthGate>
     ) : page === "floating" ? (
-      <ChatWindow preferences={previewPreferences} />
+      <div className="flex h-full w-full items-center justify-center p-4">
+        <div className="h-[640px] max-h-full w-[560px] max-w-full [&>main]:!h-full">
+          <ChatWindow preferences={previewPreferences} />
+        </div>
+      </div>
     ) : null
   return (
     <div
@@ -266,8 +266,12 @@ export function ProductPreview({
             <MainSidebarLayout
               initialPinned={sidebarPinned}
               screen={leading ? "leading" : "main"}
-              onScreenChange={(screen) => setPage(screen === "main" ? "chat" : "plugins")}
-              toolbar={<div ref={setToolbar} className="flex flex-1 items-center" />}
+              onScreenChange={(screen) => setPage(screen === "main" ? "chat" : "extensions")}
+              toolbar={
+                <div hidden={leading} className="main-workspace-toolbar flex items-center gap-2">
+                  <div ref={setToolbar} />
+                </div>
+              }
               statusBar={
                 <AppStatusBar
                   start={
@@ -288,10 +292,10 @@ export function ProductPreview({
                   onNewChat={() => newChat()}
                   onNewProjectChat={newChat}
                   onSearch={() => setPaletteOpen(true)}
-                  onOpenWindow={moveToWindow}
+                  onOpenWindow={() => void openChatWindow()}
                   onOpenSettings={() => setPage("settings")}
                   onOpenVibemon={() => setPage("vibemon")}
-                  onOpenPlugins={() => setPage("plugins")}
+                  onOpenPlugins={() => setPage("extensions")}
                   extensionNavigation={
                     <ExtensionNavigation
                       host={extensions}
@@ -302,7 +306,7 @@ export function ProductPreview({
                     />
                   }
                   drivePanel={<div ref={setDriveTarget} className="min-h-0 flex-1 overflow-auto" />}
-                  onSwitchScreen={() => setPage(leading ? "chat" : "plugins")}
+                  onSwitchScreen={() => setPage(leading ? "chat" : "extensions")}
                 />
               }
               leading={
@@ -310,7 +314,7 @@ export function ProductPreview({
                   <LeadingNavigation
                     activePage={leadingPage}
                     onOpenVibemon={() => setPage("vibemon")}
-                    onOpenPlugins={() => setPage("plugins")}
+                    onOpenPlugins={() => setPage("extensions")}
                     onOpenArchives={() => setPage("archives")}
                   >
                     <ExtensionNavigation
@@ -325,7 +329,24 @@ export function ProductPreview({
                     {leading && actionCards.length > 0 && (
                       <div className="mx-auto w-full max-w-3xl px-6 pt-12">{actionCards}</div>
                     )}
-                    {page === "plugins" && <PluginsPage cwd={cwd} active />}
+                    {(page === "plugins" || page === "extensions") && (
+                      <PluginsPage
+                        cwd={cwd}
+                        active={page === "plugins"}
+                        onOpenCatalog={() => setPage("plugins")}
+                        extensions={{
+                          active: page === "extensions",
+                          onOpen: () => setPage("extensions"),
+                          content: (
+                            <Pane className="pe-0" viewportClassName="pe-0">
+                              <div className={`${toolboxContentClassName} pt-8`}>
+                                <ExtensionsSection onOpenSurface={openExtension} />
+                              </div>
+                            </Pane>
+                          )
+                        }}
+                      />
+                    )}
                     {page === "pluginDetail" && (
                       <>
                         <PluginIconDefinitions />
@@ -333,16 +354,6 @@ export function ProductPreview({
                       </>
                     )}
                     {page === "archives" && <ArchivedChatsPage />}
-                    {page === "extensions" && (
-                      <div className="mx-auto w-full max-w-5xl overflow-auto px-6 pt-8 pb-6">
-                        <ExtensionsSection
-                          onOpenSurface={(id) => {
-                            setSurfaceId(id)
-                            setPage("extension")
-                          }}
-                        />
-                      </div>
-                    )}
                     {page === "extension" && <ExtensionPage id={surfaceId} onClose={() => setPage("extensions")} />}
                     {page === "vibemon" && <VibemonCenter />}
                   </SidebarInset>
@@ -375,7 +386,7 @@ export function ProductPreview({
                 onOpenChange={setPaletteOpen}
                 onNewChat={() => newChat()}
                 onOpenSettings={() => setPage("settings")}
-                onOpenPlugins={() => setPage("plugins")}
+                onOpenPlugins={() => setPage("extensions")}
                 onOpenHotkeys={() => setHotkeysOpen(true)}
                 onOpenExtension={(id) => {
                   setSurfaceId(id)

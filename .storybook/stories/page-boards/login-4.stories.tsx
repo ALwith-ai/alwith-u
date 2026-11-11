@@ -4,12 +4,17 @@ import * as source from "../pages/login.stories.tsx"
 const meta = {
   ...source.default,
   id: "page-login-4",
-  title: "页面/账号与登录/登录表单"
+  title: "页面/注册登录/密码登录/异常流程"
 }
 export default meta
 
-export const Loading = { ...source.Loading, name: "登录信息加载中" }
-export const Sending = { ...source.Sending, name: "正在发送验证码" }
-export const Network = { ...source.Network, name: "验证码发送网络失败" }
-export const SigningIn = { ...source.SigningIn, name: "验证码登录中" }
-export const PasswordSigningIn = { ...source.PasswordSigningIn, name: "密码登录中" }
+export const PasswordMissingEmail = { ...source.PasswordMissingEmail, name: "06 异常 · 邮箱未填写" }
+export const PasswordInvalidEmailSubmit = { ...source.PasswordInvalidEmailSubmit, name: "07 异常 · 提交时邮箱格式错误" }
+export const PasswordMissingPassword = { ...source.PasswordMissingPassword, name: "08 异常 · 密码未填写" }
+export const WrongPassword = { ...source.WrongPassword, name: "09 异常 · 邮箱或密码错误" }
+export const PasswordSubmitNetwork = { ...source.PasswordSubmitNetwork, name: "10 异常 · 登录 · 网络连接失败" }
+export const PasswordSubmitWaitlisted = { ...source.PasswordSubmitWaitlisted, name: "11 异常 · 登录 · 候补名单" }
+export const PasswordSubmitDisabled = { ...source.PasswordSubmitDisabled, name: "12 异常 · 登录 · 账号已停用" }
+export const PasswordSubmitServiceFailure = { ...source.PasswordSubmitServiceFailure, name: "13 异常 · 登录 · 服务返回错误" }
+export const PasswordSubmitEmptyFailure = { ...source.PasswordSubmitEmptyFailure, name: "14 异常 · 登录 · 服务未返回错误说明" }
+export const PasswordSubmitSessionFailure = { ...source.PasswordSubmitSessionFailure, name: "15 异常 · 登录 · 保存登录状态失败" }

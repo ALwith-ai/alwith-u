@@ -10,7 +10,7 @@ const config = { labels, id: "workflow-account-logout" }
 const meta = {
   ...base,
   id: "workflow-account-logout",
-  title: "流程/账号与登录/07 退出登录",
+  title: "流程/注册登录/07 退出登录",
   loaders: [prepareWorkflow],
   render: (args, context) => (
     <WorkflowPreview

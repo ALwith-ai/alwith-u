@@ -10,7 +10,7 @@ const config = { labels, id: "workflow-login-states-registering" }
 const meta = {
   ...base,
   id: "workflow-login-states-registering",
-  title: "流程/账号与登录/登录状态/15 账号注册等待",
+  title: "流程/注册登录/登录状态/15 账号注册等待",
   loaders: [prepareWorkflow],
   render: (args, context) => (
     <WorkflowPreview

@@ -4,7 +4,7 @@ import * as source from "../pages/chat-new.stories.tsx"
 const meta = {
   ...source.default,
   id: "page-chat-new-3",
-  title: "页面/主窗聊天/新建聊天/页面状态"
+  title: "页面/主窗聊天/新建聊天"
 }
 export default meta
 

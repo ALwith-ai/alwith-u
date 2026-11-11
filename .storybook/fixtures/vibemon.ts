@@ -56,6 +56,7 @@ export type VibemonCase =
   | "drawError"
   | "insufficient"
   | "desktop"
+  | "hidden"
 export async function resetVibemon(kind: VibemonCase = "home", bubbleCase?: BubbleCase): Promise<void> {
   stopSettings()
   stop()
@@ -64,7 +65,7 @@ export async function resetVibemon(kind: VibemonCase = "home", bubbleCase?: Bubb
   storageValues = {
     "vibemon.accounts": {
       [scope]: {
-        vibemon: kind === "desktop" ? "vibemon-0" : "",
+        vibemon: kind === "desktop" || kind === "hidden" ? "vibemon-0" : "",
         enabled: kind === "desktop",
         position: { x: 300, y: 300 }
       }
