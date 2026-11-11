@@ -2,8 +2,8 @@
 // configuration panel. A saved key puts that provider's models into every chat's model picker;
 // each chat picks its own model. Nothing global is written.
 import { CardSendIcon } from "@solar-icons/react/line-duotone/card-send"
-import { ChevronDownIcon, ExternalLinkIcon, EyeIcon, EyeOffIcon, PlusIcon, ServerIcon, Trash2Icon } from "lucide-react"
-import { type ReactNode, useEffect, useState } from "react"
+import { ChevronDownIcon, ExternalLinkIcon, EyeIcon, EyeOffIcon, PlusIcon, ServerIcon } from "lucide-react"
+import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
@@ -51,7 +51,10 @@ import { useProviders } from "@/lib/use-providers"
 import { cn } from "@/lib/utils"
 
 import { CodexProviderSection } from "./codex-provider-section"
+import { ProviderActions, type ProviderOperation } from "./provider-actions"
 import { ProviderBaseUrl, ProviderConnectionSettings } from "./provider-connection-settings"
+import { ProviderTab } from "./provider-tab"
+import { useProviderTestFeedback } from "./provider-test-feedback"
 import { SettingGroup, SettingLabel } from "./shared"
 
 /** Fetch on entry; failed network refreshes retry the fetch rather than cached configuration application. */
@@ -124,9 +127,10 @@ export function ManagedProviderSection() {
 
 export function ProviderSection() {
   const { t } = useTranslation()
+  const testFeedback = useProviderTestFeedback()
   const snapshot = useProviders()
   const keys = snapshot?.providers ?? {}
-  const [busy, setBusy] = useState<string | null>(null)
+  const [busy, setBusy] = useState<{ providerId: string; action: ProviderOperation | "retry" } | null>(null)
   const [activeId, setActiveId] = useState(PROVIDERS[0]?.id ?? "")
   const [customDraftVersion, setCustomDraftVersion] = useState(0)
   const [testResults, setTestResults] = useState<Record<string, ProviderTestResult>>({})
@@ -136,7 +140,7 @@ export function ProviderSection() {
     provider: Provider,
     key: ProviderInput | null
   ): Promise<ProviderSnapshot | null> => {
-    setBusy(provider.id)
+    setBusy({ providerId: provider.id, action: key === null ? "remove" : "save" })
     try {
       const result = await saveProviderKey(revision, provider.id, key)
       if (!result.error)
@@ -166,27 +170,23 @@ export function ProviderSection() {
   }
 
   const test = async (providerId: string) => {
-    setBusy(providerId)
+    setBusy({ providerId, action: "test" })
     try {
       const result = await testProvider(providerId)
       setTestResults((current) => ({ ...current, [providerId]: result }))
-      if (result.ok) toast.success(t("provider.testSuccess", { latency: result.latencyMs ?? 0 }))
-      else {
-        logProviderError("test", result)
-        toast.error(
-          `${t(`provider.testErrors.${result.code}`)}${result.message ? `: ${describe(result.message)}` : ""}`
-        )
-      }
+      testFeedback.result(result)
     } catch (error) {
-      logProviderError("test", error)
-      toast.error(describe(error))
+      testFeedback.error(error)
     } finally {
       setBusy(null)
     }
   }
 
   const saveCustom = async (revision: number, input: CustomProviderInput): Promise<boolean> => {
-    setBusy(input.id)
+    setBusy({
+      providerId: snapshot?.customProviders.some((provider) => provider.id === input.id) ? input.id : "new",
+      action: "save"
+    })
     try {
       const result = await saveCustomProvider(revision, input)
       if (result.error) {
@@ -212,7 +212,7 @@ export function ProviderSection() {
 
   const removeCustom = async (provider: CustomProvider) => {
     if (!snapshot) return
-    setBusy(provider.id)
+    setBusy({ providerId: provider.id, action: "remove" })
     try {
       const result = await removeCustomProvider(snapshot.revision, provider.id)
       if (result.error) {
@@ -231,7 +231,7 @@ export function ProviderSection() {
   }
 
   const retry = async (): Promise<void> => {
-    setBusy("retry")
+    setBusy({ providerId: "retry", action: "retry" })
     try {
       const result = await applyProvidersWhenIdle()
       if (result.error) {
@@ -282,6 +282,7 @@ export function ProviderSection() {
                   saved={keys[provider.id] ?? null}
                   revision={snapshot.revision}
                   busy={busy !== null}
+                  operation={busy?.providerId === provider.id && busy.action !== "retry" ? busy.action : undefined}
                   onSave={(revision, key) => save(revision, provider, key)}
                   testResult={testResults[provider.id]}
                   onTest={() => test(provider.id)}
@@ -294,6 +295,7 @@ export function ProviderSection() {
                   provider={provider}
                   revision={snapshot.revision}
                   busy={busy !== null}
+                  operation={busy?.providerId === provider.id && busy.action !== "retry" ? busy.action : undefined}
                   testResult={testResults[provider.id]}
                   onTest={() => test(provider.id)}
                   onRemove={() => removeCustom(provider)}
@@ -308,6 +310,7 @@ export function ProviderSection() {
                 provider={null}
                 revision={snapshot.revision}
                 busy={busy !== null}
+                operation={busy?.providerId === "new" && busy.action !== "retry" ? busy.action : undefined}
                 onSaved={(id) => {
                   setCustomDraftVersion((version) => version + 1)
                   setActiveId(id)
@@ -381,98 +384,12 @@ export function ProviderTabs({
   )
 }
 
-function ProviderTab({
-  id,
-  name,
-  active,
-  configured,
-  icon,
-  onClick
-}: {
-  id: string
-  name: string
-  active: boolean
-  configured: boolean
-  icon: React.ReactNode
-  onClick: () => void
-}) {
-  return (
-    <Button
-      type="button"
-      variant="outline"
-      aria-label={name}
-      aria-pressed={active}
-      onClick={onClick}
-      className={cn("h-9 w-full gap-2 rounded-full px-4", active && "bg-accent")}
-    >
-      {icon}
-      <span className="min-w-0 flex-1 truncate text-center">{name}</span>
-      <span
-        data-testid={`${id}-status`}
-        data-configured={configured}
-        aria-hidden="true"
-        className={cn("size-2 shrink-0 rounded-full", configured ? "bg-success" : "bg-muted-foreground/30")}
-      />
-    </Button>
-  )
-}
-
-function TestFeedback({ result }: { result: ProviderTestResult }) {
-  const { t } = useTranslation()
-  return (
-    <p role="status" className={result.ok ? "text-xs text-muted-foreground" : "text-xs text-destructive"}>
-      {result.ok
-        ? t("provider.testSuccess", { latency: result.latencyMs ?? 0 })
-        : `${t(`provider.testErrors.${result.code}`)}${result.status ? ` (HTTP ${result.status})` : ""}`}
-    </p>
-  )
-}
-
-function ProviderActions({
-  busy,
-  canTest,
-  onTest,
-  onRemove,
-  result,
-  children
-}: {
-  busy: boolean
-  canTest: boolean
-  onTest?: () => void
-  onRemove?: () => void
-  result?: ProviderTestResult
-  children: ReactNode
-}): ReactNode {
-  const { t } = useTranslation()
-  return (
-    <div className="space-y-3 border-t pt-4">
-      {result && <TestFeedback result={result} />}
-      {onTest && <p className="text-xs leading-relaxed text-muted-foreground">{t("provider.testDescription")}</p>}
-      <div className="flex flex-wrap items-center gap-2">
-        {onRemove && (
-          <Button size="sm" variant="destructive" className="font-normal" disabled={busy} onClick={onRemove}>
-            <Trash2Icon className="size-4" />
-            {t("provider.remove")}
-          </Button>
-        )}
-        <div className="ms-auto flex flex-wrap items-center gap-2">
-          {onTest && (
-            <Button size="sm" variant="outline" disabled={busy || !canTest} onClick={onTest}>
-              {t("provider.testButton")}
-            </Button>
-          )}
-          {children}
-        </div>
-      </div>
-    </div>
-  )
-}
-
 export function ProviderRow({
   provider,
   saved,
   revision,
   busy,
+  operation,
   onSave,
   testResult,
   onTest
@@ -481,6 +398,7 @@ export function ProviderRow({
   saved: ProviderKey | null
   revision: number
   busy: boolean
+  operation?: ProviderOperation
   onSave: (revision: number, key: ProviderInput | null) => Promise<ProviderSnapshot | null>
   testResult?: ProviderTestResult
   onTest?: () => void
@@ -542,7 +460,7 @@ export function ProviderRow({
         {provider.regions && (
           <Select value={region} onValueChange={(value) => setRegion(value ?? provider.regions?.[0]?.id)}>
             <SelectTrigger className="w-32" aria-label={t("provider.region")}>
-              <SelectValue />
+              <SelectValue>{region && t(`provider.regions.${region}`)}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
@@ -607,13 +525,14 @@ export function ProviderRow({
       </ProviderConnectionSettings>
       <ProviderActions
         busy={busy}
+        operation={operation}
         canTest={!canSave}
         onTest={configured ? onTest : undefined}
         onRemove={configured ? () => void persist(null) : undefined}
         result={!canSave ? testResult : undefined}
       >
-        <Button size="sm" disabled={!canSave} onClick={submit}>
-          {busy && <Spinner data-icon="inline-start" />}
+        <Button size="sm" disabled={!canSave} aria-busy={operation === "save"} onClick={submit}>
+          {operation === "save" && <Spinner data-icon="inline-start" aria-hidden="true" />}
           {t("provider.saveButton")}
         </Button>
       </ProviderActions>
@@ -625,6 +544,7 @@ export function CustomProviderEditor({
   provider,
   revision,
   busy,
+  operation,
   testResult,
   onTest,
   onRemove,
@@ -634,6 +554,7 @@ export function CustomProviderEditor({
   provider: CustomProvider | null
   revision: number
   busy: boolean
+  operation?: ProviderOperation
   testResult?: ProviderTestResult
   onTest?: () => void
   onRemove?: () => void
@@ -802,6 +723,7 @@ export function CustomProviderEditor({
       </Collapsible>
       <ProviderActions
         busy={busy}
+        operation={operation}
         canTest={!dirty}
         onTest={provider ? onTest : undefined}
         onRemove={provider ? onRemove : undefined}
@@ -812,9 +734,10 @@ export function CustomProviderEditor({
           disabled={
             busy || !dirty || name.trim() === "" || baseUrl.trim() === "" || (!provider && apiKey.trim() === "")
           }
+          aria-busy={operation === "save"}
           onClick={() => void submit()}
         >
-          {busy && <Spinner data-icon="inline-start" />}
+          {operation === "save" && <Spinner data-icon="inline-start" aria-hidden="true" />}
           {t("provider.saveButton")}
         </Button>
       </ProviderActions>

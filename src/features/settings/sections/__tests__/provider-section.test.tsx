@@ -1,4 +1,5 @@
 import { act, fireEvent, render } from "@testing-library/react"
+import i18n from "i18next"
 import { useState } from "react"
 import { beforeAll, expect, test, vi } from "vitest"
 
@@ -36,6 +37,7 @@ test("an untouched row follows loaded regions and submits the revision it displa
       onSave={save}
     />
   )
+  expect(view.getByRole("combobox", { name: "Region" })).toHaveTextContent("China")
   view.rerender(
     <ProviderRow
       provider={provider}
@@ -45,6 +47,17 @@ test("an untouched row follows loaded regions and submits the revision it displa
       onSave={save}
     />
   )
+  expect(view.getByRole("combobox", { name: "Region" })).toHaveTextContent("International")
+  try {
+    await act(async () => {
+      await i18n.changeLanguage("zh-CN")
+    })
+    expect(view.getByRole("combobox", { name: "区域" })).toHaveTextContent("国际")
+  } finally {
+    await act(async () => {
+      await i18n.changeLanguage("en")
+    })
+  }
   await act(() => {
     return Promise.try(() => {
       view.getByLabelText("API key").focus()
@@ -397,4 +410,28 @@ test("saving an existing custom provider clears its saved draft and enables conn
   expect(view.getByRole("button", { name: "Test connection" })).toBeEnabled()
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Test connection" }))))
   expect(testConnection).toHaveBeenCalledOnce()
+})
+
+test.each(["test", "save", "remove"] as const)("provider %s loading stays on its own action", (operation) => {
+  const view = render(
+    <ProviderRow
+      provider={provider}
+      saved={{ configured: true, region: "cn", base_url: null }}
+      revision={1}
+      busy={true}
+      operation={operation}
+      onSave={vi.fn(async () => snapshot(2))}
+      onTest={vi.fn()}
+    />
+  )
+  for (const [action, label] of [
+    ["test", "Test connection"],
+    ["save", "Save"],
+    ["remove", "Remove"]
+  ]) {
+    const button = view.getByRole("button", { name: label })
+    expect(button).toBeDisabled()
+    expect(button).toHaveAttribute("aria-busy", String(action === operation))
+    expect(button.querySelector("[data-icon='inline-start']") !== null).toBe(action === operation)
+  }
 })

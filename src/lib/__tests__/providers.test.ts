@@ -156,3 +156,21 @@ test.each(["gateway:litellm:old", "gateway:finture-enterprise:old"])(
     expect(() => resolveSessionModel(model, snapshot)).toThrow(/unavailable/i)
   }
 )
+
+test("a failed custom provider snapshot preserves the explicitly selected native model", () => {
+  const snapshot: ProviderSnapshot = {
+    revision: 51,
+    appliedRevision: null,
+    status: "failed",
+    error: "Provider My GLM gateway (custom_broken) could not apply (-32602)",
+    providers: {},
+    customProviders: [{
+      id: "custom_broken",
+      name: "My GLM gateway",
+      baseUrl: "https://gateway.example.test/v1",
+      models: [{ api_id: "glm-5", label: "GLM 5" }]
+    }]
+  }
+  expect(resolveSessionModel("gpt-6.1-sol", snapshot, "session")).toBe("gpt-6.1-sol")
+  expect(resolveSessionModel("gpt-6.1-sol", snapshot, "draft")).toBe("gpt-6.1-sol")
+})

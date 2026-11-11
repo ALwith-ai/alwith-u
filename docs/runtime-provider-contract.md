@@ -6,14 +6,14 @@ Provider credentials belong to the native host in `runtime-providers.json`, writ
 
 The shared JSON catalog supplies endpoints and models to both layers. Gateway selection uses the adapter's connection-qualified model identity. Native Codex account login and gateway catalogs remain independent; no global Codex configuration is written.
 
-The settings page owns custom-provider names, base URLs and Desktop-compatible model JSON (`label`, `api_id`, optional `contextWindow` and `description`). Rust validates these values only at its persistence boundary, stores the API key privately, maps the page model shape to the adapter catalog shape and performs the explicit paid connection probe against `<base URL>/responses`. Probe errors are classified by transport/HTTP status, truncated and scrubbed of the submitted key before reaching the webview.
+The settings page owns custom-provider names, base URLs and Desktop-compatible model JSON (`label`, `api_id`, optional `contextWindow` and `description`). Rust validates these values only at its persistence boundary, stores the API key privately, maps the page model shape to the adapter catalog shape and performs the explicit paid connection probe against `<base URL>/responses`. Probe errors are classified by transport/HTTP status, truncated and scrubbed of the submitted key before reaching the webview. Custom catalogs contain every configured model: recognized models retain their bundled capabilities and other models receive direct-tool metadata. A mixed model list never substitutes the bundled catalog for the whole provider.
 
 | Boundary | Behavior |
 | --- | --- |
 | Save during an active turn | Persist the new revision; leave the active turn on its applied configuration. |
 | Idle boundary | Serialize provider application with session/turn admission; apply the latest saved revision. |
-| New turn while a saved change is pending on active turns | Report pending configuration; do not silently start under another account or queue an uncancellable prompt. |
-| Apply failure | Keep the saved revision, report failed, do not acknowledge it as applied; subsequent admission retries. Error text omits upstream private payloads. |
+| New turn while a saved change is pending on active turns | Check the selected provider against its applied configuration; unrelated providers remain usable. |
+| Apply failure | Keep the saved revision and report failed with the provider name and ID. Reject new work only for that provider; unrelated native and gateway sessions continue. Retry after an explicit retry or settings change, not on every Runtime state event. Upstream private payloads remain omitted. |
 | Concurrent settings edit | Reject a stale expected revision before changing disk or memory. |
 | Region-only edit | Resolve the new endpoint with the retained native key in one candidate snapshot. |
 | Provider removal | Call the adapter's disable operation; no automatic account fallback. |

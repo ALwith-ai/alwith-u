@@ -450,14 +450,12 @@ pub async fn runtime_send(
     } else {
         false
     };
-    // Busy providers retain their applied routing; unrelated sessions can continue.
-    if requires_provider_application(&request)
-        && !temporary_gamepad
-        && !active_prompt
-        && let Err(error) = alwith_chat::apply_locked(window.app_handle(), &client).await
-        && !alwith_chat::application_pending(&error)
-    {
-        return Err(error);
+    // Reconciliation failures remain visible in settings. Admission is scoped to the
+    // adapter-confirmed session model, so another provider cannot block this turn.
+    if requires_provider_application(&request) && !temporary_gamepad && !active_prompt {
+        let _ = alwith_chat::apply_locked(window.app_handle(), &client).await;
+        alwith_chat::providers::check_application(window.app_handle(), &request.method, request.params.as_ref())
+            .await?;
     }
     if !current_connection() {
         return Err("Window connection replaced".into());
