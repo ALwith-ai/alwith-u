@@ -2,7 +2,10 @@ import { WebviewWindow } from "@tauri-apps/api/webviewWindow"
 
 import { createWindowController } from "@/lib/window-controller"
 
-const controller = createWindowController<void>({
+import { guideChapters } from "./content"
+import { guideLocationKey } from "./guide-location"
+
+const controller = createWindowController<string>({
   exists: async () => (await WebviewWindow.getByLabel("guide")) !== null,
   create: async () => {
     const windows = navigator.platform.includes("Win")
@@ -46,9 +49,14 @@ const controller = createWindowController<void>({
     await window.show()
     await window.setFocus()
   },
-  deliver: async () => {}
+  deliver: async (id) => {
+    localStorage.setItem(guideLocationKey, JSON.stringify({ id, request: crypto.randomUUID() }))
+    window.dispatchEvent(new StorageEvent("storage", { key: guideLocationKey }))
+  }
 })
 
-export function openGuideWindow(): Promise<void> {
-  return controller.open()
+export function openGuideWindow(chapter = "welcome"): Promise<void> {
+  if (!guideChapters.some((entry) => entry.id === chapter))
+    return Promise.reject(new Error(`Unknown guide chapter: ${chapter}`))
+  return controller.open(chapter)
 }

@@ -29,6 +29,11 @@ export function fileLocationPath(value: string): string {
 }
 
 export function openExternal(url: string): Promise<void> {
+  if (url.startsWith("alwith-docs:")) {
+    return Promise.all([
+      import("@/features/guide/guide-window"), import("@/features/guide/guide-location")
+    ]).then(([{ openGuideWindow }, { guideLinkChapter }]) => openGuideWindow(guideLinkChapter(url)))
+  }
   if (/^file:/i.test(url)) {
     const file = new URL(url)
     let path = fileLocationPath(file.pathname)

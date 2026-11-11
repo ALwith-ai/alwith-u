@@ -34,6 +34,7 @@ vi.mock("@tauri-apps/api/webviewWindow", () => ({
 
 const { openGuideWindow } = await import("../guide-window")
 afterEach(() => {
+  localStorage.clear()
   state.exists = false
   state.failure = false
   vi.clearAllMocks()

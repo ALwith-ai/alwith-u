@@ -1,0 +1,4 @@
+interface:
+  display_name: "ALwith Docs"
+  short_description: "ALwith U docs, setup, models and troubleshooting"
+  default_prompt: "Use $alwith-docs to answer my ALwith U question with versioned documentation and chapter links."

@@ -1,17 +1,28 @@
-// U owns startup caching. The ACP adapter is imported unchanged from its published package.
+// U supplies startup resources. The ACP adapter is imported unchanged from its published package.
 import { spawnSync } from "node:child_process"
-import { isAbsolute } from "node:path"
+import { homedir } from "node:os"
+import { isAbsolute, join } from "node:path"
+import { fileURLToPath } from "node:url"
 
 import { interactiveSessionConfig } from "./lib/codex-session-config"
+import { docsSessionConfig, installDocsSkill } from "./lib/docs-install"
 import { prepareModelCatalog } from "./lib/model-catalog"
 
 async function start(): Promise<void> {
-  process.env.CODEX_CONFIG = interactiveSessionConfig(process.env.CODEX_CONFIG)
   const command = process.env.ALWITH_U_CODEX_PATH
   if (!command || !isAbsolute(command)) throw new Error("ALWITH_U_CODEX_PATH must name the bundled Codex executable")
   const probe = spawnSync(command, ["--version"], { encoding: "utf8", timeout: 10_000 })
   if (probe.error || probe.status !== 0)
     throw new Error(`Codex version probe failed: ${probe.error?.message ?? probe.stderr}`)
+  const docs = fileURLToPath(new URL("./alwith-docs/", import.meta.url))
+  if (installDocsSkill(docs, process.env.CODEX_HOME || join(homedir(), ".codex")) === "preserved") {
+    process.stderr.write("[alwith-docs] Preserved an existing or user-edited alwith-docs skill.\n")
+  }
+  process.env.CODEX_CONFIG = docsSessionConfig(
+    interactiveSessionConfig(process.env.CODEX_CONFIG),
+    process.execPath,
+    join(docs, "server.mjs")
+  )
   const catalog = prepareModelCatalog({ command, prefixArgs: [], shell: false }, process.env, probe.stdout.trim())
   if (catalog.path === null) delete process.env.ALWITH_U_CODEX_CATALOG
   else process.env.ALWITH_U_CODEX_CATALOG = catalog.path

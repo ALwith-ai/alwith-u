@@ -1,6 +1,6 @@
 // Run on the target OS after Tauri builds. Uninstalled builds must supply their staged resource directory.
 import { spawnSync } from "node:child_process"
-import { copyFileSync, existsSync, mkdtempSync } from "node:fs"
+import { copyFileSync, cpSync, existsSync, mkdtempSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 
@@ -77,6 +77,7 @@ const adapterVersion = await withCleanup(
     }
     const bootstrap = join(codexHome, "codex-bootstrap.mjs")
     copyFileSync(join(resources, "adapter/codex-bootstrap.mjs"), bootstrap)
+    cpSync(join(resources, "adapter/alwith-docs"), join(codexHome, "alwith-docs"), { recursive: true })
     await checkInitialize(bootstrap)
     return adapterVersion
   },

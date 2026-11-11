@@ -1,0 +1,82 @@
+[
+  {
+    "id": "welcome",
+    "icon": "BookOpenIcon",
+    "summary": "A practical handbook for your everyday work with ALwith U.",
+    "group": "Overview",
+    "takeaway": "Choose a task below, or follow the getting-started path.",
+    "keywords": "介绍 入门 用户指南"
+  },
+  {
+    "id": "start",
+    "icon": "PlayIcon",
+    "summary": "Set up access, choose a project, and complete your first useful task.",
+    "group": "Getting started",
+    "takeaway": "ALwith login and model access are configured separately.",
+    "keywords": "登录 账号 开始 安装"
+  },
+  {
+    "id": "interface",
+    "icon": "PanelLeftIcon",
+    "summary": "Learn where conversations, tools, files, and settings live.",
+    "group": "Getting started",
+    "takeaway": "Keep the conversation and its project files in view together.",
+    "keywords": "界面 导航 侧栏"
+  },
+  {
+    "id": "chat",
+    "icon": "MessageSquareIcon",
+    "summary": "Write a clear request, manage a running turn, and review the result.",
+    "group": "Daily work",
+    "takeaway": "Ask for a concrete outcome and evidence that it works.",
+    "keywords": "聊天 对话 历史 权限 停止"
+  },
+  {
+    "id": "models",
+    "icon": "CpuIcon",
+    "summary": "Connect a provider and select the right model for each conversation.",
+    "group": "Daily work",
+    "takeaway": "The selected model belongs to the conversation you are working in.",
+    "keywords": "模型 供应商 密钥 价格 迁移 提示词"
+  },
+  {
+    "id": "files",
+    "icon": "FolderIcon",
+    "summary": "Navigate, preview, edit, and review files alongside the assistant.",
+    "group": "Daily work",
+    "takeaway": "Confirm the project folder before allowing file changes.",
+    "keywords": "文件 项目 编辑 保存"
+  },
+  {
+    "id": "plugins",
+    "icon": "LayersIcon",
+    "summary": "Understand skills, Codex plugins, and application extensions.",
+    "group": "Make it yours",
+    "takeaway": "Inspect what an integration does and what access it needs.",
+    "keywords": "技能 插件 扩展 安装 启用 禁用"
+  },
+  {
+    "id": "cloud-vibemon",
+    "icon": "CloudIcon",
+    "summary": "Check cloud transfers and manage your Vibémon companion.",
+    "group": "Make it yours",
+    "takeaway": "Verify transfer status before relying on a cloud copy.",
+    "keywords": "云盘 同步 宠物 休息室"
+  },
+  {
+    "id": "settings",
+    "icon": "KeyboardIcon",
+    "summary": "Adjust your workspace and learn the shortcuts you will use most.",
+    "group": "Make it yours",
+    "takeaway": "Use button tooltips to discover shortcuts as you work.",
+    "keywords": "设置 快捷键 版本 更新"
+  },
+  {
+    "id": "troubleshooting",
+    "icon": "WrenchIcon",
+    "summary": "Diagnose connection, model, file, and integration problems.",
+    "group": "Support",
+    "takeaway": "Capture the exact error and check for partial changes before retrying.",
+    "keywords": "故障 排错 错误 失败"
+  }
+]

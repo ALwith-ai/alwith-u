@@ -1,6 +1,7 @@
-import { cleanup, fireEvent, render } from "@testing-library/react"
+import { act, cleanup, fireEvent, render } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 
+import { guideLocationKey } from "../guide-location"
 import { GuidePage } from "../guide-page"
 
 vi.mock("@/components/theme-provider", () => ({ useTheme: () => ({ resolvedTheme: "light" }) }))
@@ -9,7 +10,19 @@ vi.mock("@alwith/module-chat/markdown", () => ({
 }))
 afterEach(() => {
   cleanup()
+  localStorage.clear()
   vi.restoreAllMocks()
+})
+
+test("chapter citations select a chapter on startup and in an already-open guide", () => {
+  localStorage.setItem(guideLocationKey, JSON.stringify({ id: "models" }))
+  const view = render(<GuidePage />)
+  expect(view.getByRole("main", { name: "Choose a model" })).toBeVisible()
+  act(() => {
+    localStorage.setItem(guideLocationKey, JSON.stringify({ id: "plugins" }))
+    window.dispatchEvent(new StorageEvent("storage", { key: guideLocationKey }))
+  })
+  expect(view.getByRole("main", { name: "Plugins and extensions" })).toBeVisible()
 })
 
 test("home cards and the interface map open chapters and return to the guide home", () => {

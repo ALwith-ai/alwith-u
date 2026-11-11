@@ -10,6 +10,10 @@ Your brand. Your experience. Your edge.
 
 Read the [ALwith U Guide](guide/index.md), or click the question-mark button next to your account in the app. The English guide is bundled with the application and opens in its own window.
 
+Ask **ALwith Docs** in chat for versioned setup, model configuration and troubleshooting guidance. Its chapter citations open the same guide. Manage the skill in the existing Skills catalog.
+
+The guide reader and documentation tools share `guide/index.md` and `guide/catalog.json`. `bun run docs:build` bundles the offline documentation service and generates the skill's reference manual; development, production builds and sidecar staging run this step automatically. Edit the source guide, not the generated files in `src-tauri/resources/adapter/alwith-docs`. `bun scripts/verify-docs.ts` checks the staged service and Codex skill catalog in an isolated home without using a model or copying login credentials.
+
 ## Install from source
 
 Install the Bun version pinned in `package.json`, Rust stable, and the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for your platform. macOS requires 26.0+ on Apple Silicon; iOS simulators need 26.6 (Xcode 27).

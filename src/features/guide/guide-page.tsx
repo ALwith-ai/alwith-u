@@ -19,85 +19,36 @@ import {
   ShieldCheckIcon,
   WrenchIcon
 } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
 import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import { openExternal } from "@/lib/open"
 
-import content from "../../../guide/index.md?raw"
 import logo from "../../../src-tauri/icons/128x128.png"
+import { guideChapters as chapters, guideVersion } from "./content"
+import { guideLocationKey, readGuideLocation } from "./guide-location"
 import "@alwith/module-chat/styles.css"
 import "./guide.css"
 
-const chapters = content.split(/^## /m).map((chapter, index) => {
-  if (index === 0) return { title: "Welcome", text: chapter }
-  const end = chapter.indexOf("\n")
-  return { title: chapter.slice(0, end), text: chapter.slice(end + 1) }
+const icons = {
+  BookOpenIcon,
+  PlayIcon,
+  PanelLeftIcon,
+  MessageSquareIcon,
+  CpuIcon,
+  FolderIcon,
+  LayersIcon,
+  CloudIcon,
+  KeyboardIcon,
+  WrenchIcon
+}
+const details = chapters.map((chapter) => {
+  const icon = icons[chapter.icon as keyof typeof icons]
+  if (!icon) throw new Error(`Unknown guide icon: ${chapter.icon}`)
+  return { ...chapter, icon }
 })
-const details = [
-  {
-    icon: BookOpenIcon,
-    summary: "A practical handbook for your everyday work with ALwith U.",
-    group: "Overview",
-    takeaway: "Choose a task below, or follow the getting-started path."
-  },
-  {
-    icon: PlayIcon,
-    summary: "Set up access, choose a project, and complete your first useful task.",
-    group: "Getting started",
-    takeaway: "ALwith login and model access are configured separately."
-  },
-  {
-    icon: PanelLeftIcon,
-    summary: "Learn where conversations, tools, files, and settings live.",
-    group: "Getting started",
-    takeaway: "Keep the conversation and its project files in view together."
-  },
-  {
-    icon: MessageSquareIcon,
-    summary: "Write a clear request, manage a running turn, and review the result.",
-    group: "Daily work",
-    takeaway: "Ask for a concrete outcome and evidence that it works."
-  },
-  {
-    icon: CpuIcon,
-    summary: "Connect a provider and select the right model for each conversation.",
-    group: "Daily work",
-    takeaway: "The selected model belongs to the conversation you are working in."
-  },
-  {
-    icon: FolderIcon,
-    summary: "Navigate, preview, edit, and review files alongside the assistant.",
-    group: "Daily work",
-    takeaway: "Confirm the project folder before allowing file changes."
-  },
-  {
-    icon: LayersIcon,
-    summary: "Understand skills, Codex plugins, and application extensions.",
-    group: "Make it yours",
-    takeaway: "Inspect what an integration does and what access it needs."
-  },
-  {
-    icon: CloudIcon,
-    summary: "Check cloud transfers and manage your Vibémon companion.",
-    group: "Make it yours",
-    takeaway: "Verify transfer status before relying on a cloud copy."
-  },
-  {
-    icon: KeyboardIcon,
-    summary: "Adjust your workspace and learn the shortcuts you will use most.",
-    group: "Make it yours",
-    takeaway: "Use button tooltips to discover shortcuts as you work."
-  },
-  {
-    icon: WrenchIcon,
-    summary: "Diagnose connection, model, file, and integration problems.",
-    group: "Support",
-    takeaway: "Capture the exact error and check for partial changes before retrying."
-  }
-]
 
 function InterfaceMap({ navigate }: { navigate: (index: number) => void }) {
   return (
@@ -243,7 +194,15 @@ function GuideHome({ navigate }: { navigate: (index: number) => void }) {
 }
 
 export function GuidePage() {
-  const [selected, setSelected] = useState(0)
+  const [selected, setSelected] = useState(() => readGuideLocation())
+  useEffect(() => {
+    const change = (event: StorageEvent) => {
+      if (event.key === guideLocationKey) setSelected(readGuideLocation())
+    }
+    window.addEventListener("storage", change)
+    setSelected(readGuideLocation())
+    return () => window.removeEventListener("storage", change)
+  }, [])
   const { resolvedTheme } = useTheme()
   const host = useMemo<MarkdownHost>(
     () => ({
@@ -292,7 +251,7 @@ export function GuidePage() {
             <CheckIcon />
             <span>
               Bundled with ALwith U<br />
-              <small>English edition</small>
+              <small>English edition · {guideVersion}</small>
             </span>
           </div>
         </nav>

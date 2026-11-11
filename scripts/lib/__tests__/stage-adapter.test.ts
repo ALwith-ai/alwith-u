@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync } from "node:fs"
+import { copyFileSync, cpSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 
@@ -100,6 +100,11 @@ test("the staged toolchain runs with explicit resources outside the executable d
       copyFileSync(source, target)
     }
     copyFileSync(entry, join(resources, "adapter/codex-acp-v2.mjs"))
+    cpSync(
+      join(import.meta.dir, "../../../src-tauri/resources/adapter/alwith-docs"),
+      join(resources, "adapter/alwith-docs"),
+      { recursive: true }
+    )
     copyFileSync(
       join(import.meta.dir, "../../../src-tauri/resources/adapter/codex-bootstrap.mjs"),
       join(resources, "adapter/codex-bootstrap.mjs")
@@ -150,6 +155,7 @@ test("the staged toolchain runs with explicit resources outside the executable d
       copyFileSync(join(resources, provider.catalog), target)
     }
     copyFileSync(entry, join(packagedResources, "adapter/codex-acp-v2.mjs"))
+    cpSync(join(resources, "adapter/alwith-docs"), join(packagedResources, "adapter/alwith-docs"), { recursive: true })
     copyFileSync(join(resources, "adapter/codex-bootstrap.mjs"), join(packagedResources, "adapter/codex-bootstrap.mjs"))
     const packaged = Bun.spawnSync([process.execPath, "scripts/verify-bundled-toolchain.ts", binaries], {
       cwd: join(import.meta.dir, "../../.."),

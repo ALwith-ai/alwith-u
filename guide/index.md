@@ -11,7 +11,7 @@ ALwith U is an independent desktop client powered by Codex CLI. Use it to work w
 4. Choose a model in the message composer, describe your goal, and send your message.
 5. Review the response, requested permissions, and file changes before continuing.
 
-Your ALwith account and model access are separate. Signing in to ALwith does not automatically sign you in to Codex or supply another provider's API key. ALwith U and ALwith Desktop keep separate ALwith login sessions.
+Your ALwith account and model access are separate. Signing in to ALwith does not automatically sign you in to Codex or supply another provider's API key.
 
 Try a concrete first task: “Read this project's README and explain how to run it. Do not change files.” For a change request, include the intended result and how you want it verified.
 
@@ -52,7 +52,7 @@ The left sidebar contains plugins, extensions, Vibémon, and your conversations.
 - **Project groups:** expand a folder to find its conversations.
 - **Sidebar toggle:** pin or collapse the navigation panel. When unpinned, hovering near its edge can preview it.
 - **Account menu:** open settings, manage the vibemon, or sign out.
-- **Question-mark button:** open this guide directly. Opening it again brings the existing guide window forward.
+- **Question-mark button:** open the help menu, then choose **User guide**. Opening it again brings the existing guide window forward.
 
 The guide ships with the application. Its content can be read without accessing an external documentation website.
 
@@ -169,6 +169,12 @@ When comparing models, use the same small task and check the resulting behavior.
 
 Change one configuration item at a time, then retry a simple request. This makes it easier to identify which change resolved the problem.
 
+### Choose or migrate a model
+
+Keep the exact provider and model ID when following model-specific instructions. To change a conversation's model, configure that provider in Settings, then select the intended model in that conversation's picker. Other conversations retain their own selections. Compare the same representative task before relying on the new model for a larger job.
+
+This offline guide does not contain live model prices, rankings, context limits or account entitlements. Use the selected provider's current official documentation for those facts.
+
 ## Work with project files
 
 ### Essentials
@@ -238,6 +244,14 @@ For example, a skill that supplies writing instructions may affect how the assis
 
 Record the item's name, enabled state, error text, and the task that triggered the problem. Check configuration and startup diagnostics before reinstalling. If you disable an item to investigate, verify whether the original task can still be completed without it.
 
+### Ask ALwith Docs
+
+ALwith Docs is a bundled Codex skill for questions about ALwith U. Ask a concrete question such as “How do I configure a model in ALwith U?” or explicitly mention `$alwith-docs`. It searches and reads the same versioned content as this user guide. Chapter citations open this guide at the relevant chapter, including when it is already open.
+
+Find **ALwith Docs** in the existing Skills catalog to inspect its instructions or change its enabled state. Enabling the skill does not change your selected model. Its documentation tools are read-only and work offline; they do not inspect credentials or change settings.
+
+The skill is installed when U starts its Codex adapter. An existing user-created skill at the same installation path, or edits to an installed copy, are preserved. If the expected skill is missing, refresh the catalog and inspect startup diagnostics. Documentation responses include the bundled application version. They do not establish newer release behavior or live provider pricing.
+
 ## Cloud files and Vibémon
 
 ### Essentials
@@ -303,6 +317,16 @@ When troubleshooting a keyboard action, check which field or panel has focus. A 
 ### Keep version information with your report
 
 Open the bottom-right terminal icon to inspect the application and Codex versions. Record both when reporting a model or conversation problem. Before restarting for an update, save manual edits and check whether an active task has already changed files.
+
+### Computer and device access
+
+Computer access must be enabled in the application's computer settings before the assistant can inspect or operate desktop applications. The grant applies across conversations and forks. Disabling access revokes native connections. A successful action dispatch is not proof that the screen reached the expected state; the assistant should inspect the result.
+
+Simulator tools attach a device to the application's device panel so you can watch and interact with it. If you operate the device yourself, the assistant needs to read its screen again before continuing. Computer and simulator access are separate from model-provider authentication.
+
+### Keyboard shortcut reference
+
+Choose **Keyboard shortcuts** from the question-mark help menu, or press Command + / on macOS or Ctrl + / on Windows, to open the shortcut reference.
 
 ## Troubleshooting
 

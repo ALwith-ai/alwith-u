@@ -24,11 +24,13 @@ import { $ } from "bun"
 
 import manifest from "../package.json"
 import { stageComputer } from "./lib/computer-artifact"
+import { stageDocs } from "./lib/docs-artifact"
 import { runtimeBuildArtifact, runtimeSource, stageTarget } from "./lib/runtime-artifact"
 import { assertVersion, BUN_PACKAGES, CODEX_WINDOWS_HELPERS, codexSidecars, toolchainVersions } from "./lib/toolchain"
 import { stageWorkBuddy } from "./lib/workbuddy-artifact"
 
 const root = resolve(import.meta.dirname, "..")
+await stageDocs(root)
 const binaries = join(root, "src-tauri/binaries")
 const licenses = join(root, "src-tauri/resources/licenses")
 const versions = toolchainVersions(manifest)

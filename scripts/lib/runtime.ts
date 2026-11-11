@@ -28,9 +28,9 @@ export function stagedCodexEngine(): {
   const adapter = resolve(root, "src-tauri/resources/adapter/codex-bootstrap.mjs")
   if (!existsSync(adapter)) throw new Error("No staged ACP adapter; run `bun run stage`")
   const catalogs = [
-    ...providerCatalog.flatMap((provider) =>
-      provider.catalog ? [resolve(root, "src-tauri/resources", provider.catalog)] : []
-    ),
+    ...providerCatalog
+      .filter((provider) => provider.id !== "anthropic")
+      .flatMap((provider) => (provider.catalog ? [resolve(root, "src-tauri/resources", provider.catalog)] : [])),
     resolve(root, "src-tauri/resources/custom/models.json")
   ]
   for (const file of catalogs) if (!existsSync(file)) throw new Error(`No staged model catalog at ${file}`)
