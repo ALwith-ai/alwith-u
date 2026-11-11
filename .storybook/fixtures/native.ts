@@ -129,9 +129,13 @@ export function installNativeMock(os: "macos" | "windows" | "linux" = "macos"): 
 export function handleNativeRequest(command: string, payload?: unknown): unknown {
   const args = (payload ?? {}) as Record<string, unknown>
   nativeCalls.push({ command, payload })
+  if (command.startsWith("plugin:alwith-installed-apps|"))
+    command = command.slice("plugin:alwith-installed-apps|".length)
+  if (command.startsWith("plugin:alwith-computer|")) command = `computer_${command.slice("plugin:alwith-computer|".length)}`
   if (command === "plugin:log|log" || command === "plugin:app|set_app_theme") return
   if (command === "plugin:app|version") return version
   if (command === "plugin:app|identifier") return "ai.alwith.u.storybook"
+  if (command === "codex_status") return { version: "0.167.0", local: null }
   if (command === "plugin:window|get_all_windows") return ["main", "settings", "gamepad", "guide", "chat"]
   if (command === "plugin:webview|get_all_webviews")
     return ["main", "settings", "gamepad", "guide", "chat"].map((label) => ({ label, windowLabel: label }))
@@ -318,7 +322,7 @@ export function handleNativeRequest(command: string, payload?: unknown): unknown
   if (command === "extension_cleanup_grants" || command === "extension_inbox_finish") return
   if (command === "extension_inbox_scan" || command === "extension_inbox_scan_extension")
     return { operationId: "storybook-inbox", tasks: [], errors: [] }
-  if (command === "plugin:extension|dispatch")
+  if (command === "plugin:extension|dispatch" || command === "plugin:alwith-extension|dispatch")
     return extensionRequest(args.request as Parameters<typeof extensionRequest>[0])
   if (command === "gamepad_permission") return { supported: true, authorized: true, mayPrompt: false, known: true }
   if (command === "gamepad_capture") return
