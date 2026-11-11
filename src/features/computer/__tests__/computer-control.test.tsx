@@ -28,6 +28,8 @@ beforeEach(() => {
     available: true,
     enabled: false,
     phase: "disabled",
+    driverPhase: "disabled",
+    connections: { ready: 0, connecting: 0, disconnected: 0, failed: 0 },
     version: "test",
     lastError: null,
     diagnostics: "",

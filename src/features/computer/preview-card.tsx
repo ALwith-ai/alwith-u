@@ -135,6 +135,7 @@ export function ComputerPreviewCard({
           className={cn(
             "z-20 flex h-7 cursor-grab touch-none items-center gap-0.5 bg-card/65 px-1.5 py-0.5 backdrop-blur-xl transition-opacity select-none active:cursor-grabbing motion-reduce:transition-none",
             !queued &&
+              !preview.activity.refreshing &&
               !collapsed &&
               preview.frame &&
               "absolute inset-x-0 top-0 opacity-0 group-focus-within/preview:opacity-100 group-hover/preview:opacity-100 hover:opacity-100 [@media(hover:none)]:opacity-100"
@@ -142,7 +143,11 @@ export function ComputerPreviewCard({
         >
           <MonitorIcon className="size-3 shrink-0 text-muted-foreground" />
           <span role="status" className="min-w-0 flex-1 truncate text-[11px]">
-            {queued ? t("computer.preview.queued", { position: preview.activity.queuePosition }) : title}
+            {queued
+              ? t("computer.preview.queued", { position: preview.activity.queuePosition })
+              : preview.activity.refreshing
+                ? `${title} · ${t("computer.preview.refreshing")}`
+                : title}
           </span>
           {!queued && (
             <Tooltip>
@@ -200,7 +205,7 @@ export function ComputerPreviewCard({
           <Button
             variant="ghost"
             className="block h-auto w-full overflow-hidden rounded-none bg-muted/40 p-0 hover:bg-muted/40 [&_img]:max-h-44"
-            disabled={!preview.frame || !preview.activity.target}
+            disabled={!preview.frame || !preview.activity.target || preview.activity.refreshing}
             aria-label={
               preview.frame
                 ? t("computer.preview.focus", { app: title })
@@ -223,6 +228,7 @@ export function ComputerPreviewCard({
             variant="ghost"
             className="h-auto overflow-hidden rounded-xl border bg-muted/30 p-0"
             onClick={onFocus}
+            disabled={!preview.frame || !preview.activity.target || preview.activity.refreshing}
             aria-label={
               preview.frame
                 ? t("computer.preview.focus", { app: title })
@@ -232,7 +238,11 @@ export function ComputerPreviewCard({
             <WindowFrame preview={preview} />
           </Button>
           <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">{t(computerActionKey(preview.activity.action))}</span>
+            <span className="text-muted-foreground">
+              {t(
+                preview.activity.refreshing ? "computer.preview.refreshing" : computerActionKey(preview.activity.action)
+              )}
+            </span>
             <Button variant="outline" size="sm" disabled={stopping} onClick={onStop}>
               <SquareIcon />
               {t("computer.preview.stop")}

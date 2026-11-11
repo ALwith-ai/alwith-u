@@ -9,6 +9,7 @@ const native = vi.hoisted(() => ({
   reconnect: vi.fn(),
   phase: "disabled",
   lastError: null as string | null,
+  failedConnections: 0,
   enabled: false,
   permitted: false
 }))
@@ -21,6 +22,8 @@ vi.mock("@/features/computer/computer-control", () => ({
     status: {
       available: true,
       phase: native.phase,
+      driverPhase: native.phase,
+      connections: { ready: 1, connecting: 0, disconnected: 0, failed: native.failedConnections },
       lastError: native.lastError,
       enabled: native.enabled,
       permissions: {
@@ -42,6 +45,7 @@ vi.mock("react-i18next", () => ({
 }))
 import { ComputerSection } from "../computer-section"
 beforeEach(() => {
+  native.failedConnections = 0
   native.phase = "disabled"
   native.lastError = null
   native.enabled = false
@@ -51,18 +55,22 @@ afterEach(() => {
   cleanup()
   vi.resetAllMocks()
 })
-test("permission settings stay reachable across requests and reopening the page", async () => {
-  native.permission.mockImplementation(({ request }) => (request ? new Promise(() => {}) : Promise.resolve()))
-  const first = render(<ComputerSection />)
-  expect(screen.queryByRole("combobox")).toBeNull()
+test("each permission shows only its current action", async () => {
+  native.permission.mockResolvedValue(undefined)
+  const view = render(<ComputerSection />)
+  expect(screen.getAllByRole("button", { name: "computer.grantPermissions" })).toHaveLength(2)
+  expect(screen.queryByRole("button", { name: "computer.openSettings" })).toBeNull()
   fireEvent.click(must(screen.getAllByRole("button", { name: "computer.grantPermissions" })[0], "permission request"))
-  fireEvent.click(must(screen.getAllByRole("button", { name: "computer.openSettings" })[0], "accessibility settings"))
-  expect(native.permission).toHaveBeenLastCalledWith({
-    permission: "accessibility",
-    request: false
-  })
-  first.unmount()
-  render(<ComputerSection />)
+  await waitFor(() =>
+    expect(native.permission).toHaveBeenLastCalledWith({
+      permission: "accessibility",
+      request: true
+    })
+  )
+  native.permitted = true
+  view.rerender(<ComputerSection />)
+  expect(screen.queryByRole("button", { name: "computer.grantPermissions" })).toBeNull()
+  expect(screen.getAllByRole("button", { name: "computer.openSettings" })).toHaveLength(2)
   fireEvent.click(must(screen.getAllByRole("button", { name: "computer.openSettings" })[1], "screen settings"))
   await waitFor(() =>
     expect(native.permission).toHaveBeenLastCalledWith({
@@ -106,4 +114,13 @@ test("failed capability verification remains visible and reconnect waits for com
   expect(screen.getByRole("button", { name: "computer.verifying" })).toBeDisabled()
   resolve()
   await waitFor(() => expect(screen.getByRole("button", { name: "computer.reconnect" })).not.toBeDisabled())
+})
+
+test("ready driver does not hide a failed conversation connection", () => {
+  native.enabled = true
+  native.phase = "ready"
+  native.failedConnections = 1
+  render(<ComputerSection />)
+  expect(screen.getByRole("switch")).toBeChecked()
+  expect(screen.getByText("computer.connectionRecovery")).toBeInTheDocument()
 })

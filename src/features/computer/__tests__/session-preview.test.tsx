@@ -30,13 +30,14 @@ beforeEach(() => {
   native.cancel.mockResolvedValue(undefined)
 })
 afterEach(cleanup)
-async function emit(sessionId: string, phase: string, subscriptionId?: string) {
+async function emit(sessionId: string, phase: string, subscriptionId?: string, refreshing = false) {
   await waitFor(() => expect(native.subscribe).toHaveBeenCalled())
   const subscription = native.subscribe.mock.lastCall
   if (subscription === undefined) throw new Error("The preview never subscribed")
   const payload: ComputerPreview_Serialize = {
     subscriptionId: subscriptionId ?? subscription[0].subscriptionId,
     activity: {
+      refreshing,
       sessionId,
       phase,
       queuePosition: phase === "queued" ? 1 : 0,
@@ -53,6 +54,18 @@ async function emit(sessionId: string, phase: string, subscriptionId?: string) {
   }
   void act(() => native.listen.mock.calls.at(-1)?.[0]({ payload }))
 }
+test("refreshing the current window keeps its frame and labels the refresh separately", async () => {
+  render(<SessionPreview sessionId="a" />)
+  await emit("a", "active")
+  const image = screen.getByRole("img")
+  await emit("a", "active", undefined, true)
+  expect(screen.getByRole("img")).toBe(image)
+  expect(screen.getByText("TextEdit · computer.preview.refreshing")).toBeInTheDocument()
+  expect(screen.queryByText("computer.preview.waiting")).not.toBeInTheDocument()
+  expect(screen.getByRole("button", { name: "computer.preview.focus" })).toBeDisabled()
+  await emit("a", "active")
+  expect(screen.getByRole("button", { name: "computer.preview.focus" })).not.toBeDisabled()
+})
 test("only matching subscription and conversation may display live frames", async () => {
   const view = render(<SessionPreview sessionId="a" />)
   await emit("b", "active")

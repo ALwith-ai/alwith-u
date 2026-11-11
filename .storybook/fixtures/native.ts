@@ -26,6 +26,8 @@ export let computerStatus: ComputerStatus = {
   enabled: false,
   version: "storybook",
   phase: "ready",
+  driverPhase: "stopped",
+  connections: { ready: 0, connecting: 0, disconnected: 0, failed: 0 },
   lastError: null,
   diagnostics: "",
   permissions: { supported: true, accessibility: true, screenCapture: true }
@@ -88,6 +90,8 @@ export function resetNative(
     enabled: false,
     version: "storybook",
     phase: "ready",
+    driverPhase: "stopped",
+    connections: { ready: 0, connecting: 0, disconnected: 0, failed: 0 },
     lastError: null,
     diagnostics: "",
     permissions: { supported: true, accessibility: true, screenCapture: true }

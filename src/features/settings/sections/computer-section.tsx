@@ -48,12 +48,8 @@ export function ComputerSection() {
               onCheckedChange={(value) => void toggle(value)}
             />
           </SettingRow>
-          <p className="py-3 text-xs leading-5 text-muted-foreground">{t("computer.scope")}</p>
           {status && !status.permissions.supported && <p className="text-sm">{t("computer.unsupported")}</p>}
           {status && !status.available && <p className="text-sm">{t("computer.missing")}</p>}
-          {status?.permissions.supported && !permitted && (
-            <p className="text-sm text-muted-foreground">{t("computer.permissions")}</p>
-          )}
           {isMac() &&
             status?.permissions.supported &&
             (["accessibility", "screenCapture"] as const).map((permission) => (
@@ -62,40 +58,21 @@ export function ComputerSection() {
                 title={t(`computer.${permission}`)}
                 desc={t(status.permissions[permission] ? "computer.granted" : "computer.notGranted")}
               >
-                <div className="flex gap-2">
-                  {!status.permissions[permission] && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-9"
-                      onClick={() =>
-                        void perform(() =>
-                          commands.requestPermissions({
-                            permission,
-                            request: true
-                          })
-                        )
-                      }
-                    >
-                      {t("computer.grantPermissions")}
-                    </Button>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-9"
-                    onClick={() =>
-                      void perform(() =>
-                        commands.requestPermissions({
-                          permission,
-                          request: false
-                        })
-                      )
-                    }
-                  >
-                    {t("computer.openSettings")}
-                  </Button>
-                </div>
+                <Button
+                  variant={status.permissions[permission] ? "ghost" : "outline"}
+                  size="sm"
+                  className="h-9"
+                  onClick={() =>
+                    void perform(() =>
+                      commands.requestPermissions({
+                        permission,
+                        request: !status.permissions[permission]
+                      })
+                    )
+                  }
+                >
+                  {t(status.permissions[permission] ? "computer.openSettings" : "computer.grantPermissions")}
+                </Button>
               </SettingRow>
             ))}
           {status?.available && status.permissions.supported && (
@@ -115,6 +92,15 @@ export function ComputerSection() {
             </SettingRow>
           )}
           <p className="py-3 text-xs text-muted-foreground">{t("computer.reconnectHint")}</p>
+          {status && (
+            <div className="space-y-2 py-3 text-xs text-muted-foreground" role="status">
+              <p>{t("computer.driverHealth", { phase: t(`computer.phases.${status.driverPhase}`) })}</p>
+              <p>{t("computer.connectionHealth", status.connections)}</p>
+              {(status.connections.failed > 0 || status.connections.disconnected > 0) && (
+                <p>{t("computer.connectionRecovery")}</p>
+              )}
+            </div>
+          )}
           {status?.lastError && (
             <p role="alert" className="text-sm text-destructive">
               {status.lastError}

@@ -1214,10 +1214,8 @@
     "title": "操作电脑",
     "active": "电脑操作已启用",
     "description": "允许 U 的所有会话查看屏幕并操作本机应用。",
-    "scope": "两项系统权限均已开启时自动启用。你可以随时关闭，U 会记住你的选择。开启后适用于所有会话；关闭后立即撤销全部电脑操作连接。",
     "unsupported": "目前支持 macOS 和 Windows。",
     "missing": "缺少内置驱动，请重新安装应用；开发环境请运行 stage。",
-    "permissions": "请在系统设置 → 隐私与安全性中，允许 ALwith U 使用辅助功能和屏幕录制。更改权限后可能需要重启应用。",
     "grantPermissions": "申请系统权限",
     "stop": "停止操作电脑",
     "enable": "启用电脑操作",
@@ -1242,7 +1240,8 @@
       "collapse": "收起预览",
       "frame": "{{title}} 实时画面",
       "unavailable": "暂时无法预览此窗口",
-      "waiting": "正在等待目标窗口"
+      "waiting": "正在等待目标窗口",
+      "refreshing": "正在刷新窗口状态"
     },
     "connection": "连接状态",
     "reconnect": "重新连接",
@@ -1255,7 +1254,10 @@
       "ready": "可用",
       "stopping": "正在停止",
       "failed": "需要恢复"
-    }
+    },
+    "driverHealth": "电脑操作服务：{{phase}}",
+    "connectionHealth": "会话工具连接：{{ready}} 个就绪，{{connecting}} 个连接中，{{disconnected}} 个已断开，{{failed}} 个异常",
+    "connectionRecovery": "服务开启不代表每个会话都已连通。重新连接后，会话工具需重新握手；应用重启前的会话可能需要重新打开。"
   },
   "canvas": {
     "navigation": "页面导航",

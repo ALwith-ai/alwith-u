@@ -1214,10 +1214,8 @@
     "title": "Computer use",
     "active": "Computer use enabled",
     "description": "Allow all U conversations to view the screen and operate local applications.",
-    "scope": "Enabled automatically when both system permissions are granted. You can turn it off at any time; your choice is remembered. Applies to all conversations. Disabling immediately revokes all computer connections.",
     "unsupported": "Computer use currently supports macOS and Windows.",
     "missing": "The bundled driver is missing. Reinstall the app or run staging in development.",
-    "permissions": "Allow ALwith U in System Settings → Privacy & Security → Accessibility and Screen Recording. You may need to restart the app after changing permissions.",
     "grantPermissions": "Request system permissions",
     "stop": "Stop computer use",
     "enable": "Enable computer use",
@@ -1242,7 +1240,8 @@
       "collapse": "Collapse preview",
       "frame": "Live view of {{title}}",
       "unavailable": "Window preview is temporarily unavailable",
-      "waiting": "Waiting for target window"
+      "waiting": "Waiting for target window",
+      "refreshing": "Refreshing window state"
     },
     "connection": "Connection",
     "reconnect": "Reconnect",
@@ -1255,7 +1254,10 @@
       "ready": "Ready",
       "stopping": "Stopping",
       "failed": "Needs recovery"
-    }
+    },
+    "driverHealth": "Computer service: {{phase}}",
+    "connectionHealth": "Conversation tools: {{ready}} ready, {{connecting}} connecting, {{disconnected}} disconnected, {{failed}} failed",
+    "connectionRecovery": "An enabled service does not mean every conversation is connected. Reconnect to renew tool connections; conversations from a previous application launch may need to be reopened."
   },
   "canvas": {
     "navigation": "Page navigation",

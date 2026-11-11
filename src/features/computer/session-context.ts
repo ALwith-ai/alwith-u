@@ -34,7 +34,12 @@ export const hostSessionContext: NonNullable<ClientOptions["sessionContext"]> = 
   if (!isTauri()) return drive
   const computer = await computerSessionContext()
   const device = await deviceSessionContext()
-  const appendSystemPrompt = [drive.appendSystemPrompt, computer.appendSystemPrompt, device.appendSystemPrompt]
+  const appendSystemPrompt = [
+    "The desktop application is ALwith U. For questions about this app's features, setup or troubleshooting, use ALwith Docs when available and base answers on documentation for the installed ALwith U version.",
+    drive.appendSystemPrompt,
+    computer.appendSystemPrompt,
+    device.appendSystemPrompt
+  ]
     .filter(Boolean)
     .join("\n\n")
   const binders = [computer.bind, device.bind].filter((bind) => bind !== undefined)
