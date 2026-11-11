@@ -10,7 +10,7 @@ const config = { labels, id: "workflow-plugins-install" }
 const meta = {
   ...base,
   id: "workflow-plugins-install",
-  title: "流程/负一屏/插件/01 插件安装",
+  title: "流程/负一屏/自定义/插件/01 插件安装",
   loaders: [prepareWorkflow],
   render: (args, context) => (
     <WorkflowPreview

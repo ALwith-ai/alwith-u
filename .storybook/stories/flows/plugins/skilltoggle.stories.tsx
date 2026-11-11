@@ -10,7 +10,7 @@ const config = { labels, id: "workflow-plugins-skilltoggle" }
 const meta = {
   ...base,
   id: "workflow-plugins-skilltoggle",
-  title: "流程/负一屏/插件/04 技能启停",
+  title: "流程/负一屏/自定义/技能/04 技能启停",
   loaders: [prepareWorkflow],
   render: (args, context) => (
     <WorkflowPreview

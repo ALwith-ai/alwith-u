@@ -24,7 +24,20 @@ const roots = new Set<Root>()
 let failRender = true
 let mode: ExtensionCase = "installed"
 let native: Snapshot = { protocolVersion: 1, sequence: 1, serviceId: "storybook", installations: [], pending: [] }
+
+function ExtensionRecovered() {
+  return createElement(
+    "div",
+    { className: "flex h-full flex-col items-center justify-center gap-2 p-8 text-center" },
+    createElement("h1", { className: "text-xl font-semibold" }, "扩展内容已恢复"),
+    createElement("p", { className: "text-sm text-muted-foreground" }, "渲染失败后，重试已成功。")
+  )
+}
+
 export function extensionRequest(request: Request): Promise<Response> {
+  if (request.type === "snapshot" && mode === "loading") return new Promise(() => {})
+  if (request.type === "snapshot" && mode === "error")
+    return Promise.reject(new Error("模拟扩展服务连接失败。"))
   if (request.type === "snapshot") return Promise.resolve({ type: "snapshot", snapshot: native })
   if (request.type === "enable") {
     native = {
@@ -100,7 +113,12 @@ function createRuntime(): ExtensionRuntime {
         onload() {
           if (mode !== "content" && mode !== "renderError") return
           for (const [kind, id, title, component] of [
-            ["surfaces", "demo-content", "项目工具 · 使用指南", GuidePage],
+            [
+              "surfaces",
+              "demo-content",
+              mode === "renderError" ? "项目工具 · 内容预览" : "项目工具 · 使用指南",
+              mode === "renderError" ? ExtensionRecovered : GuidePage
+            ],
             ["settingsPages", "demo-settings", "项目工具 · 设置", GeneralSection]
           ] as const)
             context.view<HTMLElement>(kind, {
@@ -193,7 +211,7 @@ export async function resetExtensions(kind: ExtensionCase = "installed"): Promis
     pending: kind === "pending" ? [{ id: "demo-0", action: "reload", waitingInstances: 1 }] : []
   }
   runtime = createRuntime()
-  if (kind !== "loading") await runtime.start()
+  if (kind !== "loading" && kind !== "error") await runtime.start()
 }
 export function useExtensions() {
   const state = useSyncExternalStore(runtime.subscribe, runtime.snapshot, runtime.snapshot)

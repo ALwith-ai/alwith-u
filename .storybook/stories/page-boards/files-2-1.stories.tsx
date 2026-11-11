@@ -8,6 +8,9 @@ const meta = {
 }
 export default meta
 
+export const FolderContextMenu = { ...source.FolderContextMenu, name: "文件夹右键菜单" }
+export const FileContextMenu = { ...source.FileContextMenu, name: "文件右键菜单" }
+export const ExcelSwitch = { ...source.ExcelSwitch, name: "Excel · 切换工作表" }
 export const NewFileDialog = { ...source.NewFileDialog, name: "新建文件弹窗" }
 export const NewFolderDialog = { ...source.NewFolderDialog, name: "新建文件夹弹窗" }
 export const RenameDialog = { ...source.RenameDialog, name: "文件重命名 · 行内编辑" }

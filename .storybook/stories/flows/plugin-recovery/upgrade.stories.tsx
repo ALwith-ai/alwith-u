@@ -10,7 +10,7 @@ const config = { labels, id: "workflow-plugin-recovery-upgrade" }
 const meta = {
   ...base,
   id: "workflow-plugin-recovery-upgrade",
-  title: "流程/负一屏/插件/失败恢复/04 插件目录升级重试",
+  title: "流程/负一屏/自定义/插件/失败恢复/04 插件目录升级重试",
   loaders: [prepareWorkflow],
   render: (args, context) => (
     <WorkflowPreview

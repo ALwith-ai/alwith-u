@@ -4,8 +4,12 @@ import * as source from "../pages/file-preview-states.stories.tsx"
 const meta = {
   ...source.default,
   id: "page-file-preview-states-2-1",
-  title: "页面/文件树和预览区/02 文件操作/01 常用操作"
+  title: "页面/文件树和预览区/02 文件操作/02 异常与恢复"
 }
 export default meta
 
-export const ExcelSwitch = { ...source.ExcelSwitch, name: "Excel · 切换工作表" }
+export const SaveError = { ...source.SaveError, name: "保存失败 · 保留更改" }
+export const SaveRetry = { ...source.SaveRetry, name: "再次保存成功 · 未保存标记消失" }
+export const SavePending = { ...source.SavePending, name: "保存处理中 · 菜单显示保存中" }
+export const MoveError = { ...source.MoveError, name: "移动失败 · 显示错误" }
+export const DeleteError = { ...source.DeleteError, name: "删除失败 · 显示错误" }

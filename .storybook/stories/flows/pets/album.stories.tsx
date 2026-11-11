@@ -10,7 +10,7 @@ const config = { labels, id: "workflow-pets-album" }
 const meta = {
   ...base,
   id: "workflow-pets-album",
-  title: "流程/负一屏/宠物伙伴/02 伙伴图鉴浏览",
+  title: "流程/负一屏/宠物/02 伙伴图鉴浏览",
   loaders: [prepareWorkflow],
   render: (args, context) => (
     <WorkflowPreview

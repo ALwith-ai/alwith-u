@@ -10,7 +10,7 @@ const config = { labels, id: "workflow-plugins-extensionenable" }
 const meta = {
   ...base,
   id: "workflow-plugins-extensionenable",
-  title: "流程/负一屏/扩展/07 扩展启停",
+  title: "流程/负一屏/自定义/扩展/07 扩展启停",
   loaders: [prepareWorkflow],
   render: (args, context) => (
     <WorkflowPreview

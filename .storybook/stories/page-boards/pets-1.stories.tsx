@@ -4,7 +4,7 @@ import * as source from "../pages/pets.stories.tsx"
 const meta = {
   ...source.default,
   id: "page-pets-1",
-  title: "页面/负一屏/宠物伙伴/宠物伙伴"
+  title: "页面/负一屏/宠物/宠物伙伴"
 }
 export default meta
 

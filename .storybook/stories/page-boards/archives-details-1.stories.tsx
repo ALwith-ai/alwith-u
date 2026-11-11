@@ -4,7 +4,7 @@ import * as source from "../pages/archives-details.stories.tsx"
 const meta = {
   ...source.default,
   id: "page-archives-details-1",
-  title: "页面/负一屏/归档/布局细节/默认状态"
+  title: "页面/负一屏/已归档/布局细节/默认状态"
 }
 export default meta
 

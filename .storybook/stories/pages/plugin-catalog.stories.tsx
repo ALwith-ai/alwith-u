@@ -109,7 +109,7 @@ function CatalogPreview({ loading = false }: { loading?: boolean }) {
 }
 
 const meta = {
-  title: "页面/负一屏/插件/目录布局",
+  title: "页面/负一屏/自定义/插件/目录布局",
   component: CatalogPreview,
   parameters: { layout: "fullscreen" }
 } satisfies Meta<typeof CatalogPreview>

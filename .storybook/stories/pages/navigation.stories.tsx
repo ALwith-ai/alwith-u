@@ -162,7 +162,7 @@ const meta = {
 | 02 | 搜索 | 搜索聊天、执行命令；按 Cmd/Ctrl+K 可打开同一个搜索面板。 |
 | 03 | 聊天浮窗 | 首次点击打开空白浮窗；再次点击唤回浮窗原有的会话和草稿，保留生成、完成、中断或待确认等状态。此入口不会转移主窗口当前聊天；转移会话使用聊天页内的“移到浮窗”。此示例在当前画布展示浮窗内容。 |
 | 04 | 新聊天 | 在当前项目中新建聊天草稿；对应快捷键为 Cmd/Ctrl+N。 |
-| 05 | 工具箱 | 打开主导屏中的工具与扩展。 |
+| 05 | 自定义 | 打开主导屏中的工具与扩展。 |
 | 06 | Vibémon | 打开伙伴中心；此入口与账号菜单中的显示或隐藏伙伴操作相互独立。 |
 | 08 | 收藏 | 星标标签展示收藏和自定义收藏夹；支持创建、重命名、清空、移除和调整顺序，不重复存储聊天。 |
 | 09 | 聊天与项目 | 文件夹标签展示随聊、项目数量和聊天。支持展开或收起分组、显示更多项目，并通过项目弹出面板打开或新建聊天。双击标签可收起分组，并重置全部项目的展开状态。 |
@@ -370,14 +370,14 @@ export const NewChatPrepareError: Story = {
 
 export const Toolbox: Story = {
   name: "已安装扩展",
-  parameters: { pageStateGroup: "05 工具箱" },
+  parameters: { pageStateGroup: "05 自定义" },
   args: { extensionCase: "installed" },
   play: clickHeader("工具箱")
 }
 
 export const ToolboxEmpty: Story = {
   name: "尚未安装扩展",
-  parameters: { pageStateGroup: "05 工具箱" },
+  parameters: { pageStateGroup: "05 自定义" },
   args: { extensionCase: "empty" },
   play: clickHeader("工具箱")
 }

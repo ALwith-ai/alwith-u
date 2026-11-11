@@ -10,7 +10,7 @@ const config = { labels, id: "workflow-plugins-toggle" }
 const meta = {
   ...base,
   id: "workflow-plugins-toggle",
-  title: "流程/负一屏/插件/02 插件启停",
+  title: "流程/负一屏/自定义/插件/02 插件启停",
   loaders: [prepareWorkflow],
   render: (args, context) => (
     <WorkflowPreview

@@ -4,9 +4,14 @@ import * as source from "../pages/extensions.stories.tsx"
 const meta = {
   ...source.default,
   id: "page-extensions-1",
-  title: "页面/负一屏/扩展/默认状态"
+  title: "页面/负一屏/自定义/扩展/扩展状态"
 }
 export default meta
 
 export const Installed = { ...source.Installed, name: "已启用与已停用" }
+export const Empty = { ...source.Empty, name: "未安装扩展" }
+export const Loading = { ...source.Loading, name: "加载中" }
+export const Pending = { ...source.Pending, name: "等待扩展重载" }
 export const Unavailable = { ...source.Unavailable, name: "扩展页面不可用" }
+export const StartupError = { ...source.StartupError, name: "启动失败" }
+export const ServiceError = { ...source.ServiceError, name: "服务异常" }

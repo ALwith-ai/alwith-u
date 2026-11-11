@@ -7,7 +7,7 @@ import { productPreviewArgTypes } from "../preview-options"
 import { ProductPreview } from "../product-preview"
 
 const meta = {
-  title: "流程/负一屏/归档",
+  title: "流程/负一屏/已归档",
   component: ProductPreview,
   argTypes: productPreviewArgTypes,
   loaders: [preparePreview],

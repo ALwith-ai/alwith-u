@@ -4,7 +4,7 @@ import * as source from "../pages/plugin-detail.stories.tsx"
 const meta = {
   ...source.default,
   id: "page-plugin-detail-2",
-  title: "页面/负一屏/插件/插件详情/插件列表"
+  title: "页面/负一屏/自定义/插件/插件详情/插件列表"
 }
 export default meta
 

@@ -6,7 +6,7 @@ import { ProductPreview } from "../product-preview"
 
 const meta = {
   id: "页面-vibémon",
-  title: "页面/负一屏/宠物伙伴/页面状态",
+  title: "页面/负一屏/宠物/页面状态",
   component: ProductPreview,
   loaders: [preparePreview],
   args: { page: "vibemon" },
