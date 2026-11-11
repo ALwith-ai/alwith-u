@@ -40,6 +40,34 @@ test("floating composer loads apps through its main owner and preserves failures
   }
 })
 
+test("U excludes account-only app entries in both main and floating composers", async () => {
+  const fake = createFakeAgent()
+  const port = new FakeHubPort(() => fake.app)
+  const owner = new DesktopCodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
+  const transport = eventBus()
+  const stop = await serveChatClient(owner, transport)
+  const remote = new RemoteChatClient(transport)
+  const names = ["Pets", "Pages", "Space", "Pages / Space", "chatgpt_space", "Figma", "Sites", "My Pets Project"]
+  const apps = vi.spyOn(CodexClient.prototype, "installedApps").mockResolvedValue({
+    apps: names.map((runtimeName, index) => ({ id: `app-${index}`, runtimeName, enabled: true, callable: true }))
+  })
+  try {
+    await remote.connect()
+    const params = { threadId: "thread-apps", forceRefresh: true }
+    const main = await owner.installedApps(params)
+    expect(main.apps.map((app) => app.runtimeName)).toEqual(["Figma", "Sites", "My Pets Project"])
+    expect(apps).toHaveBeenLastCalledWith(params)
+    expect(await remote.installedApps(params)).toEqual(main)
+    apps.mockRejectedValueOnce(new Error("Apps unavailable"))
+    await expect(owner.installedApps()).rejects.toThrow("Apps unavailable")
+  } finally {
+    apps.mockRestore()
+    remote.disconnect()
+    stop()
+    owner.disconnect()
+  }
+})
+
 test("floating draft refreshes project context through its connected main owner", async () => {
   const fake = createFakeAgent()
   const port = new FakeHubPort(() => fake.app)
