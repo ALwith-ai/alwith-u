@@ -1,16 +1,11 @@
-import { readFileSync } from "node:fs"
+import { isLayoutStoryBoard } from "./lib/storybook-layout"
 
 // Storybook is a catalog, not a test suite. Only stories whose source meta carries the `layout` tag assert what
 // jsdom cannot compute (geometry, computed CSS, :hover, canvas, media), so only their generated page boards run
 // in the browser. Everything else is covered by vitest unit tests.
 const filters = process.argv.slice(2)
-const layout = (board: string) => {
-  const source = /from "(\.\.\/pages\/[^"]+)"/.exec(readFileSync(board, "utf8"))?.[1]
-  if (!source) throw new Error(`${board} does not re-export a source page story`)
-  return /^ {2}tags: \[[^\]]*"layout"/m.test(readFileSync(`.storybook/stories/page-boards/${source}`, "utf8"))
-}
 const files = [...new Bun.Glob(".storybook/stories/page-boards/*.stories.tsx").scanSync(".")]
-  .filter(layout)
+  .filter(isLayoutStoryBoard)
   .filter((file) => filters.length === 0 || filters.some((filter) => file.includes(filter)))
   .toSorted()
 if (files.length === 0) throw new Error("No layout Storybook files matched the requested filters")
