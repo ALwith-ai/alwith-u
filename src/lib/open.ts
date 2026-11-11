@@ -1,4 +1,18 @@
-import { openPath, openUrl } from "@tauri-apps/plugin-opener"
+import { normalizePath } from "@alwith/module-fs"
+import { openPath, openUrl, revealItemsInDir } from "@tauri-apps/plugin-opener"
+
+/** Windows Shell expects DOS/UNC paths rather than filesystem verbatim paths. */
+function shellPath(path: string): string {
+  if (!/^(?:[A-Za-z]:[\\/]|\\\\|\/\/)/.test(path)) return path
+  const normalized = normalizePath(path)
+    .replace(/^\/\/\?\/UNC\//i, "//")
+    .replace(/^\/\/\?\/([A-Za-z]:\/)/, "$1")
+  return normalized.replaceAll("/", "\\")
+}
+
+export function revealInFileManager(path: string): Promise<void> {
+  return revealItemsInDir(shellPath(path))
+}
 
 export function fileLocationPath(value: string): string {
   const path = value.replace(/(?::\d+(?::\d+)?(?:[-–]\d+(?::\d+)?)?|#L\d+(?:C\d+)?(?:-L\d+(?:C\d+)?)?)$/, "")
@@ -20,9 +34,9 @@ export function openExternal(url: string): Promise<void> {
     let path = fileLocationPath(file.pathname)
     if (/^\/[A-Za-z]:\//.test(path)) path = path.slice(1)
     if (file.hostname && file.hostname !== "localhost") path = `//${file.hostname}${path}`
-    return openPath(path)
+    return openPath(shellPath(path))
   }
   if (url.startsWith("/") || /^[A-Za-z]:[\\/]/.test(url) || url.startsWith(String.raw`\\`))
-    return openPath(fileLocationPath(url))
+    return openPath(shellPath(fileLocationPath(url)))
   return openUrl(url)
 }

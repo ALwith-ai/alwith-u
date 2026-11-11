@@ -19,7 +19,6 @@ import { type CondenseScope, DriveCondense } from "@alwith/module-drive/content"
 import { containsPath } from "@alwith/module-fs"
 import { isTauri } from "@tauri-apps/api/core"
 import { confirm, open } from "@tauri-apps/plugin-dialog"
-import { revealItemsInDir } from "@tauri-apps/plugin-opener"
 import { CloudIcon } from "lucide-react"
 import { type ReactNode, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -30,7 +29,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useSessionsUiStore } from "@/features/sessions/store"
 import { useWorkspace } from "@/features/workspace/context"
-import { openExternal } from "@/lib/open"
+import { openExternal, revealInFileManager } from "@/lib/open"
 import { openSettingsWindow } from "@/lib/window-manager"
 
 import { driveControls, driveDialogClassName } from "./controls"
@@ -101,7 +100,7 @@ export function DrivePage({
       if (entry.isDirectory) await workspace.revealEntry(entry.path, root.localPath)
       else await workspace.openFile(entry.path, root.localPath)
     },
-    onRevealPath: (path) => revealItemsInDir(path),
+    onRevealPath: (path) => revealInFileManager(path),
     onOpenExternal: openExternal,
     pinnedDocs: pins,
     onPinnedDocsChange: (docs) => {
@@ -189,7 +188,7 @@ export function DriveSharingDialog({ path, onClose }: { path: string | null; onC
                   throw new Error("Navigation is unavailable in this permissions dialog")
                 })
               },
-              onRevealPath: revealItemsInDir,
+              onRevealPath: revealInFileManager,
               onOpenExternal: openExternal,
               pinnedDocs: [],
               onPinnedDocsChange: () => {
@@ -232,7 +231,7 @@ export function DriveSettings(): ReactNode {
           throw new Error("Project browsing belongs to the main window")
         })
       },
-      onRevealPath: (path) => revealItemsInDir(path),
+      onRevealPath: (path) => revealInFileManager(path),
       onOpenExternal: openExternal,
       pinnedDocs: [],
       onPinnedDocsChange: () => {
@@ -328,7 +327,7 @@ export function DriveStatus(): ReactNode {
                 throw new Error("Project navigation belongs to the launcher")
               })
             },
-            onRevealPath: (path) => revealItemsInDir(path),
+            onRevealPath: (path) => revealInFileManager(path),
             onOpenExternal: openExternal,
             pinnedDocs: [],
             onPinnedDocsChange: () => {

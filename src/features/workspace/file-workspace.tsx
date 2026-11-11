@@ -40,7 +40,7 @@ import { driveFileSystem } from "@/features/drive/filesystem"
 import { rebaseDrivePins } from "@/features/drive/pinned"
 import { DriveTreeActions } from "@/features/drive/tree-actions"
 import { client } from "@/lib/client"
-import { openExternal } from "@/lib/open"
+import { openExternal, revealInFileManager } from "@/lib/open"
 import "@alwith/module-file-tree/styles.css"
 import "@alwith/module-editor/styles.css"
 import {
@@ -52,7 +52,6 @@ import { invoke, isTauri } from "@tauri-apps/api/core"
 import { listen } from "@tauri-apps/api/event"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import { open as openDialog } from "@tauri-apps/plugin-dialog"
-import { revealItemsInDir } from "@tauri-apps/plugin-opener"
 import {
   lazy,
   type ReactNode,
@@ -513,6 +512,7 @@ export function FileWorkspace({
       if (generation !== requestGeneration.current || owner !== currentCwd.current) return
       setWorkspace(target)
       setNavigation(position ? { path: destination, position } : null)
+      setPane("files")
       setVisible(true)
     },
     [ensure]
@@ -543,6 +543,7 @@ export function FileWorkspace({
         .then((value) => {
           if (generation !== requestGeneration.current || owner !== currentCwd.current) return
           setWorkspace(value)
+          setPane("files")
           setViewMode(false)
           setVisible(true)
         })
@@ -556,6 +557,7 @@ export function FileWorkspace({
       .then((value) => {
         if (generation !== requestGeneration.current || owner !== currentCwd.current) return
         setWorkspace(value)
+        setPane("files")
         setVisible(true)
         setTreeVisible(true)
       })
@@ -577,9 +579,11 @@ export function FileWorkspace({
   }, [showProjectTree])
   const openProject = useCallback(
     async (path: string): Promise<void> => {
+      const generation = ++requestGeneration.current
       const target = await ensure(path)
-      if (currentCwd.current !== path) throw new Error("Project navigation was superseded")
+      if (generation !== requestGeneration.current || currentCwd.current !== path) return
       setWorkspace(target)
+      setPane("files")
       setVisible(true)
     },
     [ensure]
@@ -588,16 +592,16 @@ export function FileWorkspace({
   useEffect(() => {
     if (previousCwd.current === cwd) return
     previousCwd.current = cwd
-    requestGeneration.current++
+    const generation = ++requestGeneration.current
     if (!visible) return
     setWorkspace(null)
     let cancelled = false
     void ensure(cwd)
       .then((value) => {
-        if (!cancelled) setWorkspace(value)
+        if (!cancelled && generation === requestGeneration.current) setWorkspace(value)
       })
       .catch((error: unknown) => {
-        if (!cancelled) report(error)
+        if (!cancelled && generation === requestGeneration.current) report(error)
       })
     return () => {
       cancelled = true
@@ -715,6 +719,7 @@ export function FileWorkspace({
           )
             target.tabs.openNewTab()
           setWorkspace(target)
+          setPane("files")
           setVisible(true)
         })
         .catch(report)
@@ -761,10 +766,15 @@ export function FileWorkspace({
   }, [cwd, ensure, visible, workspace])
   const revealEntry = useCallback(
     async (path: string, root: string): Promise<void> => {
+      const generation = ++requestGeneration.current,
+        owner = currentCwd.current
       const target = await ensure(root)
+      if (generation !== requestGeneration.current || owner !== currentCwd.current) return
       await target.tree.reveal(path)
+      if (generation !== requestGeneration.current || owner !== currentCwd.current) return
       target.tree.select(path)
       setWorkspace(target)
+      setPane("files")
       setVisible(true)
       setTreeVisible(true)
     },
@@ -779,6 +789,7 @@ export function FileWorkspace({
         } else toggle()
         return
       }
+      requestGeneration.current++
       if (visible && pane === next) {
         setVisible(false)
         setViewMode(false)
@@ -950,7 +961,7 @@ export function FileWorkspace({
                       return workspace.treeOpener.open(path, true)
                     }}
                     onOpenExternal={openExternal}
-                    onReveal={(path) => revealItemsInDir(path)}
+                    onReveal={(path) => revealInFileManager(path)}
                     onCopyPath={writeText}
                     onMove={(paths) => {
                       return Promise.try(() => {
@@ -1024,7 +1035,7 @@ export function FileWorkspace({
                         compactToolbar
                         rootPath={navigator.platform.includes("Win") ? normalizePath(workspace.root) : workspace.root}
                         onRevealPath={(path) => workspace.tree.reveal(path)}
-                        onReveal={(document) => revealItemsInDir(document.path)}
+                        onReveal={(document) => revealInFileManager(document.path)}
                         onCopyPath={(document) => writeText(document.path)}
                         tabLabels={{
                           closeOthers: t("workspace.closeOthers"),

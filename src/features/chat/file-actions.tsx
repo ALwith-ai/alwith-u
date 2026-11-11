@@ -5,6 +5,7 @@ import { toast } from "sonner"
 
 import { useWorkspace } from "@/features/workspace/context"
 import { fileLocationPath, openExternal } from "@/lib/open"
+import { isMac } from "@/lib/platform"
 
 import { openFilePreview } from "./dialogs/file-preview-modal"
 
@@ -58,7 +59,8 @@ export function useOpenChatLink(): (target: string) => void {
                   column: Math.max(1, Number(location[2] ?? location[4] ?? 1))
                 }
           const target = fileLocationPath(value)
-          if (workspace !== null && cwd !== null && containsPath(cwd, target))
+          if (isMac() && /\.app\/?$/i.test(target)) await openExternal(url)
+          else if (workspace !== null && cwd !== null && containsPath(cwd, target))
             await workspace.openFile(target, cwd, position)
           else openFilePreview(target, position)
         } else await openExternal(url)
