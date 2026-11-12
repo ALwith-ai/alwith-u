@@ -7,7 +7,7 @@
       "dependencies": {
         "@agentclientprotocol/sdk": "^2.5.0",
         "@alwith/api": "^0.6.1",
-        "@alwith/enterprise-client": "0.6.2",
+        "@alwith/enterprise-client": "0.6.3",
         "@alwith/module-auth": "^0.6.2",
         "@alwith/module-browser": "^0.6.0",
         "@alwith/module-chat": "^0.6.13",
@@ -26,7 +26,7 @@
         "@alwith/module-store": "^0.6.0",
         "@alwith/module-tabs": "^0.6.1",
         "@alwith/module-voice": "^0.6.2",
-        "@alwith/native-enterprise": "0.6.2",
+        "@alwith/native-enterprise": "0.6.3",
         "@alwith/native-kit": "0.5.2",
         "@alwith/runtime": "^0.6.0",
         "@base-ui/react": "^1.9.0",
@@ -148,7 +148,7 @@
 
     "@alwith/api": ["@alwith/api@0.6.1", "", { "peerDependencies": { "@tauri-apps/api": ">=2" }, "optionalPeers": ["@tauri-apps/api"] }, "sha512-DbMwpXU1YyQm2GSEY2JL/ASlIVjORzz+NQZ7hG++/yrilB6B7jFmTyy8DzZ+oTc8kLQ4tiApnUArqQgtoVfIPw=="],
 
-    "@alwith/enterprise-client": ["@alwith/enterprise-client@0.6.2", "", { "peerDependencies": { "@alwith/native-kit": "0.5.2" } }, "sha512-C4Nd3VMbmOI4/OaVDbiRt8xObyBtOUS1OjiYOvS69lceetpf377AdyD14NOI6xFYjK72/5P96ZqXH0x79yZAsw=="],
+    "@alwith/enterprise-client": ["@alwith/enterprise-client@0.6.3", "", { "peerDependencies": { "@alwith/native-kit": "0.5.2" } }, "sha512-6vvzfPNDA8ZJsA5Rn8aAmyjP8iDUa601RRF4zW7TuxAWRsDRBOCwtpz72uYeeBxQkRpTkxvY7jTQ45hcjzRolw=="],
 
     "@alwith/module-auth": ["@alwith/module-auth@0.6.2", "", { "dependencies": { "@base-ui/react": "^1.9.0", "@nyssance/atlas": "^0.1.11", "class-variance-authority": "^0.7.1", "cn": "^0.5.2", "fflate": "0.8.3", "ldrs": "^1.1.9", "lucide-react": "^1.70.0", "motion": "^14.10.1", "sonner": "^2.0.8", "tyme4ts": "^1.5.5", "zustand": "^5.1.0" }, "peerDependencies": { "@agentclientprotocol/sdk": "^2.4.0", "@alwith/api": "^0.6.1", "@alwith/module-chat": "^0.6.0", "@tauri-apps/api": "^3.0.0-alpha.3", "@tauri-apps/plugin-os": "^3.0.0-alpha.3", "i18next": "^27.0.0", "react": "^19.3.1", "react-dom": "^19.3.1", "react-i18next": "^18.0.0" }, "optionalPeers": ["@agentclientprotocol/sdk", "@alwith/api", "@alwith/module-chat", "@tauri-apps/api", "@tauri-apps/plugin-os", "react", "react-dom"] }, "sha512-b4qySNRuqgEL3wGrTTvTatvcHQX2ncL/kusFB7ZYdcEHd8ewASQXzBBq9SbZxomH9G4ixqMz+g2ARAYyX4Zaiw=="],
 
@@ -186,11 +186,11 @@
 
     "@alwith/module-voice": ["@alwith/module-voice@0.6.2", "", { "dependencies": { "effect": "^4.1.2" }, "peerDependencies": { "@tauri-apps/api": "^3.0.0-alpha.3", "react": "^19.3.1", "react-dom": "^19.3.1" }, "optionalPeers": ["react", "react-dom"] }, "sha512-uRMsgqcWQpvoyio9UzHuhn8oeMhrhqGx3uGxrGA1y+CSCP+fxybpXHFsNKcYw7Xl8jk42sjW62dcLRdkJs9fnA=="],
 
-    "@alwith/native-enterprise": ["@alwith/native-enterprise@0.6.2", "", { "dependencies": { "@alwith/native-kit": "0.5.2" }, "optionalDependencies": { "@alwith/native-enterprise-darwin-arm64": "0.6.2", "@alwith/native-enterprise-win32-x64": "0.6.2" } }, "sha512-sv7ci0boMIigZuuU4tfTp9oYLluHNibOsT72pXLyA7w18LKJzlG5vFO2Ak376s9eGA6uiCIzsgZa4b96nk2zzQ=="],
+    "@alwith/native-enterprise": ["@alwith/native-enterprise@0.6.3", "", { "dependencies": { "@alwith/native-kit": "0.5.2" }, "optionalDependencies": { "@alwith/native-enterprise-darwin-arm64": "0.6.3", "@alwith/native-enterprise-win32-x64": "0.6.3" } }, "sha512-FgD4u+y2IV0mQ4C8+2j1L6xKW4IlFqSZUfmKjEEwNeWAGBg4l54vTmUsuFaGC5Km8oEVZPq3rSFJs7aseUu2Ww=="],
 
-    "@alwith/native-enterprise-darwin-arm64": ["@alwith/native-enterprise-darwin-arm64@0.6.2", "", { "os": "darwin", "cpu": "arm64" }, "sha512-oLvHXfFm4bfUCibQGXqZmk8pld0tlJrp3m+M4qPvGA/wszK9Y1wc/haosr3oBN287FnSvvOI80ik2rpEvNyKfw=="],
+    "@alwith/native-enterprise-darwin-arm64": ["@alwith/native-enterprise-darwin-arm64@0.6.3", "", { "os": "darwin", "cpu": "arm64" }, "sha512-mj6w1CPGX+0iXoJwq0ziga2Ohtk+kPQWIwybmnkzx2eRj4HEgyCCvZeBCSaPajgO0j66FwFIab2TGHME7Rbxrg=="],
 
-    "@alwith/native-enterprise-win32-x64": ["@alwith/native-enterprise-win32-x64@0.6.2", "", { "os": "win32", "cpu": "x64" }, "sha512-IMOF+pJCICYlBmQzNyPtcQb4dQMGbKcsbPVJSO/Yv4asUXY7FrqXanaSFDnptT1OakWi4CJdSsohwZ27laN8YA=="],
+    "@alwith/native-enterprise-win32-x64": ["@alwith/native-enterprise-win32-x64@0.6.3", "", { "os": "win32", "cpu": "x64" }, "sha512-N/ySpK/5rNSjAFWhALwkg1ALbivS+TJtIGMuS/RDMjlQZ0ZgxUL2QIoKmdk6XkZTdgDPsWJugCfFBdrIe9geFw=="],
 
     "@alwith/native-kit": ["@alwith/native-kit@0.5.2", "", {}, "sha512-3rEpldU/pdyeFoKH8LvYj83lsCmLI9lFZWEhBUPNMPOwQY+88IFcaB/fxctR87m1zryBA6l1DKHcbBpJ+MOIZg=="],
 
