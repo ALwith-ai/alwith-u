@@ -3,6 +3,7 @@ import { expect, test } from "bun:test"
 import { loadAppEnv, parseAppEnv } from "../app-env"
 
 const development = {
+  environment: "development" as const,
   apiBaseUrl: "https://api-dev.alwith.ai/service",
   webSsoBaseUrl: "https://www-dev.alwith.ai"
 }
@@ -13,6 +14,7 @@ test("development and production load distinct endpoints despite Bun's inherited
   try {
     expect(loadAppEnv("development")).toEqual(development)
     expect(loadAppEnv("production")).toEqual({
+      environment: "production",
       apiBaseUrl: "https://api.alwith.ai/service",
       webSsoBaseUrl: "https://www.alwith.ai"
     })
@@ -24,7 +26,10 @@ test("development and production load distinct endpoints despite Bun's inherited
 })
 
 test("missing or invalid endpoints fail without exposing their values", () => {
-  const valid = { VITE_API_BASE_URL: development.apiBaseUrl, VITE_WEB_SSO_BASE_URL: development.webSsoBaseUrl }
+  const valid = {
+    VITE_API_BASE_URL: development.apiBaseUrl,
+    VITE_WEB_SSO_BASE_URL: development.webSsoBaseUrl
+  }
   for (const value of [
     undefined,
     "",
@@ -34,9 +39,13 @@ test("missing or invalid endpoints fail without exposing their values", () => {
     "https://example.test?key=secret",
     "https://example.test/#secret"
   ]) {
-    expect(() => parseAppEnv({ ...valid, VITE_API_BASE_URL: value })).toThrow("Invalid VITE_API_BASE_URL")
+    expect(() => parseAppEnv({ ...valid, VITE_API_BASE_URL: value }, "development")).toThrow(
+      "Invalid VITE_API_BASE_URL"
+    )
   }
-  expect(() => parseAppEnv({ ...valid, VITE_WEB_SSO_BASE_URL: undefined })).toThrow("Invalid VITE_WEB_SSO_BASE_URL")
+  expect(() => parseAppEnv({ ...valid, VITE_WEB_SSO_BASE_URL: undefined }, "development")).toThrow(
+    "Invalid VITE_WEB_SSO_BASE_URL"
+  )
 })
 
 test("environment loading rejects an unconfigured mode instead of falling back", () => {

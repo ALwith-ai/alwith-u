@@ -13,9 +13,13 @@ const host = vi.hoisted(() => ({
   errors: vi.fn(),
   enterpriseBind: vi.fn(),
   enterpriseRefresh: vi.fn(),
-  enterpriseClear: vi.fn()
+  enterpriseClear: vi.fn(),
+  enterpriseStatus: vi.fn(),
+  enterpriseUpdateAccount: vi.fn()
 }))
-vi.mock("@/lib/app-env", () => ({ appEnv: { apiBaseUrl: "https://api.example.test/service" } }))
+vi.mock("@/lib/app-env", () => ({
+  appEnv: { apiBaseUrl: "https://api.example.test/service", environment: "production" }
+}))
 vi.mock("@/lib/store", () => ({
   openStore: () => ({
     get: async (key: string) => host.values.get(key),
@@ -65,7 +69,9 @@ vi.mock("@/bindings", () => ({
   commands: {
     enterpriseBind: host.enterpriseBind,
     enterpriseRefresh: host.enterpriseRefresh,
-    enterpriseClear: host.enterpriseClear
+    enterpriseClear: host.enterpriseClear,
+    enterpriseStatus: host.enterpriseStatus,
+    enterpriseUpdateAccount: host.enterpriseUpdateAccount
   }
 }))
 vi.mock("sonner", () => ({ toast: { error: host.errors } }))
@@ -85,13 +91,22 @@ beforeEach(() => {
   host.values.set("device_id", "existing-device")
   host.identifier.mockReset().mockResolvedValue("ai.alwith.u.dev")
   host.platform.mockReset().mockReturnValue("macos")
-  host.request.mockReset().mockResolvedValue(profile)
+  host.request.mockReset().mockImplementation(async (path: string) =>
+    path === "/api/v1/providers/finture-enterprise"
+      ? {
+          provider_id: "finture-enterprise",
+          models: [{ api_id: "deepseek-V4.1-flash", label: "Configured enterprise" }]
+        }
+      : profile
+  )
   host.bind.mockReset().mockResolvedValue(1)
   host.refresh.mockReset().mockResolvedValue(undefined)
   host.clear.mockReset().mockResolvedValue(undefined)
   host.enterpriseBind.mockReset().mockResolvedValue(8)
   host.enterpriseRefresh.mockReset().mockResolvedValue(null)
   host.enterpriseClear.mockReset().mockResolvedValue(undefined)
+  host.enterpriseStatus.mockReset().mockResolvedValue({ generation: 8 })
+  host.enterpriseUpdateAccount.mockReset().mockResolvedValue(undefined)
 })
 
 test.each([
@@ -196,9 +211,9 @@ test("startup ALwith failure does not prevent enterprise refresh", async () => {
   await restore()
   await vi.waitFor(() => expect(host.errors).toHaveBeenCalledWith("ALwith catalog unavailable"))
   expect(host.enterpriseRefresh).toHaveBeenCalledWith({
-    account: { apiBaseUrl: "https://api.example.test/service", userUuid: cached.user_uuid },
+    account: { environment: "production", email: cached.login_email, userUuid: cached.user_uuid },
     generation: 8,
-    accessToken: "test-access"
+    modelLabels: { "deepseek-V4.1-flash": "Configured enterprise" }
   })
 })
 
@@ -210,9 +225,9 @@ test("enterprise refresh does not depend on or refresh ALwith models", async () 
   expect(host.bind).not.toHaveBeenCalled()
   expect(host.refresh).not.toHaveBeenCalled()
   expect(host.enterpriseRefresh).toHaveBeenCalledWith({
-    account: { apiBaseUrl: "https://api.example.test/service", userUuid: cached.user_uuid },
+    account: { environment: "production", email: cached.login_email, userUuid: cached.user_uuid },
     generation: 8,
-    accessToken: "test-access"
+    modelLabels: { "deepseek-V4.1-flash": "Configured enterprise" }
   })
 })
 
@@ -296,7 +311,7 @@ test("a successfully restored profile does not need another validation before mo
   const auth = await restore()
   await vi.waitFor(() => expect(host.refresh).toHaveBeenCalledOnce())
   await auth.requestAccountProviderRefresh()
-  expect(host.request).toHaveBeenCalledTimes(1)
+  expect(host.request.mock.calls.filter(([path]) => path === "/api/v1/me/profile")).toHaveLength(1)
   expect(host.refresh).toHaveBeenCalledTimes(2)
 })
 
@@ -310,4 +325,37 @@ test("validation cannot bind a profile belonging to a different cached account",
   expect(auth.usePlatformAuth.getState().user?.user_uuid).toBe(cached.user_uuid)
   await auth.requestAccountProviderRefresh()
   expect(host.bind).toHaveBeenCalledOnce()
+})
+
+test("legacy enterprise account renewal events do not request platform credentials", async () => {
+  await restore()
+  await vi.waitFor(() => expect(host.enterpriseRefresh).toHaveBeenCalledOnce())
+  host.request.mockClear()
+  const payload = {
+    type: "enterpriseAccountRefreshRequested",
+    accountId: cached.user_uuid,
+    generation: 8,
+    requestId: "renewal-1"
+  }
+  for (const listener of host.listeners.get("enterprise:event") ?? [])
+    listener({ event: "enterprise:event", id: 0, payload })
+  await Promise.resolve()
+  expect(host.request).not.toHaveBeenCalled()
+  expect(host.enterpriseUpdateAccount).not.toHaveBeenCalled()
+})
+
+test("enterprise events cannot renew credentials from a stale generation", async () => {
+  await restore()
+  await vi.waitFor(() => expect(host.enterpriseRefresh).toHaveBeenCalledOnce())
+  const payload = {
+    type: "enterpriseAccountRefreshRequested",
+    accountId: cached.user_uuid,
+    generation: 7,
+    requestId: "old-renewal"
+  }
+  for (const listener of host.listeners.get("enterprise:event") ?? [])
+    listener({ event: "enterprise:event", id: 0, payload })
+  await Promise.resolve()
+  expect(host.enterpriseStatus).not.toHaveBeenCalled()
+  expect(host.enterpriseUpdateAccount).not.toHaveBeenCalled()
 })

@@ -42,7 +42,14 @@ import { EnterpriseSection } from "../enterprise-section"
 beforeEach(() => {
   vi.clearAllMocks()
   host.user = { user_uuid: "alice" }
-  host.status.mockResolvedValue({ generation: 7, automatic_renewal: false, requires_login: false, error: null })
+  host.status.mockResolvedValue({
+    enabled: true,
+    authorization_status: "none",
+    generation: 7,
+    automatic_renewal: false,
+    requires_login: false,
+    error: null
+  })
   host.request.mockResolvedValue({ enabled: true, authorization_status: "none" })
   host.refresh.mockResolvedValue(undefined)
   host.begin.mockResolvedValue({ state: "proof", authorization_url: "https://login.example/authorize" })
@@ -55,6 +62,7 @@ test("enterprise sign-in opens the native authorization URL and cancellation car
   fireEvent.click(screen.getByRole("button", { name: "enterprise.login" }))
   await waitFor(() => expect(host.open).toHaveBeenCalledWith("https://login.example/authorize"))
   expect(host.begin).toHaveBeenCalledWith({ generation: 7 })
+  expect(host.request).not.toHaveBeenCalled()
   fireEvent.click(screen.getByRole("button", { name: "enterprise.cancel" }))
   await waitFor(() => expect(host.cancel).toHaveBeenCalledWith({ generation: 7, state: "proof" }))
   expect(host.request).not.toHaveBeenCalledWith(expect.anything(), "DELETE")
@@ -76,7 +84,7 @@ test("account replacement while preparing login cannot open the old callback", a
   expect(host.open).not.toHaveBeenCalled()
 })
 test("status errors expose retry without claiming enterprise authorization", async () => {
-  host.request.mockRejectedValue(new Error("offline"))
+  host.status.mockRejectedValue(new Error("offline"))
   render(<EnterpriseSection />)
   await screen.findByRole("alert")
   expect(screen.getByRole("button", { name: "actions.retry" })).toBeInTheDocument()

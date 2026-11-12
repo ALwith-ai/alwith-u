@@ -9,6 +9,24 @@ export interface EnterpriseRenewal {
   error: string | null
 }
 
+export function parseEnterpriseStatus(value: unknown): EnterpriseStatus {
+  if (
+    typeof value !== "object" ||
+    value === null ||
+    !("enabled" in value) ||
+    typeof value.enabled !== "boolean" ||
+    !("authorization_status" in value) ||
+    typeof value.authorization_status !== "string" ||
+    ("email" in value && value.email !== null && typeof value.email !== "string")
+  )
+    throw new Error("Invalid enterprise status")
+  return {
+    enabled: value.enabled,
+    authorization_status: value.authorization_status,
+    ...("email" in value && typeof value.email === "string" ? { email: value.email } : {})
+  }
+}
+
 export function parseEnterpriseRenewal(value: unknown): EnterpriseRenewal {
   if (
     typeof value !== "object" ||

@@ -1,6 +1,40 @@
-use alwith_enterprise_client::{CatalogModel, EnterpriseClient, Protocol};
+use alwith_enterprise_client::{CatalogModel, EnterpriseClient, GATEWAY_URL, Protocol};
 use serde_json::Value;
 use std::path::PathBuf;
+
+#[test]
+fn gateway_sessions_do_not_read_legacy_credentials_and_isolate_account_environments() {
+    tauri::async_runtime::block_on(async {
+        let directory = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources/native");
+        let storage = tempfile::tempdir().unwrap();
+        let legacy = storage.path().join("enterprise-renewal.json");
+        std::fs::write(&legacy, "legacy credentials must not be opened by gateway sessions").unwrap();
+        let sessions = storage.path().join("enterprise-gateway-sessions.json");
+        let client = EnterpriseClient::open_gateway(&directory, &sessions).await.unwrap();
+        let prepare = |environment: &str| {
+            client.prepare_gateway(
+                GATEWAY_URL.into(),
+                "same-account".into(),
+                "alwith@example.test".into(),
+                environment.into(),
+                "alwith-u".into(),
+            )
+        };
+        let first = prepare("production").await.unwrap();
+        let status = client.ensure(first).await.unwrap();
+        assert_eq!(status["requires_login"], true);
+        assert_eq!(status["automatic_renewal"], false);
+        let second = prepare("development").await.unwrap();
+        assert_ne!(first, second);
+        assert!(client.status(first).await.is_err());
+        client.suspend(second).await.unwrap();
+        client.close().await.unwrap();
+        assert_eq!(
+            std::fs::read_to_string(legacy).unwrap(),
+            "legacy credentials must not be opened by gateway sessions"
+        );
+    });
+}
 
 #[test]
 fn enterprise_native_preserves_generation_and_owner_lifecycle() {

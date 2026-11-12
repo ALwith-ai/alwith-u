@@ -52,6 +52,20 @@ pub(super) fn parse(value: Value) -> Result<Option<IssuedProvider>, String> {
     Ok(Some(provider))
 }
 
+pub(super) fn apply_labels(
+    provider: &mut IssuedProvider, labels: &std::collections::BTreeMap<String, String>,
+) -> Result<(), String> {
+    if labels.iter().any(|(id, label)| id.trim().is_empty() || label.trim().is_empty()) {
+        return Err("Invalid enterprise model labels".into());
+    }
+    for model in &mut provider.models {
+        if let Some(label) = labels.get(&model.api_id) {
+            model.label.clone_from(label);
+        }
+    }
+    Ok(())
+}
+
 pub(super) fn provider_id(account: &str, provider: &str) -> String {
     // Stable within an account; another account can never inherit a persisted model selection.
     format!("{PROVIDER_PREFIX}{}", hex::encode(Sha256::digest(format!("{}:{account}{provider}", account.len()))))
@@ -81,6 +95,21 @@ pub(super) fn is_model(model: &str) -> bool {
 mod tests {
     use super::*;
     use serde_json::json;
+    #[test]
+    fn platform_labels_override_only_matching_gateway_model_names() {
+        let mut provider = parse(json!([{"provider_id":"enterprise","auth_type":"enterprise_session","name":"Enterprise AI","base_url":"https://gateway.test","models":[{"api_id":"deepseek-V4.1-flash","label":"deepseek-V4.1-flash"},{"api_id":"unconfigured","label":"Gateway label"}]}])).unwrap().unwrap();
+        let labels = std::collections::BTreeMap::from([
+            ("deepseek-V4.1-flash".into(), "企业内部模型123".into()),
+            ("platform-only".into(), "Not authorized by gateway".into()),
+        ]);
+        apply_labels(&mut provider, &labels).unwrap();
+        assert_eq!(provider.models.len(), 2);
+        assert_eq!(provider.models[0].api_id, "deepseek-V4.1-flash");
+        assert_eq!(provider.models[0].label, "企业内部模型123");
+        assert_eq!(provider.models[1].label, "Gateway label");
+        assert_eq!(provider.base_url, "https://gateway.test");
+    }
+
     #[test]
     fn catalog_accepts_issued_gateways_without_built_in_provider_ids() {
         let value = json!([{"provider_id":"company-issued","auth_type":"enterprise_session","name":"Issued","base_url":"https://issued.test","models":[{"api_id":"issued/model","label":"Issued"}]}]);

@@ -403,7 +403,6 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 enterprise::enterprise_status,
                 enterprise::enterprise_begin,
                 enterprise::enterprise_cancel,
-                enterprise::enterprise_update_account,
                 enterprise::enterprise_logout,
                 window::attach_window_to_main,
             ]

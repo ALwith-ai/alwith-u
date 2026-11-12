@@ -198,16 +198,17 @@ export const commands = {
    */
   gamepadAiPrepare: (args: { agentId: string }): Promise<null> => __t3Invoke<null>("gamepad_ai_prepare", args),
   enterpriseBind: (args: { account: Account }): Promise<number> => __t3Invoke<number>("enterprise_bind", args),
-  enterpriseRefresh: (args: { account: Account; generation: number; accessToken: string }): Promise<Value> =>
-    __t3Invoke<Value>("enterprise_refresh", args),
+  enterpriseRefresh: (args: {
+    account: Account
+    generation: number
+    modelLabels: { [key in string]: string }
+  }): Promise<Value> => __t3Invoke<Value>("enterprise_refresh", args),
   enterpriseCatalog: (): Promise<Value> => __t3Invoke<Value>("enterprise_catalog"),
   enterpriseClear: (): Promise<null> => __t3Invoke<null>("enterprise_clear"),
   enterpriseStatus: (): Promise<Value> => __t3Invoke<Value>("enterprise_status"),
   enterpriseBegin: (args: { generation: number }): Promise<Value> => __t3Invoke<Value>("enterprise_begin", args),
   enterpriseCancel: (args: { generation: number; state: string }): Promise<null> =>
     __t3Invoke<null>("enterprise_cancel", args),
-  enterpriseUpdateAccount: (args: { generation: number; requestId: string; accessToken: string }): Promise<null> =>
-    __t3Invoke<null>("enterprise_update_account", args),
   enterpriseLogout: (args: { generation: number }): Promise<null> => __t3Invoke<null>("enterprise_logout", args),
   /**
    *  Makes `label` a child window of `main` (macOS only): it floats above the main window,
@@ -295,7 +296,6 @@ export type CommandErrors = {
   enterpriseStatus: Value
   enterpriseBegin: Value
   enterpriseCancel: Value
-  enterpriseUpdateAccount: Value
   enterpriseLogout: Value
   attachWindowToMain: string
 }
@@ -415,7 +415,8 @@ export const events = {
 } as const
 
 export type Account = {
-  apiBaseUrl: string
+  environment: string
+  email: string
   userUuid: string
 }
 

@@ -2,7 +2,7 @@
 mod catalog;
 mod gate;
 mod runtime;
-use alwith_enterprise_client::{EnterpriseClient, Protocol};
+use alwith_enterprise_client::{EnterpriseClient, GATEWAY_URL, Protocol};
 pub(crate) use runtime::{apply, check, observe, observe_event, observe_realtime, ready, reset, uses_enterprise};
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -19,14 +19,31 @@ use tokio::sync::{Mutex as AsyncMutex, OnceCell};
 #[derive(Clone, Deserialize, PartialEq, specta::Type)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Account {
-    api_base_url: String,
+    environment: String,
+    email: String,
     user_uuid: String,
+}
+impl Account {
+    fn validate(&self) -> Result<(), &'static str> {
+        if !matches!(self.environment.as_str(), "production" | "development")
+            || self.user_uuid.trim().is_empty()
+            || self.user_uuid.len() > 128
+            || self.email.len() > 254
+            || self.email.trim() != self.email
+            || !self.email.contains('@')
+        {
+            return Err("Invalid ALwith account association");
+        }
+        Ok(())
+    }
+    fn identity(&self) -> String {
+        json!([GATEWAY_URL, self.environment, self.user_uuid, self.email]).to_string()
+    }
 }
 struct Binding {
     account: Account,
     epoch: u64,
     generation: u64,
-    token: String,
 }
 #[derive(Default)]
 pub struct Enterprise {
@@ -59,12 +76,12 @@ fn main_window(window: &tauri::WebviewWindow) -> Result<(), Value> {
 impl Enterprise {
     async fn host(&self, app: &AppHandle) -> Result<&Arc<EnterpriseClient>, Value> {
         self.host.get_or_try_init(|| async {
-            let settings = app.path().app_data_dir().map_err(error)?.join("enterprise-settings.json");
+            let sessions = app.path().app_data_dir().map_err(error)?.join("enterprise-gateway-sessions.json");
             let directory = match crate::native::development_directory() {
                 Some(directory) => directory,
                 None => app.path().resource_dir().map_err(error)?.join("native"),
             };
-            let host = Arc::new(EnterpriseClient::open(&directory, &settings).await?);
+            let host = Arc::new(EnterpriseClient::open_gateway(&directory, &sessions).await?);
             let events = host.clone();
             let closing = self.closing.clone();
             let app = app.clone();
@@ -143,14 +160,10 @@ impl Enterprise {
 #[tauri3_specta::command]
 pub async fn enterprise_bind(window: tauri::WebviewWindow, account: Account) -> Result<u64, Value> {
     main_window(&window)?;
-    if !matches!(account.api_base_url.as_str(), "https://api.alwith.ai/service" | "https://api-dev.alwith.ai/service")
-        || account.user_uuid.trim().is_empty()
-    {
-        return Err(error("Invalid ALwith account"));
-    }
+    account.validate().map_err(error)?;
     let state = window.state::<Enterprise>();
     let _transition = state.transition.lock().await;
-    let identity = format!("{}:{}", account.api_base_url, account.user_uuid);
+    let identity = account.identity();
     let changed = state.gate.lock().unwrap().account.as_ref() != Some(&identity);
     if changed {
         state.clear(window.app_handle(), false).await?;
@@ -162,13 +175,13 @@ pub async fn enterprise_bind(window: tauri::WebviewWindow, account: Account) -> 
 
 #[tauri3_specta::command]
 pub async fn enterprise_refresh(
-    window: tauri::WebviewWindow, account: Account, generation: u64, access_token: String,
+    window: tauri::WebviewWindow, account: Account, generation: u64, model_labels: BTreeMap<String, String>,
 ) -> Result<Value, Value> {
     main_window(&window)?;
     let app = window.app_handle();
     let state = app.state::<Enterprise>();
     let _refresh = state.refresh.lock().await;
-    let identity = format!("{}:{}", account.api_base_url, account.user_uuid);
+    let identity = account.identity();
     let check = || {
         let gate = state.gate.lock().unwrap();
         if gate.generation != generation || gate.account.as_ref() != Some(&identity) {
@@ -178,48 +191,38 @@ pub async fn enterprise_refresh(
         }
     };
     check()?;
-    if access_token.trim().is_empty() {
-        return Err(error("Missing ALwith access token"));
-    }
+    account.validate().map_err(error)?;
     let host = state.host(app).await?;
     let native_generation = {
         let mut binding = state.binding.lock().await;
         check()?;
-        let native_generation =
-            host.prepare(account.api_base_url.clone(), account.user_uuid.clone(), access_token.clone()).await?;
+        let native_generation = host
+            .prepare_gateway(
+                GATEWAY_URL.into(),
+                account.user_uuid.clone(),
+                account.email.clone(),
+                account.environment.clone(),
+                "alwith-u".into(),
+            )
+            .await?;
         if let Err(reason) = check() {
             host.suspend(native_generation).await?;
             return Err(reason);
         }
-        *binding = Some(Binding {
-            account: account.clone(),
-            epoch: generation,
-            generation: native_generation,
-            token: access_token.clone(),
-        });
+        *binding = Some(Binding { account: account.clone(), epoch: generation, generation: native_generation });
         native_generation
     };
     let result = async {
-        let http = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(20))
-            .redirect(reqwest::redirect::Policy::none())
-            .build()
-            .map_err(error)?;
-        let response = http
-            .get(format!("{}/api/v1/providers", account.api_base_url))
-            .bearer_auth(access_token)
-            .send()
-            .await
-            .map_err(|_| error("ALwith configuration request failed"))?;
-        if !response.status().is_success() {
-            return Err(error("ALwith configuration request rejected"));
-        }
-        let catalog = response.json::<Value>().await.map_err(|_| error("Invalid ALwith provider response"))?;
-        check()?;
-        let Some(provider) = catalog::parse(catalog).map_err(error)? else { return Ok(None) };
         let status = host.ensure(native_generation).await?;
         if status["automatic_renewal"] != true {
             return Ok(None);
+        }
+        let catalog = host.providers(native_generation).await?;
+        check()?;
+        let Some(mut provider) = catalog::parse(catalog).map_err(error)? else { return Ok(None) };
+        catalog::apply_labels(&mut provider, &model_labels).map_err(error)?;
+        if provider.base_url.trim_end_matches('/') != GATEWAY_URL {
+            return Err(error("Enterprise catalog gateway does not match the configured gateway"));
         }
         let gateway = provider.base_url.clone();
         let relay = host.relay(native_generation, gateway, Protocol::Responses).await?;
@@ -288,7 +291,9 @@ pub async fn enterprise_status(window: tauri::WebviewWindow) -> Result<Value, Va
     let generation = {
         let binding = state.binding.lock().await;
         let Some(binding) = binding.as_ref() else {
-            return Ok(json!({"automatic_renewal":false,"requires_login":false,"error":null}));
+            return Ok(
+                json!({"enabled":true,"authorization_status":"unauthorized","automatic_renewal":false,"requires_login":false,"error":null}),
+            );
         };
         binding.generation
     };
@@ -305,48 +310,13 @@ pub async fn enterprise_cancel(window: tauri::WebviewWindow, generation: u64, st
     window.state::<Enterprise>().current(generation).await?.cancel(generation, state).await
 }
 #[tauri3_specta::command]
-pub async fn enterprise_update_account(
-    window: tauri::WebviewWindow, generation: u64, request_id: String, access_token: String,
-) -> Result<(), Value> {
-    main_window(&window)?;
-    let state = window.state::<Enterprise>();
-    state.current(generation).await?.update(generation, request_id, access_token.clone()).await?;
-    let mut binding = state.binding.lock().await;
-    let Some(binding) = binding.as_mut().filter(|binding| binding.generation == generation) else {
-        return Err(error("ALwith account changed"));
-    };
-    binding.token = access_token;
-    Ok(())
-}
-#[tauri3_specta::command]
 pub async fn enterprise_logout(window: tauri::WebviewWindow, generation: u64) -> Result<(), Value> {
     controls(&window)?;
     let app = window.app_handle();
     let state = window.state::<Enterprise>();
-    let transition = state.transition.lock().await;
+    let _transition = state.transition.lock().await;
     state.current(generation).await?;
-    let (base, token) = {
-        let binding = state.binding.lock().await;
-        let bound = binding.as_ref().ok_or_else(|| error("ALwith account changed"))?;
-        (bound.account.api_base_url.clone(), bound.token.clone())
-    };
-    state.clear(app, true).await?;
-    drop(transition);
-    let http = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(20))
-        .redirect(reqwest::redirect::Policy::none())
-        .build()
-        .map_err(error)?;
-    let response = http
-        .delete(format!("{base}/api/v1/me/enterprise/finture"))
-        .bearer_auth(token)
-        .send()
-        .await
-        .map_err(|_| error("Remote enterprise logout failed; local access is revoked"))?;
-    if !response.status().is_success() {
-        return Err(error("Remote enterprise logout failed; local access is revoked"));
-    }
-    Ok(())
+    state.clear(app, true).await
 }
 
 #[cfg(test)]

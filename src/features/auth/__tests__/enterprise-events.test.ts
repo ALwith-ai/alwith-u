@@ -7,7 +7,6 @@ function fixture() {
   const host = {
     account: () => "alice" as string | null,
     status: vi.fn(async () => ({ generation: 2 })),
-    renewAccount: vi.fn(async (_generation: number, _requestId: string) => {}),
     refreshModels: vi.fn(async () => {}),
     failed: vi.fn()
   }
@@ -28,10 +27,10 @@ test("a status request finishing after account replacement has no effects", asyn
   await handle(event)
   expect(host.refreshModels).not.toHaveBeenCalled()
 })
-test("renewal carries the originating generation and request identity", async () => {
+test("legacy ALwith account renewal events cannot trigger a platform credential request", async () => {
   const { host, handle } = fixture()
   await handle({ ...event, generation: 2, type: "enterpriseAccountRefreshRequested", requestId: "request" })
-  expect(host.renewAccount).toHaveBeenCalledWith(2, "request")
+  expect(host.status).not.toHaveBeenCalled()
   expect(host.refreshModels).not.toHaveBeenCalled()
 })
 test("failed authorization refreshes models so revoked models disappear", async () => {
@@ -39,6 +38,17 @@ test("failed authorization refreshes models so revoked models disappear", async 
   await handle({ ...event, generation: 2, error: "invalid_grant" })
   expect(host.failed).toHaveBeenCalledWith("authorization")
   expect(host.refreshModels).toHaveBeenCalledOnce()
+})
+test("gateway session revocation removes managed models immediately", async () => {
+  const { host, handle } = fixture()
+  await handle({
+    ...event,
+    type: "enterpriseAuthorizationChanged",
+    generation: 2,
+    error: "enterprise_authorization_required"
+  })
+  expect(host.refreshModels).toHaveBeenCalledOnce()
+  expect(host.failed).toHaveBeenCalledWith("authorization")
 })
 test("malformed events are rejected without requesting account state", async () => {
   const { host, handle } = fixture()

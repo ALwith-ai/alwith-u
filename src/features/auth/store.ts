@@ -21,12 +21,11 @@ import { arch, platform } from "@tauri-apps/plugin-os"
 import { toast } from "sonner"
 import { create } from "zustand"
 
-import { commands } from "@/bindings"
 import { appEnv } from "@/lib/app-env"
 import i18n from "@/lib/i18n"
 import { openStore } from "@/lib/store"
 
-import { createEnterpriseEventHandler } from "./enterprise-events"
+import { createEnterpriseModels, enterpriseModelLabels } from "./enterprise-models"
 import { createAccountTransition, createManagedProviders } from "./managed-providers"
 import { createProviderRefreshClient, serveProviderRefresh } from "./provider-refresh-bridge"
 
@@ -34,7 +33,7 @@ export const API_BASE_URL = appEnv.apiBaseUrl
 const STATE_EVENT = "alwith-auth-state"
 const LOGOUT_EVENT = "alwith-auth-logout-request"
 const isMain = () => getCurrentWebviewWindow().label === "main"
-// 同一个 `appDataDir/<name>.json`,原 tauri-plugin-store 写下的登录态原样读回;每次 set 即原子落盘。
+// Reuse the existing login store; each write persists atomically.
 const store = openStore(authStoreName(API_BASE_URL))
 const storage = createTokenStorage({
   get: (key) => store.get(key),
@@ -61,7 +60,6 @@ const transport = createAuthTransport({
   }
 })
 const accountProviders = createManagedProvidersPort()
-const enterpriseBindings = new Map<number, { account: { apiBaseUrl: string; userUuid: string }; generation: number }>()
 async function validateAccount(userUuid: string): Promise<void> {
   const profile = await transport.request<{ uuid: string }>("/api/v1/me/profile", "GET")
   if (profile?.uuid !== userUuid || usePlatformAuth.getState().user?.user_uuid !== userUuid)
@@ -76,24 +74,14 @@ const managedProviders = createManagedProviders({
     }),
   clear: () => accountProviders.clear()
 })
-const enterpriseProviders = createManagedProviders({
-  validate: validateAccount,
-  bind: async (userUuid) => {
-    const account = { apiBaseUrl: API_BASE_URL, userUuid }
-    const generation = await commands.enterpriseBind({ account })
-    enterpriseBindings.set(generation, { account, generation })
-    return generation
-  },
-  refresh: async (generation) => {
-    const binding = enterpriseBindings.get(generation)
-    if (!binding) throw new Error("Enterprise account binding is missing")
-    await transport.authenticated(async (accessToken) => {
-      await commands.enterpriseRefresh({ ...binding, accessToken })
-    })
-  },
-  clear: async () => {
-    enterpriseBindings.clear()
-    await commands.enterpriseClear()
+const enterpriseProviders = createEnterpriseModels({
+  environment: appEnv.environment,
+  account: () => usePlatformAuth.getState().user?.user_uuid ?? null,
+  email: () => usePlatformAuth.getState().user?.login_email ?? null,
+  labels: async () => {
+    // A metadata outage must not prevent gateway login or renewal.
+    const value = await transport.request("/api/v1/providers/finture-enterprise", "GET").catch(() => null)
+    return value === null ? null : enterpriseModelLabels(value)
   }
 })
 async function clearAccountProviders(): Promise<void> {
@@ -113,7 +101,7 @@ async function loadEnterpriseProviders(): Promise<void> {
   if (!isMain()) throw new Error("Enterprise model refresh belongs to the main window")
   const user = usePlatformAuth.getState().user
   if (!user) throw new Error("Sign in to refresh enterprise models")
-  await enterpriseProviders.refresh(user.user_uuid)
+  await enterpriseProviders.refresh()
 }
 function refreshSignedInProviders(): void {
   if (!isMain()) return
@@ -219,28 +207,11 @@ export function loginPlatform(response: LoginResponse): Promise<void> {
 
 /** Register listeners before restoring credentials; called once by each window bootstrap. */
 export async function initPlatformAuth(): Promise<void> {
-  if (isMain()) {
-    const handleEnterpriseEvent = createEnterpriseEventHandler({
-      account: () => usePlatformAuth.getState().user?.user_uuid ?? null,
-      status: () => commands.enterpriseStatus(),
-      renewAccount: async (generation, requestId) => {
-        await transport.request("/api/v1/me/profile", "GET")
-        await transport.authenticated((accessToken) =>
-          commands.enterpriseUpdateAccount({ generation, requestId, accessToken })
-        )
-      },
-      refreshModels: loadEnterpriseProviders,
-      failed: () => toast.error(i18n.t("enterprise.error"))
-    })
-    await listen<unknown>("enterprise:event", ({ payload }) => {
-      void handleEnterpriseEvent(payload)
-    })
-  }
   await listen<AuthStateEvent>(STATE_EVENT, (event) => {
     for (const listener of stateListeners) listener(event.payload)
   })
   if (isMain()) await serveProviderRefresh(loadAccountProviders)
-  if (isMain()) await serveProviderRefresh(loadEnterpriseProviders, undefined, "enterprise")
+  if (isMain()) await enterpriseProviders.init()
   if (isMain())
     await listen(LOGOUT_EVENT, () => {
       void logoutPlatform().catch(() => console.error("[auth] local logout failed"))

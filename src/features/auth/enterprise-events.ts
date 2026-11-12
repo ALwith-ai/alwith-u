@@ -1,7 +1,6 @@
 interface EnterpriseEventHost {
   account(): string | null
   status(): Promise<unknown>
-  renewAccount(generation: number, requestId: string): Promise<void>
   refreshModels(): Promise<void>
   failed(reason: "authorization" | "configuration" | "refresh"): void
 }
@@ -21,23 +20,20 @@ export function createEnterpriseEventHandler(host: EnterpriseEventHost) {
       return
     if (
       ![
-        "enterpriseAccountRefreshRequested",
         "enterpriseConfigurationFailed",
+        "enterpriseAuthorizationChanged",
         "enterpriseLoginCompleted",
         "enterpriseRenewalStatus",
         "enterpriseEventStreamInterrupted"
       ].includes(String(value.type))
     )
       return
-    if (value.type === "enterpriseAccountRefreshRequested" && typeof value.requestId !== "string") return
     const account = host.account()
     if (value.accountId !== account) return
     try {
       const status = await host.status()
       if (host.account() !== account || !record(status) || status.generation !== value.generation) return
-      if (value.type === "enterpriseAccountRefreshRequested") {
-        await host.renewAccount(value.generation, value.requestId as string)
-      } else if (value.type === "enterpriseConfigurationFailed") {
+      if (value.type === "enterpriseConfigurationFailed") {
         host.failed("configuration")
       } else {
         if (value.error || value.type === "enterpriseEventStreamInterrupted") host.failed("authorization")

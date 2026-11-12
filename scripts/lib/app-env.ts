@@ -6,11 +6,12 @@ const keys = ["VITE_API_BASE_URL", "VITE_WEB_SSO_BASE_URL"] as const
 const root = fileURLToPath(new URL("../../", import.meta.url))
 
 export interface AppEnv {
+  environment: "development" | "production"
   apiBaseUrl: string
   webSsoBaseUrl: string
 }
 
-export function parseAppEnv(values: Record<string, string | undefined>): AppEnv {
+export function parseAppEnv(values: Record<string, string | undefined>, environment: AppEnv["environment"]): AppEnv {
   function endpoint(key: (typeof keys)[number]): string {
     const value = values[key]
     try {
@@ -23,7 +24,11 @@ export function parseAppEnv(values: Record<string, string | undefined>): AppEnv 
       throw new Error(`Invalid ${key}: expected an HTTPS URL without credentials, query or fragment`)
     }
   }
-  return { apiBaseUrl: endpoint("VITE_API_BASE_URL"), webSsoBaseUrl: endpoint("VITE_WEB_SSO_BASE_URL") }
+  return {
+    environment,
+    apiBaseUrl: endpoint("VITE_API_BASE_URL"),
+    webSsoBaseUrl: endpoint("VITE_WEB_SSO_BASE_URL")
+  }
 }
 
 export function loadAppEnv(mode: string): AppEnv {
@@ -32,7 +37,7 @@ export function loadAppEnv(mode: string): AppEnv {
   const inherited = keys.map((key) => [key, process.env[key]] as const)
   try {
     for (const key of keys) delete process.env[key]
-    return parseAppEnv(loadEnv(mode, root, "VITE_"))
+    return parseAppEnv(loadEnv(mode, root, "VITE_"), mode)
   } finally {
     for (const [key, value] of inherited) {
       if (value === undefined) delete process.env[key]

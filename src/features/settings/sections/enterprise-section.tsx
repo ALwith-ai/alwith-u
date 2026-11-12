@@ -17,9 +17,10 @@ import {
   enterpriseLoginAvailable,
   type EnterpriseRenewal,
   type EnterpriseStatus,
-  parseEnterpriseRenewal
+  parseEnterpriseRenewal,
+  parseEnterpriseStatus
 } from "@/features/auth/enterprise-status"
-import { platformApiRequest, requestEnterpriseProviderRefresh, usePlatformAuth } from "@/features/auth/store"
+import { requestEnterpriseProviderRefresh, usePlatformAuth } from "@/features/auth/store"
 import { openExternal } from "@/lib/open"
 
 import { SettingGroup, SettingRow } from "./shared"
@@ -53,13 +54,9 @@ export function EnterpriseSection() {
       if (!account || checking) return
       checking = true
       try {
-        const [server, native] = await Promise.all([
-          platformApiRequest<EnterpriseStatus>("/api/v1/me/enterprise/finture", "GET"),
-          commands.enterpriseStatus()
-        ])
+        const native = await commands.enterpriseStatus()
         if (!active || usePlatformAuth.getState().user !== user) return
-        if (typeof server.enabled !== "boolean" || typeof server.authorization_status !== "string")
-          throw new Error("Invalid enterprise status")
+        const server = parseEnterpriseStatus(native)
         const parsed = parseEnterpriseRenewal(native)
         setStatus(server)
         setRenewal(parsed)
