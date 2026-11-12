@@ -5,6 +5,8 @@ const host = vi.hoisted(() => ({
   values: new Map<string, unknown>(),
   listeners: new Map<string, Set<EventCallback<unknown>>>(),
   request: vi.fn(),
+  identifier: vi.fn(),
+  platform: vi.fn(),
   bind: vi.fn(),
   refresh: vi.fn(),
   clear: vi.fn(),
@@ -34,8 +36,9 @@ vi.mock("@alwith/module-auth/transport", () => ({
 }))
 vi.mock("@alwith/module-auth/tauri", () => ({ createTauriAuthRefresh: () => vi.fn() }))
 vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }))
+vi.mock("@tauri-apps/api/app", () => ({ getIdentifier: host.identifier }))
 vi.mock("@tauri-apps/plugin-http", () => ({ fetch: vi.fn() }))
-vi.mock("@tauri-apps/plugin-os", () => ({ arch: () => "aarch64", platform: () => "macos" }))
+vi.mock("@tauri-apps/plugin-os", () => ({ arch: () => "aarch64", platform: host.platform }))
 vi.mock("@tauri-apps/api/webviewWindow", () => ({ getCurrentWebviewWindow: () => ({ label: "main" }) }))
 vi.mock("@tauri-apps/api/event", () => {
   const emit = async (name: string, payload: unknown) => {
@@ -79,6 +82,9 @@ beforeEach(() => {
   host.values.set("access_token", "test-access")
   host.values.set("refresh_token", "test-refresh")
   host.values.set("user", cached)
+  host.values.set("device_id", "existing-device")
+  host.identifier.mockReset().mockResolvedValue("ai.alwith.u.dev")
+  host.platform.mockReset().mockReturnValue("macos")
   host.request.mockReset().mockResolvedValue(profile)
   host.bind.mockResolvedValue(1)
   host.refresh.mockResolvedValue(undefined)
@@ -86,6 +92,59 @@ beforeEach(() => {
   host.enterpriseBind.mockResolvedValue(8)
   host.enterpriseRefresh.mockResolvedValue(null)
   host.enterpriseClear.mockResolvedValue(undefined)
+})
+
+test.each([
+  ["macos", "ai.alwith.u"],
+  ["macos", "ai.alwith.u.dev"],
+  ["windows", "ai.alwith.u"],
+  ["linux", "ai.alwith.u"]
+])(
+  "registration sends the %s native application identity %s and retains the existing device id",
+  async (channel, bundleId) => {
+    host.platform.mockReturnValue(channel)
+    host.identifier.mockResolvedValue(bundleId)
+    const { authClient } = await import("../store")
+    expect(host.identifier).not.toHaveBeenCalled()
+    await authClient.register("a@example.test", "123456", "password")
+    expect(host.request).toHaveBeenCalledWith(
+      "/api/v1/auth/register",
+      "POST",
+      {
+        email: "a@example.test",
+        code: "123456",
+        password: "password",
+        channel,
+        bundle_id: bundleId,
+        client_type: "DESKTOP",
+        client_name: `Tauri-${channel}-aarch64`,
+        device_id: "existing-device"
+      },
+      false
+    )
+  }
+)
+
+test("registration rejects unsupported native platforms without sending a request", async () => {
+  host.platform.mockReturnValue("freebsd")
+  const { authClient } = await import("../store")
+  await expect(authClient.register("a@example.test", "123456", "password")).rejects.toThrow(
+    "Unsupported desktop registration platform: freebsd"
+  )
+  expect(host.request).not.toHaveBeenCalled()
+  expect(host.identifier).not.toHaveBeenCalled()
+})
+
+test("registration does not send a request when native identity fails and can retry", async () => {
+  const { authClient } = await import("../store")
+  host.identifier.mockRejectedValueOnce(new Error("native identity unavailable"))
+  await expect(authClient.register("a@example.test", "123456", "password")).rejects.toThrow(
+    "native identity unavailable"
+  )
+  expect(host.request).not.toHaveBeenCalled()
+  await authClient.register("a@example.test", "123456", "password")
+  expect(host.identifier).toHaveBeenCalledTimes(2)
+  expect(host.request).toHaveBeenCalledOnce()
 })
 
 async function restore() {

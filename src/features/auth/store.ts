@@ -7,11 +7,13 @@ import {
   createAuthClient,
   createAuthState,
   createTokenStorage,
-  type LoginResponse
+  type LoginResponse,
+  type RegistrationContext
 } from "@alwith/module-auth"
 import { createTauriAuthRefresh } from "@alwith/module-auth/tauri"
 import { createAuthTransport } from "@alwith/module-auth/transport"
 import { createManagedProvidersPort } from "@alwith/module-chat/settings"
+import { getIdentifier } from "@tauri-apps/api/app"
 import { emit, emitTo, listen } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { fetch } from "@tauri-apps/plugin-http"
@@ -119,12 +121,26 @@ export function requestAccountProviderRefresh(): Promise<void> {
   return requestProviderRefresh()
 }
 export const platformApiRequest = transport.request
+async function getRegistrationContext(): Promise<RegistrationContext> {
+  const channel = platform()
+  if (channel !== "macos" && channel !== "windows" && channel !== "linux")
+    throw new Error(`Unsupported desktop registration platform: ${channel}`)
+  const [bundleId, deviceId] = await Promise.all([getIdentifier(), storage.tokenStorage.getDeviceId()])
+  return {
+    channel,
+    bundle_id: bundleId,
+    client_type: "DESKTOP",
+    client_name: `Tauri-${channel}-${arch()}`,
+    device_id: deviceId
+  }
+}
 export const authClient = createAuthClient({
   publicPost: (path, body) => transport.request(path, "POST", body, false),
   apiPost: (path, body) => transport.request(path, "POST", body),
   platform,
   arch,
   getDeviceId: storage.tokenStorage.getDeviceId,
+  getRegistrationContext,
   onLogoutError: () => console.warn("[auth] remote logout failed; clearing local login"),
   logInfo: () => {}
 })
