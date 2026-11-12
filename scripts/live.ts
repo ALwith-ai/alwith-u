@@ -16,14 +16,18 @@ import {
   codexTurnId,
   codexTurnStartedAt,
   isBooleanOption,
-  promptSuggestion,
   isFormElicitation,
   isStringProperty,
   isText,
+  promptSuggestion,
   type Session
 } from "@alwith/module-chat/client"
 
+import metadata from "../guide/catalog.json"
+import manifest from "../package.json"
 import { CodexClient } from "../src/agent/client"
+import { createDocsTools } from "../src/agent/docs-tools"
+import { parseGuide } from "../src/core/docs"
 import { computerRuntimeEnv } from "../src/features/computer/runtime-config"
 import { staged, stagedCodexEngine } from "./lib/runtime"
 
@@ -105,12 +109,61 @@ async function check(transport: "stdio" | "ws") {
   const port = runtime.client
   const client = new CodexClient(() => Promise.resolve(port), {
     agentId: "codex",
-    launch: { engine: "codex", env: { ...computerRuntimeEnv, INITIAL_AGENT_MODE: "read-only" } }
+    ...(process.env.ALWITH_LIVE_FOCUS === "docs"
+      ? {
+          applicationTools: createDocsTools({
+            chapters: parseGuide(await Bun.file(new URL("../guide/index.md", import.meta.url)).text(), metadata),
+            version: manifest.version
+          })
+        }
+      : {}),
+    launch: {
+      engine: "codex",
+      env: {
+        ...computerRuntimeEnv,
+        INITIAL_AGENT_MODE: process.env.ALWITH_LIVE_FOCUS === "docs" ? "agent" : "read-only"
+      }
+    }
   })
   let second: CodexClient | undefined
   try {
     await client.connect()
     console.log(`agent: ${client.state.agent?.info.name} ${client.state.agent?.info.version}`)
+    if (process.env.ALWITH_LIVE_FOCUS === "docs") {
+      const id = await client.newSession(directory)
+      try {
+        const mode = client.session(id).configOptions.find((option) => option.category === "mode")
+        if (!mode || !("currentValue" in mode) || mode.currentValue !== "agent")
+          throw new Error("Documentation approval test must run in Auto review mode")
+        await client.prompt(id, [
+          {
+            type: "text",
+            text: "Use the ALwith Docs application tools to explain how to choose a model in ALwith U. Call alwith_docs_outline, alwith_docs_search with query model, and alwith_docs_fetch for models. Cite the returned chapter URL and report the returned application version. Do not use shell, web search or read files."
+          }
+        ])
+        await until(
+          () => {
+            if (client.state.actions.some((action) => action.sessionId === id))
+              throw new Error("Documentation query unexpectedly requires manual approval")
+            return client.session(id).state === "idle" && assistantText(client.session(id)).length > 0
+          },
+          120_000,
+          "ALwith Docs application tool completion"
+        )
+        const session = client.session(id)
+        const tools = session.items.filter((item) => item.kind === "tool" && item.status === "completed")
+        for (const name of ["alwith_docs_outline", "alwith_docs_search", "alwith_docs_fetch"])
+          if (!tools.some((item) => JSON.stringify(item).includes(name)))
+            throw new Error(`Application tool did not complete: ${name}`)
+        const reply = assistantText(session)
+        if (!reply.includes("alwith-docs://guide/models") || !reply.includes(manifest.version))
+          throw new Error("ALwith Docs response did not cite its versioned chapter")
+        console.log("docs: model called all three application tools and cited the installed guide")
+      } finally {
+        await client.delete(id)
+      }
+      return
+    }
     await verifyShell(client, directory)
 
     const draft = await client.prepareDraft("main", directory)

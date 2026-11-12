@@ -44,19 +44,3 @@ export function installDocsSkill(source: string, codexHome: string): "installed"
   renameSync(temporary, join(target, marker))
   return "installed"
 }
-
-/** Per-process MCP configuration, never a write to the user's config.toml. */
-export function docsSessionConfig(source: string, command: string, server: string): string {
-  const config = JSON.parse(source) as Record<string, unknown>
-  const servers = config.mcp_servers
-  if (servers !== undefined && (typeof servers !== "object" || servers === null || Array.isArray(servers)))
-    throw new Error("Invalid MCP server configuration")
-  if (servers && "alwith_docs" in servers) throw new Error("The alwith_docs server name is reserved by ALwith U")
-  return JSON.stringify({
-    ...config,
-    mcp_servers: {
-      ...servers,
-      alwith_docs: { command, args: ["--no-install", server] }
-    }
-  })
-}

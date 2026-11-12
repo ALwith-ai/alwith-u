@@ -483,3 +483,45 @@ test("sidebar and task capsules share yellow running pulses and solid green unre
   expect(view.getByLabelText("Completed")).toHaveClass("bg-success", "rounded-full")
   expect(view.getByLabelText("Completed").querySelector('[style*="--uib-size"]')).toBeNull()
 })
+
+test("two running tasks keep running dots when one has a question that does not block execution", async () => {
+  const f = await fixture()
+  const question: VibemonObservation = {
+    ...f.value,
+    state: "running",
+    title: "Working with a question",
+    prompt: {
+      kind: "question",
+      token: "async-question",
+      title: "Codex keeps working while you answer",
+      detail: "",
+      options: []
+    }
+  }
+  const other: VibemonObservation = {
+    ...f.value,
+    binding: { ...f.value.binding, sessionId: "two" },
+    title: "Other task",
+    state: "running"
+  }
+  await f.update({
+    taskFeed: {
+      tasks: [question, other],
+      panel: "expanded",
+      mainMinimized: false
+    }
+  })
+  const view = render(<VibemonQuickReply />)
+  expect(view.container.querySelectorAll('.vibemon-task-card[data-tone="running"]')).toHaveLength(2)
+  expect(view.container.querySelector('.vibemon-task-card[data-tone="waiting"]')).not.toBeInTheDocument()
+  expect(view.getByText("Codex keeps working while you answer")).toBeInTheDocument()
+  await f.update({
+    taskFeed: {
+      tasks: [{ ...question, state: "requires_action" }, other],
+      panel: "expanded",
+      mainMinimized: false
+    }
+  })
+  expect(view.container.querySelectorAll('.vibemon-task-card[data-tone="running"]')).toHaveLength(1)
+  expect(view.container.querySelector('.vibemon-task-card[data-tone="waiting"]')).toBeInTheDocument()
+})

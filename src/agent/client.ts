@@ -4,8 +4,8 @@ import { type StateSetter } from "@alwith/api/client"
 // U's Codex client extends the adapter-owned ACP client with two chat slots, gateway
 // model hints, and fork titles. Runtime transport and run states remain in @alwith/api.
 import {
-  type Agent,
-  type AgentRequest,
+  type ApplicationTool,
+  type ApplicationToolSelection,
   type ClientOptions as BaseClientOptions,
   CodexClient as CodexAcpClient,
   type CodexClientState,
@@ -16,7 +16,6 @@ import {
   isGroupedSelect,
   isImage,
   isSelectOption,
-  isToolCallSubject,
   mergeMeta,
   type NewSessionOptions,
   type PendingAction,
@@ -27,17 +26,13 @@ import {
   type SessionRequestOptions,
   type SessionSummary
 } from "@alwith/module-chat/client"
-import { IMAGE_TOOL, imageArtifacts, imageModel, type ImageSelection, imageToolSet } from "@alwith/module-chat/image"
+import { imageArtifacts, imageModel, type ImageSelection } from "@alwith/module-chat/image"
 
 import { isAuthenticationRequired } from "../core/request-error"
 import { customModelEffort } from "./custom-model-effort"
 import { forkTitle } from "./fork-title"
-import {
-  IMAGE_WORKFLOW_INSTRUCTIONS,
-  imageGenerationPrompt,
-  type ImageRequestAspect,
-  imageRequestAspect
-} from "./image-request"
+import { IMAGE_WORKFLOW_INSTRUCTIONS, imageRequestAspect } from "./image-request"
+import { createImageTool, type ImageToolRequest } from "./image-tools"
 import { parseInputSnapshot, type SessionInputConfig, type SessionInputConfigSnapshot } from "./input-config"
 import { type InputMode, inputModeDefinition, isInputMode } from "./input-modes"
 import { executionMeta } from "./input-modes/execution-meta"
@@ -140,7 +135,10 @@ export class CodexClient extends CodexAcpClient<AppState> {
     )
     this.resolveModelOption = resolveModel
     this.imageService = imageService
+    this.imageTool = imageService ? createImageTool(imageService, (id) => this.imageRequests.get(id)) : undefined
   }
+
+  private readonly imageTool: ApplicationTool | undefined
 
   private readonly imageService: ClientOptions["imageService"]
   private readonly inputModes = new Map<string, InputMode>()
@@ -174,10 +172,7 @@ export class CodexClient extends CodexAcpClient<AppState> {
     return snapshot
   }
 
-  private readonly imageRequests = new Map<
-    string,
-    { selection: ImageSelection; references: Map<string, string>; aspect?: ImageRequestAspect }
-  >()
+  private readonly imageRequests = new Map<string, ImageToolRequest>()
 
   override prompt(id: string, prompt: acp.ContentBlock[], options: PromptOptions = {}): Promise<string> {
     if (!this.imageService) return super.prompt(id, prompt, options)
@@ -256,7 +251,6 @@ export class CodexClient extends CodexAcpClient<AppState> {
     return executionMeta(super.promptMeta(id, options))
   }
 
-  private readonly activeImages = new Map<string, Set<AbortController>>()
   private readonly promptImages = new Map<string, Map<string, string>>()
 
   promptWithImages(id: string, prompt: acp.ContentBlock[], options: PromptOptions = {}): Promise<string> {
@@ -266,125 +260,13 @@ export class CodexClient extends CodexAcpClient<AppState> {
     })
   }
 
-  protected override handleAgentRequest(agent: Agent, request: AgentRequest): boolean {
-    if (this.imageService && request.method === "session/request_permission") {
-      const params = request.params as acp.RequestPermissionRequest
-      const session = this.state.sessions[params.sessionId]
-      // The adapter identifies a declared client tool with its exact description in the permission title.
-      // Sending an image prompt already authorizes this tool; other permissions stay in the normal ledger.
-      if (
-        session?.attached &&
-        !session.readOnly &&
-        this.imageRequests.has(params.sessionId) &&
-        params.title === imageToolSet.definitions[0].description &&
-        params.subject != null &&
-        isToolCallSubject(params.subject) &&
-        params.subject.toolCall.kind === "other" &&
-        params.options.some((option) => option.optionId === "allow_once" && option.kind === "allow_once")
-      ) {
-        void agent.respond(request.id, { outcome: { outcome: "selected", optionId: "allow_once" } })
-        return true
-      }
-    }
-    if (!this.imageService || request.method !== "_alwith/tool/call") return super.handleAgentRequest(agent, request)
-    const params = request.params as {
-      sessionId?: unknown
-      name?: unknown
-      arguments?: unknown
-      toolSetRevision?: unknown
-      toolCallId?: unknown
-    }
-    if (params.name !== IMAGE_TOOL) return super.handleAgentRequest(agent, request)
-    const run = async () => {
-      if (typeof params.sessionId !== "string" || params.toolSetRevision !== imageToolSet.revision)
-        throw new Error("Invalid image tool session or revision")
-      const sessionId = params.sessionId
-      const snapshot = this.imageRequests.get(sessionId)
-      const session = this.state.sessions[sessionId]
-      if (this.inputModes.get(sessionId) !== "image")
-        throw new Error("Use the native image generation tool in ordinary chat conversations")
-      if (!snapshot || !session?.attached || session.readOnly) throw new Error("Image request is no longer active")
-      const args = params.arguments as { prompt?: unknown; references?: unknown }
-      if (
-        typeof args?.prompt !== "string" ||
-        !args.prompt.trim() ||
-        (args.references !== undefined &&
-          (!Array.isArray(args.references) || args.references.some((ref) => typeof ref !== "string")))
-      )
-        throw new Error("Invalid image instructions or references")
-      const ids = args.references as string[] | undefined
-      const images = (ids ?? [...snapshot.references.keys()].filter((id) => id.startsWith("attachment:"))).map((id) => {
-        const image = snapshot.references.get(id)
-        if (!image) throw new Error(`Unknown image reference: ${id}`)
-        return image
-      })
-      const model = imageModel(snapshot.selection)
-      if (images.length > model.maxReferences) throw new Error(`This model supports ${model.maxReferences} references`)
-      const controller = new AbortController()
-      const active = this.activeImages.get(sessionId) ?? new Set<AbortController>()
-      active.add(controller)
-      this.activeImages.set(sessionId, active)
-      let result: { images: { mimeType: string; data: string }[] }
-      try {
-        const prompt = imageGenerationPrompt(args.prompt, snapshot.aspect)
-        result =
-          model.provider === "chatgpt"
-            ? await agent.request(
-                "_codex/images/generate",
-                { prompt, images },
-                { cancellationSignal: controller.signal }
-              )
-            : await this.imageService!.generateExternal(snapshot.selection, prompt, images, controller.signal)
-      } finally {
-        active.delete(controller)
-        if (!active.size) this.activeImages.delete(sessionId)
-      }
-      controller.signal.throwIfAborted()
-      if (this.imageRequests.get(sessionId) !== snapshot || !this.state.sessions[sessionId]?.attached)
-        throw new Error("Image request was cancelled or replaced")
-      result.images.forEach((image, index) =>
-        snapshot.references.set(
-          `${String(params.toolCallId)}:${index + 1}`,
-          `data:${image.mimeType};base64,${image.data}`
-        )
-      )
-      return {
-        success: true,
-        contentItems: [
-          {
-            type: "text",
-            text: JSON.stringify({
-              kind: "alwith.image",
-              version: 1,
-              model: model.id,
-              size: snapshot.selection.size,
-              displayed: true,
-              message:
-                "The application already displays these images and provides downloads. Finish with the returned image reference; do not regenerate, echo image data or write files to deliver this result.",
-              references: ids ?? [],
-              images: result.images.map((_, index) => ({ reference: `${String(params.toolCallId)}:${index + 1}` }))
-            })
-          },
-          ...result.images.map((image) => ({ type: "image", ...image }))
-        ]
-      }
-    }
-    void run()
-      .then(
-        (result) => agent.respond(request.id, result),
-        (error) =>
-          agent.respond(request.id, {
-            success: false,
-            contentItems: [{ type: "text", text: error instanceof Error ? error.message : String(error) }]
-          })
-      )
-      .catch(() => undefined)
-    return true
+  protected override async applicationToolsFor(selection: ApplicationToolSelection) {
+    const inherited = await super.applicationToolsFor(selection)
+    const alwith = selection.options.meta?.alwith as { nativeTools?: { imageGeneration?: boolean } } | undefined
+    return [...inherited, ...(alwith?.nativeTools?.imageGeneration === false && this.imageTool ? [this.imageTool] : [])]
   }
 
   private releaseImages(id: string): void {
-    for (const controller of this.activeImages.get(id) ?? []) controller.abort()
-    this.activeImages.delete(id)
     this.imageRequests.delete(id)
   }
 
@@ -674,14 +556,12 @@ export class CodexClient extends CodexAcpClient<AppState> {
           ? ((options.meta?.alwith as { inputMode?: InputMode } | undefined)?.inputMode ?? "chat")
           : await this.imageService.inputMode(sourceId)
       const definition = inputModeDefinition(inputMode)
-      const tools = definition.tools
       const meta = executionMeta(options.meta)
       const alwith: Record<string, unknown> = {
         ...(meta?.alwith as Record<string, unknown> | undefined),
         nativeTools: definition.nativeTools
       }
       delete alwith.tools
-      if (tools) alwith.tools = tools
       const context = await this.requestModelContext(cwd, operation, {
         ...options,
         meta: { ...meta, alwith }

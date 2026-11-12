@@ -9,10 +9,12 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { useStore } from "zustand"
 
 import type { AppState } from "@/agent/client"
+import { createDocsTools } from "@/agent/docs-tools"
 import { macProjectPaths } from "@/agent/project-path"
 import { configureSessionInputConfig, readSessionInputMode } from "@/features/chat/composer/input-mode-config"
 import { computerRuntimeEnv } from "@/features/computer/runtime-config"
 import { hostSessionContext } from "@/features/computer/session-context"
+import { guideChapters, guideVersion } from "@/features/guide/content"
 import { useImagePreferences } from "@/features/images/preferences"
 import { RemoteChatClient } from "@/lib/chat-window-client"
 import { DesktopCodexClient } from "@/lib/desktop-client"
@@ -26,6 +28,7 @@ export const client =
     : new DesktopCodexClient(runtimeClient, {
         agentId: CODEX_AGENT_ID,
         launch: { engine: "codex", env: computerRuntimeEnv },
+        applicationTools: createDocsTools({ chapters: guideChapters, version: guideVersion }),
         imageService: {
           inputMode: readSessionInputMode,
           selection: () => useImagePreferences.getState().selection,

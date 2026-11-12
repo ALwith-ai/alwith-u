@@ -7,16 +7,22 @@ import {
   CheckIcon,
   CloudIcon,
   CpuIcon,
+  DownloadIcon,
   FileTextIcon,
   FolderIcon,
+  ImageIcon,
   KeyboardIcon,
   LayersIcon,
   MessageSquareIcon,
+  MicIcon,
+  MonitorIcon,
   PanelLeftIcon,
+  PawPrintIcon,
   PlayIcon,
   PlusIcon,
   SearchIcon,
   ShieldCheckIcon,
+  SmartphoneIcon,
   WrenchIcon
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
@@ -38,6 +44,12 @@ const icons = {
   PanelLeftIcon,
   MessageSquareIcon,
   CpuIcon,
+  DownloadIcon,
+  ImageIcon,
+  MicIcon,
+  MonitorIcon,
+  PawPrintIcon,
+  SmartphoneIcon,
   FolderIcon,
   LayersIcon,
   CloudIcon,
@@ -49,6 +61,12 @@ const details = chapters.map((chapter) => {
   if (!icon) throw new Error(`Unknown guide icon: ${chapter.icon}`)
   return { ...chapter, icon }
 })
+
+function chapterIndex(id: string): number {
+  const index = chapters.findIndex((chapter) => chapter.id === id)
+  if (index < 0) throw new Error(`Unknown guide chapter: ${id}`)
+  return index
+}
 
 function InterfaceMap({ navigate }: { navigate: (index: number) => void }) {
   return (
@@ -68,7 +86,7 @@ function InterfaceMap({ navigate }: { navigate: (index: number) => void }) {
           <div className="guide-interface-project">
             <FolderIcon /> My project
           </div>
-          <Button variant="secondary" onClick={() => navigate(2)}>
+          <Button variant="secondary" onClick={() => navigate(chapterIndex("start"))}>
             <MessageSquareIcon /> First task
           </Button>
           <div className="guide-interface-account">Account & settings</div>
@@ -86,7 +104,7 @@ function InterfaceMap({ navigate }: { navigate: (index: number) => void }) {
               Review the result.
             </span>
           </div>
-          <Button variant="outline" className="guide-interface-compose" onClick={() => navigate(3)}>
+          <Button variant="outline" className="guide-interface-compose" onClick={() => navigate(chapterIndex("chat"))}>
             Describe your next task
             <ArrowRightIcon />
           </Button>
@@ -97,7 +115,7 @@ function InterfaceMap({ navigate }: { navigate: (index: number) => void }) {
           <div />
           <div />
           <div />
-          <Button variant="ghost" onClick={() => navigate(5)}>
+          <Button variant="ghost" onClick={() => navigate(chapterIndex("files"))}>
             Open files
           </Button>
         </div>
@@ -125,11 +143,11 @@ function GuideHome({ navigate }: { navigate: (index: number) => void }) {
             context, and review what your assistant produces.
           </p>
           <div className="guide-hero-actions">
-            <Button size="lg" onClick={() => navigate(1)}>
+            <Button size="lg" onClick={() => navigate(chapterIndex("start"))}>
               Start your first task
               <ArrowRightIcon />
             </Button>
-            <Button variant="outline" size="lg" onClick={() => navigate(2)}>
+            <Button variant="outline" size="lg" onClick={() => navigate(chapterIndex("interface"))}>
               Explore the interface
             </Button>
           </div>
@@ -160,7 +178,21 @@ function GuideHome({ navigate }: { navigate: (index: number) => void }) {
           <p>Jump into the part of the workflow you need.</p>
         </div>
         <div className="guide-topic-grid">
-          {[3, 4, 5, 6, 7, 9].map((index) => {
+          {[
+            "chat",
+            "models",
+            "files",
+            "sessions",
+            "images",
+            "voice",
+            "computer",
+            "plugins",
+            "cloud-vibemon",
+            "mobile",
+            "import",
+            "troubleshooting"
+          ].map((id) => {
+            const index = chapterIndex(id)
             const Icon = details[index].icon
             return (
               <Button key={index} variant="outline" className="guide-topic-card" onClick={() => navigate(index)}>

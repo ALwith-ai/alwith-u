@@ -12,7 +12,7 @@ Read the [ALwith U Guide](guide/index.md), or click the question-mark button nex
 
 Ask **ALwith Docs** in chat for versioned setup, model configuration and troubleshooting guidance. Its chapter citations open the same guide. Manage the skill in the existing Skills catalog.
 
-The guide reader and documentation tools share `guide/index.md` and `guide/catalog.json`. `bun run docs:build` bundles the offline documentation service and generates the skill's reference manual; development, production builds and sidecar staging run this step automatically. Edit the source guide, not the generated files in `src-tauri/resources/adapter/alwith-docs`. `bun scripts/verify-docs.ts` checks the staged service and Codex skill catalog in an isolated home without using a model or copying login credentials.
+The guide reader and documentation tools share `guide/index.md` and `guide/catalog.json`. `bun run docs:build` generates the skill's reference manual; development, production builds and sidecar staging run this step automatically. Edit the source guide, not the generated files in `src-tauri/resources/adapter/alwith-docs`. `bun scripts/verify-docs.ts` checks the Codex skill catalog in an isolated home without using a model or copying login credentials.
 
 ## Install from source
 

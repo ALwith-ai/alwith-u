@@ -24,12 +24,28 @@
     "keywords": "界面 导航 侧栏"
   },
   {
+    "id": "import",
+    "icon": "DownloadIcon",
+    "summary": "Bring supported setup, projects and conversations into U.",
+    "group": "Getting started",
+    "takeaway": "Inspect successes and failures before retrying an import.",
+    "keywords": "导入 迁移 历史 项目 配置 Cursor Claude"
+  },
+  {
     "id": "chat",
     "icon": "MessageSquareIcon",
     "summary": "Write a clear request, manage a running turn, and review the result.",
     "group": "Daily work",
     "takeaway": "Ask for a concrete outcome and evidence that it works.",
     "keywords": "聊天 对话 历史 权限 停止"
+  },
+  {
+    "id": "sessions",
+    "icon": "MessageSquareIcon",
+    "summary": "Search, rename, organize and delete conversations, or open a separate chat window.",
+    "group": "Daily work",
+    "takeaway": "Removing a collection record does not delete its conversation.",
+    "keywords": "会话 对话 搜索 重命名 删除 收藏 分组 独立窗口"
   },
   {
     "id": "models",
@@ -40,12 +56,36 @@
     "keywords": "模型 供应商 密钥 价格 迁移 提示词"
   },
   {
+    "id": "images",
+    "icon": "ImageIcon",
+    "summary": "Configure image access, create with references, refine results and save images.",
+    "group": "Daily work",
+    "takeaway": "Image-model access is separate from the text model selected for a chat.",
+    "keywords": "图片 图像 生成 生图 编辑 参考图 下载 分辨率 比例"
+  },
+  {
+    "id": "voice",
+    "icon": "MicIcon",
+    "summary": "Configure dictation, automatic sending, hands-free input and voice calls.",
+    "group": "Daily work",
+    "takeaway": "Choose whether speech becomes an editable draft or sends automatically.",
+    "keywords": "语音 录音 麦克风 听写 自动发送 免提 通话 热词"
+  },
+  {
     "id": "files",
     "icon": "FolderIcon",
     "summary": "Navigate, preview, edit, and review files alongside the assistant.",
     "group": "Daily work",
     "takeaway": "Confirm the project folder before allowing file changes.",
     "keywords": "文件 项目 编辑 保存"
+  },
+  {
+    "id": "computer",
+    "icon": "MonitorIcon",
+    "summary": "Grant computer access, observe actions and recover disconnected tools.",
+    "group": "Daily work",
+    "takeaway": "Reconnect and inspect the screen before repeating an interrupted action.",
+    "keywords": "电脑 操作 控制 屏幕 辅助功能 录屏 权限 重连 模拟器 设备"
   },
   {
     "id": "plugins",
@@ -56,12 +96,28 @@
     "keywords": "技能 插件 扩展 安装 启用 禁用"
   },
   {
+    "id": "mobile",
+    "icon": "SmartphoneIcon",
+    "summary": "Pair a phone with this U, verify access and manage trusted devices.",
+    "group": "Make it yours",
+    "takeaway": "Account sign-in and phone pairing are separate steps.",
+    "keywords": "手机 连接 配对 二维码 扫码 信任 设备 解绑"
+  },
+  {
     "id": "cloud-vibemon",
     "icon": "CloudIcon",
-    "summary": "Check cloud transfers and manage your Vibémon companion.",
+    "summary": "Browse cloud files, review sharing permissions and verify transfers.",
     "group": "Make it yours",
-    "takeaway": "Verify transfer status before relying on a cloud copy.",
-    "keywords": "云盘 同步 宠物 休息室"
+    "takeaway": "A local save is different from a completed upload.",
+    "keywords": "云盘 文件 同步 上传 下载 分享 共享 权限 链接 固定 发布"
+  },
+  {
+    "id": "vibemon",
+    "icon": "PawPrintIcon",
+    "summary": "Equip, show, close and recall your Vibémon companion.",
+    "group": "Make it yours",
+    "takeaway": "Return to lounge is distinct from the account menu visibility controls.",
+    "keywords": "宠物 伙伴 休息室 叫回 显示 隐藏 装备 Vibémon"
   },
   {
     "id": "settings",
@@ -69,7 +125,7 @@
     "summary": "Adjust your workspace and learn the shortcuts you will use most.",
     "group": "Make it yours",
     "takeaway": "Use button tooltips to discover shortcuts as you work.",
-    "keywords": "设置 快捷键 版本 更新"
+    "keywords": "设置 快捷键 版本 更新 图片 语音 电脑 导入 触控板 浏览器"
   },
   {
     "id": "troubleshooting",
@@ -77,6 +133,6 @@
     "summary": "Diagnose connection, model, file, and integration problems.",
     "group": "Support",
     "takeaway": "Capture the exact error and check for partial changes before retrying.",
-    "keywords": "故障 排错 错误 失败"
+    "keywords": "故障 排错 错误 失败 诊断 导出 白屏 加载 断开 重连"
   }
 ]

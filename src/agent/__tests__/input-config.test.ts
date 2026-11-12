@@ -23,8 +23,6 @@ test("storage canonicalizes JSON while mode definitions validate their own setti
 
 test("each mode owns tool registration and prompt routing", () => {
   const routes = { native: () => "native", image: () => "configured-image" }
-  expect(inputModeDefinition("chat").tools).toBeUndefined()
   expect(inputModeDefinition("chat").routePrompt(routes)).toBe("native")
-  expect(inputModeDefinition("image").tools?.definitions).not.toHaveLength(0)
   expect(inputModeDefinition("image").routePrompt(routes)).toBe("configured-image")
 })

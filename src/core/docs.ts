@@ -9,7 +9,7 @@ export type ChapterMetadata = {
 
 export type GuideChapter = ChapterMetadata & { title: string; text: string; url: string }
 
-/** One parser for the bundled reader and the documentation service. */
+/** One parser for the bundled reader and the application documentation tools. */
 export function parseGuide(content: string, metadata: ChapterMetadata[]): GuideChapter[] {
   const sections = content.split(/^## /m)
   if (sections.length !== metadata.length) throw new Error("Guide chapters and catalog must match")

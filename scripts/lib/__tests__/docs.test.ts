@@ -1,15 +1,12 @@
 import { afterEach, expect, test } from "bun:test"
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 
-import { Client } from "@modelcontextprotocol/sdk/client/index.js"
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js"
-
 import metadata from "../../../guide/catalog.json"
 import { parseGuide, searchGuide } from "../../../src/core/docs"
-import { docsSessionConfig, installDocsSkill } from "../docs-install"
-import { createDocsServer } from "../docs-server"
+import { stageDocs } from "../docs-artifact"
+import { installDocsSkill } from "../docs-install"
 
 const chapters = parseGuide(readFileSync(join(import.meta.dirname, "../../../guide/index.md"), "utf8"), metadata)
 const temporary: string[] = []
@@ -38,29 +35,6 @@ test("search handles English and natural Chinese questions, and returns no inven
   expect(() => searchGuide(chapters, "  ")).toThrow()
 })
 
-test("MCP search, fetch and outline return the same versioned source and reject unknown IDs", async () => {
-  const server = createDocsServer(chapters, "1.2.3")
-  const client = new Client({ name: "docs-test", version: "1.0.0" })
-  const [a, b] = InMemoryTransport.createLinkedPair()
-  await server.connect(b)
-  await client.connect(a)
-  try {
-    expect((await client.listTools()).tools.map((tool) => tool.name)).toEqual(["search", "fetch", "outline"])
-    const result = await client.callTool({ name: "fetch", arguments: { id: "models" } })
-    const content = result.content as { text: string }[]
-    const fetched = JSON.parse(content[0].text)
-    expect(fetched.version).toBe("1.2.3")
-    expect(fetched.data.text).toBe(chapters.find((chapter) => chapter.id === "models")!.text)
-    expect(fetched.data.url).toBe("alwith-docs://guide/models")
-    expect((await client.callTool({ name: "outline" })).isError).not.toBe(true)
-    expect((await client.callTool({ name: "search", arguments: { query: "模型" } })).isError).not.toBe(true)
-    expect((await client.callTool({ name: "fetch", arguments: { id: "../../private" } })).isError).toBe(true)
-  } finally {
-    await client.close()
-    await server.close()
-  }
-})
-
 test("managed skill upgrades keep its path and preserve subsequent user edits", () => {
   const { home, source, installed } = fixture()
   expect(installDocsSkill(source, home)).toBe("installed")
@@ -80,11 +54,34 @@ test("existing user skills are never claimed by the installer", () => {
   expect(readFileSync(join(installed, "SKILL.md"), "utf8")).toBe("user skill")
 })
 
-test("MCP configuration is session-local and retains other tools and settings", () => {
-  const source = JSON.stringify({ features: { computer_use: false }, mcp_servers: { other: { command: "other" } } })
-  const config = JSON.parse(docsSessionConfig(source, "/bundled bun", "/resources/docs/server.mjs"))
-  expect(config.features.computer_use).toBe(false)
-  expect(config.mcp_servers.other.command).toBe("other")
-  expect(config.mcp_servers.alwith_docs.args).toEqual(["--no-install", "/resources/docs/server.mjs"])
-  expect(() => docsSessionConfig(JSON.stringify(config), "bun", "docs")).toThrow("reserved")
+test("staging replaces standalone-server artifacts with the skill and shared manual", async () => {
+  const { source } = fixture()
+  writeFileSync(join(source, "server.mjs"), "obsolete server")
+  writeFileSync(join(source, "THIRD_PARTY_NOTICES.txt"), "obsolete server licenses")
+  await stageDocs(join(import.meta.dirname, "../../.."), source)
+  expect(existsSync(join(source, "server.mjs"))).toBe(false)
+  expect(existsSync(join(source, "THIRD_PARTY_NOTICES.txt"))).toBe(false)
+  const manual = readFileSync(join(source, "references/manual.md"), "utf8")
+  for (const chapter of chapters) {
+    expect(manual).toContain(chapter.text)
+    expect(manual).toContain(chapter.url)
+  }
+})
+
+test("new workflows are searchable and every chapter citation resolves", () => {
+  for (const [query, id] of [
+    ["图片生成", "images"],
+    ["语音听写", "voice"],
+    ["电脑重连", "computer"],
+    ["手机配对", "mobile"],
+    ["导入历史", "import"],
+    ["会话收藏", "sessions"],
+    ["叫回休息室", "vibemon"],
+    ["云盘分享", "cloud-vibemon"],
+    ["诊断导出", "troubleshooting"]
+  ])
+    expect(searchGuide(chapters, query)[0]?.id).toBe(id)
+  const urls = new Set(chapters.map((chapter) => chapter.url))
+  for (const chapter of chapters)
+    for (const link of chapter.text.matchAll(/alwith-docs:\/\/guide\/[a-z-]+/g)) expect(urls.has(link[0])).toBe(true)
 })

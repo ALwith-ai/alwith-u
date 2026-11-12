@@ -45,8 +45,12 @@ test("all new, resumed and forked conversations receive the application grant", 
     expect(native.bind).toHaveBeenLastCalledWith({ token: "token", sessionId: "destination" })
     expect(context.appendSystemPrompt).toContain("Workspace knowledge")
     expect(context.appendSystemPrompt).not.toContain("generate_image")
+    expect(context.appendSystemPrompt).toContain("Only when the task requires computer use")
+    expect(context.appendSystemPrompt).toContain("do not discover computer tools")
+    expect(context.appendSystemPrompt).toContain("enumerate computer resources or resource templates")
   }
   expect(native.context.mock.calls.every((args) => args.length === 0)).toBe(true)
+  expect(native.ready).not.toHaveBeenCalled()
 })
 test("an unavailable computer host does not remove the workspace context", async () => {
   expect((await hostSessionContext("/project", { kind: "new" })).mcpServers).toEqual([])

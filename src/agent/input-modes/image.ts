@@ -1,11 +1,10 @@
-import { imageModel, type ImageSelection, imageToolSet } from "@alwith/module-chat/image"
+import { imageModel, type ImageSelection } from "@alwith/module-chat/image"
 
 import type { SessionInputConfig } from "../input-config"
 import { imageApplicationContext } from "./image-context"
 
 export const imageInputMode = {
   persistConfig: true,
-  tools: imageToolSet,
   nativeTools: { imageGeneration: false },
   applicationContext: imageApplicationContext,
   parseConfig(config: SessionInputConfig["config"]): ImageSelection {

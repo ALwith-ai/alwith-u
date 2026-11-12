@@ -38,6 +38,7 @@ export type FakeAgent = {
   /** Pushes a `_codex/rate_limits_updated` notification to the connected client. */
   pushRateLimits: (usedPercent: number) => Promise<void>
   pushUpdate: (sessionId: string, update: acp.SessionUpdate) => Promise<void>
+  requestPermission: (params: acp.RequestPermissionRequest) => Promise<acp.RequestPermissionResponse>
   requestTool: (params: unknown) => Promise<unknown>
   requestForm: (params: acp.CreateElicitationRequest) => Promise<acp.CreateElicitationResponse>
   resumeResponse: { current: ((signal: AbortSignal) => Promise<acp.ResumeSessionResponse>) | null }
@@ -506,9 +507,17 @@ export function createFakeAgent(): FakeAgent {
     historyResponse,
     resumeResponse,
     pushRateLimits,
+    requestPermission: async (params) => {
+      if (link === null) throw new Error("Fake agent is not connected")
+      return link.request("session/request_permission", params)
+    },
     requestTool: async (params) => {
       if (link === null) throw new Error("Fake agent is not connected")
-      return link.request("_alwith/tool/call", params)
+      return link.request("_alwith/tool/call", {
+        turnId: "tool-turn",
+        toolCallId: crypto.randomUUID(),
+        ...(params as Record<string, unknown>)
+      })
     },
     requestForm: async (params) => {
       if (link === null) throw new Error("Fake agent is not connected")

@@ -5,7 +5,7 @@ import { isAbsolute, join } from "node:path"
 import { fileURLToPath } from "node:url"
 
 import { interactiveSessionConfig } from "./lib/codex-session-config"
-import { docsSessionConfig, installDocsSkill } from "./lib/docs-install"
+import { installDocsSkill } from "./lib/docs-install"
 import { prepareModelCatalog } from "./lib/model-catalog"
 
 async function start(): Promise<void> {
@@ -18,11 +18,7 @@ async function start(): Promise<void> {
   if (installDocsSkill(docs, process.env.CODEX_HOME || join(homedir(), ".codex")) === "preserved") {
     process.stderr.write("[alwith-docs] Preserved an existing or user-edited alwith-docs skill.\n")
   }
-  process.env.CODEX_CONFIG = docsSessionConfig(
-    interactiveSessionConfig(process.env.CODEX_CONFIG),
-    process.execPath,
-    join(docs, "server.mjs")
-  )
+  process.env.CODEX_CONFIG = interactiveSessionConfig(process.env.CODEX_CONFIG)
   const catalog = prepareModelCatalog({ command, prefixArgs: [], shell: false }, process.env, probe.stdout.trim())
   if (catalog.path === null) delete process.env.ALWITH_U_CODEX_CATALOG
   else process.env.ALWITH_U_CODEX_CATALOG = catalog.path

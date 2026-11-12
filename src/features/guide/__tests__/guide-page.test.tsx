@@ -32,8 +32,8 @@ test("home cards and the interface map open chapters and return to the guide hom
   fireEvent.click(view.getByRole("button", { name: "Guide home" }))
   fireEvent.click(view.getByRole("button", { name: /^Choose a model / }))
   expect(view.getByRole("main", { name: "Choose a model" })).toBeTruthy()
-  fireEvent.click(view.getByRole("button", { name: "Next Work with project files" }))
-  expect(view.getByRole("main", { name: "Work with project files" })).toBeTruthy()
+  fireEvent.click(view.getByRole("button", { name: "Next Generate and edit images" }))
+  expect(view.getByRole("main", { name: "Generate and edit images" })).toBeTruthy()
 })
 
 test("the bundled English guide starts at welcome and navigates to complete chapters", () => {
@@ -46,7 +46,14 @@ test("the bundled English guide starts at welcome and navigates to complete chap
     "Choose a model",
     "Work with project files",
     "Plugins and extensions",
-    "Cloud files and Vibémon",
+    "Manage conversations",
+    "Generate and edit images",
+    "Use voice",
+    "Use your computer",
+    "Connect a phone",
+    "Import existing work",
+    "Cloud files",
+    "Manage Vibémon",
     "Settings and shortcuts",
     "Troubleshooting"
   ]) {
@@ -66,4 +73,18 @@ test.each(["Win32", "MacIntel"] as const)("%s uses the appropriate guide title b
   else expect(header).toHaveTextContent("ALwith U Guide")
   expect(view.getByRole("navigation", { name: "Guide chapters" })).toBeVisible()
   expect(view.getByRole("main", { name: "Welcome" })).toBeVisible()
+})
+
+test("expanded home topics and historical cloud citations keep their intended destinations", () => {
+  const view = render(<GuidePage />)
+  for (const title of ["Generate and edit images", "Use voice", "Use your computer", "Troubleshooting"]) {
+    fireEvent.click(view.getByRole("button", { name: new RegExp(`^${title} `) }))
+    expect(view.getByRole("main", { name: title })).toBeVisible()
+    fireEvent.click(view.getByRole("button", { name: "Guide home" }))
+  }
+  act(() => {
+    localStorage.setItem(guideLocationKey, JSON.stringify({ id: "cloud-vibemon" }))
+    window.dispatchEvent(new StorageEvent("storage", { key: guideLocationKey }))
+  })
+  expect(view.getByRole("main", { name: "Cloud files" })).toBeVisible()
 })

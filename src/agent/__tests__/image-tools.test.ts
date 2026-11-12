@@ -37,7 +37,7 @@ test("ChatGPT images use the adapter account extension and keep an ordinary sess
       sessionId: id,
       toolCallId: "image",
       name: "generate_image",
-      toolSetRevision: "images-v1",
+      toolSetRevision: JSON.stringify([["generate_image", "images-v1"]]),
       arguments: { prompt: "A tree" }
     })
     expect(result).toMatchObject({ success: true, contentItems: [{ type: "text" }, { type: "image", data: "cG5n" }] })
@@ -64,7 +64,7 @@ test("model switching cannot reroute an admitted image request and tool results 
     turnId: "turn",
     toolCallId: "image-1",
     name: "generate_image",
-    toolSetRevision: "images-v1",
+    toolSetRevision: JSON.stringify([["generate_image", "images-v1"]]),
     arguments: { prompt: "A blue tree" }
   })
   expect(generateExternal).toHaveBeenCalledWith(
@@ -80,7 +80,7 @@ test("model switching cannot reroute an admitted image request and tool results 
     turnId: "turn",
     toolCallId: "image-2",
     name: "generate_image",
-    toolSetRevision: "images-v1",
+    toolSetRevision: JSON.stringify([["generate_image", "images-v1"]]),
     arguments: { prompt: "A tree" }
   })
   expect(invalid).toMatchObject({ success: false })
@@ -96,7 +96,7 @@ test("unknown reference IDs fail without charging a provider", async () => {
   const result = await fake.requestTool({
     sessionId,
     name: "generate_image",
-    toolSetRevision: "images-v1",
+    toolSetRevision: JSON.stringify([["generate_image", "images-v1"]]),
     arguments: { prompt: "Edit it", references: ["invented"] }
   })
   expect(result).toMatchObject({ success: false })
@@ -117,7 +117,7 @@ test("a prompt carries its own image selection even when another window's prefer
       await fake.requestTool({
         sessionId: id,
         name: "generate_image",
-        toolSetRevision: "images-v1",
+        toolSetRevision: JSON.stringify([["generate_image", "images-v1"]]),
         arguments: { prompt: "A mountain" }
       })
     ).toMatchObject({ success: true })
@@ -144,7 +144,7 @@ test("aspect ratio is frozen per prompt and translated to instructions without i
     const result = await fake.requestTool({
       sessionId: id,
       name: "generate_image",
-      toolSetRevision: "images-v1",
+      toolSetRevision: JSON.stringify([["generate_image", "images-v1"]]),
       arguments: { prompt: "A mountain at sunrise" }
     })
     expect(result).toMatchObject({ success: true })
@@ -181,7 +181,7 @@ test("cancelling a session aborts its image request and discards a late provider
     sessionId,
     toolCallId: "image-1",
     name: "generate_image",
-    toolSetRevision: "images-v1",
+    toolSetRevision: JSON.stringify([["generate_image", "images-v1"]]),
     arguments: { prompt: "A tree" }
   })
   await vi.waitFor(() => expect(generateExternal).toHaveBeenCalledOnce())
@@ -259,7 +259,7 @@ test("ordinary conversations do not advertise or execute the application image t
     const result = await fake.requestTool({
       sessionId: id,
       name: "generate_image",
-      toolSetRevision: "images-v1",
+      toolSetRevision: JSON.stringify([["generate_image", "images-v1"]]),
       arguments: { prompt: "A tree" }
     })
     expect(result).toMatchObject({ success: false })
@@ -305,7 +305,7 @@ test("restoring a saved image conversation restores its application tools before
       await fake.requestTool({
         sessionId: "saved-image",
         name: "generate_image",
-        toolSetRevision: "images-v1",
+        toolSetRevision: JSON.stringify([["generate_image", "images-v1"]]),
         arguments: { prompt: "Edited" }
       })
     ).toMatchObject({ success: true })
@@ -390,7 +390,7 @@ test("reopening reads native mode and image selection without a UI read priming 
     await fake.requestTool({
       sessionId: id,
       name: "generate_image",
-      toolSetRevision: "images-v1",
+      toolSetRevision: JSON.stringify([["generate_image", "images-v1"]]),
       arguments: { prompt: "A blue tree" }
     })
     expect(generateExternal).toHaveBeenCalledWith(saved, "A blue tree", [], expect.any(AbortSignal))
@@ -475,7 +475,7 @@ test.each(["MiniMax-H3-Image", "MiniMax-H3-Image-Highspeed"] as const)(
         sessionId,
         toolCallId: "minimax-original",
         name: "generate_image",
-        toolSetRevision: "images-v1",
+        toolSetRevision: JSON.stringify([["generate_image", "images-v1"]]),
         arguments: { prompt: "A tree" }
       })
       expect(generate).toMatchObject({ success: true })
@@ -484,7 +484,7 @@ test.each(["MiniMax-H3-Image", "MiniMax-H3-Image-Highspeed"] as const)(
         sessionId,
         toolCallId: "minimax-edit",
         name: "generate_image",
-        toolSetRevision: "images-v1",
+        toolSetRevision: JSON.stringify([["generate_image", "images-v1"]]),
         arguments: { prompt: "Make the leaves blue", references: ["minimax-original:1"] }
       })
       expect(edit).toMatchObject({ success: true })
