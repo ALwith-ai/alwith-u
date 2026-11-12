@@ -62,39 +62,45 @@ const transport = createAuthTransport({
 })
 const accountProviders = createManagedProvidersPort()
 const enterpriseBindings = new Map<number, { account: { apiBaseUrl: string; userUuid: string }; generation: number }>()
+async function validateAccount(userUuid: string): Promise<void> {
+  const profile = await transport.request<{ uuid: string }>("/api/v1/me/profile", "GET")
+  if (profile?.uuid !== userUuid || usePlatformAuth.getState().user?.user_uuid !== userUuid)
+    throw new Error("ALwith account changed during profile validation")
+}
 const managedProviders = createManagedProviders({
-  validate: async (userUuid) => {
-    const profile = await transport.request<{ uuid: string }>("/api/v1/me/profile", "GET")
-    if (profile?.uuid !== userUuid || usePlatformAuth.getState().user?.user_uuid !== userUuid)
-      throw new Error("ALwith account changed during profile validation")
-  },
+  validate: validateAccount,
+  bind: (userUuid) => accountProviders.bind({ apiBaseUrl: API_BASE_URL, userUuid }),
+  refresh: (generation) =>
+    transport.authenticated(async (accessToken) => {
+      await accountProviders.refresh(generation, accessToken)
+    }),
+  clear: () => accountProviders.clear()
+})
+const enterpriseProviders = createManagedProviders({
+  validate: validateAccount,
   bind: async (userUuid) => {
     const account = { apiBaseUrl: API_BASE_URL, userUuid }
-    const generation = await accountProviders.bind(account)
-    const enterpriseGeneration = await commands.enterpriseBind({ account })
-    enterpriseBindings.set(generation, { account, generation: enterpriseGeneration })
+    const generation = await commands.enterpriseBind({ account })
+    enterpriseBindings.set(generation, { account, generation })
     return generation
   },
   refresh: async (generation) => {
     const binding = enterpriseBindings.get(generation)
     if (!binding) throw new Error("Enterprise account binding is missing")
     await transport.authenticated(async (accessToken) => {
-      // Both catalogs belong to the same validated account, with independent gateways.
-      await accountProviders.refresh(generation, accessToken)
       await commands.enterpriseRefresh({ ...binding, accessToken })
     })
   },
   clear: async () => {
     enterpriseBindings.clear()
-    const results = await Promise.allSettled([commands.enterpriseClear(), accountProviders.clear()])
-    for (const result of results) if (result.status === "rejected") throw result.reason
+    await commands.enterpriseClear()
   }
 })
 async function clearAccountProviders(): Promise<void> {
-  try {
-    await managedProviders.clear()
-  } catch (error) {
-    toast.error(`ALwith model cleanup failed: ${String(error)}`)
+  const results = await Promise.allSettled([managedProviders.clear(), enterpriseProviders.clear()])
+  for (const [index, result] of results.entries()) {
+    if (result.status === "rejected")
+      toast.error(`${index === 0 ? "ALwith" : "Enterprise"} model cleanup failed: ${String(result.reason)}`)
   }
 }
 async function loadAccountProviders(): Promise<void> {
@@ -103,7 +109,13 @@ async function loadAccountProviders(): Promise<void> {
   if (!user) throw new Error("Sign in to refresh ALwith models")
   await managedProviders.refresh(user.user_uuid)
 }
-function refreshAccountProviders(): void {
+async function loadEnterpriseProviders(): Promise<void> {
+  if (!isMain()) throw new Error("Enterprise model refresh belongs to the main window")
+  const user = usePlatformAuth.getState().user
+  if (!user) throw new Error("Sign in to refresh enterprise models")
+  await enterpriseProviders.refresh(user.user_uuid)
+}
+function refreshSignedInProviders(): void {
   if (!isMain()) return
   void loadAccountProviders().catch((error: unknown) => {
     const message =
@@ -114,11 +126,17 @@ function refreshAccountProviders(): void {
           : String(error)
     toast.error(message)
   })
+  void loadEnterpriseProviders().catch(() => toast.error(i18n.t("enterprise.error")))
 }
 let requestProviderRefresh: (() => Promise<void>) | undefined
 export function requestAccountProviderRefresh(): Promise<void> {
   requestProviderRefresh ??= createProviderRefreshClient(getCurrentWebviewWindow().label)
   return requestProviderRefresh()
+}
+let requestEnterpriseRefresh: (() => Promise<void>) | undefined
+export function requestEnterpriseProviderRefresh(): Promise<void> {
+  requestEnterpriseRefresh ??= createProviderRefreshClient(getCurrentWebviewWindow().label, undefined, "enterprise")
+  return requestEnterpriseRefresh()
 }
 export const platformApiRequest = transport.request
 async function getRegistrationContext(): Promise<RegistrationContext> {
@@ -162,13 +180,15 @@ export const usePlatformAuth = create<AuthState & AuthActions>(
       const user = usePlatformAuth.getState().user
       if (!user) throw new Error("ALwith profile restored without an account")
       managedProviders.confirm(user.user_uuid)
-      refreshAccountProviders()
+      enterpriseProviders.confirm(user.user_uuid)
+      refreshSignedInProviders()
     },
     clearAccountConversation: async () => {},
     onSignedIn: (user, source) => {
       if (source === "login") {
         managedProviders.confirm(user.user_uuid)
-        refreshAccountProviders()
+        enterpriseProviders.confirm(user.user_uuid)
+        refreshSignedInProviders()
       }
     },
     subscribeExpired: (listener) => expiredListeners.add(listener),
@@ -209,7 +229,7 @@ export async function initPlatformAuth(): Promise<void> {
           commands.enterpriseUpdateAccount({ generation, requestId, accessToken })
         )
       },
-      refreshModels: loadAccountProviders,
+      refreshModels: loadEnterpriseProviders,
       failed: () => toast.error(i18n.t("enterprise.error"))
     })
     await listen<unknown>("enterprise:event", ({ payload }) => {
@@ -220,6 +240,7 @@ export async function initPlatformAuth(): Promise<void> {
     for (const listener of stateListeners) listener(event.payload)
   })
   if (isMain()) await serveProviderRefresh(loadAccountProviders)
+  if (isMain()) await serveProviderRefresh(loadEnterpriseProviders, undefined, "enterprise")
   if (isMain())
     await listen(LOGOUT_EVENT, () => {
       void logoutPlatform().catch(() => console.error("[auth] local logout failed"))

@@ -36,7 +36,7 @@ vi.mock("@/features/auth/store", () => ({
     { getState: () => ({ user: host.user }) }
   ),
   platformApiRequest: host.request,
-  requestAccountProviderRefresh: host.refresh
+  requestEnterpriseProviderRefresh: host.refresh
 }))
 import { EnterpriseSection } from "../enterprise-section"
 beforeEach(() => {

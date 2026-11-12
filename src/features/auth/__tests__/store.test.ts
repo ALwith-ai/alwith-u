@@ -86,12 +86,12 @@ beforeEach(() => {
   host.identifier.mockReset().mockResolvedValue("ai.alwith.u.dev")
   host.platform.mockReset().mockReturnValue("macos")
   host.request.mockReset().mockResolvedValue(profile)
-  host.bind.mockResolvedValue(1)
-  host.refresh.mockResolvedValue(undefined)
-  host.clear.mockResolvedValue(undefined)
-  host.enterpriseBind.mockResolvedValue(8)
-  host.enterpriseRefresh.mockResolvedValue(null)
-  host.enterpriseClear.mockResolvedValue(undefined)
+  host.bind.mockReset().mockResolvedValue(1)
+  host.refresh.mockReset().mockResolvedValue(undefined)
+  host.clear.mockReset().mockResolvedValue(undefined)
+  host.enterpriseBind.mockReset().mockResolvedValue(8)
+  host.enterpriseRefresh.mockReset().mockResolvedValue(null)
+  host.enterpriseClear.mockReset().mockResolvedValue(undefined)
 })
 
 test.each([
@@ -166,11 +166,118 @@ test("model refresh retries profile validation after cached login survives a sta
     userUuid: cached.user_uuid
   })
   expect(host.refresh).toHaveBeenCalledWith(1, "test-access")
+  expect(host.enterpriseBind).not.toHaveBeenCalled()
+  expect(host.enterpriseRefresh).not.toHaveBeenCalled()
+})
+
+test("ALwith retry succeeds without touching an expired enterprise authorization", async () => {
+  host.request.mockRejectedValueOnce(new Error("startup offline"))
+  host.enterpriseBind.mockRejectedValueOnce(new Error("enterprise unavailable"))
+  host.enterpriseRefresh.mockRejectedValueOnce(new Error("enterprise_authorization_required"))
+  const auth = await restore()
+  await expect(auth.requestAccountProviderRefresh()).resolves.toBeUndefined()
+  expect(host.refresh).toHaveBeenCalledWith(1, "test-access")
+  expect(host.enterpriseBind).not.toHaveBeenCalled()
+  expect(host.enterpriseRefresh).not.toHaveBeenCalled()
+})
+
+test("startup enterprise failure does not affect later ALwith refreshes", async () => {
+  host.enterpriseRefresh.mockRejectedValue(new Error("enterprise_authorization_required"))
+  const auth = await restore()
+  await vi.waitFor(() => expect(host.errors).toHaveBeenCalledWith("enterprise.error"))
+  const enterpriseCalls = host.enterpriseRefresh.mock.calls.length
+  await expect(auth.requestAccountProviderRefresh()).resolves.toBeUndefined()
+  expect(host.refresh).toHaveBeenCalledTimes(2)
+  expect(host.enterpriseRefresh).toHaveBeenCalledTimes(enterpriseCalls)
+})
+
+test("startup ALwith failure does not prevent enterprise refresh", async () => {
+  host.refresh.mockRejectedValueOnce(new Error("ALwith catalog unavailable"))
+  await restore()
+  await vi.waitFor(() => expect(host.errors).toHaveBeenCalledWith("ALwith catalog unavailable"))
   expect(host.enterpriseRefresh).toHaveBeenCalledWith({
     account: { apiBaseUrl: "https://api.example.test/service", userUuid: cached.user_uuid },
     generation: 8,
     accessToken: "test-access"
   })
+})
+
+test("enterprise refresh does not depend on or refresh ALwith models", async () => {
+  host.request.mockRejectedValueOnce(new Error("startup offline"))
+  host.bind.mockRejectedValue(new Error("ALwith unavailable"))
+  const auth = await restore()
+  await expect(auth.requestEnterpriseProviderRefresh()).resolves.toBeUndefined()
+  expect(host.bind).not.toHaveBeenCalled()
+  expect(host.refresh).not.toHaveBeenCalled()
+  expect(host.enterpriseRefresh).toHaveBeenCalledWith({
+    account: { apiBaseUrl: "https://api.example.test/service", userUuid: cached.user_uuid },
+    generation: 8,
+    accessToken: "test-access"
+  })
+})
+
+test("ALwith refresh errors reach the caller and retry fetches again", async () => {
+  host.request.mockRejectedValueOnce(new Error("startup offline"))
+  host.refresh.mockRejectedValueOnce(new Error("ALwith catalog unavailable"))
+  const auth = await restore()
+  await expect(auth.requestAccountProviderRefresh()).rejects.toThrow("ALwith catalog unavailable")
+  await expect(auth.requestAccountProviderRefresh()).resolves.toBeUndefined()
+  expect(host.refresh).toHaveBeenCalledTimes(2)
+  expect(host.enterpriseBind).not.toHaveBeenCalled()
+})
+
+test("logout clears both providers even when one cleanup fails", async () => {
+  const auth = await restore()
+  await vi.waitFor(() => expect(host.enterpriseRefresh).toHaveBeenCalledOnce())
+  host.clear.mockRejectedValueOnce(new Error("cleanup unavailable"))
+  await auth.logoutPlatform()
+  expect(host.clear).toHaveBeenCalledOnce()
+  expect(host.enterpriseClear).toHaveBeenCalledOnce()
+  expect(host.errors).toHaveBeenCalledWith("ALwith model cleanup failed: Error: cleanup unavailable")
+  expect(auth.usePlatformAuth.getState().user).toBeNull()
+  await expect(auth.requestAccountProviderRefresh()).rejects.toThrow("Sign in")
+  await expect(auth.requestEnterpriseProviderRefresh()).rejects.toThrow("Sign in")
+})
+
+test("ALwith refresh completes while an enterprise request is still pending", async () => {
+  host.request.mockRejectedValueOnce(new Error("startup offline"))
+  let finish!: () => void
+  host.enterpriseRefresh.mockImplementationOnce(
+    () =>
+      new Promise<void>((resolve) => {
+        finish = resolve
+      })
+  )
+  const auth = await restore()
+  const enterprise = auth.requestEnterpriseProviderRefresh()
+  await vi.waitFor(() => expect(host.enterpriseRefresh).toHaveBeenCalledOnce())
+  try {
+    await expect(auth.requestAccountProviderRefresh()).resolves.toBeUndefined()
+    expect(host.refresh).toHaveBeenCalledOnce()
+  } finally {
+    finish()
+    await enterprise
+  }
+})
+
+test("logout rejects a late ALwith refresh result and keeps enterprise access cleared", async () => {
+  host.request.mockRejectedValueOnce(new Error("startup offline"))
+  let finish!: () => void
+  host.refresh.mockImplementationOnce(
+    () =>
+      new Promise<void>((resolve) => {
+        finish = resolve
+      })
+  )
+  const auth = await restore()
+  const refresh = auth.requestAccountProviderRefresh()
+  await vi.waitFor(() => expect(host.refresh).toHaveBeenCalledOnce())
+  await auth.logoutPlatform()
+  finish()
+  await expect(refresh).rejects.toThrow("account changed")
+  expect(host.enterpriseClear).toHaveBeenCalledOnce()
+  expect(host.enterpriseRefresh).not.toHaveBeenCalled()
+  expect(auth.usePlatformAuth.getState().user).toBeNull()
 })
 
 test("a failed validation reports its actual error and a later refresh retries it", async () => {

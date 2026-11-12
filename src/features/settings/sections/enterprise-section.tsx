@@ -19,7 +19,7 @@ import {
   type EnterpriseStatus,
   parseEnterpriseRenewal
 } from "@/features/auth/enterprise-status"
-import { platformApiRequest, requestAccountProviderRefresh, usePlatformAuth } from "@/features/auth/store"
+import { platformApiRequest, requestEnterpriseProviderRefresh, usePlatformAuth } from "@/features/auth/store"
 import { openExternal } from "@/lib/open"
 
 import { SettingGroup, SettingRow } from "./shared"
@@ -113,7 +113,7 @@ export function EnterpriseSection() {
     setError(false)
     try {
       if (action === "login") {
-        await requestAccountProviderRefresh()
+        await requestEnterpriseProviderRefresh()
         if (!current()) return
         const fresh = await commands.enterpriseStatus()
         if (!current()) return

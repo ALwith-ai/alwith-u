@@ -73,3 +73,24 @@ test("an absent main window times out and releases the response listener", async
   await failed
   expect(wire.count()).toBe(0)
 })
+
+test("ALwith and enterprise requests have independent handlers and results", async () => {
+  const wire = bus()
+  const alwith = vi.fn(async () => {})
+  const enterprise = vi.fn(async () => {
+    throw new Error("enterprise_authorization_required")
+  })
+  const stopAlwith = await serveProviderRefresh(alwith, wire.events)
+  const stopEnterprise = await serveProviderRefresh(enterprise, wire.events, "enterprise")
+  const requestAlwith = createProviderRefreshClient("settings", wire.events)
+  const requestEnterprise = createProviderRefreshClient("settings", wire.events, "enterprise")
+  await expect(requestAlwith()).resolves.toBeUndefined()
+  expect(alwith).toHaveBeenCalledOnce()
+  expect(enterprise).not.toHaveBeenCalled()
+  await expect(requestEnterprise()).rejects.toThrow("enterprise_authorization_required")
+  expect(alwith).toHaveBeenCalledOnce()
+  expect(enterprise).toHaveBeenCalledOnce()
+  stopAlwith()
+  stopEnterprise()
+  expect(wire.count()).toBe(0)
+})
