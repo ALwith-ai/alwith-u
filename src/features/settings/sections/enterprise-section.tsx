@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog"
+import { logEnterpriseError, traceEnterprise } from "@/features/auth/enterprise-diagnostics"
 import {
   enterpriseLoginAvailable,
   type EnterpriseRenewal,
@@ -40,10 +41,14 @@ export function EnterpriseSection() {
   const [busy, setBusy] = useState(false)
   const [revision, setRevision] = useState(0)
   const [confirm, setConfirm] = useState(false)
-  const [pending, setPending] = useState<{ state: string; generation: number } | null>(null)
+  const [pending, setPending] = useState<{
+    state: string
+    generation: number
+  } | null>(null)
   useEffect(() => {
     let active = true
     let checking = false
+    let lastFailure: string | null = null
     setBusy(false)
     setConfirm(false)
     setError(false)
@@ -61,8 +66,16 @@ export function EnterpriseSection() {
         setStatus(server)
         setRenewal(parsed)
         setError(false)
+        if (!parsed.error) lastFailure = null
+        if (parsed.error) {
+          if (lastFailure !== parsed.error) logEnterpriseError("renewal-status", parsed.error)
+          lastFailure = parsed.error
+        }
         if (enterpriseLoginAvailable(server, parsed)) setPending(null)
-      } catch {
+      } catch (reason) {
+        const failure = String(reason)
+        if (lastFailure !== failure) logEnterpriseError("settings-status", reason)
+        lastFailure = failure
         if (active) setError(true)
       } finally {
         checking = false
@@ -91,10 +104,12 @@ export function EnterpriseSection() {
       )
         return
       setPending(null)
+      if (payload.error) logEnterpriseError("login-completed", payload.error)
       setError(Boolean(payload.error))
       setRevision((value) => value + 1)
     })
-    void stop.catch(() => {
+    void stop.catch((reason) => {
+      logEnterpriseError("settings-events", reason)
       if (active) setError(true)
     })
     return () => {
@@ -110,12 +125,12 @@ export function EnterpriseSection() {
     setError(false)
     try {
       if (action === "login") {
-        await requestEnterpriseProviderRefresh()
+        await traceEnterprise("refresh-enterprise", requestEnterpriseProviderRefresh)
         if (!current()) return
         const fresh = await commands.enterpriseStatus()
         if (!current()) return
         const generation = enterpriseGeneration(fresh)
-        const result = await commands.enterpriseBegin({ generation })
+        const result = await traceEnterprise("begin-browser", () => commands.enterpriseBegin({ generation }))
         if (
           typeof result !== "object" ||
           result === null ||
@@ -126,21 +141,29 @@ export function EnterpriseSection() {
           throw new Error("Invalid enterprise login response")
         if (!current()) return
         setPending({ state: result.state, generation })
-        await openExternal(result.authorization_url)
+        const authorizationUrl = result.authorization_url
+        await traceEnterprise("open-browser", () => openExternal(authorizationUrl))
       } else if (action === "cancel") {
         if (!current()) return
-        if (pending !== null) await commands.enterpriseCancel({ generation: pending.generation, state: pending.state })
+        if (pending !== null)
+          await commands.enterpriseCancel({
+            generation: pending.generation,
+            state: pending.state
+          })
         setPending(null)
       } else {
         const fresh = await commands.enterpriseStatus()
         if (!current()) return
-        await commands.enterpriseLogout({ generation: enterpriseGeneration(fresh) })
+        await commands.enterpriseLogout({
+          generation: enterpriseGeneration(fresh)
+        })
         if (!current()) return
 
         setConfirm(false)
         setRevision((value) => value + 1)
       }
-    } catch {
+    } catch (reason) {
+      logEnterpriseError(`settings-${action}`, reason)
       if (current()) setError(true)
     } finally {
       if (current()) setBusy(false)

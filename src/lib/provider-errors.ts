@@ -9,7 +9,22 @@ export function describeProviderError(error: unknown): string {
     if (seen.has(value)) return "[circular error]"
     seen.add(value)
     const fields = value as Record<string, unknown>
-    const details = ["message", "reason", "error", "cause", "data", "code", "kind", "type"].flatMap((key) =>
+    const details = [
+      "message",
+      "detail",
+      "reason",
+      "error",
+      "cause",
+      "data",
+      "code",
+      "kind",
+      "type",
+      "stage",
+      "status",
+      "httpStatus",
+      "requestId",
+      "transportCode"
+    ].flatMap((key) =>
       fields[key] === undefined ? [] : [key === "message" ? describe(fields[key]) : `${key}: ${describe(fields[key])}`]
     )
     return details.length ? details.join("; ") : "Unknown provider error"

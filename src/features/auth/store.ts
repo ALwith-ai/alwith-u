@@ -13,7 +13,6 @@ import {
 import { createTauriAuthRefresh } from "@alwith/module-auth/tauri"
 import { createAuthTransport } from "@alwith/module-auth/transport"
 import { createManagedProvidersPort } from "@alwith/module-chat/settings"
-import { getIdentifier } from "@tauri-apps/api/app"
 import { emit, emitTo, listen } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { fetch } from "@tauri-apps/plugin-http"
@@ -25,9 +24,11 @@ import { appEnv } from "@/lib/app-env"
 import i18n from "@/lib/i18n"
 import { openStore } from "@/lib/store"
 
+import { logEnterpriseError, logEnterpriseResponse, traceEnterprise } from "./enterprise-diagnostics"
 import { createEnterpriseModels, enterpriseModelLabels } from "./enterprise-models"
 import { createAccountTransition, createManagedProviders } from "./managed-providers"
 import { createProviderRefreshClient, serveProviderRefresh } from "./provider-refresh-bridge"
+import { registrationContext } from "./registration-context"
 
 export const API_BASE_URL = appEnv.apiBaseUrl
 const STATE_EVENT = "alwith-auth-state"
@@ -45,7 +46,18 @@ const stateListeners = new Set<(event: AuthStateEvent) => void>()
 const refreshTokens = createTauriAuthRefresh()
 const transport = createAuthTransport({
   baseUrl: API_BASE_URL,
-  fetch,
+  fetch: async (input, init) => {
+    const started = performance.now()
+    const path = new URL(String(input)).pathname
+    try {
+      const response = await fetch(input, init)
+      if (!response.ok) await logEnterpriseResponse(`${init?.method ?? "GET"} ${path}`, response)
+      return response
+    } catch (reason) {
+      logEnterpriseError(`http ${path} elapsed_ms=${Math.round(performance.now() - started)}`, reason)
+      throw reason
+    }
+  },
   storage,
   refresh: (refreshToken) => refreshTokens(API_BASE_URL, refreshToken),
   expired: async () => {
@@ -87,21 +99,23 @@ const enterpriseProviders = createEnterpriseModels({
 async function clearAccountProviders(): Promise<void> {
   const results = await Promise.allSettled([managedProviders.clear(), enterpriseProviders.clear()])
   for (const [index, result] of results.entries()) {
-    if (result.status === "rejected")
+    if (result.status === "rejected") {
+      logEnterpriseError(`clear-${index === 0 ? "account" : "enterprise"}-providers`, result.reason)
       toast.error(`${index === 0 ? "ALwith" : "Enterprise"} model cleanup failed: ${String(result.reason)}`)
+    }
   }
 }
 async function loadAccountProviders(): Promise<void> {
   if (!isMain()) throw new Error("ALwith model refresh belongs to the main window")
   const user = usePlatformAuth.getState().user
   if (!user) throw new Error("Sign in to refresh ALwith models")
-  await managedProviders.refresh(user.user_uuid)
+  await traceEnterprise("refresh-providers", () => managedProviders.refresh(user.user_uuid))
 }
 async function loadEnterpriseProviders(): Promise<void> {
   if (!isMain()) throw new Error("Enterprise model refresh belongs to the main window")
   const user = usePlatformAuth.getState().user
   if (!user) throw new Error("Sign in to refresh enterprise models")
-  await enterpriseProviders.refresh()
+  await traceEnterprise("refresh-enterprise-providers", () => enterpriseProviders.refresh())
 }
 function refreshSignedInProviders(): void {
   if (!isMain()) return
@@ -128,17 +142,7 @@ export function requestEnterpriseProviderRefresh(): Promise<void> {
 }
 export const platformApiRequest = transport.request
 async function getRegistrationContext(): Promise<RegistrationContext> {
-  const channel = platform()
-  if (channel !== "macos" && channel !== "windows" && channel !== "linux")
-    throw new Error(`Unsupported desktop registration platform: ${channel}`)
-  const [bundleId, deviceId] = await Promise.all([getIdentifier(), storage.tokenStorage.getDeviceId()])
-  return {
-    channel,
-    bundle_id: bundleId,
-    client_type: "DESKTOP",
-    client_name: `Tauri-${channel}-${arch()}`,
-    device_id: deviceId
-  }
+  return registrationContext(await storage.tokenStorage.getDeviceId())
 }
 export const authClient = createAuthClient({
   publicPost: (path, body) => transport.request(path, "POST", body, false),

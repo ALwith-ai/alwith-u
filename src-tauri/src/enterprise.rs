@@ -1,5 +1,6 @@
 //! U orchestrates enterprise authentication and the relay; shared chat owns provider storage and routing.
 mod catalog;
+mod diagnostic;
 mod gate;
 mod runtime;
 use alwith_enterprise_client::{EnterpriseClient, GATEWAY_URL, Protocol};
@@ -81,7 +82,7 @@ impl Enterprise {
                 Some(directory) => directory,
                 None => app.path().resource_dir().map_err(error)?.join("native"),
             };
-            let host = Arc::new(EnterpriseClient::open_gateway(&directory, &sessions).await?);
+            let host = Arc::new(diagnostic::trace("native-open", None, EnterpriseClient::open_gateway(&directory, &sessions)).await?);
             let events = host.clone();
             let closing = self.closing.clone();
             let app = app.clone();
@@ -91,11 +92,12 @@ impl Enterprise {
                         Ok(Value::Null) => break,
                         Ok(value) => {
                             if value["type"] == "enterpriseRequestTools" { continue; }
+                            log::info!("[enterprise] event {}", diagnostic::details(&value));
                             if let Err(reason) = app.emit("enterprise:event", value) { log::error!("Enterprise event delivery failed: {reason}"); }
                         }
                         Err(reason) => {
                             if closing.load(Ordering::Acquire) { break; }
-                            log::error!("Enterprise event stream interrupted: {reason}");
+                            log::error!("Enterprise event stream interrupted: {}", diagnostic::details(&reason));
                             let state = app.state::<Enterprise>();
                             if let Some(binding) = state.binding.lock().await.as_ref() {
                                 let _ = app.emit("enterprise:event", json!({"type":"enterpriseEventStreamInterrupted","accountId":binding.account.user_uuid,"generation":binding.generation}));
@@ -159,107 +161,124 @@ impl Enterprise {
 
 #[tauri3_specta::command]
 pub async fn enterprise_bind(window: tauri::WebviewWindow, account: Account) -> Result<u64, Value> {
-    main_window(&window)?;
-    account.validate().map_err(error)?;
-    let state = window.state::<Enterprise>();
-    let _transition = state.transition.lock().await;
-    let identity = account.identity();
-    let changed = state.gate.lock().unwrap().account.as_ref() != Some(&identity);
-    if changed {
-        state.clear(window.app_handle(), false).await?;
-    }
-    let generation = state.gate.lock().unwrap().bind(identity).map_err(error)?;
-    state.changed(window.app_handle())?;
-    Ok(generation)
+    diagnostic::trace("bind", None, async {
+        main_window(&window)?;
+        account.validate().map_err(error)?;
+        let state = window.state::<Enterprise>();
+        let _transition = state.transition.lock().await;
+        let identity = account.identity();
+        let changed = state.gate.lock().unwrap().account.as_ref() != Some(&identity);
+        if changed {
+            state.clear(window.app_handle(), false).await?;
+        }
+        let generation = state.gate.lock().unwrap().bind(identity).map_err(error)?;
+        state.changed(window.app_handle())?;
+        Ok(generation)
+    })
+    .await
 }
 
 #[tauri3_specta::command]
 pub async fn enterprise_refresh(
     window: tauri::WebviewWindow, account: Account, generation: u64, model_labels: BTreeMap<String, String>,
 ) -> Result<Value, Value> {
-    main_window(&window)?;
-    let app = window.app_handle();
-    let state = app.state::<Enterprise>();
-    let _refresh = state.refresh.lock().await;
-    let identity = account.identity();
-    let check = || {
-        let gate = state.gate.lock().unwrap();
-        if gate.generation != generation || gate.account.as_ref() != Some(&identity) {
-            Err(error("ALwith account changed"))
-        } else {
-            Ok(())
-        }
-    };
-    check()?;
-    account.validate().map_err(error)?;
-    let host = state.host(app).await?;
-    let native_generation = {
-        let mut binding = state.binding.lock().await;
+    diagnostic::trace("refresh", Some(generation), async {
+        main_window(&window)?;
+        let app = window.app_handle();
+        let state = app.state::<Enterprise>();
+        let _refresh = state.refresh.lock().await;
+        let identity = account.identity();
+        let check = || {
+            let gate = state.gate.lock().unwrap();
+            if gate.generation != generation || gate.account.as_ref() != Some(&identity) {
+                Err(error("ALwith account changed"))
+            } else {
+                Ok(())
+            }
+        };
         check()?;
-        let native_generation = host
-            .prepare_gateway(
-                GATEWAY_URL.into(),
-                account.user_uuid.clone(),
-                account.email.clone(),
-                account.environment.clone(),
-                "alwith-u".into(),
+        account.validate().map_err(error)?;
+        let host = state.host(app).await?;
+        let native_generation = {
+            let mut binding = state.binding.lock().await;
+            check()?;
+            let native_generation = diagnostic::trace(
+                "native-prepare",
+                Some(generation),
+                host.prepare_gateway(
+                    GATEWAY_URL.into(),
+                    account.user_uuid.clone(),
+                    account.email.clone(),
+                    account.environment.clone(),
+                    "alwith-u".into(),
+                ),
             )
             .await?;
-        if let Err(reason) = check() {
-            host.suspend(native_generation).await?;
-            return Err(reason);
+            if let Err(reason) = check() {
+                host.suspend(native_generation).await?;
+                return Err(reason);
+            }
+            *binding = Some(Binding { account: account.clone(), epoch: generation, generation: native_generation });
+            native_generation
+        };
+        let result = async {
+            let status =
+                diagnostic::trace("native-ensure", Some(native_generation), host.ensure(native_generation)).await?;
+            if status["automatic_renewal"] != true {
+                return Ok(None);
+            }
+            let catalog =
+                diagnostic::trace("native-providers", Some(native_generation), host.providers(native_generation))
+                    .await?;
+            check()?;
+            let Some(mut provider) = catalog::parse(catalog).map_err(error)? else { return Ok(None) };
+            catalog::apply_labels(&mut provider, &model_labels).map_err(error)?;
+            if provider.base_url.trim_end_matches('/') != GATEWAY_URL {
+                return Err(error("Enterprise catalog gateway does not match the configured gateway"));
+            }
+            let gateway = provider.base_url.clone();
+            let relay = diagnostic::trace(
+                "native-relay",
+                Some(native_generation),
+                host.relay(native_generation, gateway, Protocol::Responses),
+            )
+            .await?;
+            Ok::<_, Value>(Some(
+                catalog::connection(app, &identity, provider, relay, host, native_generation).await.map_err(error)?,
+            ))
         }
-        *binding = Some(Binding { account: account.clone(), epoch: generation, generation: native_generation });
-        native_generation
-    };
-    let result = async {
-        let status = host.ensure(native_generation).await?;
-        if status["automatic_renewal"] != true {
-            return Ok(None);
-        }
-        let catalog = host.providers(native_generation).await?;
+        .await;
         check()?;
-        let Some(mut provider) = catalog::parse(catalog).map_err(error)? else { return Ok(None) };
-        catalog::apply_labels(&mut provider, &model_labels).map_err(error)?;
-        if provider.base_url.trim_end_matches('/') != GATEWAY_URL {
-            return Err(error("Enterprise catalog gateway does not match the configured gateway"));
+        let models = result
+            .as_ref()
+            .ok()
+            .and_then(|connection| connection.as_ref())
+            .map(|connection| {
+                connection
+                    .provider
+                    .models
+                    .iter()
+                    .map(|model| catalog::model_id(&connection.provider.id, &model.api_id))
+                    .collect()
+            })
+            .unwrap_or_default();
+        {
+            let mut gate = state.gate.lock().unwrap();
+            gate.commit(generation, models).map_err(error)?;
+            *state.connection.lock().unwrap() =
+                result.as_ref().ok().and_then(|connection| connection.as_ref()).map(|connection| catalog::Connection {
+                    provider: connection.provider.clone(),
+                    params: connection.params.clone(),
+                });
         }
-        let gateway = provider.base_url.clone();
-        let relay = host.relay(native_generation, gateway, Protocol::Responses).await?;
-        Ok::<_, Value>(Some(
-            catalog::connection(app, &identity, provider, relay, host, native_generation).await.map_err(error)?,
-        ))
-    }
-    .await;
-    check()?;
-    let models = result
-        .as_ref()
-        .ok()
-        .and_then(|connection| connection.as_ref())
-        .map(|connection| {
-            connection
-                .provider
-                .models
-                .iter()
-                .map(|model| catalog::model_id(&connection.provider.id, &model.api_id))
-                .collect()
-        })
-        .unwrap_or_default();
-    {
-        let mut gate = state.gate.lock().unwrap();
-        gate.commit(generation, models).map_err(error)?;
-        *state.connection.lock().unwrap() =
-            result.as_ref().ok().and_then(|connection| connection.as_ref()).map(|connection| catalog::Connection {
-                provider: connection.provider.clone(),
-                params: connection.params.clone(),
-            });
-    }
-    let notification = state.changed(app);
-    runtime::cleanup(app).await?;
-    result?;
-    runtime::apply_ready(app).await;
-    notification?;
-    Ok(Value::Null)
+        let notification = state.changed(app);
+        runtime::cleanup(app).await?;
+        result?;
+        runtime::apply_ready(app).await;
+        notification?;
+        Ok(Value::Null)
+    })
+    .await
 }
 
 #[tauri3_specta::command]
@@ -276,17 +295,21 @@ pub async fn enterprise_catalog(window: tauri::WebviewWindow) -> Value {
 
 #[tauri3_specta::command]
 pub async fn enterprise_clear(window: tauri::WebviewWindow) -> Result<(), Value> {
-    main_window(&window)?;
-    let state = window.state::<Enterprise>();
-    state.gate.lock().unwrap().invalidate().map_err(error)?;
-    if let Err(reason) = state.changed(window.app_handle()) {
-        log::error!("Enterprise revocation notification failed: {reason}");
-    }
-    let _transition = state.transition.lock().await;
-    state.clear(window.app_handle(), false).await
+    diagnostic::trace("clear", None, async {
+        main_window(&window)?;
+        let state = window.state::<Enterprise>();
+        state.gate.lock().unwrap().invalidate().map_err(error)?;
+        if let Err(reason) = state.changed(window.app_handle()) {
+            log::error!("Enterprise revocation notification failed: {reason}");
+        }
+        let _transition = state.transition.lock().await;
+        state.clear(window.app_handle(), false).await
+    })
+    .await
 }
 #[tauri3_specta::command]
 pub async fn enterprise_status(window: tauri::WebviewWindow) -> Result<Value, Value> {
+    diagnostic::trace("status", None, async {
     let state = window.state::<Enterprise>();
     let generation = {
         let binding = state.binding.lock().await;
@@ -298,25 +321,35 @@ pub async fn enterprise_status(window: tauri::WebviewWindow) -> Result<Value, Va
         binding.generation
     };
     state.current(generation).await?.status(generation).await
+    }).await
 }
 #[tauri3_specta::command]
 pub async fn enterprise_begin(window: tauri::WebviewWindow, generation: u64) -> Result<Value, Value> {
-    controls(&window)?;
-    window.state::<Enterprise>().current(generation).await?.begin_browser(generation).await
+    diagnostic::trace("begin", Some(generation), async {
+        controls(&window)?;
+        window.state::<Enterprise>().current(generation).await?.begin_browser(generation).await
+    })
+    .await
 }
 #[tauri3_specta::command]
 pub async fn enterprise_cancel(window: tauri::WebviewWindow, generation: u64, state: String) -> Result<(), Value> {
-    controls(&window)?;
-    window.state::<Enterprise>().current(generation).await?.cancel(generation, state).await
+    diagnostic::trace("cancel", Some(generation), async {
+        controls(&window)?;
+        window.state::<Enterprise>().current(generation).await?.cancel(generation, state).await
+    })
+    .await
 }
 #[tauri3_specta::command]
 pub async fn enterprise_logout(window: tauri::WebviewWindow, generation: u64) -> Result<(), Value> {
-    controls(&window)?;
-    let app = window.app_handle();
-    let state = window.state::<Enterprise>();
-    let _transition = state.transition.lock().await;
-    state.current(generation).await?;
-    state.clear(app, true).await
+    diagnostic::trace("logout", Some(generation), async {
+        controls(&window)?;
+        let app = window.app_handle();
+        let state = window.state::<Enterprise>();
+        let _transition = state.transition.lock().await;
+        state.current(generation).await?;
+        state.clear(app, true).await
+    })
+    .await
 }
 
 #[cfg(test)]

@@ -23,6 +23,33 @@ fn computer_driver_and_gateway_errors_are_bundled_in_the_same_zip() {
 }
 
 #[test]
+fn computer_method_rejections_remain_identifiable_in_the_export() {
+    let directory = tempfile::tempdir().unwrap();
+    let collector = Collector::new(directory.path().join("diagnostics"));
+    let mut report = export_report(&collector, directory.path(), "ALwith U");
+    let rejection = json!({
+        "timestampMs": 1794480278000_i64,
+        "connectionRef": "independent-connection-ref",
+        "requestRef": "independent-request-ref",
+        "method": "resources/read",
+        "origin": "gateway",
+        "phase": "response_ready",
+        "outcome": "rpc_error",
+        "rpcCode": -32601,
+        "driverVersion": "0.7.1",
+        "driverEpoch": 3
+    });
+    add_computer_logs(&mut report, Ok(format!("MCP request: {rejection}\n")));
+    let path = directory.path().join("computer-method.zip");
+    write_report(&path, &report).unwrap();
+    let mut archive = zip::ZipArchive::new(fs::File::open(path).unwrap()).unwrap();
+    let mut content = String::new();
+    archive.by_name("logs/computer.log").unwrap().read_to_string(&mut content).unwrap();
+    let exported: Value = serde_json::from_str(content.trim().strip_prefix("MCP request: ").unwrap()).unwrap();
+    assert_eq!(exported, rejection);
+}
+
+#[test]
 fn one_zip_contains_metadata_and_separate_redacted_native_logs() {
     let directory = tempfile::tempdir().unwrap();
     let collector = Collector::new(directory.path().join("diagnostics"));

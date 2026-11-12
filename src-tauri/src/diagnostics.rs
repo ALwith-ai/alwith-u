@@ -16,6 +16,10 @@ use tauri_plugin_dialog::DialogExt;
 #[path = "diagnostic_logs.rs"]
 mod native_logs;
 
+pub(crate) fn redact_log(text: &str) -> String {
+    native_logs::redact(text)
+}
+
 const FILE_BYTES: u64 = 1024 * 1024;
 const FILE_COUNT: usize = 5;
 const MEMORY_EVENTS: usize = 128;

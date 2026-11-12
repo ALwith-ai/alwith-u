@@ -94,7 +94,7 @@ struct Redactor {
 pub(super) fn redact(text: &str) -> String {
     static REDACTOR: OnceLock<Redactor> = OnceLock::new();
     let redactor = REDACTOR.get_or_init(|| Redactor {
-        credentials: Regex::new(r#"(?i)\b(authorization|proxy-authorization|api[_-]?key|access[_-]?token|refresh[_-]?token|id[_-]?token|bearer[_-]?token|session[_-]?token|auth[_-]?token|cmux_cua_socket_(?:host_)?auth_token|password|client[_-]?secret|x-alwith-native-token|token|secret)([\\"']*\s*[:=]\s*)(?:\\"(?:[^\\\r\n]|\\[^"])*\\"|\\'(?:[^\\\r\n]|\\[^'])*\\'|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|(?:Bearer|Basic)\s+[^\s,;}\]]+|[^\s,;}\]]+)"#).unwrap(),
+        credentials: Regex::new(r#"(?i)\b(authorization|proxy-authorization|api[_-]?key|access[_-]?token|refresh[_-]?token|id[_-]?token|bearer[_-]?token|session[_-]?token|auth[_-]?token|cmux_cua_socket_(?:host_)?auth_token|ticket|otp|proof|authorization[_-]?code|password|client[_-]?secret|x-alwith-native-token|token|secret)([\\"']*\s*[:=]\s*)(?:\\"(?:[^\\\r\n]|\\[^"])*\\"|\\'(?:[^\\\r\n]|\\[^'])*\\'|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|(?:Bearer|Basic)\s+[^\s,;}\]]+|[^\s,;}\]]+)"#).unwrap(),
         cookies: Regex::new(r#"(?im)\b(cookie|set-cookie)([\\"']*\s*[:=]\s*)(?:\\"(?:[^\\\r\n]|\\[^"])*\\"|\\'(?:[^\\\r\n]|\\[^'])*\\'|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|[^\r\n]+)"#).unwrap(),
         authorization: Regex::new(r"(?i)\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]+").unwrap(),
         tokens: Regex::new(r"\b(?:sk-[A-Za-z0-9_-]{8,}|eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)").unwrap(),
