@@ -73,6 +73,7 @@ pre,
 }
 
 :root {
+  --app-reference-foreground: var(--link);
   --canvas-page-indicator: oklch(0.985 0 0);
   --success: var(--color-green-500);
   --link: oklch(0.42 0.17 264);
@@ -355,7 +356,8 @@ body,
       .main-sidebar-panel [role="tablist"] [role="tab"],
       .vibemon-lounge button[aria-label="Vibémon"],
       .codex-assistant-turn [data-codex-disclosure],
-      .codex-assistant-turn .codex-edited-files-more
+      .codex-assistant-turn .codex-edited-files-more,
+      .chat-project-picker > button
     )
   ):active {
   background-image: linear-gradient(

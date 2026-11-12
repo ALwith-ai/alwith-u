@@ -83,10 +83,21 @@ function finish(id: string, text = "检查已完成，交付清单已更新。�
   client.store.setState((state) => ({ runStates: { ...state.runStates, [id]: runState(id, "done") } }))
 }
 export function resetClient(
-  options: { connection?: string; response?: typeof response; draftFailure?: string | null; draftFailureCode?: number | null } = {}
+  options: {
+    connection?: string
+    response?: typeof response
+    draftFailure?: string | null
+    draftFailureCode?: number | null
+  } = {}
 ): void {
   client.unarchive = unarchive
   client.delete = deleteSession
+  client.installedApps = async () => ({
+    apps: [
+      { id: "preview-figma", runtimeName: "Figma", enabled: true, callable: true },
+      { id: "preview-sites", runtimeName: "Sites", enabled: true, callable: true }
+    ]
+  })
   for (const timer of timers) clearTimeout(timer)
   timers = []
   connectionCase = options.connection ?? "ready"
@@ -173,7 +184,8 @@ client.listHistorySessions = async () => [...client.state.sessionList, ...client
 client.readSessionSummary = async (id) => client.state.sessionList.find((thread) => thread.sessionId === id) ?? null
 client.activityReply = async () => "页面与交互检查已完成，交付资料已经更新。"
 client.prepareDraft = async (owner, cwd, model) => {
-  if (draftFailure) throw Object.assign(new Error(draftFailure), draftFailureCode === null ? {} : { code: draftFailureCode })
+  if (draftFailure)
+    throw Object.assign(new Error(draftFailure), draftFailureCode === null ? {} : { code: draftFailureCode })
   const previous = Object.keys(client.state.draftSessions).find(
     (id) =>
       client.state.draftSessions[id] === owner &&
@@ -343,17 +355,30 @@ const deleteSession: typeof client.delete = (id) => {
   return Promise.resolve()
 }
 export let forkScenario: "ready" | "pending" | "error" = "ready"
-export function setForkScenario(value: typeof forkScenario): void { forkScenario = value }
+export function setForkScenario(value: typeof forkScenario): void {
+  forkScenario = value
+}
 client.fork = (id, cwd, options) => {
   const turnId = typeof options === "string" ? options : options?.lastTurnId
   if (forkScenario === "pending") return new Promise(() => {})
   if (forkScenario === "error") return Promise.resolve("storybook-missing-fork")
   const next = `${id}-fork-${++sequence}`
   const source = client.session(id)
-  const boundary = turnId ? source.items.findLastIndex((item) => codexTurnId(item._meta) === turnId) : source.items.length - 1
-  const originTurnId = turnId ?? source.items.slice(0, boundary + 1).map((item) => codexTurnId(item._meta)).findLast((id) => id !== null) ?? null
+  const boundary = turnId
+    ? source.items.findLastIndex((item) => codexTurnId(item._meta) === turnId)
+    : source.items.length - 1
+  const originTurnId =
+    turnId ??
+    source.items
+      .slice(0, boundary + 1)
+      .map((item) => codexTurnId(item._meta))
+      .findLast((id) => id !== null) ??
+    null
   if (boundary < 0) return Promise.reject(new Error("Fork turn is unavailable"))
-  const title = forkTitle(source.title ?? "新聊天", [...client.state.sessionList, ...client.state.archivedSessions].flatMap((row) => row.title ? [row.title] : []))
+  const title = forkTitle(
+    source.title ?? "新聊天",
+    [...client.state.sessionList, ...client.state.archivedSessions].flatMap((row) => (row.title ? [row.title] : []))
+  )
   publish({
     ...source,
     items: source.items.slice(0, boundary + 1).map((item) => ({ ...item, replayed: true })),
@@ -363,7 +388,9 @@ client.fork = (id, cwd, options) => {
     attached: true,
     title
   })
-  client.store.setState((state) => ({ forkOrigins: { ...state.forkOrigins, [next]: { sourceId: id, boundaryTurnId: originTurnId } } }))
+  client.store.setState((state) => ({
+    forkOrigins: { ...state.forkOrigins, [next]: { sourceId: id, boundaryTurnId: originTurnId } }
+  }))
   client.includeSession({
     sessionId: next,
     cwd,
