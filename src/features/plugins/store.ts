@@ -29,6 +29,8 @@ import { createStore, type StoreApi } from "zustand/vanilla"
 
 import i18n from "@/lib/i18n"
 
+import { RequestCache, skillDocuments } from "./request-cache"
+
 /** The client methods the store needs; tests pass a fake. */
 export type PluginsApi = {
   listSkills: (cwds?: string[], forceReload?: boolean) => Promise<SkillsListResponse>
@@ -49,6 +51,16 @@ export type PluginEntry = { plugin: PluginSummary; marketplace: PluginMarketplac
 
 type PluginsState = {
   loading: boolean
+  skillsLoading: boolean
+  pluginsLoading: boolean
+  installedLoading: boolean
+  skillsError: string | null
+  pluginsError: string | null
+  installedError: string | null
+  skillProjectLoading: Record<string, boolean>
+  skillProjectErrors: Record<string, string>
+  loadSkillProject: (cwd: string) => Promise<void>
+  discoverSkillProjects: (cwds: string[], signal: AbortSignal) => Promise<void>
   loadedScope: string | null
   upgrading: boolean
   /** Message of the last failed catalog load; the page shows a retry. */
@@ -71,7 +83,13 @@ type PluginsState = {
   busySkills: Record<string, true>
   /** Marketplace names with an upgrade or removal in flight. */
   busyMarketplaces: Record<string, true>
-  refresh: (cwds?: string[], options?: { forceRefetch?: boolean; background?: boolean }) => Promise<void>
+  refresh: (
+    cwds?: string[],
+    options?: { forceRefetch?: boolean; background?: boolean; cached?: boolean }
+  ) => Promise<void>
+  invalidate: () => void
+  skillsChanged: () => Promise<void>
+  cachedPlugin: (entry: PluginEntry) => PluginDetail | undefined
   /** Installs and returns Codex's answer (apps that still need auth); throws on failure. */
   install: (entry: PluginEntry) => Promise<PluginInstallResponse>
   setPluginEnabled: (plugin: PluginSummary, enabled: boolean) => Promise<void>
@@ -146,11 +164,108 @@ function readParams(entry: PluginEntry): PluginReadParams {
 
 export function createPluginsStore(api: PluginsApi): PluginsStore {
   const store = createStore<PluginsState>((set, get) => {
-    let pendingRefresh: { cwds: string[]; forceRefetch: boolean } | null = null
-    let refreshing: Promise<void> | null = null
+    const skillsCache = new RequestCache<SkillsListResponse>("plugins.skills")
+    const pluginsCache = new RequestCache<PluginListResponse>("plugins.marketplace")
+    const installedCache = new RequestCache<PluginInstalledResponse>("plugins.installed")
+    const details = new RequestCache<PluginDetail>("plugins.detail")
+    const flights = new Map<string, { promise: Promise<void>; force: boolean; epoch: number }>()
+    let skillView = new Set<string>()
+    const projectReads = new Map<string, { epoch: number; scope: string; promise: Promise<void> }>()
+    let epoch = 0
+    let notification: Promise<void> | null = null
+    let notificationDirty = false
+    const mutating = () =>
+      Object.keys(get().busyIds).length > 0 ||
+      Object.keys(get().busySkills).length > 0 ||
+      Object.keys(get().busyMarketplaces).length > 0 ||
+      get().upgrading
+    const detailKey = (entry: PluginEntry) =>
+      JSON.stringify([readParams(entry), entry.plugin.version, entry.plugin.localVersion])
+    const invalidate = () => {
+      epoch++
+      skillsCache.clear()
+      pluginsCache.clear()
+      installedCache.clear()
+      details.clear()
+      skillDocuments.clear()
+      set({ loadedScope: null, skillProjectLoading: {}, skillProjectErrors: {} })
+    }
     const refreshAfterChange = async (forceRefetch = false) => {
+      invalidate()
       await get().refresh(undefined, { forceRefetch, background: true })
       if (get().error) throw new Error(i18n.t("plugins.toast.syncError", { message: get().error }))
+    }
+    const readSkills = (cwds: string[], refresh: boolean, force: boolean): Promise<SkillsListResponse> => {
+      // Empty scope uses Codex's default working directory, kept separate from explicit paths.
+      const keys = cwds.length ? cwds : [""]
+      const missing = keys.filter((key) => !skillsCache.pending(key) && (refresh || !skillsCache.peek(key)))
+      let batch: Promise<SkillsListResponse> | undefined
+      return Promise.all(
+        keys.map((key) =>
+          skillsCache.read(
+            key,
+            async () => {
+              batch ??= api.listSkills(missing.filter(Boolean), force)
+              const response = await batch
+              if (key === "") {
+                return response
+              }
+              const entry = response.data.find((entry) => entry.cwd === key)
+              if (!entry) throw new Error(`Codex returned no skill catalog for ${key}`)
+              return { data: [entry] }
+            },
+            refresh
+          )
+        )
+      ).then((responses) => ({ data: responses.flatMap((response) => response.data) }))
+    }
+    const skillProjection = () => {
+      const merged = mergeSkills({ data: [...skillView].flatMap((cwd) => skillsCache.peek(cwd)?.data ?? []) })
+      return {
+        skills: merged.skills,
+        skillErrors: merged.errors,
+        skillProjects: merged.projects
+      }
+    }
+    const loadProjectBatch = (directories: string[]): Promise<void> => {
+      const scope = JSON.stringify(get().cwds)
+      const existing = directories.length === 1 ? projectReads.get(directories[0]!) : undefined
+      if (existing?.epoch === epoch && existing.scope === scope) return existing.promise
+      const revision = epoch
+      const current = () => revision === epoch && scope === JSON.stringify(get().cwds)
+      for (const cwd of directories) skillView.add(cwd)
+      set((state) => ({
+        skillProjectLoading: {
+          ...state.skillProjectLoading,
+          ...Object.fromEntries(directories.map((cwd) => [cwd, !skillsCache.peek(cwd)]))
+        },
+        skillProjectErrors: { ...state.skillProjectErrors, ...Object.fromEntries(directories.map((cwd) => [cwd, ""])) }
+      }))
+      const promise = readSkills(directories, false, false)
+        .then(() => {
+          if (current()) set(skillProjection())
+        })
+        .catch((error: unknown) => {
+          if (current())
+            set((state) => ({
+              skillProjectErrors: {
+                ...state.skillProjectErrors,
+                ...Object.fromEntries(directories.map((cwd) => [cwd, describe(error)]))
+              }
+            }))
+        })
+        .finally(() => {
+          if (current())
+            set((state) => ({
+              skillProjectLoading: {
+                ...state.skillProjectLoading,
+                ...Object.fromEntries(directories.map((cwd) => [cwd, false]))
+              }
+            }))
+          for (const cwd of directories) if (projectReads.get(cwd)?.promise === promise) projectReads.delete(cwd)
+        })
+      for (const cwd of directories) projectReads.set(cwd, { epoch: revision, scope, promise })
+      return promise
     }
     const busy = (id: string, state: "installing" | "uninstalling" | "toggling" | null) =>
       set((current) => {
@@ -169,6 +284,14 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
 
     return {
       loading: false,
+      skillsLoading: false,
+      pluginsLoading: false,
+      installedLoading: false,
+      skillsError: null,
+      pluginsError: null,
+      installedError: null,
+      skillProjectLoading: {},
+      skillProjectErrors: {},
       loadedScope: null,
       upgrading: false,
       error: null,
@@ -184,46 +307,137 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
       busySkills: {},
       busyMarketplaces: {},
 
-      refresh: (cwds = get().cwds, options = {}) => {
-        pendingRefresh = { cwds, forceRefetch: options.forceRefetch === true || pendingRefresh?.forceRefetch === true }
-        set({ cwds, ...(!options.background ? { loading: true } : {}) })
-        if (refreshing) return refreshing
-        refreshing = (async () => {
-          while (pendingRefresh) {
-            const request = pendingRefresh
-            pendingRefresh = null
-            set({ error: null })
-            try {
-              const [skills, plugins, installed] = await Promise.all([
-                api.listSkills(request.cwds, request.forceRefetch),
-                api.listPlugins({
-                  ...(request.cwds.length > 0 ? { cwds: request.cwds } : {}),
-                  ...(request.forceRefetch ? { forceRefetch: true } : {})
-                }),
-                api.installedPlugins(request.cwds)
-              ])
-              // A newer scope or invalidation must settle before exposing a snapshot.
-              if (pendingRefresh) continue
-              const merged = mergeSkills(skills)
-              set({
-                loadedScope: JSON.stringify(request.cwds),
-                skills: merged.skills,
-                skillProjects: merged.projects,
-                skillErrors: merged.errors,
-                marketplaces: plugins.marketplaces,
-                marketplaceLoadErrors: plugins.marketplaceLoadErrors,
-                featuredPluginIds: plugins.featuredPluginIds,
-                installed: installedEntries(installed)
-              })
-            } catch (error) {
-              if (!pendingRefresh) set({ error: describe(error) })
-            }
-          }
+      invalidate,
+      loadSkillProject: (cwd) => loadProjectBatch([cwd]),
+      discoverSkillProjects: async (directories, signal) => {
+        if (signal.aborted || get().skillsLoading) return
+        const revision = epoch
+        const scope = JSON.stringify(get().cwds)
+        const current = () => !signal.aborted && revision === epoch && scope === JSON.stringify(get().cwds)
+        const directoriesToRead = [...new Set(directories)].filter((cwd) => !get().cwds.includes(cwd)).toSorted()
+        for (const cwd of directoriesToRead) if (skillsCache.peek(cwd)) skillView.add(cwd)
+        const missing = directoriesToRead.filter((cwd) => !skillsCache.peek(cwd))
+        if (current()) set(skillProjection())
+        // One small batch at a time leaves the foreground catalogs and interactions responsive.
+        for (let offset = 0; offset < missing.length && current(); offset += 4) {
+          await loadProjectBatch(missing.slice(offset, offset + 4))
+          if (current()) await new Promise<void>((resolve) => setTimeout(resolve, 0))
+        }
+      },
+      skillsChanged: () => {
+        // The mutation's readback owns notifications received before its response.
+        if (mutating()) return Promise.resolve()
+        notificationDirty = true
+        notification ??= (async () => {
+          do {
+            await new Promise<void>((resolve) => setTimeout(resolve, 50))
+            notificationDirty = false
+            if (mutating()) return
+            invalidate()
+            await get().refresh(undefined, { background: true })
+          } while (notificationDirty)
         })().finally(() => {
-          refreshing = null
-          set({ loading: false })
+          notification = null
         })
-        return refreshing
+        return notification
+      },
+      refresh: (directories = get().cwds, options = {}) => {
+        const cwds = [...new Set(directories)].toSorted()
+        const key = JSON.stringify(cwds)
+        const existing = flights.get(key)
+        const force = options.forceRefetch === true
+        // Same-scope callers share one read. An explicit forced reload supersedes a cached read.
+        const joining = existing?.epoch === epoch && (!force || existing.force)
+        if (joining && JSON.stringify(get().cwds) === key) return existing.promise
+        if (force && !joining) invalidate()
+        const revision = epoch
+        const current = () => revision === epoch && JSON.stringify(get().cwds) === key
+        const refresh = !joining && options.cached !== true
+        const cachedSkills = (cwds.length ? cwds : [""]).map((cwd) => skillsCache.peek(cwd))
+        const haveSkills = cachedSkills.every((entry) => entry !== undefined)
+        const cachedPlugins = pluginsCache.peek(key)
+        const cachedInstalled = installedCache.peek(key)
+        const changedScope = JSON.stringify(get().cwds) !== key
+        skillView = new Set(cwds.length ? cwds : [""])
+        if (refresh) {
+          details.clear()
+          skillDocuments.clear()
+        }
+        set({
+          cwds,
+          loading: joining ? get().loading || !options.background : !options.background,
+          error: null,
+          skillsError: null,
+          pluginsError: null,
+          installedError: null,
+          skillsLoading: refresh || !haveSkills,
+          pluginsLoading: refresh || !cachedPlugins,
+          installedLoading: refresh || !cachedInstalled,
+          ...(haveSkills ? skillProjection() : changedScope ? { skills: [], skillProjects: {}, skillErrors: [] } : {}),
+          ...(cachedPlugins
+            ? {
+                marketplaces: cachedPlugins.marketplaces,
+                marketplaceLoadErrors: cachedPlugins.marketplaceLoadErrors,
+                featuredPluginIds: cachedPlugins.featuredPluginIds
+              }
+            : changedScope
+              ? { marketplaces: [], marketplaceLoadErrors: [], featuredPluginIds: [] }
+              : {}),
+          ...(cachedInstalled
+            ? { installed: installedEntries(cachedInstalled) }
+            : changedScope
+              ? { installed: [] }
+              : {})
+        })
+        const fail = (
+          field: "skillsError" | "pluginsError" | "installedError",
+          loading: "skillsLoading" | "pluginsLoading" | "installedLoading",
+          error: unknown
+        ) => {
+          if (current()) set({ [field]: describe(error), [loading]: false, error: describe(error) })
+        }
+        const promise = Promise.all([
+          readSkills(cwds, refresh, force)
+            .then(() => {
+              if (current()) set({ ...skillProjection(), skillsLoading: false })
+            })
+            .catch((error: unknown) => fail("skillsError", "skillsLoading", error)),
+          pluginsCache
+            .read(
+              key,
+              () => api.listPlugins({ ...(cwds.length ? { cwds } : {}), ...(force ? { forceRefetch: true } : {}) }),
+              refresh
+            )
+            .then((response) => {
+              if (current())
+                set({
+                  marketplaces: response.marketplaces,
+                  marketplaceLoadErrors: response.marketplaceLoadErrors,
+                  featuredPluginIds: response.featuredPluginIds,
+                  pluginsLoading: false
+                })
+            })
+            .catch((error: unknown) => fail("pluginsError", "pluginsLoading", error)),
+          installedCache
+            .read(key, () => api.installedPlugins(cwds), refresh)
+            .then((response) => {
+              if (current())
+                set({
+                  installed: installedEntries(response),
+                  installedLoading: false,
+                  ...(get().marketplaces.length === 0 ? { marketplaces: response.marketplaces } : {})
+                })
+            })
+            .catch((error: unknown) => fail("installedError", "installedLoading", error))
+        ])
+          .then(() => {
+            if (current()) set({ loadedScope: get().error ? null : key, loading: false })
+          })
+          .finally(() => {
+            if (flights.get(key)?.promise === promise) flights.delete(key)
+          })
+        flights.set(key, { promise, force, epoch: revision })
+        return promise
       },
 
       install: async (entry) => {
@@ -300,7 +514,9 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
         }
       },
 
-      readPlugin: async (entry) => (await api.readPlugin(readParams(entry))).plugin,
+      cachedPlugin: (entry) => details.peek(detailKey(entry)),
+      readPlugin: (entry) =>
+        details.read(detailKey(entry), async () => (await api.readPlugin(readParams(entry))).plugin),
 
       setSkillEnabled: async (skill, enabled) => {
         if (skill.path in get().busySkills) return
@@ -312,6 +528,7 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
         const name = skill.interface?.displayName ?? skill.name
         try {
           const response = await api.setSkillEnabled({ path: skill.path, enabled })
+          invalidate()
           set((state) => ({
             skills: state.skills.map((item) =>
               item.path === skill.path ? { ...item, enabled: response.effectiveEnabled } : item

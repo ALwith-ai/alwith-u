@@ -1,0 +1,20 @@
+<svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Skill-Icon">
+<g id="Skill-Installer">
+<g id="Symbol">
+<path id="Union" fill-rule="evenodd" clip-rule="evenodd" d="M32 14.6699C32.5993 14.458 33 13.8915 33 13.2559V10C33 6.68629 30.3137 4 27 4H22.9941C22.3982 4 21.8622 4.35187 21.623 4.88965L21.5801 5C21.1675 6.16722 20.0539 7 18.75 7C17.4461 7 16.3325 6.16722 15.9199 5C15.708 4.40075 15.1415 4 14.5059 4H12C8.68629 4 6 6.68629 6 10V12.3037C4.20794 13.3405 3 15.2776 3 17.5C3 19.7222 4.20817 21.6585 6 22.6953V25C6 28.3137 8.68629 31 12 31H13.5537C14.5905 32.7921 16.5276 34 18.75 34C20.9724 34 22.9095 32.7921 23.9463 31H27C30.3137 31 33 28.3137 33 25V21.7441C33 21.1085 32.5993 20.542 32 20.3301C30.8328 19.9175 30 18.8039 30 17.5C30 16.1961 30.8328 15.0825 32 14.6699Z" fill="url(#paint0_linear_54_67)"/>
+<path id="Sub" d="M15.75 22H21.75M15.75 15.25L21.75 15.25" stroke="url(#paint1_linear_54_67)" stroke-width="3.75" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+</g>
+</g>
+<defs>
+<linearGradient id="paint0_linear_54_67" x1="23.2424" y1="43.3103" x2="13.6529" y2="-1.69752" gradientUnits="userSpaceOnUse">
+<stop stop-color="#FF1725"/>
+<stop offset="0.980368" stop-color="#FF9431"/>
+</linearGradient>
+<linearGradient id="paint1_linear_54_67" x1="18.75" y1="14.575" x2="18.75" y2="22" gradientUnits="userSpaceOnUse">
+<stop stop-color="#FFFBDB"/>
+<stop offset="1" stop-color="#FFDBA5"/>
+</linearGradient>
+</defs>
+</svg>

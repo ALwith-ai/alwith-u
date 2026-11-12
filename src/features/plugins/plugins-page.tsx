@@ -51,6 +51,7 @@ import { CatalogSkeleton } from "./catalog-skeleton"
 import { pluginsStore } from "./instance"
 import { PluginDetailPage } from "./plugin-detail-page"
 import { PluginIcon, PluginIconDefinitions } from "./plugin-icon"
+import { traceCatalog } from "./request-cache"
 import { SkillsTab } from "./skills-tab"
 import type { PluginEntry } from "./store"
 
@@ -366,7 +367,7 @@ function PluginToolbar() {
 function MarketplaceTab({ onOpen, query }: { onOpen: (entry: PluginEntry) => void; query: string }) {
   const ready = usePluginsReady()
   const loadErrors = useStore(pluginsStore, (state) => state.marketplaceLoadErrors)
-  const loading = useStore(pluginsStore, (state) => state.loading) || !ready
+  const loading = useStore(pluginsStore, (state) => state.pluginsLoading && state.marketplaces.length === 0) || !ready
   const q = useDeferredValue(query.trim().toLowerCase())
   return (
     <Pane className="pe-0" viewportClassName="pe-0">
@@ -382,7 +383,7 @@ function MarketplaceTab({ onOpen, query }: { onOpen: (entry: PluginEntry) => voi
   )
 }
 
-/** Catalogs cover the selected project and known conversation projects. */
+/** Catalogs load the current project first; other skill projects are discovered in the background. */
 export function PluginsPage({
   cwd,
   active,
@@ -400,10 +401,14 @@ export function PluginsPage({
 }) {
   const { t } = useTranslation()
   const refresh = useStore(pluginsStore, (state) => state.refresh)
-  const loading = useStore(pluginsStore, (state) => state.loading)
-  const error = useStore(pluginsStore, (state) => state.error)
+  const skillsError = useStore(pluginsStore, (state) => state.skillsError)
+  const pluginsError = useStore(pluginsStore, (state) => state.pluginsError)
+  const installedError = useStore(pluginsStore, (state) => state.installedError)
+  const installedLoading = useStore(pluginsStore, (state) => state.installedLoading)
   const [kind, setKind] = useState("plugins")
+  const loading = useStore(pluginsStore, (state) => (kind === "skills" ? state.skillsLoading : state.pluginsLoading))
   const [queries, setQueries] = useState({ plugins: "", skills: "" })
+  const error = kind === "skills" ? skillsError : pluginsError
   const query = kind === "skills" ? queries.skills : queries.plugins
   const setQuery = (value: string) => setQueries((current) => ({ ...current, [kind]: value }))
   const knownDirectories = useApp((state) =>
@@ -417,15 +422,8 @@ export function PluginsPage({
       ].toSorted()
     )
   )
-  const directoriesKey = JSON.stringify(
-    [
-      ...new Set(
-        [newChatDirectory(cwd, client.state.projectContext), ...(JSON.parse(knownDirectories) as string[])].filter(
-          (path): path is string => path !== null
-        )
-      )
-    ].toSorted()
-  )
+  const directory = useApp((state) => newChatDirectory(cwd, state.projectContext))
+  const directoriesKey = JSON.stringify(directory === null ? [] : [directory])
   const installed = useStore(pluginsStore, (state) => state.installed)
   // Official catalogs and policy installations do not belong in the personal installed list.
   const personalInstalled = installed.filter(
@@ -438,17 +436,31 @@ export function PluginsPage({
   const searchLabel = t(kind === "skills" ? "plugins.skills.search" : "plugins.search")
   const [selected, setSelected] = useState<PluginEntry | null>(null)
   const ready = usePluginsReady()
+  const skillsLoading = useStore(pluginsStore, (state) => state.skillsLoading)
 
   useEffect(() => {
+    if (!ready) pluginsStore.getState().invalidate()
+  }, [ready])
+
+  useEffect(() => {
+    traceCatalog(`page active=${active} ready=${ready}`)
     // The screen arrow is available even before the engine has connected.
     if (!active || !ready) return
-    if (pluginsStore.getState().loadedScope !== directoriesKey) void refresh(JSON.parse(directoriesKey) as string[])
+    if (pluginsStore.getState().loadedScope !== directoriesKey)
+      void refresh(JSON.parse(directoriesKey) as string[], { cached: true })
   }, [active, ready, refresh, directoriesKey])
 
   useEffect(() => {
     if (!ready) return
-    return client.onSkillsChanged(() => void refresh(undefined, { background: true }))
+    return client.onSkillsChanged(() => void pluginsStore.getState().skillsChanged())
   }, [ready, refresh])
+
+  useEffect(() => {
+    if (!active || !ready || kind !== "skills" || skillsLoading) return
+    const controller = new AbortController()
+    void pluginsStore.getState().discoverSkillProjects(JSON.parse(knownDirectories) as string[], controller.signal)
+    return () => controller.abort()
+  }, [active, ready, kind, skillsLoading, knownDirectories, directoriesKey])
 
   const openPlugin = (entry: PluginEntry) => {
     onOpenCatalog?.()
@@ -502,11 +514,15 @@ export function PluginsPage({
         <Pane className="min-h-0 flex-1 pe-0" viewportClassName="pe-0">
           <nav aria-label={t("plugins.sections.installed")} className="px-2 pb-4">
             <NavigationStack>
-              {!ready || (loading && personalInstalled.length === 0) ? (
+              {!ready || (installedLoading && personalInstalled.length === 0) ? (
                 <div role="status" className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground">
                   <Spinner className="size-3.5" role="presentation" aria-hidden="true" />
                   {t("plugins.detail.loading")}
                 </div>
+              ) : installedError ? (
+                <p role="alert" className="px-3 py-2 text-xs text-destructive">
+                  {installedError}
+                </p>
               ) : personalInstalled.length === 0 ? (
                 <p className="px-3 py-2 text-xs text-muted-foreground">{t("plugins.sections.installedEmpty")}</p>
               ) : (

@@ -19,7 +19,7 @@ const initialAppState = client.state
 
 beforeEach(async () => {
   await initI18n("en")
-  pluginsStore.setState({ ...initialState, refresh: async () => {} }, true)
+  pluginsStore.setState({ ...initialState, refresh: async () => {}, discoverSkillProjects: async () => {} }, true)
   client.store.setState({
     connection: "ready",
     agent: {
@@ -397,7 +397,7 @@ test("adding a marketplace retains the source after failure and closes only afte
 })
 
 test("load errors remain actionable from installed plugins and skills", () => {
-  pluginsStore.setState({ error: "Catalog offline" })
+  pluginsStore.setState({ pluginsError: "Catalog offline", skillsError: "Catalog offline" })
   const view = render(<PluginsPage cwd={null} active />)
   for (const name of ["Plugins", "Skills"]) {
     fireEvent.click(view.getByRole("button", { name }))
@@ -481,10 +481,11 @@ test("catalogs and installed sidebar show loading until connected", () => {
   expect(view.getByRole("status", { name: "Loading skills…" }).querySelector('[data-slot="skeleton"]')).not.toBeNull()
 })
 
-test("the skill catalog includes known projects beyond the current chat and excludes quick chats", async () => {
+test("the current project loads first and other projects are discovered automatically without a project button", async () => {
   client.store.setState({ projectContext: projectContext("/Users/example") })
   const refresh = vi.fn().mockResolvedValue(undefined)
-  pluginsStore.setState({ refresh })
+  const discover = vi.fn().mockResolvedValue(undefined)
+  pluginsStore.setState({ refresh, discoverSkillProjects: discover })
   client.store.setState({
     projectContext: {
       ...fakeProjectContext,
@@ -499,7 +500,15 @@ test("the skill catalog includes known projects beyond the current chat and excl
     ]
   })
   const view = render(<PluginsPage cwd="/work/alwith-u" active />)
-  await waitFor(() => expect(refresh).toHaveBeenCalledWith(["/work/alwith-desktop", "/work/alwith-u"]))
+  await waitFor(() => expect(refresh).toHaveBeenCalledWith(["/work/alwith-u"], { cached: true }))
+  refresh.mockClear()
+  fireEvent.click(view.getByRole("button", { name: "Skills" }))
+  expect(view.queryByRole("button", { name: "Project" })).toBeNull()
+  await waitFor(() => expect(discover).toHaveBeenCalledWith(["/work/alwith-desktop"], expect.any(AbortSignal)))
+  const signal = discover.mock.calls[0]?.[1] as AbortSignal
+  view.rerender(<PluginsPage cwd="/work/alwith-u" active={false} />)
+  expect(signal.aborted).toBe(true)
+  view.rerender(<PluginsPage cwd="/work/alwith-u" active />)
   refresh.mockClear()
   await act(() =>
     Promise.try(() =>
@@ -510,7 +519,7 @@ test("the skill catalog includes known projects beyond the current chat and excl
   )
   expect(refresh).not.toHaveBeenCalled()
   view.rerender(<PluginsPage cwd="/work/other" active />)
-  await waitFor(() => expect(refresh).toHaveBeenCalledWith(["/work/alwith-desktop", "/work/other"]))
+  await waitFor(() => expect(refresh).toHaveBeenCalledWith(["/work/other"], { cached: true }))
 })
 
 test("returning to a loaded catalog reuses its snapshot, including across remounts", async () => {
@@ -614,4 +623,48 @@ test("customization keeps extension management beside plugins and skills and ret
   await act(() => Promise.try(() => fireEvent.click(tabs.getByRole("button", { name: "Skills" }))))
   expect(view.queryByRole("region", { name: "Extension management" })).toBeNull()
   expect(tabs.getByRole("button", { name: "Skills" })).toHaveAttribute("aria-current", "page")
+})
+
+test("skills and installed navigation stay usable during a slow marketplace request", () => {
+  const target = plugin("Personal installed", true)
+  const marketplace: PluginMarketplaceEntry = { name: "personal", path: "/catalog", interface: null, plugins: [target] }
+  pluginsStore.setState({
+    loading: true,
+    pluginsLoading: true,
+    skillsLoading: false,
+    installedLoading: false,
+    installed: [{ plugin: target, marketplace }],
+    skills: [
+      { name: "Ready skill", path: "/skills/ready", description: "Ready", scope: "user", enabled: true, pluginId: null }
+    ]
+  })
+  const view = render(<PluginsPage cwd={null} active />)
+  expect(view.getByRole("button", { name: "Personal installed" })).toBeVisible()
+  fireEvent.click(view.getByRole("button", { name: "Skills" }))
+  expect(view.getAllByRole("button", { name: "Ready skill" })[0]).toBeVisible()
+  expect(view.queryByRole("status", { name: "Loading skills…" })).toBeNull()
+  expect(view.getByRole("button", { name: "Refresh" })).toBeEnabled()
+})
+
+test("a marketplace error is confined to plugins and does not hide cached skills during refresh", () => {
+  pluginsStore.setState({
+    pluginsError: "Remote catalog offline",
+    skillsLoading: true,
+    skills: [
+      {
+        name: "Cached skill",
+        path: "/skills/cached",
+        description: "Cached",
+        scope: "user",
+        enabled: true,
+        pluginId: null
+      }
+    ]
+  })
+  const view = render(<PluginsPage cwd={null} active />)
+  expect(view.getByRole("alert")).toHaveTextContent("Remote catalog offline")
+  fireEvent.click(view.getByRole("button", { name: "Skills" }))
+  expect(view.queryByRole("alert")).toBeNull()
+  expect(view.getAllByRole("button", { name: "Cached skill" })[0]).toBeVisible()
+  expect(view.queryByRole("status", { name: "Loading skills…" })).toBeNull()
 })

@@ -17,12 +17,16 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { openExternal } from "@/lib/open"
 import { text } from "@/lib/text"
 
+import { skillDocuments } from "./request-cache"
+
 import "./skill-document.css"
 
-export async function readSkillDocument(path: string): Promise<string> {
-  const root = await fs.workspaceOpen({ path: dirname(path) })
-  const adapter = createTauriAdapter({ root, watch: false })
-  return new TextDecoder("utf-8", { fatal: true }).decode(await adapter.readFile(path))
+export function readSkillDocument(path: string): Promise<string> {
+  return skillDocuments.read(path, async () => {
+    const root = await fs.workspaceOpen({ path: dirname(path) })
+    const adapter = createTauriAdapter({ root, watch: false })
+    return new TextDecoder("utf-8", { fatal: true }).decode(await adapter.readFile(path))
+  })
 }
 
 /** Hide metadata already represented by the catalog, preserving the original document for copying. */
@@ -41,12 +45,14 @@ export function SkillDocument({
 }) {
   const { t } = useTranslation()
   const { resolvedTheme } = useTheme()
-  const [document, setDocument] = useState<string | null>(null)
+  const [document, setDocument] = useState<string | null>(() =>
+    path === null ? (description ?? "") : (skillDocuments.peek(path) ?? null)
+  )
   const [error, setError] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
   useEffect(() => {
     let cancelled = false
-    setDocument(null)
+    setDocument(path === null ? (description ?? "") : (skillDocuments.peek(path) ?? null))
     setError(null)
     void (path === null ? Promise.resolve(description ?? "") : readSkillDocument(path)).then(
       (value) => {

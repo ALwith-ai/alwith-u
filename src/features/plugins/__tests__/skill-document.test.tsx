@@ -4,6 +4,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
 import { initI18n } from "@/lib/i18n"
 
+import { skillDocuments } from "../request-cache"
 import { readSkillDocument, SkillDocument, skillMarkdownBody } from "../skill-document"
 
 vi.mock("@tauri-apps/api/core", async (importOriginal) => ({
@@ -14,6 +15,7 @@ vi.mock("@tauri-apps/api/core", async (importOriginal) => ({
 vi.mock("@/components/theme-provider", () => ({ useTheme: () => ({ resolvedTheme: "light" }) }))
 
 beforeEach(async () => {
+  skillDocuments.clear()
   await initI18n("en")
 })
 afterEach(() => {
@@ -59,4 +61,21 @@ test("shows read errors and retries into rendered Markdown", async () => {
   expect(await view.findByRole("heading", { name: "Instructions" })).toBeVisible()
   await waitFor(() => expect(view.queryByText("hidden-metadata")).toBeNull())
   expect(view.getByText("evidence").tagName).toBe("STRONG")
+})
+
+test("reopening a skill uses the cached document and invalidation reloads its content", async () => {
+  const invoke = vi.mocked(core.invoke).mockImplementation((command) => {
+    if (command === "plugin:alwith-fs|workspace_open") return Promise.resolve("/skills/research")
+    return Promise.resolve([...new TextEncoder().encode("# Cached instructions")])
+  })
+  const view = render(<SkillDocument path="/skills/research/SKILL.md" />)
+  expect(await view.findByRole("heading", { name: "Cached instructions" })).toBeVisible()
+  view.unmount()
+  const reopened = render(<SkillDocument path="/skills/research/SKILL.md" />)
+  expect(reopened.getByRole("heading", { name: "Cached instructions" })).toBeVisible()
+  expect(invoke).toHaveBeenCalledTimes(2)
+  reopened.unmount()
+  skillDocuments.clear()
+  await readSkillDocument("/skills/research/SKILL.md")
+  expect(invoke).toHaveBeenCalledTimes(4)
 })

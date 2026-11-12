@@ -389,9 +389,9 @@ test("refresh coalesces notifications and does not expose an obsolete scope", as
   const b = store.getState().refresh(["/b"], { background: true, forceRefetch: true })
   const notification = store.getState().refresh(undefined, { background: true })
   expect(notification).toBe(b)
-  expect(a).toBe(b)
+  expect(a).not.toBe(b)
   first.resolve({ ...snapshot, marketplaces: [] })
-  await b
+  await Promise.all([a, b])
   expect(api.listPlugins).toHaveBeenCalledTimes(2)
   expect(api.listPlugins).toHaveBeenLastCalledWith({ cwds: ["/b"], forceRefetch: true })
   expect(store.getState().cwds).toEqual(["/b"])
@@ -452,4 +452,233 @@ test("skills retain all repository memberships while the installed summary dedup
   await store.getState().refresh(["/other"])
   expect(store.getState().skillProjects).toEqual({})
   expect(store.getState().skills).toEqual([user])
+})
+
+test("skills and installed plugins become usable while the marketplace is still pending", async () => {
+  const api = fakeApi()
+  const market = deferred<Awaited<ReturnType<PluginsApi["listPlugins"]>>>()
+  const snapshot = await api.listPlugins()
+  api.listPlugins = vi.fn(() => market.promise)
+  const store = createPluginsStore(api)
+  const pending = store.getState().refresh(["/a"])
+  await vi.waitFor(() => expect(store.getState().skillsLoading).toBe(false))
+  expect(store.getState().skills.length).toBeGreaterThan(0)
+  expect(store.getState().installed.map(({ plugin }) => plugin.id)).toEqual(["alpha"])
+  expect(store.getState().installedLoading).toBe(false)
+  expect(store.getState().pluginsLoading).toBe(true)
+  market.resolve(snapshot)
+  await pending
+})
+
+test("a marketplace failure does not discard successful skills or installed plugins", async () => {
+  const api = fakeApi()
+  api.listPlugins = vi.fn().mockRejectedValue(new Error("Marketplace offline"))
+  const store = createPluginsStore(api)
+  await store.getState().refresh(["/a"])
+  expect(store.getState().skills.length).toBeGreaterThan(0)
+  expect(store.getState().installed).toHaveLength(1)
+  expect(store.getState().pluginsError).toBe("Marketplace offline")
+  expect(store.getState().skillsError).toBeNull()
+  expect(store.getState().installedError).toBeNull()
+})
+
+test("directory caches batch only missing skill directories and restore previous catalog scopes", async () => {
+  const api = fakeApi()
+  const skills = vi.spyOn(api, "listSkills")
+  const plugins = vi.spyOn(api, "listPlugins")
+  const installed = vi.spyOn(api, "installedPlugins")
+  const store = createPluginsStore(api)
+  await store.getState().refresh(["/a"], { cached: true })
+  await store.getState().refresh(["/b", "/a", "/b"], { cached: true })
+  expect(skills.mock.calls.map(([cwds]) => cwds)).toEqual([["/a"], ["/b"]])
+  await store.getState().refresh(["/a"], { cached: true })
+  expect(skills).toHaveBeenCalledTimes(2)
+  expect(plugins).toHaveBeenCalledTimes(2)
+  expect(installed).toHaveBeenCalledTimes(2)
+  expect(store.getState().cwds).toEqual(["/a"])
+  expect(store.getState().skills.map((skill) => skill.path)).toEqual(["/home/s1", "/a/.codex/s2"])
+})
+
+test("same-scope refreshes share one request and do not throw away its result", async () => {
+  const api = fakeApi()
+  const market = deferred<Awaited<ReturnType<PluginsApi["listPlugins"]>>>()
+  const snapshot = await api.listPlugins()
+  api.listPlugins = vi.fn(() => market.promise)
+  const skills = vi.spyOn(api, "listSkills")
+  const store = createPluginsStore(api)
+  const first = store.getState().refresh(["/a", "/b"])
+  expect(store.getState().refresh(["/b", "/a"])).toBe(first)
+  expect(store.getState().refresh(undefined, { background: true })).toBe(first)
+  market.resolve(snapshot)
+  await first
+  expect(api.listPlugins).toHaveBeenCalledOnce()
+  expect(skills).toHaveBeenCalledOnce()
+  expect(store.getState().marketplaces).toEqual(snapshot.marketplaces)
+})
+
+test("returning to an in-flight directory scope restores that scope and ignores late other scopes", async () => {
+  const api = fakeApi()
+  const a = deferred<Awaited<ReturnType<PluginsApi["listPlugins"]>>>()
+  const b = deferred<Awaited<ReturnType<PluginsApi["listPlugins"]>>>()
+  const snapshot = await api.listPlugins()
+  api.listPlugins = vi.fn().mockReturnValueOnce(a.promise).mockReturnValueOnce(b.promise)
+  const store = createPluginsStore(api)
+  const first = store.getState().refresh(["/a"], { cached: true })
+  const second = store.getState().refresh(["/b"], { cached: true })
+  const back = store.getState().refresh(["/a"], { cached: true })
+  a.resolve(snapshot)
+  await Promise.all([first, back])
+  b.resolve({ ...snapshot, marketplaces: [] })
+  await second
+  expect(store.getState().cwds).toEqual(["/a"])
+  expect(store.getState().marketplaces).toEqual(snapshot.marketplaces)
+  expect(api.listPlugins).toHaveBeenCalledTimes(2)
+})
+
+test("notification bursts are batched and mutation notifications belong to one post-mutation read", async () => {
+  const api = fakeApi()
+  const plugins = vi.spyOn(api, "listPlugins")
+  const store = createPluginsStore(api)
+  await store.getState().refresh()
+  await Promise.all([
+    store.getState().skillsChanged(),
+    store.getState().skillsChanged(),
+    store.getState().skillsChanged()
+  ])
+  expect(plugins).toHaveBeenCalledTimes(2)
+  const install = api.installPlugin
+  api.installPlugin = async (params) => {
+    await store.getState().skillsChanged()
+    return install(params)
+  }
+  await store.getState().install({ plugin: plugin("beta", false), marketplace: store.getState().marketplaces[0] })
+  expect(plugins).toHaveBeenCalledTimes(3)
+  expect(store.getState().installed).toHaveLength(2)
+})
+
+test("details share pending reads, reuse completed reads and invalidate after catalog changes", async () => {
+  const api = fakeApi()
+  const target = plugin("alpha", true)
+  const marketplace = (await api.listPlugins()).marketplaces[0]
+  const entry = { plugin: target, marketplace }
+  const detail: PluginDetail = {
+    marketplaceName: marketplace.name,
+    marketplacePath: null,
+    summary: target,
+    shareUrl: null,
+    description: "Detail",
+    skills: [],
+    onboardingSkill: null,
+    hooks: [],
+    apps: [],
+    appTemplates: [],
+    mcpServers: [],
+    scheduledTasks: null
+  }
+  const pending = deferred<{ plugin: PluginDetail }>()
+  api.readPlugin = vi.fn(() => pending.promise)
+  const store = createPluginsStore(api)
+  const first = store.getState().readPlugin(entry)
+  expect(store.getState().readPlugin(entry)).toBe(first)
+  pending.resolve({ plugin: detail })
+  await first
+  expect(store.getState().cachedPlugin(entry)).toBe(detail)
+  expect(await store.getState().readPlugin(entry)).toBe(detail)
+  expect(api.readPlugin).toHaveBeenCalledOnce()
+  await store.getState().skillsChanged()
+  expect(store.getState().cachedPlugin(entry)).toBeUndefined()
+  await store.getState().readPlugin(entry)
+  expect(api.readPlugin).toHaveBeenCalledTimes(2)
+})
+
+test("other project skills load on demand without re-reading plugin catalogs or changing the active scope", async () => {
+  const api = fakeApi()
+  const skills = vi.spyOn(api, "listSkills")
+  const plugins = vi.spyOn(api, "listPlugins")
+  const installed = vi.spyOn(api, "installedPlugins")
+  const store = createPluginsStore(api)
+  await store.getState().refresh(["/a"], { cached: true })
+  const first = store.getState().loadSkillProject("/b")
+  expect(store.getState().loadSkillProject("/b")).toBe(first)
+  await first
+  await store.getState().loadSkillProject("/a")
+  await store.getState().loadSkillProject("/b")
+  expect(skills.mock.calls.map(([cwds]) => cwds)).toEqual([["/a"], ["/b"]])
+  expect(plugins).toHaveBeenCalledOnce()
+  expect(installed).toHaveBeenCalledOnce()
+  expect(store.getState().cwds).toEqual(["/a"])
+  expect(store.getState().skillProjectLoading["/b"]).toBe(false)
+  expect(store.getState().skills.map((skill) => skill.path)).toContain("/a/.codex/s2")
+})
+
+test("project reads can rejoin after a scope change and publish only to the current view", async () => {
+  const api = fakeApi()
+  const store = createPluginsStore(api)
+  await store.getState().refresh(["/a"], { cached: true })
+  const request = deferred<Awaited<ReturnType<PluginsApi["listSkills"]>>>()
+  const response = await api.listSkills(["/b"])
+  const project = must(
+    response.data.find((entry) => entry.cwd === "/b"),
+    "project b"
+  )
+  project.skills.push({ ...skill("/b/SKILL.md", true), scope: "repo" })
+  api.listSkills = vi.fn(() => request.promise)
+  const old = store.getState().loadSkillProject("/b")
+  await store.getState().refresh(["/a", "/a"], { cached: true })
+  // Switch through a cached empty/default scope without launching another skill read.
+  store.setState({ cwds: [] })
+  const current = store.getState().loadSkillProject("/b")
+  request.resolve(response)
+  await Promise.all([old, current])
+  expect(api.listSkills).toHaveBeenCalledOnce()
+  expect(store.getState().skillProjects).toHaveProperty("/b")
+  expect(store.getState().skillProjectLoading["/b"]).toBe(false)
+})
+
+test("background project discovery reads small batches, publishes progressively and reuses directory caches", async () => {
+  const api = fakeApi()
+  const user = skill("/home/shared", true)
+  const response = (cwds: string[]) => ({
+    data: cwds.map((cwd) => ({
+      cwd,
+      skills: [user, { ...skill(`${cwd}/SKILL.md`, true), scope: "repo" as const }],
+      errors: []
+    }))
+  })
+  api.listSkills = vi.fn((cwds = []) => Promise.resolve(response(cwds)))
+  const plugins = vi.spyOn(api, "listPlugins")
+  const store = createPluginsStore(api)
+  await store.getState().refresh(["/current"], { cached: true })
+  const firstBatch = deferred<Awaited<ReturnType<PluginsApi["listSkills"]>>>()
+  vi.mocked(api.listSkills).mockImplementationOnce(() => firstBatch.promise)
+  const directories = Array.from({ length: 9 }, (_, index) => `/project-${index}`)
+  const discovery = store.getState().discoverSkillProjects(directories, new AbortController().signal)
+  expect(api.listSkills).toHaveBeenLastCalledWith(directories.slice(0, 4), false)
+  expect(store.getState().skillsLoading).toBe(false)
+  expect(store.getState().skillProjects["/current"]).toHaveLength(1)
+  expect(vi.mocked(api.listSkills).mock.calls).toHaveLength(2)
+  firstBatch.resolve(response(directories.slice(0, 4)))
+  await discovery
+  expect(vi.mocked(api.listSkills).mock.calls.map(([cwds]) => cwds?.length)).toEqual([1, 4, 4, 1])
+  expect(Object.keys(store.getState().skillProjects)).toHaveLength(10)
+  expect(store.getState().skills.filter((entry) => entry.path === user.path)).toHaveLength(1)
+  const reads = vi.mocked(api.listSkills).mock.calls.length
+  await store.getState().discoverSkillProjects(directories, new AbortController().signal)
+  expect(api.listSkills).toHaveBeenCalledTimes(reads)
+  expect(plugins).toHaveBeenCalledOnce()
+})
+
+test("leaving the skills page stops discovery from scheduling more directory reads", async () => {
+  const api = fakeApi()
+  const store = createPluginsStore(api)
+  await store.getState().refresh(["/a"])
+  const pending = deferred<Awaited<ReturnType<PluginsApi["listSkills"]>>>()
+  api.listSkills = vi.fn(() => pending.promise)
+  const controller = new AbortController()
+  const directories = Array.from({ length: 8 }, (_, index) => `/project-${index}`)
+  const discovery = store.getState().discoverSkillProjects(directories, controller.signal)
+  controller.abort()
+  pending.resolve({ data: directories.slice(0, 4).map((cwd) => ({ cwd, skills: [], errors: [] })) })
+  await discovery
+  expect(api.listSkills).toHaveBeenCalledOnce()
 })

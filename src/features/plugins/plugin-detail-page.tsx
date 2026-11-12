@@ -22,6 +22,7 @@ import { openExternal } from "@/lib/open"
 import { pluginsStore } from "./instance"
 import { PluginIcon } from "./plugin-icon"
 import { SkillDocument } from "./skill-document"
+import { SkillIcon } from "./skill-icon"
 import type { PluginEntry } from "./store"
 
 /** Plugin header, information strip and capability lists, fed by Codex's source catalog. */
@@ -35,14 +36,14 @@ export function PluginDetailPage({ entry, onBack }: { entry: PluginEntry; onBack
   const install = useStore(pluginsStore, (state) => state.install)
   const uninstall = useStore(pluginsStore, (state) => state.uninstall)
   const toggle = useStore(pluginsStore, (state) => state.setPluginEnabled)
-  const [detail, setDetail] = useState<PluginDetail | null>(null)
+  const [detail, setDetail] = useState<PluginDetail | null>(() => pluginsStore.getState().cachedPlugin(entry) ?? null)
   const [error, setError] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
   const [skill, setSkill] = useState<PluginDetail["skills"][number] | null>(null)
   useEffect(() => {
     let alive = true
     setError(null)
-    setDetail(null)
+    setDetail(pluginsStore.getState().cachedPlugin(entry) ?? null)
     void read(entry).then(
       (result) => {
         if (alive) setDetail(result)
@@ -211,7 +212,7 @@ export function PluginDetailPage({ entry, onBack }: { entry: PluginEntry; onBack
                   className="h-auto w-full justify-start gap-3 rounded-xl px-3 py-3 text-start whitespace-normal"
                   onClick={() => setSkill(item)}
                 >
-                  <PluginIcon name={item.name} className="size-8" />
+                  <SkillIcon name={item.name} />
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-medium">{item.interface?.displayName ?? item.name}</span>
                     <span className="mt-1 block truncate text-[13px] leading-5 font-normal text-muted-foreground">
@@ -266,7 +267,7 @@ export function PluginDetailPage({ entry, onBack }: { entry: PluginEntry; onBack
           {skill && (
             <>
               <div className="shrink-0 pr-8">
-                <PluginIcon name={skill.name} className="size-10" />
+                <SkillIcon name={skill.name} className="size-9 shrink-0" />
               </div>
               <div className="min-h-0 space-y-6 overflow-y-auto overscroll-contain">
                 <DialogHeader className="gap-3">

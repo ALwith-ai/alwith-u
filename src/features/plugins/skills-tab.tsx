@@ -1,6 +1,5 @@
 import type { SkillMetadata } from "@alwith/module-chat/client"
-import { convertFileSrc } from "@tauri-apps/api/core"
-import { CheckIcon, SparklesIcon, XIcon } from "lucide-react"
+import { CheckIcon, XIcon } from "lucide-react"
 import { useDeferredValue, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useStore } from "zustand"
@@ -32,21 +31,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CatalogSkeleton } from "./catalog-skeleton"
 import { pluginsStore } from "./instance"
 import { SkillDocument } from "./skill-document"
-
-function SkillIcon({ skill }: { skill: SkillMetadata }) {
-  const [failed, setFailed] = useState(false)
-  const local = skill.interface?.iconSmall
-  const src = local ? convertFileSrc(local) : skill.interface?.iconSmallUrl
-  return (
-    <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted">
-      {src && !failed ? (
-        <img src={src} alt="" onError={() => setFailed(true)} className="size-6 rounded object-contain" />
-      ) : (
-        <SparklesIcon className="size-6 text-muted-foreground" />
-      )}
-    </div>
-  )
-}
+import { SkillIcon } from "./skill-icon"
 
 function SkillToggle({ skill }: { skill: SkillMetadata }) {
   const { t } = useTranslation()
@@ -70,7 +55,10 @@ export function SkillsTab({ query, ready }: { query: string; ready: boolean }) {
   const allSkills = useStore(pluginsStore, (state) => state.skills)
   const skills = allSkills.filter((skill) => skill.pluginId === null)
   const errors = useStore(pluginsStore, (state) => state.skillErrors)
-  const loading = useStore(pluginsStore, (state) => state.loading) || !ready
+  const loading = useStore(pluginsStore, (state) => state.skillsLoading && state.skills.length === 0) || !ready
+  const loadProject = useStore(pluginsStore, (state) => state.loadSkillProject)
+  const projectLoading = useStore(pluginsStore, (state) => state.skillProjectLoading)
+  const projectErrors = useStore(pluginsStore, (state) => state.skillProjectErrors)
   const projects = useStore(pluginsStore, (state) => state.skillProjects)
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null)
   const [expanded, setExpanded] = useState(false)
@@ -109,7 +97,6 @@ export function SkillsTab({ query, ready }: { query: string; ready: boolean }) {
         : []
     }),
     ...Object.entries(projects).flatMap(([cwd, paths]) => {
-      if (!skills.some((skill) => skill.scope === "repo" && paths.includes(skill.path))) return []
       const name =
         cwd
           .replace(/[\\/]+$/, "")
@@ -125,6 +112,8 @@ export function SkillsTab({ query, ready }: { query: string; ready: boolean }) {
     }
   }
   const currentGroup = groups.find((group) => group.id === selectedGroup) ?? groups[0]
+  const currentLoading = currentGroup?.path ? projectLoading[currentGroup.path] === true : false
+  const currentError = currentGroup?.path ? projectErrors[currentGroup.path] : undefined
   const groupSkills = currentGroup ? sorted.filter((skill) => currentGroup.paths.has(skill.path)) : []
   const groupExpanded = currentGroup ? expandedGroups[currentGroup.id] === true : false
   const groupSummary = groupExpanded || q ? groupSkills : groupSkills.slice(0, 6)
@@ -144,7 +133,9 @@ export function SkillsTab({ query, ready }: { query: string; ready: boolean }) {
             onClick={() => setSelectedPath(skill.path)}
           />
           <ItemMedia className="pointer-events-none relative translate-none! self-center!">
-            <SkillIcon skill={skill} />
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted">
+              <SkillIcon name={skill.name} />
+            </div>
           </ItemMedia>
           <ItemContent className="pointer-events-none relative min-w-0">
             <ItemTitle className="block truncate">{skill.interface?.displayName ?? skill.name}</ItemTitle>
@@ -175,6 +166,18 @@ export function SkillsTab({ query, ready }: { query: string; ready: boolean }) {
               {error.path}: {error.message}
             </p>
           ))}
+          {Object.entries(projectErrors)
+            .filter(([, error]) => error)
+            .map(([cwd, error]) => (
+              <div key={cwd} role="alert" className="flex items-center justify-between gap-2 text-xs text-destructive">
+                <span>
+                  {cwd}: {error}
+                </span>
+                <Button variant="outline" size="sm" onClick={() => void loadProject(cwd)}>
+                  {t("plugins.loadError.retry")}
+                </Button>
+              </div>
+            ))}
           {loading ? (
             <CatalogSkeleton skills />
           ) : (
@@ -182,9 +185,11 @@ export function SkillsTab({ query, ready }: { query: string; ready: boolean }) {
               <section aria-label={t("plugins.skills.installed")}>
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <h2 className="text-base font-medium">{t("plugins.skills.installed")}</h2>
-                  <span role="status" className="text-xs text-muted-foreground">
-                    {t("plugins.catalog.skillCount", { count: sorted.length })}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span role="status" className="text-xs text-muted-foreground">
+                      {t("plugins.catalog.skillCount", { count: sorted.length })}
+                    </span>
+                  </div>
                 </div>
                 {sorted.length ? (
                   renderSkills(summary)
@@ -232,7 +237,22 @@ export function SkillsTab({ query, ready }: { query: string; ready: boolean }) {
                   {groups.map((group) => (
                     <TabsContent key={group.id} value={group.id}>
                       {group.id === currentGroup.id &&
-                        (groupSkills.length ? (
+                        (currentLoading ? (
+                          <Spinner aria-label={t("plugins.skills.loading")} />
+                        ) : currentError ? (
+                          <div role="alert" className="space-y-2 text-sm text-destructive">
+                            {currentError}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                if (group.path) void loadProject(group.path)
+                              }}
+                            >
+                              {t("plugins.loadError.retry")}
+                            </Button>
+                          </div>
+                        ) : groupSkills.length ? (
                           <>
                             {renderSkills(groupSummary)}
                             {!q && groupSkills.length > 6 && (
@@ -275,7 +295,7 @@ export function SkillsTab({ query, ready }: { query: string; ready: boolean }) {
               renderHeader={(actions) => (
                 <>
                   <div className="flex items-center justify-between gap-4">
-                    <SkillIcon skill={selected} />
+                    <SkillIcon name={selected.name} className="size-9 shrink-0" />
                     <div className="flex shrink-0 items-center gap-2">
                       <SkillToggle skill={selected} />
                       {actions}
