@@ -5,7 +5,7 @@ import {
   resolveCondenseScope,
   resolveDriveRoot
 } from "@alwith/module-drive/content"
-import { isPinned, togglePinned, useDrive } from "@alwith/module-drive/react"
+import { isPinned, togglePinned, useDriveSelector } from "@alwith/module-drive/react"
 import { writeText } from "@tauri-apps/plugin-clipboard-manager"
 import type { ReactNode } from "react"
 import { useTranslation } from "react-i18next"
@@ -34,7 +34,16 @@ export function DriveTreeActions({
   onPublish: (path: string, kind: "file" | "directory") => void
   saveDocument: (path: string) => Promise<void>
 }): ReactNode {
-  const { snapshot } = useDrive(drive)
+  const snapshot = useDriveSelector(
+    drive,
+    (state) => state.snapshot,
+    (left, right) =>
+      left?.roots === right?.roots &&
+      left?.running === right?.running &&
+      left?.baseUrl === right?.baseUrl &&
+      left?.localRoot === right?.localRoot &&
+      left?.webBaseUrl === right?.webBaseUrl
+  )
   const { i18n } = useTranslation()
   const label = (en: string, zh: string): string => (i18n.language.startsWith("zh") ? zh : en)
   const profile = `${snapshot?.baseUrl ?? ""}|${snapshot?.localRoot ?? ""}`

@@ -731,6 +731,8 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
                       createPortal(
                         <DrivePage
                           currentProject={session?.cwd ?? lastDirectory}
+                          currentSessionId={selectedId}
+                          onSelectSession={select}
                           onOpenProject={(root) =>
                             operation.run(async () => {
                               await client.discardDraft("main")

@@ -176,12 +176,14 @@ export function ProductPreview({
     })()
   }
   const newChat = (directory?: string | null) => {
-    void resetMainDraft(directory === undefined ? (session?.cwd ?? cwd) : directory).then((target) => {
-      setCwd(target)
-      setSelectedId(null)
-      setGeneration((value) => value + 1)
-      setPage("chat")
-    }).catch(reportError)
+    void resetMainDraft(directory === undefined ? (session?.cwd ?? cwd) : directory)
+      .then((target) => {
+        setCwd(target)
+        setSelectedId(null)
+        setGeneration((value) => value + 1)
+        setPage("chat")
+      })
+      .catch(reportError)
   }
   const projectMenu = (
     <ChatProjectMenu
@@ -216,7 +218,9 @@ export function ProductPreview({
         <ConnectionNotice
           connection={connection}
           error={error}
-          onReconnect={async () => { await client.connect().catch(reportError) }}
+          onReconnect={async () => {
+            await client.connect().catch(reportError)
+          }}
         />
         <DraftChat
           key={generation}
@@ -372,6 +376,7 @@ export function ProductPreview({
                         createPortal(
                           <DrivePage
                             currentProject={cwd}
+                            onSelectSession={select}
                             onOpenProject={(root) => Promise.resolve(newChat(root.localPath))}
                           />,
                           driveTarget

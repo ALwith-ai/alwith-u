@@ -5,15 +5,16 @@ const boundary = vi.hoisted(() => ({ request: vi.fn(), writeText: vi.fn(), error
 vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({ writeText: boundary.writeText }))
 vi.mock("../controller", () => ({ drive: { request: boundary.request } }))
 vi.mock("@alwith/module-drive/react", () => ({
-  useDrive: () => ({
-    snapshot: {
-      running: true,
-      baseUrl: "https://drive.test",
-      webBaseUrl: "https://web.test",
-      localRoot: "/drive",
-      roots: []
-    }
-  }),
+  useDriveSelector: (_controller: unknown, select: (state: unknown) => unknown) =>
+    select({
+      snapshot: {
+        running: true,
+        baseUrl: "https://drive.test",
+        webBaseUrl: "https://web.test",
+        localRoot: "/drive",
+        roots: []
+      }
+    }),
   isPinned: () => false,
   togglePinned: vi.fn()
 }))

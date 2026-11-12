@@ -12,21 +12,24 @@ import {
   DriveSharing,
   driveTranslator,
   summarize,
-  useDrive
+  useDrive,
+  useDriveSelector
 } from "@alwith/module-drive/react"
 import "@alwith/module-drive/styles.css"
 import { type CondenseScope, DriveCondense } from "@alwith/module-drive/content"
 import { containsPath } from "@alwith/module-fs"
 import { isTauri } from "@tauri-apps/api/core"
 import { confirm, open } from "@tauri-apps/plugin-dialog"
-import { CloudIcon } from "lucide-react"
+import { CloudIcon, MessageSquareIcon } from "lucide-react"
 import { type ReactNode, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
+import type { SessionSummary } from "@/agent/client"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { ProjectSessionPopover } from "@/features/chat/project-session-popover"
 import { useSessionsUiStore } from "@/features/sessions/store"
 import { useWorkspace } from "@/features/workspace/context"
 import { openExternal, revealInFileManager } from "@/lib/open"
@@ -62,17 +65,20 @@ export function useDriveConnection(start = true): void {
 
 export function DrivePage({
   onOpenProject,
-  currentProject
+  currentProject,
+  currentSessionId,
+  onSelectSession
 }: {
   currentProject?: string | null
+  currentSessionId?: string | null
+  onSelectSession: (session: SessionSummary) => void
   onOpenProject: (root: RootInfo) => Promise<void>
 }): ReactNode {
   const workspace = useWorkspace()
   const searchVisible = useSessionsUiStore((state) => state.driveSearchOpen)
   const { i18n } = useTranslation()
   const locale = i18n.language.startsWith("zh") ? "zh-CN" : "en"
-  const { snapshot } = useDrive(drive)
-  const profile = `${snapshot?.baseUrl ?? ""}|${snapshot?.localRoot ?? ""}`
+  const profile = useDriveSelector(drive, ({ snapshot }) => `${snapshot?.baseUrl ?? ""}|${snapshot?.localRoot ?? ""}`)
   const pins = useDrivePins(profile)
   const [condense, setCondense] = useState<CondenseScope | null>(null)
   const openProject = async (root: RootInfo): Promise<void> => {
@@ -112,7 +118,26 @@ export function DrivePage({
       return Promise.try(() => {
         setCondense({ projectId: root.projectId, projectName: root.name, scopePath: null })
       })
-    }
+    },
+    renderProjectActions: (root) => (
+      <span onClick={(event) => event.stopPropagation()}>
+        <ProjectSessionPopover
+          cwd={root.localPath}
+          currentSessionId={currentSessionId}
+          onSelect={onSelectSession}
+          onNewChat={() => void openProject(root).catch((error: unknown) => toast.error(String(error)))}
+          trigger={
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={locale === "zh-CN" ? "最近会话" : "Recent conversations"}
+            >
+              <MessageSquareIcon />
+            </Button>
+          }
+        />
+      </span>
+    )
   }
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
@@ -290,7 +315,7 @@ export function DriveStatus(): ReactNode {
     return () => {
       active = false
     }
-  }, [connected, snapshot?.running, snapshot?.status])
+  }, [connected, snapshot?.generation, snapshot?.running, snapshot?.status?.failed, snapshot?.status?.lastSyncAt])
   if (!visible || !snapshot?.configured) return null
   const summary = summarize(snapshot.status, failures)
   const summaryKey = connectionError || snapshot.error ? "drive.summary.error" : summary.key

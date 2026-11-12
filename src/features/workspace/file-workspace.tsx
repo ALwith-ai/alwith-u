@@ -1,4 +1,4 @@
-import type { Job, RemoteId } from "@alwith/module-drive"
+import { driveFileIndex, type Job, type RemoteId } from "@alwith/module-drive"
 import {
   ChatCondenseEntry,
   type CondenseScope,
@@ -6,7 +6,7 @@ import {
   DriveMoveDialog,
   resolveDriveRoot
 } from "@alwith/module-drive/content"
-import { DriveBadge, useDrive } from "@alwith/module-drive/react"
+import { DriveBadge, useDriveSelector } from "@alwith/module-drive/react"
 import {
   type CloseDecision,
   createEditorController,
@@ -220,19 +220,26 @@ export function FileWorkspace({
   )
   const activeDocument = editorSnapshot?.documents.find((document) => document.id === tabSnapshot?.activeId)
   const activeCollaborationOwner = useCollaborationOwner(activeDocument?.path)
-  const driveState = useDrive(drive).snapshot
-  const driveRoot =
-    activeDocument && driveState?.roots.find((root) => containsPath(root.localPath, activeDocument.path))
-  const driveFile = activeDocument && driveState?.files.find((file) => file.localPath === activeDocument.path)
-  const driveReadOnly =
-    Boolean(
-      driveRoot &&
-      (!driveState?.running ||
-        !driveRoot.canWrite ||
-        !driveRoot.syncEnabled ||
-        driveRoot.cloudOnly ||
-        driveRoot.kind === "SKILL")
-    ) || driveFile?.state === "readOnly"
+  const driveState = useDriveSelector(
+    drive,
+    (state) => state.snapshot,
+    (left, right) => left?.roots === right?.roots && left?.running === right?.running
+  )
+  const driveSourceReadOnly = useDriveSelector(drive, ({ snapshot }) =>
+    Boolean(activeDocument && driveFileIndex(snapshot).files.get(activeDocument.path)?.state === "collab")
+  )
+  const driveReadOnly = useDriveSelector(drive, ({ snapshot }) => {
+    if (!activeDocument || !snapshot) return false
+    const root = snapshot.roots.find((root) => containsPath(root.localPath, activeDocument.path))
+    const file = driveFileIndex(snapshot).files.get(activeDocument.path.replaceAll("\\", "/"))
+    return Boolean(
+      (root && (!snapshot.running || !root.canWrite || !root.syncEnabled || root.cloudOnly || root.kind === "SKILL")) ||
+      file?.state === "readOnly"
+    )
+  })
+  useEffect(() => {
+    for (const owner of workspaces.current.values()) owner.tree.setActive(owner === workspace)
+  }, [workspace])
   const previews = useMemo(() => {
     if (!workspace) return []
     const imageLabels = {
@@ -1029,7 +1036,7 @@ export function FileWorkspace({
                         iconTheme={iconTheme ?? workspace.iconTheme}
                         isDark={resolvedTheme === "dark"}
                         readOnly={driveReadOnly}
-                        sourceReadOnly={driveFile?.state === "collab" || activeCollaborationOwner !== undefined}
+                        sourceReadOnly={driveSourceReadOnly || activeCollaborationOwner !== undefined}
                         controller={workspace.editor}
                         labels={editorLabels}
                         compactToolbar

@@ -4,11 +4,12 @@ import {
   DriveContentProvider,
   driveContentTranslator
 } from "@alwith/module-drive/content"
-import { useDrive } from "@alwith/module-drive/react"
+import { useDriveSelector } from "@alwith/module-drive/react"
 import { containsPath } from "@alwith/module-fs"
 import { type ReactNode, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+import { shallow } from "zustand/shallow"
 
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -20,11 +21,20 @@ import { drive, driveTransport } from "./controller"
 
 export function useDriveContentHost(saveDocument: (path: string) => Promise<void>): DriveContentHost {
   const { i18n } = useTranslation()
-  const { connected, snapshot } = useDrive(drive)
+  const { connected, configured, generation, pushConnected } = useDriveSelector(
+    drive,
+    ({ connected, snapshot }) => ({
+      connected,
+      configured: snapshot?.configured,
+      generation: snapshot?.generation,
+      pushConnected: snapshot?.status?.pushConnected ?? false
+    }),
+    shallow
+  )
   const [userName, setUserName] = useState("")
   useEffect(() => {
     let active = true
-    if (!connected || !snapshot?.configured) {
+    if (!connected || !configured) {
       setUserName("")
       return
     }
@@ -40,16 +50,16 @@ export function useDriveContentHost(saveDocument: (path: string) => Promise<void
     return () => {
       active = false
     }
-  }, [connected, snapshot?.configured, snapshot?.generation])
+  }, [connected, configured, generation])
   return useMemo(
     () => ({
       transport: driveTransport,
-      generation: snapshot?.generation,
+      generation,
       collaborationOwner: setCollaborationOwner,
       saveDocument,
       userName,
       language: i18n.language,
-      pushConnected: snapshot?.status?.pushConnected ?? false,
+      pushConnected,
       translate: driveContentTranslator(i18n.language.startsWith("zh") ? "zh-CN" : "en"),
       onError: (error) => toast.error(String(error)),
       notify: toast,
@@ -67,7 +77,7 @@ export function useDriveContentHost(saveDocument: (path: string) => Promise<void
         )
       }
     }),
-    [userName, i18n.language, snapshot?.status?.pushConnected, snapshot?.generation, saveDocument]
+    [userName, i18n.language, pushConnected, generation, saveDocument]
   )
 }
 export function DriveDocumentSurface({
@@ -79,14 +89,16 @@ export function DriveDocumentSurface({
   path: string | null
   children: ReactNode
 }): ReactNode {
-  const { snapshot } = useDrive(drive)
-  const managed =
-    path !== null &&
-    snapshot?.running &&
-    snapshot.roots.some((root) => root.drivePath && containsPath(root.localPath, path))
+  const managed = useDriveSelector(drive, ({ snapshot }) =>
+    Boolean(
+      path !== null &&
+      snapshot?.running &&
+      snapshot.roots.some((root) => root.drivePath && containsPath(root.localPath, path))
+    )
+  )
   return (
     <DriveContentProvider host={host}>
-      {managed ? (
+      {managed && path !== null ? (
         <CommentSurface key={path} path={path}>
           {children}
         </CommentSurface>
