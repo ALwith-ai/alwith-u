@@ -31,55 +31,16 @@ export {
   providerKeyUrl,
   providerRegion
 } from "@alwith/module-chat/settings"
-import { listen } from "@tauri-apps/api/event"
-
-import { commands } from "@/bindings"
-import {
-  ENTERPRISE_PROVIDER_PREFIX,
-  enterpriseCatalog,
-  isEnterpriseModel,
-  projectEnterpriseProviders
-} from "@/features/auth/enterprise-providers"
+import { isEnterpriseModel } from "@/features/auth/enterprise-providers"
 
 // U does not expose Anthropic key configuration.
 export const PROVIDERS = sharedProviders.filter((provider) => provider.id !== "anthropic")
 
-/** The chat plugin's provider commands; every window shares the native state. */
-const rawProvidersPort = createProvidersPort()
-const project = async (snapshot: ProviderSnapshot): Promise<ProviderSnapshot> =>
-  projectEnterpriseProviders(snapshot, enterpriseCatalog(await commands.enterpriseCatalog()))
-export const providersPort: ReturnType<typeof createProvidersPort> = {
-  read: async () => project(await rawProvidersPort.read()),
-  save: async (...args) => project(await rawProvidersPort.save(...args)),
-  saveCustom: async (...args) => project(await rawProvidersPort.saveCustom(...args)),
-  removeCustom: async (...args) => project(await rawProvidersPort.removeCustom(...args)),
-  test: (...args) => rawProvidersPort.test(...args),
-  apply: async () => project(await rawProvidersPort.apply()),
-  onChanged: async (listener) => {
-    let revision = 0
-    const changed = (snapshot?: ProviderSnapshot) => {
-      const expected = ++revision
-      void (async () => {
-        const result = await project(snapshot ?? (await rawProvidersPort.read()))
-        if (expected === revision) listener(result)
-      })().catch((error) => console.error("Enterprise provider projection failed", error))
-    }
-    const stopNative = await listen("enterprise:models-changed", () => changed())
-    try {
-      const stopShared = await rawProvidersPort.onChanged(changed)
-      return () => {
-        revision++
-        stopNative()
-        stopShared()
-      }
-    } catch (error) {
-      stopNative()
-      throw error
-    }
-  }
-}
+/** Configuration results belong exclusively to the shared chat provider store. */
+export const providersPort = createProvidersPort()
 
-export function isAccountModel(model: string | null | undefined): boolean {
+export const isAccountModel = sharedAccountModel
+export function isAccountBoundModel(model: string | null | undefined): boolean {
   return sharedAccountModel(model) || isEnterpriseModel(model)
 }
 
@@ -92,17 +53,13 @@ export function resolveSessionModel(
   const models = providerGroups(snapshot).flatMap((group) =>
     group.models.map((entry) => gatewayModelId(group.id, entry.id))
   )
-  if (model?.startsWith("gateway:finture-enterprise:")) {
-    const apiId = model.slice("gateway:finture-enterprise:".length)
-    const migrated = (snapshot.managedProviders ?? [])
-      .filter((provider) => provider.id.startsWith(ENTERPRISE_PROVIDER_PREFIX))
-      .flatMap((provider) => provider.models.map((entry) => gatewayModelId(provider.id, entry.api_id)))
-      .find((candidate) => candidate.endsWith(`:${apiId}`))
-    if (migrated) return migrated
-  }
   if (model !== null && (!model.startsWith("gateway:") || models.includes(model))) return model
-  if (isAccountModel(model) && purpose === "session")
-    throw new Error("The selected ALwith account model is unavailable. Select another model before sending.")
+  if (isAccountBoundModel(model) && purpose === "session")
+    throw new Error(
+      isEnterpriseModel(model)
+        ? "The selected enterprise model is unavailable. Select another model before sending."
+        : "The selected ALwith account model is unavailable. Select another model before sending."
+    )
   return models[0] ?? null
 }
 

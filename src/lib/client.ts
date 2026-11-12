@@ -16,8 +16,8 @@ import { hostSessionContext } from "@/features/computer/session-context"
 import { useImagePreferences } from "@/features/images/preferences"
 import { RemoteChatClient } from "@/lib/chat-window-client"
 import { DesktopCodexClient } from "@/lib/desktop-client"
+import { resolveConfiguredModel } from "@/lib/model-resolution"
 import { isMac } from "@/lib/platform"
-import { applyProvidersWhenIdle, isAccountModel, resolveSessionModel } from "@/lib/providers"
 import { CODEX_AGENT_ID, runtimeClient } from "@/lib/runtime"
 
 export const client =
@@ -44,14 +44,7 @@ export const client =
           }
         },
         projectPaths: isMac() ? macProjectPaths : undefined,
-        resolveModel: async (model, purpose) => {
-          const providers = await applyProvidersWhenIdle()
-          // Create a reusable draft on the currently applied catalog. Prompt admission retries
-          // the saved provider revision after active turns have finished.
-          return providers.status === "pending" && !isAccountModel(model)
-            ? null
-            : resolveSessionModel(model, providers, purpose)
-        },
+        resolveModel: resolveConfiguredModel,
         sessionContext: hostSessionContext,
         revokeSessionAccess: async (sessionId) => {
           void computer.stopSession({ sessionId }).catch((error: unknown) => {

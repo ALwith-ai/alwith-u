@@ -30,7 +30,7 @@ import {
 } from "@/lib/chat-window"
 import { client, useApp, useSession } from "@/lib/client"
 import type { Preferences } from "@/lib/preferences"
-import { useProviders } from "@/lib/use-providers"
+import { useModelCatalog } from "@/lib/use-model-catalog"
 import { useSurfaceOperation } from "@/lib/use-surface-operation"
 import { useWindowFocus } from "@/lib/window-focus"
 import { openSettingsWindow } from "@/lib/window-manager"
@@ -63,7 +63,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
   const runState = useApp((state) => (selectedId === null ? null : state.runStates[selectedId]?.state))
   const surfaceRevision = useRef(0)
   const focused = useWindowFocus()
-  const providers = useProviders()
+  const providers = useModelCatalog().snapshot
   const { busy, operation } = useSurfaceOperation()
 
   const capture = useCallback(async (): Promise<ChatTransfer> => {

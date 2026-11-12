@@ -13,7 +13,8 @@ import { useProviders } from "@/lib/use-providers"
 
 import { ProviderSection } from "../provider-section"
 
-vi.mock("@/features/auth/store", () => ({ requestAccountProviderRefresh: vi.fn(() => Promise.resolve()) }))
+vi.mock("@/features/auth/store", () => ({}))
+vi.mock("@/features/auth/alwith-models", () => ({ requestAccountProviderRefresh: vi.fn(() => Promise.resolve()) }))
 vi.mock("@/lib/use-providers", () => ({ useProviders: vi.fn() }))
 vi.mock("../codex-provider-section", () => ({ CodexProviderSection: () => null }))
 vi.mock("@/lib/providers", async (importOriginal) => ({

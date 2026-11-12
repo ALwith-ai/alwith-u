@@ -13,7 +13,9 @@ const host = vi.hoisted(() => ({
   errors: vi.fn(),
   enterpriseBind: vi.fn(),
   enterpriseRefresh: vi.fn(),
-  enterpriseClear: vi.fn()
+  enterpriseClear: vi.fn(),
+  enterpriseStatus: vi.fn(),
+  enterpriseUpdateAccount: vi.fn()
 }))
 vi.mock("@/lib/app-env", () => ({ appEnv: { apiBaseUrl: "https://api.example.test/service" } }))
 vi.mock("@/lib/store", () => ({
@@ -65,7 +67,9 @@ vi.mock("@/bindings", () => ({
   commands: {
     enterpriseBind: host.enterpriseBind,
     enterpriseRefresh: host.enterpriseRefresh,
-    enterpriseClear: host.enterpriseClear
+    enterpriseClear: host.enterpriseClear,
+    enterpriseStatus: host.enterpriseStatus,
+    enterpriseUpdateAccount: host.enterpriseUpdateAccount
   }
 }))
 vi.mock("sonner", () => ({ toast: { error: host.errors } }))
@@ -92,6 +96,8 @@ beforeEach(() => {
   host.enterpriseBind.mockReset().mockResolvedValue(8)
   host.enterpriseRefresh.mockReset().mockResolvedValue(null)
   host.enterpriseClear.mockReset().mockResolvedValue(undefined)
+  host.enterpriseStatus.mockReset().mockResolvedValue({ generation: 8 })
+  host.enterpriseUpdateAccount.mockReset().mockResolvedValue(undefined)
 })
 
 test.each([
@@ -152,7 +158,7 @@ async function restore() {
   await auth.initPlatformAuth()
   await vi.waitFor(() => expect(auth.usePlatformAuth.getState().isLoading).toBe(false))
   expect(auth.usePlatformAuth.getState().user?.user_uuid).toBe(cached.user_uuid)
-  return auth
+  return { ...auth, ...(await import("../alwith-models")), ...(await import("../enterprise-models")) }
 }
 
 test("model refresh retries profile validation after cached login survives a startup failure", async () => {
@@ -310,4 +316,46 @@ test("validation cannot bind a profile belonging to a different cached account",
   expect(auth.usePlatformAuth.getState().user?.user_uuid).toBe(cached.user_uuid)
   await auth.requestAccountProviderRefresh()
   expect(host.bind).toHaveBeenCalledOnce()
+})
+
+test("enterprise renewal events validate the account before updating native credentials", async () => {
+  await restore()
+  await vi.waitFor(() => expect(host.enterpriseRefresh).toHaveBeenCalledOnce())
+  host.request.mockClear()
+  const validation = Promise.withResolvers<typeof profile>()
+  host.request.mockReturnValueOnce(validation.promise)
+  const payload = {
+    type: "enterpriseAccountRefreshRequested",
+    accountId: cached.user_uuid,
+    generation: 8,
+    requestId: "renewal-1"
+  }
+  for (const listener of host.listeners.get("enterprise:event") ?? [])
+    listener({ event: "enterprise:event", id: 0, payload })
+  await vi.waitFor(() => expect(host.request).toHaveBeenCalledWith("/api/v1/me/profile", "GET"))
+  expect(host.enterpriseUpdateAccount).not.toHaveBeenCalled()
+  validation.resolve(profile)
+  await vi.waitFor(() =>
+    expect(host.enterpriseUpdateAccount).toHaveBeenCalledWith({
+      generation: 8,
+      requestId: "renewal-1",
+      accessToken: "test-access"
+    })
+  )
+  expect(host.refresh).toHaveBeenCalledOnce()
+})
+
+test("enterprise events cannot renew credentials from a stale generation", async () => {
+  await restore()
+  await vi.waitFor(() => expect(host.enterpriseRefresh).toHaveBeenCalledOnce())
+  const payload = {
+    type: "enterpriseAccountRefreshRequested",
+    accountId: cached.user_uuid,
+    generation: 7,
+    requestId: "old-renewal"
+  }
+  for (const listener of host.listeners.get("enterprise:event") ?? [])
+    listener({ event: "enterprise:event", id: 0, payload })
+  await vi.waitFor(() => expect(host.enterpriseStatus).toHaveBeenCalledOnce())
+  expect(host.enterpriseUpdateAccount).not.toHaveBeenCalled()
 })

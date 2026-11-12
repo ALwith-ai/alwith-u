@@ -74,7 +74,7 @@ import { type Preferences, savePreference } from "@/lib/preferences"
 import { applyProvidersWhenIdle } from "@/lib/providers"
 import { onHubExit } from "@/lib/runtime"
 import { serveSettingsBridge } from "@/lib/settings-bridge"
-import { useProviders } from "@/lib/use-providers"
+import { useModelCatalog } from "@/lib/use-model-catalog"
 import { useReadVisibleSession } from "@/lib/use-read-visible-session"
 import { useSurfaceOperation } from "@/lib/use-surface-operation"
 import { useWindowFocus } from "@/lib/window-focus"
@@ -111,7 +111,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   const voiceHandoff = useVoiceHandoff(selectedId, surfaceGeneration)
   const [chatRevealRequest, setChatRevealRequest] = useState(0)
   const [lastDirectory, setLastDirectory] = useState<string | null>(initialPreferences.lastProjectDirectory)
-  const providerSnapshot = useProviders()
+  const providerSnapshot = useModelCatalog().snapshot
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [hotkeysOpen, setHotkeysOpen] = useState(false)
   // Management pages share the leading screen; the offscreen chat stays mounted.

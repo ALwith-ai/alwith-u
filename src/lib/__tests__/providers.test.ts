@@ -129,7 +129,7 @@ test("account-sourced providers and Anthropic are excluded from manual key confi
 
 test("account model classification follows the catalog source and exact provider ID", () => {
   expect(isAccountModel("gateway:litellm:model")).toBe(true)
-  expect(isAccountModel("gateway:finture-enterprise:company-model")).toBe(true)
+  expect(isAccountModel("gateway:finture-enterprise:company-model")).toBe(false)
   expect(isAccountModel("gateway:finture-enterprise-other:company-model")).toBe(false)
   expect(isAccountModel("gateway:litellm-other:model")).toBe(false)
   expect(isAccountModel("gateway:deepseek:deepseek-flash")).toBe(false)
@@ -164,12 +164,14 @@ test("a failed custom provider snapshot preserves the explicitly selected native
     status: "failed",
     error: "Provider My GLM gateway (custom_broken) could not apply (-32602)",
     providers: {},
-    customProviders: [{
-      id: "custom_broken",
-      name: "My GLM gateway",
-      baseUrl: "https://gateway.example.test/v1",
-      models: [{ api_id: "glm-5", label: "GLM 5" }]
-    }]
+    customProviders: [
+      {
+        id: "custom_broken",
+        name: "My GLM gateway",
+        baseUrl: "https://gateway.example.test/v1",
+        models: [{ api_id: "glm-5", label: "GLM 5" }]
+      }
+    ]
   }
   expect(resolveSessionModel("gpt-6.1-sol", snapshot, "session")).toBe("gpt-6.1-sol")
   expect(resolveSessionModel("gpt-6.1-sol", snapshot, "draft")).toBe("gpt-6.1-sol")

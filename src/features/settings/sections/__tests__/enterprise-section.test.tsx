@@ -35,9 +35,9 @@ vi.mock("@/features/auth/store", () => ({
     (select: (state: { user: typeof host.user }) => unknown) => select({ user: host.user }),
     { getState: () => ({ user: host.user }) }
   ),
-  platformApiRequest: host.request,
-  requestEnterpriseProviderRefresh: host.refresh
+  platformApiRequest: host.request
 }))
+vi.mock("@/features/auth/enterprise-models", () => ({ requestEnterpriseProviderRefresh: host.refresh }))
 import { EnterpriseSection } from "../enterprise-section"
 beforeEach(() => {
   vi.clearAllMocks()

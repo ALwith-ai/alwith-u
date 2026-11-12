@@ -4,7 +4,8 @@ import { beforeAll, beforeEach, expect, test, vi } from "vitest"
 import { initI18n } from "@/lib/i18n"
 
 const refresh = vi.hoisted(() => vi.fn<() => Promise<void>>())
-vi.mock("@/features/auth/store", () => ({ requestAccountProviderRefresh: refresh }))
+vi.mock("@/features/auth/store", () => ({}))
+vi.mock("@/features/auth/alwith-models", () => ({ requestAccountProviderRefresh: refresh }))
 
 import { ManagedProviderSection } from "../provider-section"
 

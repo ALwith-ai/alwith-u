@@ -1,6 +1,6 @@
 import { type CustomProvider, gatewayModelId, type ProviderSnapshot } from "@alwith/module-chat/settings"
 
-export const ENTERPRISE_PROVIDER_PREFIX = "custom_alwith_enterprise_"
+const ENTERPRISE_PROVIDER_PREFIX = "custom_alwith_enterprise_"
 const MODEL_PREFIX = gatewayModelId(ENTERPRISE_PROVIDER_PREFIX, "").split(":")[1]!
 
 export function isEnterpriseModel(model: string | null | undefined): boolean {

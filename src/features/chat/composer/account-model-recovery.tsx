@@ -5,13 +5,13 @@ import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { client } from "@/lib/client"
-import { useProviders } from "@/lib/use-providers"
+import { useModelCatalog } from "@/lib/use-model-catalog"
 
 import { DraftModelSelect } from "./draft-model-select"
 
 export function AccountModelRecovery({ session }: { session: Session }) {
   const { t } = useTranslation()
-  const snapshot = useProviders()
+  const snapshot = useModelCatalog().snapshot
   const [busy, setBusy] = useState(false)
   const [model, setModel] = useState<string | null>(null)
   async function recover(selected: string | null): Promise<void> {

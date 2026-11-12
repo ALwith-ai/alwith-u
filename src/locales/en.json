@@ -573,6 +573,8 @@
     }
   },
   "provider": {
+    "catalogUnconfirmed": "Model list update failed",
+    "catalogUpdateFailed": "Unable to update the gateway model list right now",
     "managed": {
       "aliases": "Model aliases",
       "aliasHint": "Choose display names for account models. Their original identities stay unchanged.",

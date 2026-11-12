@@ -226,6 +226,10 @@ test("a visible floating reload offers retry when restoration fails and mounts a
   try {
     const retry = await view.findByRole("button", { name: "Reconnect" })
     expect(view.getByRole("status")).toHaveTextContent("Main host is restarting")
+    await waitFor(() => {
+      expect(retry).toBeEnabled()
+      expect(view.getByRole("main")).toHaveAttribute("aria-busy", "false")
+    })
     await act(() => Promise.try(() => fireEvent.click(retry)))
     await waitFor(() => expect(view.getByRole("textbox")).toBeTruthy())
     expect(view.queryByRole("status")).toBeNull()
