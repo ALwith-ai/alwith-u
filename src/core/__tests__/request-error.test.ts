@@ -1,7 +1,18 @@
 import { RuntimeRequestError } from "@alwith/api"
 import { expect, test } from "vitest"
 
-import { explainRequestError } from "../request-error"
+import { explainRequestError, isAuthenticationRequired } from "../request-error"
+
+test.each([
+  [{ code: -32000, message: "Authentication required" }, true],
+  [new RuntimeRequestError("acpRequest", { code: -32000, message: "Authentication required: Sign in again" }), true],
+  [new RuntimeRequestError("acpRequest", { code: -32000, message: "agent codex exited" }), false],
+  [{ code: -32603, message: "Authentication required" }, false],
+  [new Error("Authentication required"), false],
+  [null, false]
+])("only ACP authentication failures request login: %j", (error, expected) => {
+  expect(isAuthenticationRequired(error)).toBe(expected)
+})
 
 test.each([
   "invalid MCP config: EOF while parsing a value",

@@ -29,6 +29,7 @@ import {
 } from "@alwith/module-chat/client"
 import { IMAGE_TOOL, imageArtifacts, imageModel, type ImageSelection, imageToolSet } from "@alwith/module-chat/image"
 
+import { isAuthenticationRequired } from "../core/request-error"
 import { customModelEffort } from "./custom-model-effort"
 import { forkTitle } from "./fork-title"
 import {
@@ -721,6 +722,34 @@ export class CodexClient extends CodexAcpClient<AppState> {
     error: unknown,
     scope: ReplayScope
   ): Promise<boolean> {
+    if (isAuthenticationRequired(error)) {
+      try {
+        await super.afterResume(id, cwd, scope)
+      } catch (historyError) {
+        scope.signal.throwIfAborted()
+        if (!this.current(scope) || !this.holds(id)) return true
+        this.setApp((state) => ({
+          historyPages: {
+            ...state.historyPages,
+            [id]: {
+              cursor: null,
+              loading: false,
+              error: historyError instanceof Error ? historyError.message : String(historyError)
+            }
+          }
+        }))
+      }
+      scope.signal.throwIfAborted()
+      if (!this.current(scope) || !this.holds(id)) return true
+      this.publishSession({
+        ...this.session(id),
+        attached: false,
+        restoring: false,
+        readOnly: false,
+        error: { stopReason: "error", error: { code: -32000, message: "Authentication required" }, meta: null }
+      })
+      return true
+    }
     const message = error instanceof Error ? error.message : String(error)
     if (
       !message.includes("The ALwith account changed") &&

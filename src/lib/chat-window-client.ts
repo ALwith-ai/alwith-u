@@ -19,6 +19,7 @@ const CLOSED = "chat:client-closed"
 const REALTIME = "chat:client-realtime"
 const METHODS = [
   "connect",
+  "login",
   "refreshProjectContext",
   "startRealtime",
   "stopRealtime",
@@ -446,6 +447,9 @@ export class RemoteChatClient extends CodexClient {
 
   override stopSession(...args: Parameters<CodexClient["stopSession"]>): Promise<void> {
     return this.request("stopSession", args)
+  }
+  override login(...args: Parameters<CodexClient["login"]>): Promise<void> {
+    return this.request("login", args)
   }
   override resumeAccountModel(...args: Parameters<CodexClient["resumeAccountModel"]>): Promise<void> {
     return this.request("resumeAccountModel", args)

@@ -1,4 +1,5 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
+import { RequestError } from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import type { EventCallback, EventName } from "@tauri-apps/api/event"
 import { expect, test, vi } from "vitest"
 
@@ -13,6 +14,37 @@ const initialFiles = vi.hoisted(() => vi.fn())
 vi.mock("../initial-file-results", () => ({ initialFileResults: initialFiles }))
 const inputModes = vi.hoisted(() => ({ delete: vi.fn<(id: string) => Promise<void>>() }))
 vi.mock("@/features/chat/composer/input-mode-config", () => ({ deleteSessionInputMode: inputModes.delete }))
+
+test("floating authentication recovery logs in through main and reopens the same conversation", async () => {
+  const fake = createFakeAgent()
+  const port = new FakeHubPort(() => fake.app)
+  const owner = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
+  const transport = eventBus()
+  const stop = await serveChatClient(owner, transport)
+  const remote = new RemoteChatClient(transport)
+  fake.resumeResponse.current = () => Promise.reject(RequestError.authRequired())
+  fake.app.onRequest("auth/login", () => {
+    fake.resumeResponse.current = null
+    return {}
+  })
+  try {
+    await remote.connect()
+    const id = await remote.newSession("/tmp/recovery")
+    await remote.stopSession(id)
+    await remote.open(id, "/tmp/recovery")
+    expect(remote.session(id).error?.error?.code).toBe(-32000)
+    await remote.login("chat-gpt")
+    await remote.open(id, "/tmp/recovery")
+    expect(remote.session(id).attached).toBe(true)
+    expect(remote.session(id).error).toBeNull()
+    expect(owner.state.sessionWindows[id]).toBe("chat")
+    expect(port.started).toEqual(["codex"])
+  } finally {
+    remote.disconnect()
+    stop()
+    owner.disconnect()
+  }
+})
 
 test("floating composer loads apps through its main owner and preserves failures", async () => {
   const fake = createFakeAgent()

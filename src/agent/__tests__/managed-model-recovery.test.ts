@@ -5,6 +5,56 @@ import { CodexClient } from "../client"
 import { createFakeAgent } from "./fake-agent"
 import { FakeHubPort } from "./fake-runtime-client"
 
+test("authentication failure preserves history and resumes the same session after login", async () => {
+  const fake = createFakeAgent()
+  const port = new FakeHubPort(() => fake.app)
+  const client = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
+  fake.resumeResponse.current = () => Promise.reject(RequestError.authRequired())
+  fake.app.onRequest("auth/login", () => {
+    fake.resumeResponse.current = null
+    return {}
+  })
+  try {
+    await client.connect()
+    await client.open("expired-login", "/tmp/project")
+    expect(client.session("expired-login")).toMatchObject({
+      attached: false,
+      restoring: false,
+      readOnly: false,
+      error: { error: { code: -32000, message: "Authentication required" } }
+    })
+    expect(client.session("expired-login").items.length).toBeGreaterThan(0)
+    await client.login("chat-gpt")
+    await client.open("expired-login", "/tmp/project")
+    expect(client.session("expired-login")).toMatchObject({ attached: true, error: null })
+    expect(fake.deleted.size).toBe(0)
+  } finally {
+    client.disconnect()
+  }
+})
+
+test("a history read failure does not hide the authentication recovery", async () => {
+  const fake = createFakeAgent()
+  const port = new FakeHubPort(() => fake.app)
+  const client = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
+  fake.resumeResponse.current = () => Promise.reject(RequestError.authRequired())
+  fake.historyResponse.current = () => {
+    throw RequestError.invalidRequest(undefined, "History unavailable")
+  }
+  try {
+    await client.connect()
+    await client.open("expired-login", "/tmp/project")
+    expect(client.session("expired-login")).toMatchObject({
+      attached: false,
+      restoring: false,
+      error: { error: { code: -32000 } }
+    })
+    expect(client.state.historyPages["expired-login"]?.error).toContain("History unavailable")
+  } finally {
+    client.disconnect()
+  }
+})
+
 test("revoked account sessions remain readable and need an explicit model before resuming", async () => {
   const fake = createFakeAgent()
   const port = new FakeHubPort(() => fake.app)

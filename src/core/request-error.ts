@@ -1,3 +1,11 @@
+/** ACP shares the server-error range with Runtime failures; the code alone is not enough. */
+export function isAuthenticationRequired(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) return false
+  const value = error as { code?: unknown; reason?: unknown; message?: unknown }
+  const reason = value.reason ?? value.message
+  return value.code === -32000 && typeof reason === "string" && /^Authentication required(?:$|:)/.test(reason)
+}
+
 /** Preserve the transport error identity while exposing the agent's actionable details. */
 export function explainRequestError(error: unknown, method: string): unknown {
   if (!(error instanceof Error)) return error
