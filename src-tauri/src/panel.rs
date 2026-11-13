@@ -103,6 +103,14 @@ pub fn prepare(window: &WebviewWindow) -> Result<(), String> {
     let pointer = window.ns_window().map_err(|error| error.to_string())?;
     // SAFETY: This is the same live window, class conversion has finished, and access is still on the main thread.
     let native = unsafe { &*(pointer as *const NSWindow) };
+    if window.label() == "chat" {
+        use objc2_app_kit::{NSAppearance, NSAppearanceCustomization, NSAppearanceNameDarkAqua};
+        // The chat window is always dark. Tauri's theme is application-wide on macOS, so pin this
+        // window's own appearance; the native backdrop then stays dark under a light app theme.
+        // SAFETY: AppKit's constant is a valid appearance name, read on the main thread.
+        let dark = NSAppearance::appearanceNamed(unsafe { NSAppearanceNameDarkAqua });
+        native.setAppearance(dark.as_deref());
+    }
     // Conversion runs with WebKit detached for KVO safety. Install IME support only after reattachment.
     let content = native.contentView().expect("Overlay must have a content view");
     tauri_nspanel::panel::install_text_input_client_window_level(&content);

@@ -30,6 +30,8 @@ export function bootstrapAuxWindow(opts: {
   zoomControls?: "feedback" | "silent"
   setup?: () => Promise<void>
   transparent?: boolean
+  /** Pins the window to one appearance regardless of the user's theme. */
+  theme?: "dark" | "light"
 }): void {
   const Component = opts.component
   async function bootstrap() {
@@ -59,7 +61,7 @@ export function bootstrapAuxWindow(opts: {
     createRoot(root).render(
       <StrictMode>
         <AppDirectionProvider>
-          <ThemeProvider>
+          <ThemeProvider forced={opts.theme}>
             <TooltipProvider>
               <ErrorBoundary>
                 <AuthGate auxiliary>

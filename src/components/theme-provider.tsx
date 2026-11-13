@@ -1,6 +1,8 @@
 import { rememberThemePreference } from "@alwith/module-desktop-shell/theme"
 import { setTheme as setNativeTheme } from "@tauri-apps/api/app"
 import { isTauri } from "@tauri-apps/api/core"
+import { getCurrentWindow } from "@tauri-apps/api/window"
+import { platform } from "@tauri-apps/plugin-os"
 import * as React from "react"
 import { toast } from "sonner"
 
@@ -27,13 +29,18 @@ function systemTheme(): ResolvedTheme {
   return window.matchMedia(COLOR_SCHEME_QUERY).matches ? "dark" : "light"
 }
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
+/**
+ * `forced` pins this window to one appearance whatever the user's theme is. The preference itself
+ * is still read and saved unchanged, and the application-wide native theme is left alone; on macOS
+ * the window's native appearance is pinned where the window is prepared (see `panel.rs`).
+ */
+export function ThemeProvider({ children, forced }: { children: React.ReactNode; forced?: ResolvedTheme }) {
   const [theme, setThemeState] = React.useState<Theme>(() => {
     const stored = settingsStore.get<string>("appearance.theme") ?? null
     return isTheme(stored) ? stored : "system"
   })
-  const [resolvedTheme, setResolvedTheme] = React.useState<ResolvedTheme>(() =>
-    theme === "system" ? systemTheme() : theme
+  const [resolvedTheme, setResolvedTheme] = React.useState<ResolvedTheme>(
+    () => forced ?? (theme === "system" ? systemTheme() : theme)
   )
 
   const setTheme = React.useCallback((next: Theme) => {
@@ -54,25 +61,29 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     const apply = () => {
-      const resolved = theme === "system" ? systemTheme() : theme
+      const resolved = forced ?? (theme === "system" ? systemTheme() : theme)
       const root = document.documentElement
       root.classList.remove("light", "dark")
       root.classList.add(resolved)
       root.style.colorScheme = resolved
       rememberThemePreference(theme)
       setResolvedTheme(resolved)
-      if (isTauri()) {
-        void setNativeTheme(theme === "system" ? null : theme).catch((error: unknown) =>
-          console.error("Failed to set native theme", error)
-        )
-      }
+      if (!isTauri()) return
+      const native =
+        forced === undefined
+          ? setNativeTheme(theme === "system" ? null : theme)
+          : // Windows themes each window separately; macOS pins the window natively.
+            platform() === "macos"
+            ? Promise.resolve()
+            : getCurrentWindow().setTheme(forced)
+      void native.catch((error: unknown) => console.error("Failed to set native theme", error))
     }
     apply()
-    if (theme !== "system") return
+    if (forced !== undefined || theme !== "system") return
     const query = window.matchMedia(COLOR_SCHEME_QUERY)
     query.addEventListener("change", apply)
     return () => query.removeEventListener("change", apply)
-  }, [theme])
+  }, [theme, forced])
 
   const value = React.useMemo(() => ({ theme, resolvedTheme, setTheme }), [theme, resolvedTheme, setTheme])
   return <ThemeProviderContext.Provider value={value}>{children}</ThemeProviderContext.Provider>

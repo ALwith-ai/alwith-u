@@ -5,5 +5,6 @@ bootstrapAuxWindow({
   component: ChatWindow,
   logTag: "chat",
   zoomControls: "feedback",
-  toaster: true
+  toaster: true,
+  theme: "dark"
 })
