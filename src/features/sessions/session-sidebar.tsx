@@ -256,7 +256,7 @@ function SidebarPanels({
       </SidebarHeader>
       <SidebarContent className="session-list-content gap-0 overflow-hidden px-0 py-1">
         <NavigationTabs
-          className="mb-2"
+          className="mb-2 [&_[data-activity-notification]]:bg-(--color-blue-500)"
           tabs={tabs.filter((tab) => tab.key !== "drive" || driveVisible)}
           view={view}
           onViewChange={(next) => setView(next as SidebarView)}
