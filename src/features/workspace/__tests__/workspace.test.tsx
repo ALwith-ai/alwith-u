@@ -217,7 +217,7 @@ afterEach(() => {
   cleanup()
   vi.restoreAllMocks()
 })
-test("Windows moves only the workspace toggle into the title bar and preserves its action", async () => {
+test("workspace actions use the shell toolbar target without bypassing it for Windows", async () => {
   const target = document.createElement("div")
   document.body.append(target)
   try {
@@ -226,15 +226,17 @@ test("Windows moves only the workspace toggle into the title bar and preserves i
         <Surface cwd="/a" />
       </WindowsWorkspaceControlsContext.Provider>
     )
-    fireEvent.click(within(target).getByRole("button", { name: "Open workspace" }))
+    const toolbar = within(screen.getByTestId("window-titlebar"))
+    expect(target).toBeEmptyDOMElement()
+    fireEvent.click(toolbar.getByRole("button", { name: "Open workspace" }))
     await screen.findByRole("treeitem", { name: /one.txt/ })
-    expect(within(target).getByRole("button", { name: "Close workspace" })).toHaveAttribute("aria-expanded", "true")
+    expect(toolbar.getByRole("button", { name: "Close workspace" })).toHaveAttribute("aria-expanded", "true")
     fireEvent.click(screen.getByRole("button", { name: "Maximize" }))
     expect(document.querySelector(".file-workspace-layout")).toHaveAttribute("data-view-mode", "true")
     fireEvent.click(screen.getByRole("button", { name: "Restore" }))
     expect(document.querySelector(".file-workspace-layout")).toHaveAttribute("data-view-mode", "false")
-    fireEvent.click(within(target).getByRole("button", { name: "Close workspace" }))
-    expect(within(target).getByRole("button", { name: "Open workspace" })).toHaveAttribute("aria-expanded", "false")
+    fireEvent.click(toolbar.getByRole("button", { name: "Close workspace" }))
+    expect(toolbar.getByRole("button", { name: "Open workspace" })).toHaveAttribute("aria-expanded", "false")
     view.unmount()
     expect(target).toBeEmptyDOMElement()
   } finally {
@@ -1173,7 +1175,31 @@ test("the preview renders in the layout's preview pane and reports how the pane 
   }
 })
 
-test("Windows workspace controls follow the actual canvas screen without resetting workspace state", async () => {
+test("titlebar actions remain available on the trailing screen and can open the preview", async () => {
+  const context = canvasContext()
+  const slot = document.createElement("div")
+  document.body.append(slot)
+  const surface = (region: DesktopCanvas["region"]) => (
+    <Unified canvas={{ ...context, region }} slot={slot}>
+      <Surface cwd="/a" />
+    </Unified>
+  )
+  try {
+    const view = render(surface("chat"))
+    for (const region of ["trailing", "preview", "leading", "trailing"] as const) {
+      view.rerender(surface(region))
+      const toolbar = within(screen.getByTestId("window-titlebar"))
+      expect(toolbar.getByRole("button", { name: "Open workspace" })).toBeInTheDocument()
+    }
+    fireEvent.click(within(screen.getByTestId("window-titlebar")).getByRole("button", { name: "Open workspace" }))
+    await waitFor(() => expect(context.navigate).toHaveBeenCalledWith("preview"))
+    view.unmount()
+  } finally {
+    slot.remove()
+  }
+})
+
+test("workspace toolbar content leaves screen visibility to the shell and retains workspace state", async () => {
   const target = document.createElement("div")
   const slot = document.createElement("div")
   document.body.append(target, slot)
@@ -1187,16 +1213,17 @@ test("Windows workspace controls follow the actual canvas screen without resetti
   )
   try {
     const view = render(layout("chat"))
-    fireEvent.click(within(target).getByRole("button", { name: "Open workspace" }))
+    fireEvent.click(within(screen.getByTestId("window-titlebar")).getByRole("button", { name: "Open workspace" }))
     fireEvent.click(await within(slot).findByRole("treeitem", { name: "one.txt" }))
     fireEvent.change(await within(slot).findByRole("textbox", { name: "Code" }), {
       target: { value: "retained across screens" }
     })
     for (const region of ["leading", "trailing", "preview", "leading", "chat"] as const) {
       view.rerender(layout(region))
-      if (region === "chat" || region === "preview")
-        expect(within(target).getByRole("button", { name: "Close workspace" })).toHaveAttribute("aria-expanded", "true")
-      else expect(target).toBeEmptyDOMElement()
+      expect(
+        within(screen.getByTestId("window-titlebar")).getByRole("button", { name: "Close workspace" })
+      ).toHaveAttribute("aria-expanded", "true")
+      expect(target).toBeEmptyDOMElement()
     }
     expect(within(slot).getByRole("textbox", { name: "Code" })).toHaveValue("retained across screens")
     view.unmount()

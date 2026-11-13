@@ -1,7 +1,11 @@
 import { NavigationScreenSwitch } from "@alwith/module-chat/session-list"
-import { DesktopWorkspace } from "@alwith/module-desktop-shell/react"
+import {
+  DesktopTitleBarContext,
+  DesktopWorkspace,
+  DesktopWorkspaceControlsContext
+} from "@alwith/module-desktop-shell/react"
 import type { AtlasController } from "@nyssance/atlas/dom"
-import { act, cleanup, fireEvent, render } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react"
 import { useState } from "react"
 import { afterEach, expect, test, vi } from "vitest"
 
@@ -87,4 +91,112 @@ test("the first overview selection enables the leading page and its arrow return
   fireEvent.click(back)
   expect(view.getByRole("button", { name: "Open -1 screen" })).toBeInTheDocument()
   expect(leading).toHaveAttribute("inert")
+})
+
+test.each([false, true])("shell owns toolbar visibility across screens with a native host: %s", async (nativeHost) => {
+  await initI18n("en")
+  mockGeometry()
+  const target = document.createElement("div")
+  document.body.append(target)
+  function Harness() {
+    const [screen, setScreen] = useState<"main" | "leading">("main")
+    return (
+      <DesktopWorkspaceControlsContext.Provider value={nativeHost ? target : null}>
+        <DesktopWorkspace
+          screen={screen}
+          onScreenChange={setScreen}
+          navigation={null}
+          leading={<div>Management</div>}
+          panes={[{ id: "chat", title: "Chat", children: <div>Chat</div>, min: 420 }]}
+          trailing={<div>Lounge</div>}
+          toolbar={<button type="button">Workspace actions</button>}
+        />
+      </DesktopWorkspaceControlsContext.Provider>
+    )
+  }
+  try {
+    const view = render(<Harness />)
+    await act(async () => {})
+    const api = observed.api!
+    act(() => {
+      for (const node of api.getGeometry().regions) node.style.marginRight = "0px"
+      api.refresh()
+    })
+    for (const region of ["trailing", "leading", "trailing", "chat"] as const) {
+      fireEvent.doubleClick(view.container.querySelector(".main-window-statusbar")!)
+      fireEvent.click(view.container.querySelector(`[data-atlas-overview-target="${region}"]`)!)
+      expect(api.getState().activeRegion).toBe(region)
+      if (region === "leading") {
+        expect(view.queryByRole("button", { name: "Workspace actions" })).not.toBeInTheDocument()
+        expect(target).toBeEmptyDOMElement()
+      } else {
+        const host = nativeHost ? target : view.getByRole("banner")
+        expect(host).toContainElement(view.getByRole("button", { name: "Workspace actions" }))
+        expect(view.getAllByRole("button", { name: "Workspace actions" })).toHaveLength(1)
+      }
+    }
+    view.unmount()
+  } finally {
+    target.remove()
+  }
+})
+
+test.each([
+  { nativeHost: false, pinned: false },
+  { nativeHost: false, pinned: true },
+  { nativeHost: true, pinned: false },
+  { nativeHost: true, pinned: true }
+])("shell returns home and opens navigation from extra screens: %j", async ({ nativeHost, pinned }) => {
+  mockGeometry()
+  const target = document.createElement("div")
+  document.body.append(target)
+  const save = vi.fn()
+  const view = render(
+    <DesktopTitleBarContext.Provider value={nativeHost ? target : null}>
+      <DesktopWorkspace
+        initialNavigationPinned={pinned}
+        onNavigationPinnedChange={save}
+        navigation={<div>Navigation</div>}
+        panes={[
+          { id: "chat", title: "Chat", children: <div>Chat</div>, min: 420 },
+          { id: "preview", title: "Preview", children: <div>Preview</div>, min: 420 }
+        ]}
+        trailing={<div>Lounge</div>}
+        labels={{ pin: "Open sidebar", unpin: "Close sidebar" }}
+      />
+    </DesktopTitleBarContext.Provider>
+  )
+  try {
+    await act(async () => {})
+    const api = observed.api!
+    act(() => {
+      for (const node of api.getGeometry().regions) node.style.marginRight = "0px"
+      api.refresh()
+    })
+    for (const region of ["trailing", "preview", "trailing"] as const) {
+      fireEvent.doubleClick(view.container.querySelector(".main-window-statusbar")!)
+      fireEvent.click(view.container.querySelector(`[data-atlas-overview-target="${region}"]`)!)
+      expect(api.getState().activeRegion).toBe(region)
+      const toggle = view.getByRole("switch", { name: "Open sidebar" })
+      expect(toggle).toHaveAttribute("title", "Open sidebar")
+      expect(toggle).toHaveAttribute("aria-checked", "false")
+      expect(toggle).toHaveAttribute("aria-expanded", "false")
+      expect(toggle.querySelector(".lucide-panel-left-dashed")).not.toBeNull()
+      if (nativeHost) expect(target).toContainElement(toggle)
+      fireEvent.click(toggle)
+      await waitFor(() => expect(api.getState().activeRegion).toBe("chat"))
+      await waitFor(() => expect(toggle).toHaveAttribute("aria-checked", "true"))
+      expect(toggle).toHaveAttribute("aria-label", "Close sidebar")
+      expect(toggle).toHaveAttribute("aria-expanded", "true")
+      expect(toggle.querySelector(".lucide-panel-left")).not.toBeNull()
+      expect(view.container.querySelector("[data-sidebar-mode]")).toHaveAttribute("data-sidebar-mode", "pinned")
+      expect(save).toHaveBeenLastCalledWith(true)
+      fireEvent.click(toggle)
+      await waitFor(() => expect(save).toHaveBeenLastCalledWith(false))
+      expect(toggle).toHaveAttribute("aria-checked", "false")
+    }
+  } finally {
+    view.unmount()
+    target.remove()
+  }
 })

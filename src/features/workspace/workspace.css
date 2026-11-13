@@ -184,9 +184,6 @@
 .windows-workspace-controls .file-workspace-toolbar {
   zoom: calc(1 / var(--main-window-zoom, 1));
 }
-.windows-main-titlebar:has(+ .windows-main-content [data-main-screen="leading"]) .windows-workspace-controls {
-  visibility: hidden;
-}
 .file-workspace-toolbar .workspace-sidebar-toggle:hover,
 .windows-workspace-controls .workspace-sidebar-toggle:hover {
   background-color: color-mix(in oklab, var(--foreground) 8%, transparent);

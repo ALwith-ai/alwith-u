@@ -43,10 +43,7 @@ import { client } from "@/lib/client"
 import { openExternal, revealInFileManager } from "@/lib/open"
 import "@alwith/module-file-tree/styles.css"
 import "@alwith/module-editor/styles.css"
-import {
-  DesktopCanvasContext as CanvasContext,
-  DesktopWorkspaceControlsContext as WindowsWorkspaceControlsContext
-} from "@alwith/module-desktop-shell/react"
+import { DesktopCanvasContext as CanvasContext } from "@alwith/module-desktop-shell/react"
 import { createFileTabs, type FileTabsController } from "@alwith/module-editor/tabs/core"
 import { invoke, isTauri } from "@tauri-apps/api/core"
 import { listen } from "@tauri-apps/api/event"
@@ -125,7 +122,6 @@ export function FileWorkspace({
   children: ReactNode
   chatRevealRequest?: number
 }) {
-  const windowsControls = useContext(WindowsWorkspaceControlsContext)
   const fileReference = useRef<WorkspaceFileReference | null>(null)
   const registerFileReference = useCallback((target: WorkspaceFileReference) => {
     if (fileReference.current !== null) throw new Error("The workspace already has a composer")
@@ -199,7 +195,6 @@ export function FileWorkspace({
   const paneSessionId = useContext(WorkspaceSessionContext)
   const canvas = useContext(CanvasContext)
   const navigateCanvas = canvas?.navigate
-  const showMainControls = canvas === null || canvas.region === "chat" || canvas.region === "preview"
   const previousChatRevealRequest = useRef(chatRevealRequest)
   useEffect(() => {
     if (previousChatRevealRequest.current === chatRevealRequest) return
@@ -849,8 +844,7 @@ export function FileWorkspace({
   }
   return (
     <WorkspaceContext.Provider value={context}>
-      {showMainControls &&
-        headerTarget !== null &&
+      {headerTarget !== null &&
         createPortal(
           <div className="file-workspace-toolbar">
             <ChatCondenseEntry
@@ -865,19 +859,10 @@ export function FileWorkspace({
                 setCondenseScope(scope)
               }}
             />
-            {windowsControls === null && <WorkspaceButton />}
-            {windowsControls === null && <DeviceWorkspaceMenu />}
-          </div>,
-          headerTarget
-        )}
-      {showMainControls &&
-        windowsControls !== null &&
-        createPortal(
-          <div className="file-workspace-toolbar">
             <WorkspaceButton />
             <DeviceWorkspaceMenu />
           </div>,
-          windowsControls
+          headerTarget
         )}
       <WorkspacePanels
         controlsRef={panelControls}
