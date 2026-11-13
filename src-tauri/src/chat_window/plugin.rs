@@ -50,6 +50,26 @@ pub async fn resize_chat_window(
     super::resize::resize(&window, direction, x, y, width, height).await
 }
 
+#[cfg(target_os = "macos")]
+const BACKDROP: tauri::window::Effect = tauri::window::Effect::LiquidGlassRegular;
+#[cfg(not(target_os = "macos"))]
+const BACKDROP: tauri::window::Effect = tauri::window::Effect::Acrylic;
+
+/// Applies the chat window's native backdrop: Liquid Glass on macOS, Acrylic on Windows.
+/// A corner radius in native points enables it; `None` clears it for the opaque appearance.
+#[tauri3_specta::command]
+pub async fn set_chat_window_backdrop(window: WebviewWindow, corner_radius: Option<f64>) -> Result<(), String> {
+    if window.label() != "chat" {
+        return Err("Only the chat window may change its backdrop".into());
+    }
+    if corner_radius.is_some_and(|radius| !radius.is_finite() || radius < 0.0) {
+        return Err("The chat window corner radius must be finite and nonnegative".into());
+    }
+    let effects =
+        corner_radius.map(|radius| tauri::window::EffectsBuilder::new().effect(BACKDROP).radius(radius).build());
+    window.set_effects(effects).map_err(|error| error.to_string())
+}
+
 pub fn init() -> TauriPlugin<tauri::DynRuntime> {
     Builder::new("chat-window")
         .setup(|app, _| {

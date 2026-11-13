@@ -13,6 +13,8 @@ export type Preferences = {
   composerPredictions?: boolean
   sidebarPinned: boolean
   chatWindowShortcut?: string
+  /** The floating chat window shows the native backdrop instead of an opaque background. */
+  chatWindowTransparent?: boolean
   lastProjectDirectory: string | null
   language: string | null
   /** Explicit model choices are independent for the main and floating chat slots. */
@@ -28,6 +30,7 @@ const preferenceKeys: Record<keyof Preferences, string> = {
   composerPredictions: "chat.composerPredictions",
   sidebarPinned: "appearance.sidebarPinned",
   chatWindowShortcut: "chat.windowShortcut",
+  chatWindowTransparent: "chat.windowTransparent",
   lastProjectDirectory: "general.lastProjectDirectory",
   language: "general.language",
   modelSelections: "chat.modelSelections",
@@ -79,6 +82,7 @@ export async function loadPreferences(): Promise<Preferences> {
     composerPredictions: (await store.get<boolean>("composerPredictions")) ?? true,
     sidebarPinned: sidebarPinned ?? false,
     chatWindowShortcut: (await store.get<string>("chatWindowShortcut")) ?? "Alt+Space",
+    chatWindowTransparent: (await store.get<boolean>("chatWindowTransparent")) ?? true,
     lastProjectDirectory: restoredDirectory,
     language: language ?? null,
     modelSelections: modelSelections ?? { main: null, chat: null },

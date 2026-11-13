@@ -389,6 +389,7 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 vibemon::vibemon_claim,
                 chat_window::plugin::present_chat_window,
                 chat_window::plugin::resize_chat_window,
+                chat_window::plugin::set_chat_window_backdrop,
                 runtime::runtime_start,
                 runtime::runtime_send,
                 runtime::codex_version,

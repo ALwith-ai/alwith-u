@@ -1,8 +1,10 @@
 import { exportDraft, importDraft } from "@alwith/module-chat/conversation"
+import { desktopDefaults } from "@nyssance/atlas/layout"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+import { useStore } from "zustand"
 
 import type { SessionSummary } from "@/agent/client"
 import { events } from "@/bindings"
@@ -32,9 +34,12 @@ import { client, useApp, useSession } from "@/lib/client"
 import type { Preferences } from "@/lib/preferences"
 import { useProviders } from "@/lib/use-providers"
 import { useSurfaceOperation } from "@/lib/use-surface-operation"
+import { cn } from "@/lib/utils"
 import { useWindowFocus } from "@/lib/window-focus"
 import { openSettingsWindow } from "@/lib/window-manager"
 
+import { chatWindowTransparency } from "./transparency-preference"
+import { useChatWindowBackdrop } from "./use-chat-window-backdrop"
 import { WindowResizeEdges } from "./window-resize-edges"
 
 function report(error: unknown): void {
@@ -68,6 +73,8 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
   const focused = useWindowFocus()
   const providers = useProviders()
   const { busy, operation } = useSurfaceOperation()
+  const transparent = useStore(chatWindowTransparency, (state) => state.transparent)
+  useChatWindowBackdrop(transparent, desktopDefaults.surfaceRadius)
 
   const capture = useCallback(async (): Promise<ChatTransfer> => {
     const { selectedId, cwd } = current.current
@@ -357,7 +364,14 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
   }, [hide])
 
   return (
-    <main className="relative flex h-dvh flex-col overflow-hidden rounded-2xl border bg-background text-foreground">
+    <main
+      className={cn(
+        "relative flex h-dvh flex-col overflow-hidden border text-foreground",
+        !transparent && "bg-background"
+      )}
+      // The same radius as the main window's panes; the native backdrop follows it.
+      style={{ borderRadius: desktopDefaults.surfaceRadius }}
+    >
       <WindowResizeEdges />
       <header className="flex h-11 shrink-0 items-center gap-1 border-b border-border px-3" data-tauri-drag-region>
         <div ref={setHeaderTarget} className="flex min-w-0 flex-1 items-center gap-1" data-tauri-drag-region />

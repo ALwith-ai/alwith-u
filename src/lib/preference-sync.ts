@@ -4,6 +4,7 @@
 import { listen } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 
+import { chatWindowTransparency } from "@/features/chat-window/transparency-preference"
 import { navigationSoundStore } from "@/features/chat/codex/navigation-sound-store"
 import { predictionPreference } from "@/features/chat/composer/prediction-preference"
 import i18n, { isLanguageCode } from "@/lib/i18n"
@@ -23,6 +24,10 @@ export function startPreferenceSync(): Promise<() => void> {
           case "composerPredictions":
             if (typeof change.value !== "boolean") throw new Error("Invalid composer prediction preference")
             predictionPreference.setState({ enabled: change.value })
+            return
+          case "chatWindowTransparent":
+            if (typeof change.value !== "boolean") throw new Error("Invalid chat window transparency preference")
+            chatWindowTransparency.setState({ transparent: change.value })
             return
           case "externalEditor":
             if (change.value === null || typeof change.value === "string") setProjectAppPreference(change.value)

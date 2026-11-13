@@ -180,6 +180,12 @@ export const commands = {
   presentChatWindow: (): Promise<null> => __t3Invoke<null>("present_chat_window"),
   resizeChatWindow: (args: { direction: string; x: number; y: number; width: number; height: number }): Promise<null> =>
     __t3Invoke<null>("resize_chat_window", args),
+  /**
+   *  Applies the chat window's native backdrop: Liquid Glass on macOS, Acrylic on Windows.
+   *  A corner radius in native points enables it; `None` clears it for the opaque appearance.
+   */
+  setChatWindowBackdrop: (args: { cornerRadius: number | null }): Promise<null> =>
+    __t3Invoke<null>("set_chat_window_backdrop", args),
   runtimeStart: (args: { connectionId: string }): Promise<null> => __t3Invoke<null>("runtime_start", args),
   runtimeSend: (args: { line: string; connectionId: string }): Promise<null> => __t3Invoke<null>("runtime_send", args),
   /**
@@ -281,6 +287,7 @@ export type CommandErrors = {
   vibemonClaim: string
   presentChatWindow: string
   resizeChatWindow: string
+  setChatWindowBackdrop: string
   runtimeStart: string
   runtimeSend: string
   codexVersion: string

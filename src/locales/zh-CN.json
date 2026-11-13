@@ -953,7 +953,8 @@
     "open": "打开聊天浮窗",
     "shortcut": "聊天浮窗快捷键",
     "shortcutSave": "保存快捷键",
-    "shortcutOff": "关闭"
+    "shortcutOff": "关闭",
+    "transparent": "透明聊天浮窗"
   },
   "extensions": {
     "startupImportFailed": "扩展自动安装未完成：{{message}}。请检查 extension-inbox 或 extension-processing 目录中的源包和任务记录。",

@@ -13,6 +13,7 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import { DesktopZoomFeedback } from "@/features/appearance/desktop-zoom-feedback"
 import { AuthGate } from "@/features/auth/auth-gate"
 import { initPlatformAuth } from "@/features/auth/store"
+import { chatWindowTransparency } from "@/features/chat-window/transparency-preference"
 import { hydrateNavigationSound } from "@/features/chat/codex/navigation-sound-store"
 import { predictionPreference } from "@/features/chat/composer/prediction-preference"
 import { initializeZoom } from "@/lib/desktop-zoom"
@@ -42,6 +43,7 @@ export function bootstrapAuxWindow(opts: {
     })
     const preferences = await loadPreferences()
     predictionPreference.setState({ enabled: preferences.composerPredictions ?? true })
+    chatWindowTransparency.setState({ transparent: preferences.chatWindowTransparent ?? true })
     await initI18n(preferences.language)
     await initializeZoom()
     hydrateNavigationSound({ soundMode: preferences.navigationSoundMode, instrument: preferences.navigationInstrument })

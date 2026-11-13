@@ -159,6 +159,7 @@ export function handleNativeRequest(command: string, payload?: unknown): unknown
   }
   if (command.startsWith("plugin:window|is_")) return command.endsWith("is_visible") || command.endsWith("is_focused")
   if (command === "plugin:window|scale_factor") return 1
+  if (command === "set_chat_window_backdrop") return null
   if (command === "plugin:window|inner_size" || command === "plugin:window|outer_size")
     return { width: window.innerWidth, height: window.innerHeight }
   if (command === "plugin:window|outer_position" || command === "plugin:window|inner_position") return { x: 0, y: 0 }

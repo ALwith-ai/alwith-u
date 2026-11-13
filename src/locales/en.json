@@ -953,7 +953,8 @@
     "open": "Open chat window",
     "shortcut": "Chat window shortcut",
     "shortcutSave": "Save shortcut",
-    "shortcutOff": "Off"
+    "shortcutOff": "Off",
+    "transparent": "Transparent chat window"
   },
   "extensions": {
     "startupImportFailed": "Extension import did not complete: {{message}}. Check inputs and task records in extension-inbox or extension-processing.",

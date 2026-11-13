@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
+import { chatWindowTransparency, setChatWindowTransparent } from "@/features/chat-window/transparency-preference"
 import { predictionPreference, setPredictionsEnabled } from "@/features/chat/composer/prediction-preference"
 import { ProjectAppIcon, useExternalApps } from "@/features/chat/open-in-editor"
 import { requestChatSurface } from "@/lib/chat-window"
@@ -29,6 +30,8 @@ import { SettingGroup, SettingRow } from "./shared"
 export function GeneralSection() {
   const { t } = useTranslation()
   const predictions = useStore(predictionPreference, (state) => state.enabled)
+  const chatWindowTransparent = useStore(chatWindowTransparency, (state) => state.transparent)
+  const [savingTransparency, setSavingTransparency] = useState(false)
   const [savingPredictions, setSavingPredictions] = useState(false)
   const [version, setVersion] = useState("")
   useEffect(() => {
@@ -74,6 +77,21 @@ export function GeneralSection() {
           >
             {t("chatWindow.shortcutSave")}
           </Button>
+        </div>
+      </SettingRow>
+      <SettingRow title={t("chatWindow.transparent")}>
+        <div className="flex justify-end">
+          <Switch
+            aria-label={t("chatWindow.transparent")}
+            checked={chatWindowTransparent}
+            disabled={savingTransparency}
+            onCheckedChange={(transparent) => {
+              setSavingTransparency(true)
+              void setChatWindowTransparent(transparent)
+                .catch((error: unknown) => toast.error(String(error)))
+                .finally(() => setSavingTransparency(false))
+            }}
+          />
         </div>
       </SettingRow>
       <SettingRow title={t("settings.language")} aligned>
