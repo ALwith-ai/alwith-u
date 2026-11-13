@@ -9,7 +9,7 @@ import { openExternal } from "@/lib/open"
 import { drive } from "./controller"
 import { driveFileSystem } from "./filesystem"
 
-const maxEditorBytes = 16 * 1024 * 1024
+export const maxEditorBytes = 16 * 1024 * 1024
 
 export interface WorkspaceFileHost {
   readFile: (path: string) => Promise<Uint8Array>

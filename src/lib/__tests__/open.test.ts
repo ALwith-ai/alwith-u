@@ -1,7 +1,7 @@
 import * as opener from "@tauri-apps/plugin-opener"
 import { afterEach, expect, type MockInstance, test, vi } from "vitest"
 
-import { openExternal, revealInFileManager } from "../open"
+import { openExternal, openHtmlInBrowser, openLocalPath, revealInFileManager } from "../open"
 
 vi.mock("@tauri-apps/plugin-opener", async (importOriginal) => ({ ...(await importOriginal<object>()) }))
 
@@ -16,6 +16,13 @@ function spies(): void {
   path = vi.spyOn(opener, "openPath").mockResolvedValue()
   url = vi.spyOn(opener, "openUrl").mockResolvedValue()
 }
+
+test("system opening preserves already-decoded literal escape sequences and line-like names", async () => {
+  spies()
+  await openLocalPath("/tmp/literal%20name#L12")
+  expect(path).toHaveBeenCalledExactlyOnceWith("/tmp/literal%20name#L12")
+  expect(url).not.toHaveBeenCalled()
+})
 
 test("local files and Markdown line locations use the native path opener", async () => {
   spies()
@@ -71,4 +78,30 @@ test("external opening converts Windows verbatim and UNC paths for the shell", a
   await openExternal(String.raw`\\?\UNC\server\share\专项分析`)
   expect(path.mock.calls).toEqual([[String.raw`C:\YUP Drive\专项分析`], [String.raw`\\server\share\专项分析`]])
   expect(url).not.toHaveBeenCalled()
+})
+
+test("HTML explicitly uses the default browser rather than the file association", async () => {
+  spies()
+  const { commands } = await import("@alwith/module-installed-apps/commands")
+  const browser = vi.spyOn(commands, "defaultBrowser").mockResolvedValue({ name: "Browser", bundle_id: "test.browser" })
+  const launch = vi.spyOn(commands, "openPathInApp").mockResolvedValue(null)
+  const apps = vi
+    .spyOn(commands, "readAppsInfo")
+    .mockResolvedValue([{ name: "Browser", bundle_id: "test.browser", icon: null }])
+  try {
+    await openHtmlInBrowser("/tmp/report #1.html")
+    expect(launch).toHaveBeenCalledExactlyOnceWith({ bundleId: "test.browser", path: "/tmp/report #1.html" })
+    expect(path).not.toHaveBeenCalled()
+    browser.mockResolvedValue({ name: "/usr/bin/browser", bundle_id: null })
+    await openHtmlInBrowser("/tmp/report.html")
+    expect(apps).toHaveBeenCalledExactlyOnceWith({ names: ["/usr/bin/browser"], withIcons: false })
+    expect(launch).toHaveBeenLastCalledWith({ bundleId: "test.browser", path: "/tmp/report.html" })
+    expect(path).not.toHaveBeenCalled()
+    browser.mockResolvedValue(null)
+    await expect(openHtmlInBrowser("/tmp/report.html")).rejects.toThrow("No default browser")
+  } finally {
+    browser.mockRestore()
+    launch.mockRestore()
+    apps.mockRestore()
+  }
 })

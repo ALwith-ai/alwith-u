@@ -1,10 +1,11 @@
-import { containsPath } from "@alwith/module-fs"
+import { containsPath, dirname } from "@alwith/module-fs"
+import { commands as fsCommands } from "@alwith/module-fs/commands"
 import { invoke } from "@tauri-apps/api/core"
 import { createContext, useCallback, useContext } from "react"
 import { toast } from "sonner"
 
 import { useWorkspace } from "@/features/workspace/context"
-import { fileLocationPath, openExternal } from "@/lib/open"
+import { fileLocationPath, openExternal, openExternalEntry, openHtmlInBrowser, openLocalPath } from "@/lib/open"
 import { isMac } from "@/lib/platform"
 
 import { openFilePreview } from "./dialogs/file-preview-modal"
@@ -37,12 +38,12 @@ export function useOpenChatLink(): (target: string) => void {
         const url = resolveChatLink(target, cwd)
         if (
           url.startsWith("/") ||
-          url.startsWith("file:") ||
+          /^file:/i.test(url) ||
           /^[A-Za-z]:[\\/]/.test(url) ||
           url.startsWith(String.raw`\\`)
         ) {
           let value = url
-          if (url.startsWith("file:")) {
+          if (/^file:/i.test(url)) {
             const file = new URL(url)
             value = file.pathname + file.hash
             if (/^\/[A-Za-z]:\//.test(value)) value = value.slice(1)
@@ -60,9 +61,16 @@ export function useOpenChatLink(): (target: string) => void {
                 }
           const target = fileLocationPath(value)
           if (isMac() && /\.app\/?$/i.test(target)) await openExternal(url)
-          else if (workspace !== null && cwd !== null && containsPath(cwd, target))
-            await workspace.openFile(target, cwd, position)
-          else openFilePreview(target, position)
+          else if (cwd === null || !containsPath(cwd, target)) await openExternalEntry(target)
+          else if (workspace !== null) await workspace.openFile(target, cwd, position)
+          else {
+            const root = await fsCommands.workspaceOpen({ path: dirname(target) })
+            const stat = await fsCommands.workspaceStat({ root, path: target })
+            if (stat === null) throw new Error(`Path does not exist: ${target}`)
+            if (stat.kind === "directory") await openLocalPath(target)
+            else if (/\.html?$/i.test(target)) await openHtmlInBrowser(target)
+            else openFilePreview(target, position)
+          }
         } else await openExternal(url)
       })().catch((error: unknown) => toast.error(error instanceof Error ? error.message : String(error)))
     },

@@ -277,9 +277,110 @@ function NavigationProbe() {
       <button onClick={() => void workspace.openProject("/a")}>Open project</button>
       <button onClick={() => void workspace.revealEntry("/a/one.txt", "/a")}>Reveal entry</button>
       <button onClick={() => void workspace.openFile("/b/two.txt", "/b")}>Open other file</button>
+      <button onClick={() => void workspace.openFile("/b", "/a")}>Open directory link</button>
+      <button onClick={() => void workspace.openProject("/b")}>Open other project</button>
+      <button onClick={() => void workspace.openFile("/b/two.txt", "/a", { lineNumber: 2, column: 3 })}>
+        Open outside link
+      </button>
+      <button onClick={() => void workspace.openFile("/a/site.HTML", "/a")}>Open HTML link</button>
+      <button
+        onClick={() =>
+          void workspace.openFile("/a/missing.txt", "/a").catch((error: unknown) => toast.error(String(error)))
+        }
+      >
+        Open missing link
+      </button>
     </>
   )
 }
+
+test.each(["Open other project"])("%s opens the target directory without an editor tab", async (action) => {
+  render(
+    <Surface cwd="/a">
+      <NavigationProbe />
+    </Surface>
+  )
+  fireEvent.click(screen.getByRole("button", { name: action }))
+  expect(await screen.findByRole("treeitem", { name: "two.txt" })).toBeVisible()
+  expect(screen.queryByRole("tab", { name: "b" })).toBeNull()
+  expect(screen.queryByRole("treeitem", { name: "one.txt" })).toBeNull()
+})
+
+test.each(["Open outside link", "Open directory link"])(
+  "%s uses system applications without switching the project tree",
+  async (action) => {
+    const open = vi.spyOn(opener, "openPath").mockResolvedValue()
+    const reveal = vi.spyOn(opener, "revealItemsInDir").mockResolvedValue()
+    render(
+      <Surface cwd="/a">
+        <NavigationProbe />
+      </Surface>
+    )
+    fireEvent.click(screen.getByRole("button", { name: "Open linked file" }))
+    expect(await screen.findByRole("tab", { name: "one.txt" })).toBeVisible()
+    fireEvent.click(screen.getByRole("button", { name: action }))
+    await waitFor(() =>
+      action === "Open outside link"
+        ? expect(reveal).toHaveBeenCalledWith("/b/two.txt")
+        : expect(open).toHaveBeenCalledWith("/b")
+    )
+    expect(screen.getByRole("treeitem", { name: "one.txt" })).toBeVisible()
+    expect(screen.queryByRole("treeitem", { name: "two.txt" })).toBeNull()
+    expect(screen.queryByRole("tab", { name: "two.txt" })).toBeNull()
+  }
+)
+
+test("missing links report the target path without creating an editor tab", async () => {
+  const error = vi.spyOn(toast, "error")
+  render(
+    <Surface cwd="/a">
+      <NavigationProbe />
+    </Surface>
+  )
+  fireEvent.click(screen.getByRole("button", { name: "Open missing link" }))
+  await waitFor(() => expect(error).toHaveBeenCalledWith("Error: Path does not exist: /a/missing.txt"))
+  expect(screen.queryByRole("tab", { name: "missing.txt" })).toBeNull()
+})
+
+test("oversized files select their containing directory and open externally without reading into the editor", async () => {
+  const stat = adapter.stat.bind(adapter)
+  vi.spyOn(adapter, "stat").mockImplementation(async (path) => {
+    const value = await stat(path)
+    return path === "/a/one.txt" && value ? { ...value, size: 17 * 1024 * 1024 } : value
+  })
+  const read = vi.spyOn(adapter, "readFile")
+  const open = vi.spyOn(opener, "openPath").mockResolvedValue()
+  render(
+    <Surface cwd="/a">
+      <NavigationProbe />
+    </Surface>
+  )
+  fireEvent.click(screen.getByRole("button", { name: "Open linked file" }))
+  await waitFor(() => expect(open).toHaveBeenCalledWith("/a/one.txt"))
+  expect(screen.getByRole("treeitem", { name: "one.txt" })).toHaveAttribute("aria-selected", "true")
+  expect(screen.queryByRole("tab", { name: "one.txt" })).toBeNull()
+  expect(read).not.toHaveBeenCalledWith("/a/one.txt")
+})
+
+test("HTML links open in the configured browser instead of an editor tab", async () => {
+  await adapter.writeFile("/a/site.HTML", new TextEncoder().encode("<h1>Site</h1>"), { mode: "create" })
+  const { commands } = await import("@alwith/module-installed-apps/commands")
+  const browser = vi.spyOn(commands, "defaultBrowser").mockResolvedValue({ name: "Browser", bundle_id: "test.browser" })
+  const open = vi.spyOn(commands, "openPathInApp").mockResolvedValue(null)
+  try {
+    render(
+      <Surface cwd="/a">
+        <NavigationProbe />
+      </Surface>
+    )
+    fireEvent.click(screen.getByRole("button", { name: "Open HTML link" }))
+    await waitFor(() => expect(open).toHaveBeenCalledWith({ bundleId: "test.browser", path: "/a/site.HTML" }))
+    expect(screen.queryByRole("tab", { name: "site.HTML" })).toBeNull()
+  } finally {
+    browser.mockRestore()
+    open.mockRestore()
+  }
+})
 
 test.each(["Open linked file", "Open project", "Reveal entry", "new tab", "project tree"])(
   "%s switches from the simulator to files",

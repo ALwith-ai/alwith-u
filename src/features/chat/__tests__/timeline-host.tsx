@@ -73,8 +73,10 @@ export function ChatBody({ session }: { session: Session }) {
 /** U's composer with U's host, as the conversation view mounts it. */
 export function Composer(props: ComponentProps<typeof ChatComposer>) {
   return (
-    <ChatTimelineHost>
-      <ChatComposer {...props} />
-    </ChatTimelineHost>
+    <ChatDirectoryContext value={props.session.cwd}>
+      <ChatTimelineHost>
+        <ChatComposer {...props} />
+      </ChatTimelineHost>
+    </ChatDirectoryContext>
   )
 }

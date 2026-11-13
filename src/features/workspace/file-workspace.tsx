@@ -29,18 +29,17 @@ import { Effect } from "effect"
 
 import { ContextMenuItem } from "@/components/ui/context-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { openFilePreview } from "@/features/chat/dialogs/file-preview-modal"
 import { collaborationOwner, useCollaborationOwner } from "@/features/drive/collaboration-owners"
 import { DriveDocumentSurface, useDriveContentHost } from "@/features/drive/content-host"
 import { driveControls, driveDialogClassName } from "@/features/drive/controls"
 import { useDriveDeepLinks } from "@/features/drive/deep-links"
 import { drive, DriveSharingDialog } from "@/features/drive/drive"
-import { prepareWorkspaceFile } from "@/features/drive/files"
+import { maxEditorBytes, prepareWorkspaceFile } from "@/features/drive/files"
 import { driveFileSystem } from "@/features/drive/filesystem"
 import { rebaseDrivePins } from "@/features/drive/pinned"
 import { DriveTreeActions } from "@/features/drive/tree-actions"
 import { client } from "@/lib/client"
-import { openExternal, revealInFileManager } from "@/lib/open"
+import { openExternal, openExternalEntry, openHtmlInBrowser, openLocalPath, revealInFileManager } from "@/lib/open"
 import "@alwith/module-file-tree/styles.css"
 import "@alwith/module-editor/styles.css"
 import { DesktopCanvasContext as CanvasContext } from "@alwith/module-desktop-shell/react"
@@ -496,12 +495,43 @@ export function FileWorkspace({
     async (path: string, root: string | null, position?: FilePosition): Promise<void> => {
       const generation = ++requestGeneration.current,
         owner = currentCwd.current
-      const authorized = [...workspaces.current.values()].find(
-        (value) => root !== null && containsPath(value.root, root) && containsPath(value.root, path)
-      )
-      const target = authorized ?? (await ensure(root))
-      if (!containsPath(target.root, path)) {
-        openFilePreview(path, position)
+      if (root === null || !containsPath(root, path)) {
+        await openExternalEntry(path)
+        return
+      }
+      const authorized =
+        workspace !== null && containsPath(workspace.root, path)
+          ? workspace
+          : [...workspaces.current.values()].find(
+              (value) => root !== null && containsPath(value.root, root) && containsPath(value.root, path)
+            )
+      const base = root !== null && containsPath(root, path) ? root : dirname(path)
+      let target = authorized ?? (await ensure(base))
+      const stat = await target.fs.stat(path)
+      if (stat === null) throw new Error(`Path does not exist: ${path}`)
+      if (generation !== requestGeneration.current || owner !== currentCwd.current) return
+      if (stat.kind === "directory") {
+        target = await ensure(path)
+        if (generation !== requestGeneration.current || owner !== currentCwd.current) return
+        setWorkspace(target)
+        setPane("files")
+        setVisible(true)
+        setTreeVisible(true)
+        return
+      }
+      if (/\.html?$/i.test(path)) {
+        await openHtmlInBrowser(path)
+        return
+      }
+      if (stat.size > maxEditorBytes) {
+        await target.tree.reveal(path)
+        if (generation !== requestGeneration.current || owner !== currentCwd.current) return
+        target.tree.select(path)
+        setWorkspace(target)
+        setPane("files")
+        setVisible(true)
+        setTreeVisible(true)
+        await openLocalPath(path)
         return
       }
       const destination = await prepareWorkspaceFile(path, {
@@ -510,14 +540,18 @@ export function FileWorkspace({
         openTarget: (value) => routeDriveTarget.current(value)
       })
       if (destination === null) return
-      await target.tabs.openFile(destination, true)
       if (generation !== requestGeneration.current || owner !== currentCwd.current) return
+      await target.tabs.openFile(destination, true)
+      await target.tree.reveal(destination)
+      if (generation !== requestGeneration.current || owner !== currentCwd.current) return
+      target.tree.select(destination)
+      setTreeVisible(true)
       setWorkspace(target)
       setNavigation(position ? { path: destination, position } : null)
       setPane("files")
       setVisible(true)
     },
-    [ensure]
+    [ensure, workspace]
   )
   routeDriveTarget.current = async (path) => {
     const match = resolveDriveRoot(path, drive.getSnapshot().snapshot?.roots ?? [])
@@ -581,12 +615,14 @@ export function FileWorkspace({
   }, [showProjectTree])
   const openProject = useCallback(
     async (path: string): Promise<void> => {
-      const generation = ++requestGeneration.current
+      const generation = ++requestGeneration.current,
+        owner = currentCwd.current
       const target = await ensure(path)
-      if (generation !== requestGeneration.current || currentCwd.current !== path) return
+      if (generation !== requestGeneration.current || currentCwd.current !== owner) return
       setWorkspace(target)
       setPane("files")
       setVisible(true)
+      setTreeVisible(true)
     },
     [ensure]
   )

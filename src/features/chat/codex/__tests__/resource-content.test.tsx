@@ -1,10 +1,12 @@
 import { addPrompt, createSession, type ToolItem } from "@alwith/module-chat/client"
 import { formatMentionUri } from "@alwith/module-chat/conversation"
 import { ResourceContent } from "@alwith/module-chat/resource-content"
+import { commands as fsCommands } from "@alwith/module-fs/commands"
 import * as core from "@tauri-apps/api/core"
+import * as opener from "@tauri-apps/plugin-opener"
 import { fireEvent, render, waitFor } from "@testing-library/react"
 import { toast } from "sonner"
-import { afterEach, expect, test, vi } from "vitest"
+import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
 import { WorkspaceContext } from "@/features/workspace/context"
 import { initI18n } from "@/lib/i18n"
@@ -20,6 +22,12 @@ vi.mock("@tauri-apps/plugin-opener", async (importOriginal) => ({ ...(await impo
 
 await initI18n("en")
 const mocks: Array<{ mockRestore(): void }> = []
+beforeEach(() => {
+  mocks.push(
+    vi.spyOn(fsCommands, "workspaceOpen").mockImplementation(async ({ path }) => path),
+    vi.spyOn(fsCommands, "workspaceStat").mockResolvedValue({ kind: "file", size: 100, version: "1" })
+  )
+})
 afterEach(() => {
   for (const mock of mocks.splice(0)) mock.mockRestore()
 })
@@ -44,7 +52,8 @@ test("generated images use a preview card and an icon download without size cont
 
 test("file references preserve encoded names, bare line locations and reserved filename characters", async () => {
   const path = vi.spyOn(preview, "openFilePreview").mockImplementation(() => {})
-  mocks.push(path)
+  const reveal = vi.spyOn(opener, "revealItemsInDir").mockResolvedValue()
+  mocks.push(path, reveal)
   const refs = [
     "README.md:12",
     "100%.pdf",
@@ -67,10 +76,10 @@ test("file references preserve encoded names, bare line locations and reserved f
       ["/tmp/project%20/README.md", { lineNumber: 12, column: 1 }],
       ["/tmp/project%20/100%.pdf", undefined],
       ["/tmp/project%20/reports/report one.pdf", undefined],
-      ["/tmp/project%20/reports/报告.pdf", undefined],
-      ["/tmp/a#b?c.pdf", undefined]
+      ["/tmp/project%20/reports/报告.pdf", undefined]
     ])
   )
+  await waitFor(() => expect(reveal).toHaveBeenCalledWith("/tmp/a#b?c.pdf"))
 })
 
 test("download passes the exact payload to the native save dialog and reports failure", async () => {
@@ -212,11 +221,11 @@ test("replayed user images render thumbnails above the body without attachment p
   expect(view.getByRole("dialog").querySelector("img")?.getAttribute("src")).toBe("data:image/png;base64,aGVsbG8=")
 })
 
-
-test("external file links bypass the project workspace and preserve line locations", async () => {
+test("external file links reveal in the system file manager", async () => {
   const openFile = vi.fn().mockResolvedValue(undefined)
   const openPreview = vi.spyOn(preview, "openFilePreview").mockImplementation(() => {})
-  mocks.push(openPreview)
+  const reveal = vi.spyOn(opener, "revealItemsInDir").mockResolvedValue()
+  mocks.push(openPreview, reveal)
   const view = render(
     <WorkspaceContext value={{ visible: true, toggle: vi.fn(), openFile, openProject: vi.fn(), revealEntry: vi.fn() }}>
       <ChatDirectoryContext value="/tmp/project">
@@ -233,9 +242,8 @@ test("external file links bypass the project workspace and preserve line locatio
     </WorkspaceContext>
   )
   fireEvent.click(view.getByRole("button", { name: "External file" }))
-  await waitFor(() =>
-    expect(openPreview).toHaveBeenCalledWith("/tmp/outside/中文 #1.txt", { lineNumber: 2, column: 3 })
-  )
+  await waitFor(() => expect(reveal).toHaveBeenCalledWith("/tmp/outside/中文 #1.txt"))
+  expect(openPreview).not.toHaveBeenCalled()
   expect(openFile).not.toHaveBeenCalled()
 })
 
