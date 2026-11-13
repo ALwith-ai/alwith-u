@@ -104,11 +104,15 @@ export const Project: Story = {
     const list = await canvas.findByRole("listbox")
     await expect(list.getBoundingClientRect().left).toBe(surface.getBoundingClientRect().left)
     await expect(list.getBoundingClientRect().width).toBe(surface.getBoundingClientRect().width)
-    await userEvent.click(canvas.getByRole("option"))
-    await expect(textarea).toHaveValue("/plan ")
+    await userEvent.click(canvas.getByRole("option", { name: /plan/ }))
+    // A chosen command stands in the draft as one piece, not as the text that was typed to find it.
+    await waitFor(() => expect(canvasElement.querySelector('[data-inline-command="/plan"]')).toBeVisible())
     await userEvent.click(canvas.getByRole("button", { name: "发送" }))
     await waitFor(async () => expect(args.onSubmit).toHaveBeenCalled())
-    await waitFor(async () => expect(textarea).toHaveValue(""))
+    await waitFor(async () => {
+      await expect(canvasElement.querySelector("[data-inline-command]")).toBeNull()
+      await expect(canvas.getByRole("textbox")).toHaveAttribute("data-empty", "true")
+    })
   }
 }
 

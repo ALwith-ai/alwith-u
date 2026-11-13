@@ -236,7 +236,8 @@ export const CommentDrawerOverlay: Story = {
   name: "评论收起占位，展开覆盖",
   args: { comments: true },
   play: async ({ canvasElement, canvas, userEvent }) => {
-    const editor = canvasElement.querySelector<HTMLElement>(".alwith-editor")!
+    // The document, not the tab strip above it, which carries the same class and spans the pane.
+    const editor = canvasElement.querySelector<HTMLElement>(".file-workspace-editor > .alwith-editor")!
     const pane = canvasElement.querySelector<HTMLElement>(".file-workspace-editor")!
     const assertSeparate = async (sidebar: HTMLElement): Promise<void> => {
       const document = editor.getBoundingClientRect()

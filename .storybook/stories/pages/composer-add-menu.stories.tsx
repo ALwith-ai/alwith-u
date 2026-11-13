@@ -1,5 +1,5 @@
 import { CodexClient, createSession } from "@alwith/module-chat/client"
-import { Composer, type ConversationHost, ConversationProvider } from "@alwith/module-chat/conversation"
+import { Composer, type ConversationHost, ConversationProvider, drafts } from "@alwith/module-chat/conversation"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
@@ -78,7 +78,14 @@ const meta = {
   id: "composer-add-menu-source",
   title: "页面/主窗聊天/输入框/02 输入框功能/00 添加菜单",
   component: ComposerPreview,
-  parameters: { layout: "fullscreen" }
+  parameters: { layout: "fullscreen" },
+  // The draft outlives the composer; each story starts from an empty one.
+  beforeEach: () => {
+    drafts.delete("add-menu-preview")
+    return () => {
+      drafts.delete("add-menu-preview")
+    }
+  }
 } satisfies Meta<typeof ComposerPreview>
 export default meta
 type Story = StoryObj<typeof meta>
