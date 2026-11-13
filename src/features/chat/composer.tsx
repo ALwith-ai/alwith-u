@@ -18,12 +18,12 @@ import { VoiceButton } from "@/features/voice/voice-button"
 import { useWorkspace } from "@/features/workspace/context"
 import { client } from "@/lib/client"
 
-import { AccountModelRecovery } from "./composer/account-model-recovery"
 import { AuthenticationRecovery } from "./composer/authentication-recovery"
 import { ImageModelSelect } from "./composer/image-model-select"
 import { ImageInputTools } from "./composer/image-tools"
 import { useInputMode } from "./composer/input-mode"
 import { chatModelMenu } from "./composer/model-catalog"
+import { ModelRecovery } from "./composer/model-recovery"
 import { nativeAttachmentPolicy, NativeFileDrop } from "./composer/native-file-drop"
 import { predictionPreference } from "./composer/prediction-preference"
 
@@ -114,9 +114,12 @@ export type ChatSubmit = (
 
 export function ChatComposer({
   voiceResume,
+  inputDisabled = false,
   ...props
 }: Omit<ComposerProps, "actions" | "children" | "attachmentPolicy" | "predictions" | "onSubmit"> & {
   voiceResume?: VoiceResume
+  /** Draft changes protect input without disabling the window or pending request dialogs. */
+  inputDisabled?: boolean
   onSubmit?: ChatSubmit
 }) {
   const { t } = useTranslation()
@@ -130,7 +133,7 @@ export function ChatComposer({
       (((option.category === "model" || option.configId === "model") && option.currentValue.startsWith("gateway:")) ||
         (option.configId === "collaboration_mode" && option.currentValue === "plan"))
   )
-  const accountRecovery = useStore(client.store, (state) => state.accountModelRecovery?.[props.session.id] ?? false)
+  const modelRecovery = useStore(client.store, (state) => state.modelRecovery?.[props.session.id] ?? false)
   const submit: ComposerProps["onSubmit"] = imageMode
     ? async (prompt, accept) => {
         if (!availability.canGenerate) throw new Error(t("images.connectServices"))
@@ -154,12 +157,14 @@ export function ChatComposer({
     return <AuthenticationRecovery session={props.session} />
   return (
     <>
-      {accountRecovery && <AccountModelRecovery key={props.session.id} session={props.session} />}
+      {modelRecovery && <ModelRecovery key={props.session.id} session={props.session} />}
       <Composer
         modelMenu={chatModelMenu}
         {...props}
-        disabled={props.disabled || inputMode?.ready === false || (imageMode && !availability.canGenerate)}
-        allowPendingInput={imageMode || props.allowPendingInput}
+        disabled={
+          inputDisabled || props.disabled || inputMode?.ready === false || (imageMode && !availability.canGenerate)
+        }
+        allowPendingInput={!inputDisabled && (imageMode || props.allowPendingInput)}
         agentControls={imageMode ? false : props.agentControls}
         onSubmit={submit}
         placeholder={imageMode ? t("chat.inputMode.placeholder") : props.placeholder}
@@ -168,7 +173,7 @@ export function ChatComposer({
             <ImageInputTools
               value={inputMode.aspect}
               onChange={inputMode.setAspect}
-              disabled={Boolean(props.disabled || props.preparing || props.session.readOnly)}
+              disabled={Boolean(inputDisabled || props.disabled || props.preparing || props.session.readOnly)}
             />
           ) : (
             props.leadingTools
@@ -179,7 +184,10 @@ export function ChatComposer({
             <ImageModelSelect
               selection={inputMode.selection}
               onChange={inputMode.setSelection}
-              disabled={!inputMode.draft || Boolean(props.disabled || props.preparing || props.session.readOnly)}
+              disabled={
+                !inputMode.draft ||
+                Boolean(inputDisabled || props.disabled || props.preparing || props.session.readOnly)
+              }
             />
           ) : (
             props.modelSelector

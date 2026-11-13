@@ -425,10 +425,15 @@ fn signature(message: &str) -> ErrorSignature {
         "timeout"
     } else if lower.contains("certificate") || lower.contains("tls") {
         "tls"
-    } else if lower.contains("connection") || lower.contains("exited") {
-        "connection_lost"
+    } else if lower.contains("the selected provider connection or model is unavailable")
+        || lower.contains("the selected alwith account model is unavailable")
+        || lower.contains("the alwith account changed")
+    {
+        "model_unavailable"
     } else if lower.contains("unauthorized") || lower.contains("api key") {
         "authentication"
+    } else if lower.contains("connection") || lower.contains("exited") {
+        "connection_lost"
     } else {
         "unclassified"
     };
@@ -514,6 +519,7 @@ impl Event {
                     && matches!(
                         error.kind.as_str(),
                         "session_not_found"
+                            | "model_unavailable"
                             | "model_proxy_transport"
                             | "upstream_rejected"
                             | "network_transport"

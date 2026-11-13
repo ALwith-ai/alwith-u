@@ -1,7 +1,7 @@
 // A draft owns a real ACP session before the first send, as in Desktop.
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { createSession, type PromptOptions } from "@alwith/module-chat/client"
-import { drafts, importDraft, ModelMenu, SessionActions } from "@alwith/module-chat/conversation"
+import { ConversationBody, drafts, importDraft, ModelMenu, SessionActions } from "@alwith/module-chat/conversation"
 import { invoke } from "@tauri-apps/api/core"
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -15,18 +15,20 @@ import { text } from "@/lib/text"
 
 import { ChatActionsMenu } from "./chat-actions-menu"
 import { ChatHeader } from "./chat-header"
-import { ChatHostProvider } from "./chat-host"
+import { ChatHostProvider, useTimelineSlots } from "./chat-host"
 import { ChatWelcome } from "./chat-welcome"
 import { ChatComposer } from "./composer"
 import { MainInputModeSwitch, useInputMode } from "./composer/input-mode"
 import { chatModelMenu } from "./composer/model-catalog"
 import { FilePreviewModal } from "./dialogs/file-preview-modal"
 import { DraftProjectPicker } from "./draft-project-picker"
+import { ChatDirectoryContext } from "./file-actions"
 
 export const DRAFT_SESSION_ID = "draft"
 
 export function DraftChat({
   owner,
+  inputDisabled = false,
   cwd,
   onCwdChange,
   onCreated,
@@ -36,24 +38,23 @@ export function DraftChat({
   providerSnapshot,
   onOpenWindow,
   onReturnToMain,
-  runOperation,
   headerTarget,
   projectMenu,
   onNewChat,
   onNewProject
 }: {
   owner: DraftOwner
+  inputDisabled?: boolean
   cwd: string | null
   onCwdChange: (cwd: string | null) => void
   /** Bind the precreated session to this surface without materializing a history entry. */
   onCreated: (sessionId: string) => void
   collectionId?: string
-  /** Hold this composer only while its own first send is waiting for acceptance. */
+  /** Keep the submitting composer mounted for receipt handling and draft recovery. */
   onSendingChange: (sessionId: string, sending: boolean) => void
   onVoiceHandoff?: (sessionId: string, receipt: string) => void
   onAuthRequired: () => void
   providerSnapshot: ProviderSnapshot | null
-  runOperation?: (operation: () => Promise<void>) => Promise<void>
   onOpenWindow?: () => void
   onReturnToMain?: () => void
   headerTarget?: HTMLElement | null
@@ -62,6 +63,7 @@ export function DraftChat({
   onNewProject?: () => void
 }) {
   const { t } = useTranslation()
+  const timeline = useTimelineSlots()
   const inputMode = useInputMode()
   const sessionRows = useApp((state) => state.sessionList)
   const connection = useApp((state) => state.connection)
@@ -81,8 +83,8 @@ export function DraftChat({
   const mounted = useRef(false)
   const preparation = useRef<Promise<string | null> | null>(null)
   const preparedMode = useRef<"chat" | "image">("chat")
-  const context = useRef({ owner, cwd })
-  context.current = { owner, cwd }
+  const context = useRef({ owner, cwd, inputDisabled })
+  context.current = { owner, cwd, inputDisabled }
   const adoptDraft = useCallback((next: string) => {
     const previous = currentId.current
     if (previous !== next) {
@@ -227,7 +229,10 @@ export function DraftChat({
     <DraftProjectPicker
       cwd={cwd === null ? null : (session?.cwd ?? cwd)}
       recentProjects={recentProjects}
-      onChange={onCwdChange}
+      onChange={(directory) => {
+        if (!context.current.inputDisabled) onCwdChange(directory)
+      }}
+      disabled={inputDisabled}
       preparing={preparing}
     />
   )
@@ -244,8 +249,14 @@ export function DraftChat({
             onNewProject={onNewProject}
           />
         </ChatHeader>
-        {owner === "main" && <MainInputModeSwitch />}
-        <ChatWelcome cwd={cwd} />
+        {owner === "main" && (!session || session.items.length === 0) && <MainInputModeSwitch />}
+        {session && session.items.length > 0 ? (
+          <ChatDirectoryContext value={session.cwd}>
+            <ConversationBody session={session} timeline={timeline} />
+          </ChatDirectoryContext>
+        ) : (
+          <ChatWelcome cwd={cwd} />
+        )}
         {!preparing && (error !== null || connection !== "ready") && (
           <div className="mx-auto w-full max-w-3xl px-6 py-2 text-sm" role="status">
             {error !== null ? text(error) : t("connection.disconnected")}
@@ -253,6 +264,7 @@ export function DraftChat({
         )}
         {id !== null && <SessionActions sessionId={id} />}
         <ChatComposer
+          inputDisabled={inputDisabled}
           inputHeader={picker}
           session={session ?? pendingComposer}
           allowPendingInput
@@ -264,6 +276,7 @@ export function DraftChat({
                 sessionId={session.id}
                 options={session.configOptions}
                 disabled={
+                  inputDisabled ||
                   preparing ||
                   error !== null ||
                   connection !== "ready" ||
@@ -278,10 +291,8 @@ export function DraftChat({
               />
             ) : undefined
           }
-          disabled={session === null || preparing || error !== null || connection !== "ready"}
-          onSubmit={
-            runOperation ? (prompt, accept, options) => runOperation(() => send(prompt, accept, options)) : send
-          }
+          disabled={inputDisabled || session === null || preparing || error !== null || connection !== "ready"}
+          onSubmit={send}
           onHandOff={onVoiceHandoff}
         />
         <FilePreviewModal />

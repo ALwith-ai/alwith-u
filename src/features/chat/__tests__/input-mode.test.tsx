@@ -88,6 +88,32 @@ function ModeStatus() {
   )
 }
 
+test("a delayed first-send save cannot replace the newly selected conversation's input mode", async () => {
+  let release!: () => void
+  savedModes.save.mockImplementation(
+    () =>
+      new Promise<void>((resolve) => {
+        release = resolve
+      })
+  )
+  const view = render(
+    <MainInputModeProvider sessionId="image-session">
+      <MainInputModeSwitch />
+      <ModeStatus />
+    </MainInputModeProvider>
+  )
+  fireEvent.click(view.getByRole("button", { name: "Images" }))
+  fireEvent.click(view.getByRole("button", { name: "Remember mode" }))
+  view.rerender(
+    <MainInputModeProvider sessionId="ordinary-session" draft={false}>
+      <ModeStatus />
+    </MainInputModeProvider>
+  )
+  await waitFor(() => expect(view.getByLabelText("Restored input mode")).toHaveTextContent("chat"))
+  await act(() => Promise.try(release))
+  expect(view.getByLabelText("Restored input mode")).toHaveTextContent("chat")
+})
+
 test("draft mode binds to its real session and reopening restores it independently", async () => {
   const draft = render(
     <MainInputModeProvider>
@@ -193,8 +219,9 @@ afterEach(() => {
 
 function setup({
   submit,
+  inputDisabled = false,
   reference = false
-}: { submit?: ComponentProps<typeof ChatComposer>["onSubmit"]; reference?: boolean } = {}) {
+}: { submit?: ComponentProps<typeof ChatComposer>["onSubmit"]; reference?: boolean; inputDisabled?: boolean } = {}) {
   const session = { ...createSession("ordinary-chat", "/tmp"), attached: true }
   const attachment = {
     id: "reference",
@@ -215,12 +242,21 @@ function setup({
       <MainInputModeProvider>
         <ChatHeader title="Ordinary chat">{null}</ChatHeader>
         <MainInputModeSwitch />
-        <ChatComposer session={session} onSubmit={submit} />
+        <ChatComposer session={session} onSubmit={submit} inputDisabled={inputDisabled} allowPendingInput />
       </MainInputModeProvider>
     </ChatTimelineHost>
   )
   return { ...view, session, attachment }
 }
+
+test.each(["Chat", "Images"])("draft protection disables %s input without making the window inert", (mode) => {
+  const view = setup({ inputDisabled: true })
+  fireEvent.click(view.getByRole("button", { name: mode }))
+  expect(view.getByRole("textbox", { name: "Send a message" })).toBeDisabled()
+  expect(view.getByRole("button", { name: "Send" })).toBeDisabled()
+  expect(view.getByRole("button", { name: mode })).toBeEnabled()
+  expect(view.container.querySelector("[inert]")).toBeNull()
+})
 
 test("main-window mode changes preserve the same input, reference images and conversation", () => {
   const view = setup({ reference: true })

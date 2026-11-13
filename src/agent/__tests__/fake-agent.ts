@@ -42,6 +42,8 @@ export type FakeAgent = {
   requestTool: (params: unknown) => Promise<unknown>
   requestForm: (params: acp.CreateElicitationRequest) => Promise<acp.CreateElicitationResponse>
   resumeResponse: { current: ((signal: AbortSignal) => Promise<acp.ResumeSessionResponse>) | null }
+  /** Stored routes survive catalog changes and are checked before any history replay. */
+  persistedModels: Map<string, string>
   replayUpdates: acp.SessionUpdate[]
   historyRequests: Array<Record<string, unknown>>
   historyResponse: { current: ((params: Record<string, unknown>) => unknown) | null }
@@ -120,6 +122,7 @@ export function createFakeAgent(): FakeAgent {
   const fileSearches: string[] = []
   const inputConfig = new Map<string, SessionInputConfigSnapshot>()
   const resumeResponse: FakeAgent["resumeResponse"] = { current: null }
+  const persistedModels = new Map<string, string>()
   const replayUpdates: acp.SessionUpdate[] = []
   const historyRequests: Array<Record<string, unknown>> = []
   const historyResponse: FakeAgent["historyResponse"] = { current: null }
@@ -291,6 +294,16 @@ export function createFakeAgent(): FakeAgent {
   app.onRequest("session/resume", async ({ params, client, signal }) => {
     const hint = modelHintOf(params)
     modelHints.set(params.sessionId, hint)
+    const selected = hint ?? persistedModels.get(params.sessionId) ?? null
+    if (
+      selected?.startsWith("gateway:") &&
+      !gatewayGroups().some((group) => group.models.includes(selected)) &&
+      sessionOptions.current === null
+    )
+      throw acp.RequestError.invalidParams(
+        { model: selected },
+        "The selected provider connection or model is unavailable"
+      )
     if (params.replayFrom != null) {
       for (const update of replayUpdates) await client.notify("session/update", { sessionId: params.sessionId, update })
       await client.notify("session/update", {
@@ -312,8 +325,9 @@ export function createFakeAgent(): FakeAgent {
     }
     if (resumeResponse.current) return resumeResponse.current(signal)
     const origin = origins.get(params.sessionId)
+    if (selected !== null) persistedModels.set(params.sessionId, selected)
     return {
-      configOptions: optionsFor(hint, params._meta),
+      configOptions: optionsFor(selected, params._meta),
       availableCommands: sessionCommands.current,
       ...(origin ? { _meta: { codex: origin } } : {})
     }
@@ -502,6 +516,7 @@ export function createFakeAgent(): FakeAgent {
     configChanges,
     renamed,
     fileSearches,
+    persistedModels,
     replayUpdates,
     historyRequests,
     historyResponse,

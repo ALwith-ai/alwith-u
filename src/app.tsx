@@ -105,6 +105,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   useEffect(() => {
     if (isTauri()) void mobile.bridgeSetActiveSession({ sessionId: selectedId })
   }, [selectedId])
+  // DraftChat shows the live timeline while its composer finishes receipt handling.
   const [submittingDraftId, setSubmittingDraftId] = useState<string | null>(null)
   const [surfaceGeneration, setSurfaceGeneration] = useState(0)
   const voiceHandoff = useVoiceHandoff(selectedId, surfaceGeneration)
@@ -167,7 +168,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     const dependencies = {
       session: (targetId: string) => {
         const target = client.state.sessions[targetId]
-        return extensionSession.current?.id === targetId && target?.attached && !target.readOnly
+        return !operation.busy && extensionSession.current?.id === targetId && target?.attached && !target.readOnly
           ? { cwd: target.cwd }
           : null
       },
@@ -187,10 +188,8 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
         return selected?.attached ? { id: selected.id, cwd: selected.cwd, title: selected.title ?? selected.id } : null
       },
       openView: openExtension,
-      send: (id, text, required, check) =>
-        operation.run(() => sendExtensionMessage(id, text, required, { ...dependencies, check })),
-      setDraft: (id, text, required, check) =>
-        operation.run(() => setExtensionDraft(id, text, required, { ...dependencies, check }))
+      send: (id, text, required, check) => sendExtensionMessage(id, text, required, { ...dependencies, check }),
+      setDraft: (id, text, required, check) => setExtensionDraft(id, text, required, { ...dependencies, check })
     })
   }, [openExtension, operation])
   const [mainVisible, setMainVisible] = useState(false)
@@ -315,7 +314,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
               if (transfer.sessionId !== null) {
                 if (transfer.cwd === null) throw new Error("A chat session must have a working directory")
                 await client.transferDraft(transfer.sessionId, "main")
-                await client.open(transfer.sessionId, transfer.cwd)
+                void client.open(transfer.sessionId, transfer.cwd).catch((error) => toast.error(describe(error)))
               } else {
                 await client.discardDraft("main")
               }
@@ -537,7 +536,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           // The handoff is accepted before replacing the source, even when restoring history fails.
           if (replacement) {
             setLastDirectory(replacement.cwd)
-            await client.open(replacement.sessionId, replacement.cwd)
+            void client.open(replacement.sessionId, replacement.cwd).catch((error) => toast.error(describe(error)))
           }
         })
         .catch((error) => toast.error(describe(error)))
@@ -553,6 +552,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           key={`${session.id}-${surfaceGeneration}`}
           session={session}
           voiceResume={voiceHandoff.resume}
+          inputDisabled={busy}
           projectMenu={
             <ChatProjectMenu
               cwd={session.cwd}
@@ -573,6 +573,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
         <DraftChat
           collectionId={draftCollection?.generation === surfaceGeneration ? draftCollection.id : undefined}
           owner="main"
+          inputDisabled={busy}
           key={`draft-${surfaceGeneration}`}
           onNewChat={newProjectChat}
           cwd={lastDirectory}
@@ -592,7 +593,6 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           onVoiceHandoff={voiceHandoff.accept}
           onAuthRequired={() => void openSettingsWindow("provider")}
           providerSnapshot={providerSnapshot}
-          runOperation={operation.run}
           onOpenWindow={moveToWindow}
         />
       </>
@@ -611,7 +611,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   )
 
   return (
-    <div className="h-full" inert={busy} aria-busy={busy}>
+    <div className="h-full">
       <WallpaperBackground onError={reportExtensionError}>
         <MainSidebarLayout
           initialPinned={initialPreferences.sidebarPinned}

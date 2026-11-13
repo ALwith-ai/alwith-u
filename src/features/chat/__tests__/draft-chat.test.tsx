@@ -175,6 +175,119 @@ async function windowEnvironment(visible = false) {
   }
 }
 
+test("floating draft changes protect input while pending forms stay interactive", async () => {
+  const env = await windowEnvironment(true)
+  let release!: () => void
+  const pending = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  const view = render(<ChatWindow preferences={windowPreferences} />)
+  let answer: Promise<unknown> | undefined
+  let changing: Promise<void> | undefined
+  try {
+    await waitFor(() => expect(Object.keys(env.real.state.draftSessions)).toHaveLength(1))
+    const id = must(Object.keys(env.real.state.draftSessions)[0], "the floating draft")
+    mockOf(client, "discardDraft").mockImplementation(async (owner) => {
+      await pending
+      await env.real.discardDraft(owner)
+    })
+    act(() => {
+      changing = env.startNewChat(id)
+    })
+    await waitFor(() => expect(view.getByRole("textbox")).toBeDisabled())
+    expect(view.getByRole("main")).not.toHaveAttribute("inert")
+    expect(view.getByRole("textbox")).toBeDisabled()
+    expect(view.getByRole("button", { name: "More actions" })).toBeEnabled()
+    answer = env.fake.requestForm({
+      sessionId: id,
+      mode: "form",
+      message: "Respond during the draft change",
+      requestedSchema: {
+        type: "object",
+        properties: { choice: { type: "string", enum: ["Alpha", "Beta"] } },
+        required: ["choice"]
+      }
+    })
+    await view.findByRole("dialog")
+    expect(view.getByRole("dialog").closest("[inert]")).toBeNull()
+    fireEvent.click(view.getByRole("radio", { name: "Beta" }))
+    fireEvent.click(view.getByRole("button", { name: "Submit" }))
+    expect(await answer).toMatchObject({ action: "accept", content: { choice: "Beta" } })
+    await act(() => Promise.try(release))
+    await changing
+    await waitFor(() => expect(view.getByRole("textbox")).toBeEnabled())
+  } finally {
+    release()
+    await changing?.catch(() => undefined)
+    for (const action of env.real.state.actions) env.real.respond(action.id, { action: "cancel" })
+    await answer?.catch(() => undefined)
+    await act(() => Promise.try(() => view.unmount()))
+    env.restore()
+  }
+})
+
+test("a pending floating folder picker does not lock input or replace a newer chat", async () => {
+  const env = await windowEnvironment(true)
+  let choose!: (directory: string) => void
+  mockOf(projectPicker, "chooseFolder").mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        choose = resolve
+      })
+  )
+  const view = render(<ChatWindow preferences={windowPreferences} />)
+  try {
+    await waitFor(() => expect(Object.keys(env.real.state.draftSessions)).toHaveLength(1))
+    const original = must(Object.keys(env.real.state.draftSessions)[0], "the original floating draft")
+    fireEvent.click(view.getByRole("button", { name: "More actions" }))
+    fireEvent.click(await view.findByRole("menuitem", { name: "New project" }))
+    await waitFor(() => expect(choose).toBeDefined())
+    expect(view.getByRole("main")).not.toHaveAttribute("inert")
+    expect(view.getByRole("main")).not.toHaveAttribute("aria-busy")
+    expect(view.getByRole("textbox")).toBeEnabled()
+    fireEvent.change(view.getByRole("textbox"), { target: { value: "Still editable" } })
+    expect(view.getByRole("textbox")).toHaveValue("Still editable")
+    await act(() => env.startNewChat(original))
+    await waitFor(() => expect(Object.keys(env.real.state.draftSessions)).toHaveLength(1))
+    await waitFor(() => expect(Object.keys(env.real.state.draftSessions)[0]).not.toBe(original))
+    const replacement = must(Object.keys(env.real.state.draftSessions)[0], "the replacement draft")
+    await act(() => Promise.try(() => choose("/tmp/stale-directory")))
+    expect(env.real.session(replacement).cwd).toBe(windowPreferences.lastProjectDirectory)
+    expect(Object.keys(env.real.state.draftSessions)).toEqual([replacement])
+  } finally {
+    choose?.("/tmp/stale-directory")
+    await act(() => Promise.try(() => view.unmount()))
+    env.restore()
+  }
+})
+
+test("floating presentation finishes before history restoration completes", async () => {
+  const env = await windowEnvironment(true)
+  await env.real.connect()
+  const id = await env.real.newSession("/tmp/restoring-floating", null, "chat")
+  let release!: () => void
+  const restoration = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  mockOf(client, "open").mockImplementation(async (id, cwd) => {
+    await env.real.open(id, cwd, "chat")
+    await restoration
+  })
+  const view = render(<ChatWindow preferences={windowPreferences} />)
+  try {
+    await waitFor(() => expect(env.ready()).toBe(true))
+    await act(() => env.present(id))
+    expect(client.open).toHaveBeenCalledWith(id, "/tmp/restoring-floating")
+    expect(view.getByRole("main")).not.toHaveAttribute("inert")
+    expect(view.getByRole("main")).not.toHaveAttribute("aria-busy")
+    expect(chatWindow.publishChatWindowSurface).toHaveBeenCalledWith(id, true)
+  } finally {
+    release()
+    await act(() => Promise.try(() => view.unmount()))
+    env.restore()
+  }
+})
+
 test("confirmed sidebar creation replaces only its explicit floating conversation with a draft", async () => {
   const env = await windowEnvironment(true)
   await env.real.connect()
@@ -500,6 +613,85 @@ test.each(["success", "failure", "unmount", "directory-change"] as const)(
     }
   }
 )
+
+test.each(["main", "chat"] as const)("%s first send shows its message before acceptance", async (owner) => {
+  const env = await environment()
+  let release!: () => void
+  const receipt = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  mockOf(client, "prompt").mockImplementation(async (...args) => {
+    const sent = await env.real.prompt(...args)
+    await receipt
+    return sent
+  })
+  const sending = vi.fn()
+  const view = render(
+    <DraftChat
+      owner={owner}
+      cwd="/tmp/immediate-first-send"
+      onCwdChange={() => {}}
+      onCreated={() => {}}
+      onSendingChange={sending}
+      onAuthRequired={() => {}}
+      onNewChat={() => {}}
+      providerSnapshot={providers}
+    />
+  )
+  try {
+    const input = view.getByRole("textbox")
+    fireEvent.change(input, { target: { value: "Show this message immediately" } })
+    await waitFor(() => expect(view.getByRole("button", { name: "Send" })).toBeEnabled())
+    fireEvent.click(view.getByRole("button", { name: "Send" }))
+    await waitFor(() => expect(view.getByText("Show this message immediately")).toBeVisible())
+    expect(sending.mock.calls.map(([, pending]) => pending)).toEqual([true])
+    expect(view.getByRole("textbox")).toBe(input)
+    expect(input).toHaveValue("")
+    expect(input.closest("[inert]")).toBeNull()
+    fireEvent.change(input, { target: { value: "Keep typing while acceptance is pending" } })
+    expect(input).toHaveValue("Keep typing while acceptance is pending")
+    await act(() => Promise.try(release))
+    await waitFor(() => expect(sending.mock.calls.map(([, pending]) => pending)).toEqual([true, false]))
+    expect(input).toHaveValue("Keep typing while acceptance is pending")
+  } finally {
+    release()
+    await act(() => Promise.try(() => view.unmount()))
+    env.restore()
+  }
+})
+
+test("floating first send leaves the window interactive while acceptance is pending", async () => {
+  const env = await windowEnvironment(true)
+  let release!: () => void
+  const receipt = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  mockOf(client, "prompt").mockImplementation(async (...args) => {
+    const sent = await env.real.prompt(...args)
+    await receipt
+    return sent
+  })
+  const view = render(<ChatWindow preferences={windowPreferences} />)
+  try {
+    await waitFor(() => expect(view.getByRole("textbox")).toBeEnabled())
+    fireEvent.change(view.getByRole("textbox"), { target: { value: "Floating message before receipt" } })
+    await waitFor(() => expect(view.getByRole("button", { name: "Send" })).toBeEnabled())
+    fireEvent.click(view.getByRole("button", { name: "Send" }))
+    await waitFor(() => expect(view.getByText("Floating message before receipt")).toBeVisible())
+    expect(view.getByRole("main")).not.toHaveAttribute("inert")
+    expect(view.getByRole("main")).not.toHaveAttribute("aria-busy")
+    const input = view.getByRole("textbox")
+    fireEvent.change(input, { target: { value: "Next floating draft" } })
+    await act(() => Promise.try(release))
+    await waitFor(() => expect(view.getByRole("textbox")).not.toBe(input))
+    expect(view.getByRole("textbox")).toHaveValue("Next floating draft")
+    expect(view.getByText("Floating message before receipt")).toBeVisible()
+  } finally {
+    release()
+    await act(() => Promise.try(() => view.unmount()))
+    env.restore()
+  }
+})
 
 test("sending after default-directory resolution keeps the submitted conversation selected", async () => {
   const { fake, real, restore } = await environment()

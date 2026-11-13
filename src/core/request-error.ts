@@ -6,6 +6,23 @@ export function isAuthenticationRequired(error: unknown): boolean {
   return value.code === -32000 && typeof reason === "string" && /^Authentication required(?:$|:)/.test(reason)
 }
 
+/** Match the existing adapter contract narrowly; arbitrary invalid params are not recoverable model errors. */
+export function isModelSelectionRequired(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) return false
+  const value = error as { message?: unknown; reason?: unknown; data?: unknown }
+  const details =
+    typeof value.data === "object" && value.data !== null ? (value.data as { details?: unknown }).details : value.data
+  return [value.message, value.reason, details].some(
+    (message) =>
+      typeof message === "string" &&
+      [
+        "The selected provider connection or model is unavailable",
+        "The selected ALwith account model is unavailable",
+        "The ALwith account changed"
+      ].some((reason) => message.includes(reason))
+  )
+}
+
 /** Preserve the transport error identity while exposing the agent's actionable details. */
 export function explainRequestError(error: unknown, method: string): unknown {
   if (!(error instanceof Error)) return error

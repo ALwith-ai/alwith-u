@@ -51,7 +51,7 @@ export const client =
           const providers = await applyProvidersWhenIdle()
           // Create a reusable draft on the currently applied catalog. Prompt admission retries
           // the saved provider revision after active turns have finished.
-          return providers.status === "pending" && !isAccountModel(model)
+          return providers.status === "pending" && purpose === "draft" && !isAccountModel(model)
             ? null
             : resolveSessionModel(model, providers, purpose)
         },

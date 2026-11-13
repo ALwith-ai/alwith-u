@@ -1,7 +1,26 @@
 import { RuntimeRequestError } from "@alwith/api"
 import { expect, test } from "vitest"
 
-import { explainRequestError, isAuthenticationRequired } from "../request-error"
+import { explainRequestError, isAuthenticationRequired, isModelSelectionRequired } from "../request-error"
+
+test.each([
+  [new Error("The selected provider connection or model is unavailable"), true],
+  [
+    new RuntimeRequestError("acpRequest", {
+      code: -32602,
+      message: "Invalid params",
+      data: { details: "The selected provider connection or model is unavailable" }
+    }),
+    true
+  ],
+  [new Error("The selected ALwith account model is unavailable. Select another model before sending."), true],
+  [new Error("The ALwith account changed. Select a model before sending"), true],
+  [new Error("Invalid params: unknown config option"), false],
+  [new Error("Connection lost"), false],
+  [null, false]
+])("model recovery distinguishes route errors from other request failures: %j", (error, expected) => {
+  expect(isModelSelectionRequired(error)).toBe(expected)
+})
 
 test.each([
   [{ code: -32000, message: "Authentication required" }, true],

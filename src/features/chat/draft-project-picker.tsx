@@ -33,11 +33,13 @@ export function DraftProjectPicker({
   cwd,
   recentProjects,
   onChange,
+  disabled = false,
   preparing = false
 }: {
   cwd: string | null
   recentProjects: string[]
   onChange: (cwd: string | null) => void
+  disabled?: boolean
   preparing?: boolean
 }) {
   const { t } = useTranslation()
@@ -85,7 +87,7 @@ export function DraftProjectPicker({
             className="relative size-4 rounded-full p-0 hover:bg-transparent dark:hover:bg-transparent"
             aria-label={t("chat.draft.workOutsideProject")}
             title={t("chat.draft.workOutsideProject")}
-            disabled={defaultCwd === null}
+            disabled={disabled || defaultCwd === null}
             onClick={workOutsideProject}
           >
             <FolderClosedIcon className="size-4 group-hover/project:opacity-0" />
@@ -97,6 +99,7 @@ export function DraftProjectPicker({
         <DropdownMenuTrigger
           render={
             <Button
+              disabled={disabled}
               variant="ghost"
               size="sm"
               className={cn(
@@ -116,7 +119,7 @@ export function DraftProjectPicker({
             <Pane className="flex-none [&>[data-slot=scroll-area-scrollbar]]:-me-1" viewportClassName="max-h-64 pe-0">
               <DropdownMenuRadioGroup value={cwd ?? ""} onValueChange={onChange}>
                 {projects.map((path) => (
-                  <DropdownMenuRadioItem key={path} value={path} title={path} closeOnClick>
+                  <DropdownMenuRadioItem key={path} value={path} title={path} closeOnClick disabled={disabled}>
                     <FolderClosedIcon />
                     <span className="truncate">{basename(path)}</span>
                   </DropdownMenuRadioItem>
@@ -128,6 +131,7 @@ export function DraftProjectPicker({
         )}
         <DropdownMenuGroup>
           <DropdownMenuItem
+            disabled={disabled}
             onClick={() => {
               void chooseFolder(cwd).then((path) => {
                 if (path !== null) onChange(path)
@@ -138,7 +142,7 @@ export function DraftProjectPicker({
             {t("chat.draft.newProject")}
           </DropdownMenuItem>
           {defaultCwd !== null && cwd !== null && cwd !== defaultCwd && (
-            <DropdownMenuItem onClick={workOutsideProject}>
+            <DropdownMenuItem onClick={workOutsideProject} disabled={disabled}>
               <XIcon />
               {t("chat.draft.workOutsideProject")}
             </DropdownMenuItem>

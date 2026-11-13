@@ -25,6 +25,7 @@ import { ChatDirectoryContext, ChatOpenSessionContext } from "./file-actions"
 
 type ChatViewProps = {
   session: Session
+  inputDisabled?: boolean
   voiceResume?: VoiceResume
   onSelectSession?: (sessionRow: SessionSummary) => void
   onOpenWindow?: () => void
@@ -38,6 +39,7 @@ type ChatViewProps = {
 
 function Conversation({
   session,
+  inputDisabled,
   voiceResume,
   onOpenWindow,
   onReturnToMain,
@@ -101,7 +103,7 @@ function Conversation({
       readOnlyActions={
         <ForkTurnButton labelled turnId={lastNativeItem === undefined ? null : nativeTurnId(lastNativeItem)} />
       }
-      composer={<ChatComposer session={session} voiceResume={voiceResume} />}
+      composer={<ChatComposer session={session} voiceResume={voiceResume} inputDisabled={inputDisabled} />}
       welcome={<ChatWelcome cwd={session.cwd} />}
     >
       <FilePreviewModal />
@@ -114,6 +116,7 @@ function Conversation({
             !current?.attached ||
             current.restoring ||
             current.readOnly ||
+            inputDisabled ||
             inputMode?.ready === false
           ) {
             throw new Error(t("chat.image.edit.notReady"))

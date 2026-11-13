@@ -7,7 +7,7 @@ export function useSurfaceOperation() {
   const [busy, setBusy] = useState(false)
   const [operation] = useState(() =>
     createSurfaceOperation((value) => {
-      // Disable editing before the first asynchronous draft read or window request.
+      // Protect the composer during draft changes; the rest of the window stays interactive.
       flushSync(() => setBusy(value))
     })
   )

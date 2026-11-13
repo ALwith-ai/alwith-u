@@ -242,6 +242,25 @@ fn generic_rpc_failures_keep_the_classification_of_nested_agent_details() {
 }
 
 #[test]
+fn unavailable_model_routes_are_not_transport_disconnections() {
+    for message in [
+        "The selected provider connection or model is unavailable",
+        "The selected ALwith account model is unavailable. Select another model before sending.",
+        "The ALwith account changed. Select a model before sending",
+    ] {
+        assert_eq!(signature(message).kind, "model_unavailable");
+        let error = rpc_signature("Invalid params", Some(&json!({"details": message})));
+        assert_eq!(error.kind, "model_unavailable");
+        let directory = tempfile::tempdir().unwrap();
+        let collector = Collector::new(directory.path().into());
+        collector.record("request", "failed", Context { error: Some(error), ..Context::default() });
+        assert_eq!(collector.report()["events"].as_array().unwrap().len(), 1);
+    }
+    assert_eq!(signature("Agent connection lost").kind, "connection_lost");
+    assert_eq!(signature("Provider connection rejected: unauthorized API key").kind, "authentication");
+}
+
+#[test]
 fn reports_survive_restarts_and_do_not_duplicate_the_memory_tail() {
     let directory = tempfile::tempdir().unwrap();
     let first = Collector::new(directory.path().into());

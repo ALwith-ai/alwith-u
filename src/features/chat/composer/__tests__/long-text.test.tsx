@@ -1,5 +1,6 @@
 import { createSession } from "@alwith/module-chat/client"
 import { drafts, exportDraft, importDraft, isPastedTextAttachment } from "@alwith/module-chat/conversation"
+import { commands as fsCommands } from "@alwith/module-fs/commands"
 import { act, createEvent, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
@@ -14,6 +15,8 @@ const session = (id = "paste-session") => ({ ...createSession(id, "/tmp"), attac
 const longText = "中文".repeat(2500)
 
 beforeEach(() => {
+  vi.spyOn(fsCommands, "workspaceOpen").mockImplementation(async ({ path }) => path)
+  vi.spyOn(fsCommands, "workspaceStat").mockResolvedValue({ kind: "file", size: 100, version: "1" })
   vi.spyOn(commands, "chatWriteTextAttachment").mockResolvedValue("/tmp/paste #1?.txt")
 })
 afterEach(() => {

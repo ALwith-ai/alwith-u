@@ -46,6 +46,36 @@ test("floating authentication recovery logs in through main and reopens the same
   }
 })
 
+test("floating model recovery projects the catalog and resumes only the requested original session", async () => {
+  const fake = createFakeAgent()
+  fake.persistedModels.set("removed", "gateway:removed:model")
+  const port = new FakeHubPort(() => fake.app)
+  const owner = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
+  const transport = eventBus()
+  const stop = await serveChatClient(owner, transport)
+  const remote = new RemoteChatClient(transport)
+  const resume = vi.spyOn(owner, "resumeModel")
+  try {
+    await remote.connect()
+    const draft = await remote.prepareDraft("chat", "/tmp/original")
+    await remote.discardDraft(draft)
+    await remote.open("removed", "/tmp/original")
+    expect(remote.state.modelRecovery.removed).toBe(true)
+    expect(remote.state.nativeModels).toEqual(owner.state.nativeModels)
+    expect(remote.session("removed").items).toHaveLength(2)
+    await remote.resumeModel("removed", "gpt-6.1-sol")
+    expect(resume).toHaveBeenCalledExactlyOnceWith("removed", "gpt-6.1-sol")
+    expect(remote.state.modelRecovery.removed).toBeUndefined()
+    expect(remote.session("removed")).toMatchObject({ attached: true, readOnly: false })
+    expect(port.started).toEqual(["codex"])
+  } finally {
+    resume.mockRestore()
+    remote.disconnect()
+    stop()
+    owner.disconnect()
+  }
+})
+
 test("floating composer loads apps through its main owner and preserves failures", async () => {
   const fake = createFakeAgent()
   const port = new FakeHubPort(() => fake.app)

@@ -46,7 +46,7 @@ const METHODS = [
   "close",
   "stopSession",
   "setConfig",
-  "resumeAccountModel",
+  "resumeModel",
   "respond",
   "readRateLimits",
   "installedApps",
@@ -333,7 +333,8 @@ export class RemoteChatClient extends CodexClient {
       runStates: {},
       draftSessions: {},
       sessionWindows: {},
-      accountModelRecovery: {},
+      modelRecovery: {},
+      nativeModels: [],
       configPending: {},
       drafts: {},
       sessionList: [],
@@ -451,8 +452,8 @@ export class RemoteChatClient extends CodexClient {
   override login(...args: Parameters<CodexClient["login"]>): Promise<void> {
     return this.request("login", args)
   }
-  override resumeAccountModel(...args: Parameters<CodexClient["resumeAccountModel"]>): Promise<void> {
-    return this.request("resumeAccountModel", args)
+  override resumeModel(...args: Parameters<CodexClient["resumeModel"]>): Promise<void> {
+    return this.request("resumeModel", args)
   }
 
   override setConfig(...args: Parameters<CodexClient["setConfig"]>): Promise<void> {

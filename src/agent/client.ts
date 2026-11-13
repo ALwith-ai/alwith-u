@@ -28,7 +28,7 @@ import {
 } from "@alwith/module-chat/client"
 import { imageArtifacts, imageModel, type ImageSelection } from "@alwith/module-chat/image"
 
-import { isAuthenticationRequired } from "../core/request-error"
+import { isAuthenticationRequired, isModelSelectionRequired } from "../core/request-error"
 import { customModelEffort } from "./custom-model-effort"
 import { forkTitle } from "./fork-title"
 import { IMAGE_WORKFLOW_INSTRUCTIONS, imageRequestAspect } from "./image-request"
@@ -39,8 +39,6 @@ import { executionMeta } from "./input-modes/execution-meta"
 import { imageInputMode } from "./input-modes/image"
 
 export type { ForkOrigin, PendingAction }
-
-const ACCOUNT_MODEL_REQUIRED = "account_model_required"
 
 /**
  * Model group of the ChatGPT models the codex adapter serves next to gateway groups. Named after the
@@ -60,7 +58,7 @@ export type { SessionSummary } from "@alwith/module-chat/client"
 export type Launch = { engine: string; [key: string]: unknown }
 
 export type ClientOptions = BaseClientOptions & {
-  /** Resolve a slot selection against the host's applied provider configuration. */
+  /** Resolve model selections against the host's applied provider configuration. */
   resolveModel?: (model: string | null, purpose: "session" | "draft") => Promise<string | null>
   imageService?: {
     inputMode: (sessionId: string) => Promise<InputMode>
@@ -77,8 +75,10 @@ export type ClientOptions = BaseClientOptions & {
 export type DraftOwner = "main" | "chat"
 
 export type AppState = CodexClientState & {
-  /** Account revocation is independent of transient turn errors and mirrored to auxiliary windows. */
-  accountModelRecovery: Record<string, boolean>
+  /** Model access recovery is independent of turn errors and mirrored to auxiliary windows. */
+  modelRecovery: Record<string, boolean>
+  /** Native catalog last advertised by this agent; recovery never creates a probe conversation. */
+  nativeModels: GatewayModel[]
   /** Window ownership survives switching the visible conversation; never persisted. */
   sessionWindows: Record<string, DraftOwner>
   /** Only drafts created by this connection are eligible for automatic cleanup. */
@@ -131,7 +131,7 @@ export class CodexClient extends CodexAcpClient<AppState> {
     super(
       openPort,
       { info: { name: "alwith-u", version: "0.1.0" }, ...base },
-      { sessionWindows: {}, draftSessions: {}, accountModelRecovery: {} }
+      { sessionWindows: {}, draftSessions: {}, modelRecovery: {}, nativeModels: [] }
     )
     this.resolveModelOption = resolveModel
     this.imageService = imageService
@@ -274,6 +274,7 @@ export class CodexClient extends CodexAcpClient<AppState> {
     for (const id of this.imageRequests.keys()) this.releaseImages(id)
     this.promptImages.clear()
     super.onDisconnected()
+    this.setApp({ nativeModels: [] })
   }
 
   override async cancel(id: string): Promise<void> {
@@ -539,10 +540,7 @@ export class CodexClient extends CodexAcpClient<AppState> {
     }
   }
 
-  /**
-   * Every resume carries the session's model: the slot's choice when a slot opens it (resolved against the host's
-   * applied providers once the replay is under way), the session's own selection otherwise.
-   */
+  /** Cold resumes preserve the engine's stored route; explicit recovery supplies its own model hint. */
   protected override async requestContext(
     cwd: string,
     operation: SessionOperation,
@@ -602,23 +600,27 @@ export class CodexClient extends CodexAcpClient<AppState> {
     error: unknown,
     scope: ReplayScope
   ): Promise<boolean> {
-    if (isAuthenticationRequired(error)) {
-      try {
-        await super.afterResume(id, cwd, scope)
-      } catch (historyError) {
-        scope.signal.throwIfAborted()
-        if (!this.current(scope) || !this.holds(id)) return true
-        this.setApp((state) => ({
-          historyPages: {
-            ...state.historyPages,
-            [id]: {
-              cursor: null,
-              loading: false,
-              error: historyError instanceof Error ? historyError.message : String(historyError)
-            }
+    const authentication = isAuthenticationRequired(error)
+    if (!authentication && !isModelSelectionRequired(error)) return super.recoverReplay(id, cwd, error, scope)
+    // Reading stored history does not require a usable execution route. Keep history failures
+    // separate so the user can still repair the route and retry on the same conversation.
+    try {
+      await super.afterResume(id, cwd, scope)
+    } catch (historyError) {
+      scope.signal.throwIfAborted()
+      if (!this.current(scope) || !this.holds(id)) return true
+      this.setApp((state) => ({
+        historyPages: {
+          ...state.historyPages,
+          [id]: {
+            cursor: null,
+            loading: false,
+            error: historyError instanceof Error ? historyError.message : String(historyError)
           }
-        }))
-      }
+        }
+      }))
+    }
+    if (authentication) {
       scope.signal.throwIfAborted()
       if (!this.current(scope) || !this.holds(id)) return true
       this.publishSession({
@@ -630,31 +632,24 @@ export class CodexClient extends CodexAcpClient<AppState> {
       })
       return true
     }
-    const message = error instanceof Error ? error.message : String(error)
-    if (
-      !message.includes("The ALwith account changed") &&
-      !message.includes("The selected ALwith account model is unavailable")
-    )
-      return super.recoverReplay(id, cwd, error, scope)
-    await super.afterResume(id, cwd, scope)
     scope.signal.throwIfAborted()
     if (!this.current(scope) || !this.holds(id)) return true
     this.accountRevocations.set(id, (this.accountRevocations.get(id) ?? 0) + 1)
-    this.setApp((state) => ({ accountModelRecovery: { ...state.accountModelRecovery, [id]: true } }))
+    this.setApp((state) => ({ modelRecovery: { ...state.modelRecovery, [id]: true } }))
     this.publishSession({
       ...this.session(id),
       cwd,
       attached: false,
       restoring: false,
-      readOnly: true,
-      error: { stopReason: ACCOUNT_MODEL_REQUIRED, error: null, meta: null }
+      readOnly: true
     })
     return true
   }
 
   markAccountModelsUnavailable(ids: readonly string[]): void {
+    // Model access recovery is separate from execution errors consumed by chat and Vibemon.
     this.setApp((state) => ({
-      accountModelRecovery: { ...state.accountModelRecovery, ...Object.fromEntries(ids.map((id) => [id, true])) }
+      modelRecovery: { ...state.modelRecovery, ...Object.fromEntries(ids.map((id) => [id, true])) }
     }))
     for (const id of ids) {
       this.accountRevocations.set(id, (this.accountRevocations.get(id) ?? 0) + 1)
@@ -662,33 +657,28 @@ export class CodexClient extends CodexAcpClient<AppState> {
       this.publishSession({
         ...this.session(id),
         attached: false,
-        readOnly: true,
-        error: { stopReason: ACCOUNT_MODEL_REQUIRED, error: null, meta: null }
+        readOnly: true
       })
     }
   }
 
   /** Explicit recovery is separate from the automatic model hints used by normal history replay. */
-  async resumeAccountModel(id: string, model: string | null): Promise<void> {
+  async resumeModel(id: string, model: string): Promise<void> {
     const session = this.session(id)
-    if (!this.state.accountModelRecovery[id]) throw new Error("Account model recovery is not required")
+    if (!this.state.modelRecovery[id]) throw new Error("Model recovery is not required")
+    if (!model) throw new Error("Select a model before continuing")
     const revision = this.accountRevocations.get(id) ?? 0
-    let selected = model === null ? null : await this.resolveModel(model)
-    if (selected === null) {
-      // Ask the engine for its current native default; never hard-code a model or inherit a gateway.
-      const draft = await super.newSession(session.cwd, { draft: true })
-      try {
-        selected = selectedModel(this.session(draft).configOptions)
-        if (!selected || selected.startsWith("gateway:")) throw new Error("Native model is unavailable")
-      } finally {
-        await super.discardDraft(draft)
-      }
-    }
+    const selected = await this.resolveModel(model)
+    if (!selected) throw new Error("The selected provider connection or model is unavailable")
     if ((this.accountRevocations.get(id) ?? 0) !== revision)
       throw new Error("ALwith account changed during model selection")
     this.accountRecoveries.set(id, revision)
     try {
       await this.replay(id, session.cwd, { meta: { alwith: { model: selected, accountModelSelection: true } } })
+    } catch (error) {
+      if (this.holds(id) && this.state.modelRecovery[id])
+        this.publishSession({ ...this.session(id), attached: false, restoring: false, readOnly: true })
+      throw error
     } finally {
       this.accountRecoveries.delete(id)
     }
@@ -699,8 +689,8 @@ export class CodexClient extends CodexAcpClient<AppState> {
       throw new Error(resumed.error?.error?.message ?? "Cannot resume this conversation")
     this.accountRevocations.delete(id)
     this.setApp((state) => {
-      const { [id]: _revoked, ...accountModelRecovery } = state.accountModelRecovery
-      return { accountModelRecovery }
+      const { [id]: _revoked, ...modelRecovery } = state.modelRecovery
+      return { modelRecovery }
     })
     this.confirmModel(this.state.sessionWindows[id] ?? "main", resumed)
   }
@@ -761,7 +751,7 @@ export class CodexClient extends CodexAcpClient<AppState> {
         this.session(existing).cwd === directory &&
         (!this.draftDirectoryIntents.has(existing) || this.draftDirectoryIntents.get(existing) === cwd) &&
         !nativeDefault &&
-        !this.state.accountModelRecovery[existing] &&
+        !this.state.modelRecovery[existing] &&
         (resolved === null
           ? !selectedModel(this.session(existing).configOptions)?.startsWith("gateway:")
           : selectedModel(this.session(existing).configOptions) === resolved)
@@ -863,8 +853,8 @@ export class CodexClient extends CodexAcpClient<AppState> {
     this.setApp((state) => {
       const { [id]: _draft, ...draftSessions } = state.draftSessions
       const { [id]: _window, ...sessionWindows } = state.sessionWindows
-      const { [id]: _revoked, ...accountModelRecovery } = state.accountModelRecovery
-      return { draftSessions, sessionWindows, accountModelRecovery }
+      const { [id]: _revoked, ...modelRecovery } = state.modelRecovery
+      return { draftSessions, sessionWindows, modelRecovery }
     })
   }
 
@@ -985,6 +975,13 @@ export class CodexClient extends CodexAcpClient<AppState> {
     const modelId = selectedModel(session.configOptions)
     if (modelId === null) return
     const option = session.configOptions.find((entry) => entry.category === "model" && entry.type === "select")
+    if (option && isSelectOption(option)) {
+      const options = isGroupedSelect(option.options)
+        ? (option.options.find((group) => group.groupId === NATIVE_MODEL_GROUP.id)?.options ?? [])
+        : option.options.filter((model) => !model.value.startsWith("gateway:"))
+      const nativeModels = options.map((model) => ({ id: model.value, label: model.name }))
+      if (JSON.stringify(nativeModels) !== JSON.stringify(this.state.nativeModels)) this.setApp({ nativeModels })
+    }
     const isGateway =
       option !== undefined &&
       isSelectOption(option) &&

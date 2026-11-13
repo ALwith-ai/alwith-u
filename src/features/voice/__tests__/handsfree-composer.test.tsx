@@ -379,9 +379,6 @@ test("the real new-chat surface supplies its receipt and resumes after materiali
         onNewChat={() => {
           throw new Error("Unexpected new chat")
         }}
-        runOperation={async (operation) => {
-          await operation()
-        }}
       />
     )
   }

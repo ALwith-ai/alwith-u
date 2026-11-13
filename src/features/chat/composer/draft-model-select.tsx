@@ -2,7 +2,7 @@ import { type ChatModelOption, ModelSelect } from "@alwith/module-chat/model-sel
 import { Zap } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
-import { NATIVE_MODEL_GROUP } from "@/agent/client"
+import { type GatewayModel, NATIVE_MODEL_GROUP } from "@/agent/client"
 import type { ProviderSnapshot } from "@/lib/providers"
 import { gatewayModelId, providerGroups } from "@/lib/providers"
 
@@ -18,18 +18,26 @@ const nativeModel: ChatModelOption = {
 export function DraftModelSelect({
   snapshot,
   model,
-  onChange
+  onChange,
+  nativeModels
 }: {
   snapshot: ProviderSnapshot | null
   model: string | null
   onChange: (model: string | null) => void
+  nativeModels?: GatewayModel[]
 }) {
   const { t } = useTranslation()
   const groups: { id: string; name: string; models: ChatModelOption[] }[] = [
     {
       id: NATIVE_MODEL_GROUP.id,
       name: NATIVE_MODEL_GROUP.name,
-      models: [nativeModel]
+      models:
+        nativeModels === undefined
+          ? [nativeModel]
+          : nativeModels.map((model) => ({
+              api_id: model.id,
+              label: model.label ?? model.id
+            }))
     },
     ...(snapshot === null ? [] : providerGroups(snapshot)).map((provider) => ({
       id: provider.id,
@@ -44,7 +52,9 @@ export function DraftModelSelect({
   const models = catalog.flatMap((group) => group.models)
   const selected =
     model === null
-      ? models[0]
+      ? nativeModels === undefined
+        ? models[0]
+        : { api_id: "", label: t("chat.model.model") }
       : (models.find((item) => item.api_id === model) ?? {
           api_id: model,
           label: model

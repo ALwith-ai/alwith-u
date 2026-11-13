@@ -44,9 +44,12 @@ function report(error: unknown): void {
 export function ChatWindow({ preferences }: { preferences: Preferences }) {
   const { t } = useTranslation()
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  // DraftChat shows the live timeline while its composer finishes receipt handling.
   const [submittingDraftId, setSubmittingDraftId] = useState<string | null>(null)
   const [cwd, setCwd] = useState<string | null>(preferences.lastProjectDirectory)
   const [generation, setGeneration] = useState(0)
+  const currentGeneration = useRef(generation)
+  currentGeneration.current = generation
   const voiceHandoff = useVoiceHandoff(selectedId, generation)
   const [ready, setReady] = useState(false)
   const [contentMounted, setContentMounted] = useState(false)
@@ -88,7 +91,11 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
       const preparingDraft = Object.values(client.state.draftSessions).includes("chat")
       if (selectedId !== null && !client.state.sessions[selectedId] && !preparingDraft) {
         if (cwd === null) throw new Error("A chat session must have a working directory")
-        await client.open(selectedId, cwd)
+        void client.open(selectedId, cwd).catch((error: unknown) => {
+          if (current.current.selectedId === selectedId)
+            setRestoreError(error instanceof Error ? error.message : String(error))
+          report(error)
+        })
       }
       setRestoreError(null)
       setContentMounted(true)
@@ -138,16 +145,29 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
   }, [operation])
 
   const newProject = useCallback(() => {
-    void operation
-      .run(async () => {
-        const directory = await chooseFolder(current.current.cwd)
-        if (directory === null) return
-        setCwd(directory)
-        if (current.current.selectedId === null || client.state.draftSessions[current.current.selectedId] === "chat")
+    const target = { ...current.current }
+    const generation = currentGeneration.current
+    const draft = target.selectedId === null || client.state.draftSessions[target.selectedId] === "chat"
+    void chooseFolder(target.cwd)
+      .then(async (directory) => {
+        const sameDraft =
+          draft &&
+          (current.current.selectedId === null || client.state.draftSessions[current.current.selectedId] === "chat")
+        if (
+          directory === null ||
+          currentGeneration.current !== generation ||
+          (current.current.selectedId !== target.selectedId && !sameDraft) ||
+          current.current.cwd !== target.cwd
+        )
           return
-        setSelectedId(null)
-        importDraft(DRAFT_SESSION_ID, null)
-        setGeneration((value) => value + 1)
+        await operation.run(async () => {
+          setCwd(directory)
+          if (current.current.selectedId === null || client.state.draftSessions[current.current.selectedId] === "chat")
+            return
+          setSelectedId(null)
+          importDraft(DRAFT_SESSION_ID, null)
+          setGeneration((value) => value + 1)
+        })
       })
       .catch(report)
   }, [operation])
@@ -164,9 +184,10 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
       void operation
         .run(async () => {
           if (client.state.draftSessions[sessionRow.sessionId] !== "chat") await client.discardDraft("chat")
-          await client.open(sessionRow.sessionId, sessionRow.cwd)
+          const opening = client.open(sessionRow.sessionId, sessionRow.cwd)
           setCwd(sessionRow.cwd)
           setSelectedId(sessionRow.sessionId)
+          void opening.catch(report)
         })
         .catch(report)
     },
@@ -195,7 +216,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
                   throw new Error("The chat window conversation changed")
                 const target = client.session(action.sessionId)
                 await client.discardDraft("chat")
-                await client.open(target.id, target.cwd)
+                void client.open(target.id, target.cwd).catch(report)
                 current.current = { selectedId: target.id, cwd: target.cwd }
                 setCwd(target.cwd)
                 setSelectedId(target.id)
@@ -219,7 +240,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
                 if (transfer.sessionId !== null) {
                   if (transfer.cwd === null) throw new Error("A chat session must have a working directory")
                   await client.transferDraft(transfer.sessionId, "chat")
-                  await client.open(transfer.sessionId, transfer.cwd)
+                  void client.open(transfer.sessionId, transfer.cwd).catch(report)
                 }
                 if (transfer.sessionId === null) await client.discardDraft("chat")
                 importDraft(transfer.sessionId ?? DRAFT_SESSION_ID, transfer.draft)
@@ -336,11 +357,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
   }, [hide])
 
   return (
-    <main
-      inert={busy}
-      aria-busy={busy}
-      className="relative flex h-dvh flex-col overflow-hidden rounded-2xl border bg-background text-foreground"
-    >
+    <main className="relative flex h-dvh flex-col overflow-hidden rounded-2xl border bg-background text-foreground">
       <WindowResizeEdges />
       <header className="flex h-11 shrink-0 items-center gap-1 border-b border-border px-3" data-tauri-drag-region>
         <div ref={setHeaderTarget} className="flex min-w-0 flex-1 items-center gap-1" data-tauri-drag-region />
@@ -367,6 +384,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
           submittingDraftId === selectedId ? (
             <DraftChat
               owner="chat"
+              inputDisabled={busy}
               headerTarget={headerTarget}
               projectMenu={
                 <ChatProjectMenu cwd={cwd} currentSessionId={selectedId} onSelect={selectSession} onNewChat={newChat} />
@@ -374,7 +392,6 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
               onNewChat={newChat}
               onNewProject={newProject}
               onReturnToMain={returnToMain}
-              runOperation={operation.run}
               key={`draft-${generation}`}
               cwd={cwd}
               onCwdChange={setCwd}
@@ -390,6 +407,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
             <ChatView
               key={`${session.id}-${generation}`}
               session={session}
+              inputDisabled={busy}
               voiceResume={voiceHandoff.resume}
               headerTarget={headerTarget}
               projectMenu={

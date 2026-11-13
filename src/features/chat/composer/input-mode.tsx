@@ -43,6 +43,8 @@ export function MainInputModeProvider({
     null
   )
   const revision = useRef(0)
+  const currentSession = useRef(sessionId)
+  currentSession.current = sessionId
   if (!draft && sessionId === null) throw new Error("An existing conversation must have a session id")
   const ready = draft || restored?.sessionId === sessionId
   const mode = draft ? draftMode : restored?.sessionId === sessionId ? restored.mode : "chat"
@@ -69,7 +71,8 @@ export function MainInputModeProvider({
   }, [draft, sessionId])
   const saveForSession = async (id: string) => {
     await saveSessionInputMode(id, mode, mode === "image" ? selection : {})
-    setRestored({ sessionId: id, mode, selection })
+    // A first-send receipt may arrive after the user has selected another chat.
+    if (currentSession.current === id) setRestored({ sessionId: id, mode, selection })
   }
   const [aspect, setAspect] = useState<ImageInputAspect>("auto")
   useImagePreferenceSync()
