@@ -1,7 +1,7 @@
 # WebKit custom-protocol response patch
 
-Base: the published `wry` 0.57.0 crate, SHA-256
-`a819957a01b3119af85e638a38d242af76dbc87d130dca67bfd0441072e21ff0`.
+Base: the published `wry` 0.57.2 crate, SHA-256
+`a490119196d02a51d0871df7b9119a1f3e46d75b7e90053a801454d5c6b3491c`.
 The compiled sources, manifests, build script, examples, README and license
 notices are retained. Registry metadata and the upstream development lockfile
 are omitted; the application owns dependency resolution.
@@ -79,9 +79,7 @@ contains both serialized response delivery and abandoned-responder cleanup.
 - [ ] After verification passes, remove the path override, workspace exclusion,
       and local snapshot together, then refresh Cargo.lock and verify its registry source.
 
-Restored after accidental removal during snapshot cleanup. The application's
-minimum supported macOS version is 26.0. Restoration has not been compiled
-or runtime-tested in this maintenance session.
+The application's minimum supported macOS version is 26.0.
 
 File drops read individual `NSPasteboardTypeFileURL` items and decode file URLs
 without the deprecated filename pasteboard type. Drag locations use safe bindings.
@@ -94,3 +92,29 @@ resolves both path and reference URLs before emitting events. Regression tests i
 `src/__tests__/dropped_file_url.rs` compile the same resolver and exercise real
 Foundation references, renames, Unicode paths, and rejected URLs via
 `cargo test --lib dropped_file_url_tests` from `src-tauri`.
+
+## Rebase onto 0.57.2 — 2026-11-13
+
+The snapshot moved from 0.57.0 to 0.57.2 by a three-way merge of each locally
+changed file; [PR #1856](https://github.com/tauri-apps/wry/pull/1856) is still
+open, so the patch stays. `wry_web_view_parent.rs` and
+`synthetic_mouse_events.rs` now match upstream. Remaining differences from the
+published crate: both manifests, `build.rs`, `url_scheme_handler.rs`,
+`wry_web_view_ui_delegate.rs`, `wkwebview/mod.rs`, `wkwebview/drag_drop.rs`
+and the added `wkwebview/drag_drop/file_url.rs`.
+
+- Upstream now activates the application only for a visible, focused webview.
+  That guard is adopted; the macOS 14 version branch inside it stays removed.
+- Upstream 0.57.2 reads dropped files as `NSURL` objects and resolves file
+  references itself, falling back to the deprecated filename pasteboard type.
+  The local collector is kept unchanged because its resolver is the one under
+  test. Replacing it with the upstream collector needs a manual Finder drop
+  check (paths, file references, Unicode names) and removes `file_url.rs` and
+  its tests.
+
+Verified in this session: `cargo check --locked`, `cargo tree --locked -i wry`
+(0.57.2 from this path), `cargo test --locked --lib dropped_file_url_tests`
+(3 passed) and `cargo run --locked --release --example wry_protocol_regression`
+(PASS). The release build prints two unused-item warnings that the published
+0.57.2 sources carry as well. No file drop was exercised in the running
+application.
