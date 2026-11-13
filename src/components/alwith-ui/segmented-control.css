@@ -1,6 +1,11 @@
+.segmented-control {
+  --shadow-mode-toggle-selected: 0px 2px 4px -1px #00000014;
+}
+
 .segmented-control-indicator {
   --segmented-control-direction: 1;
   width: calc(100% + 9px);
+  box-shadow: var(--shadow-mode-toggle-selected);
   border-width: 0.5px;
   margin-block: -0.5px;
   margin-inline-start: -0.5px;

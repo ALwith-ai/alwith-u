@@ -48,7 +48,7 @@ export function SegmentedControl<Value extends string>({
       />
       <motion.span
         aria-hidden="true"
-        className="segmented-control-indicator pointer-events-none relative z-10 col-start-1 row-start-1 rounded-full border-border bg-background shadow-md"
+        className="segmented-control-indicator pointer-events-none relative z-10 col-start-1 row-start-1 rounded-full border-border bg-background"
         initial={false}
         animate={{ x: value === items[0].value ? "0%" : "calc((100% - 17px) * var(--segmented-control-direction))" }}
         transition={{ duration: reduceMotion ? 0 : 0.3, ease: [0.23, 1, 0.32, 1] }}
