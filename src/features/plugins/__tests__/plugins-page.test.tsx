@@ -75,13 +75,12 @@ test("the installed sidebar excludes official and policy installations but keeps
   const implicit: PluginSummary = { ...plugin("Implicit plugin", true), installPolicySource: "IMPLICIT_CANONICAL_APP" }
   const catalog: PluginMarketplaceEntry = { name: "personal", path: "/catalog", interface: null, plugins: [] }
   pluginsStore.setState({
-    installed: [personal, disabled, policy, implicit]
-      .map((plugin) => ({ plugin, marketplace: catalog }))
-      .concat([
-        { plugin: plugin("Bundled plugin", true), marketplace: { ...catalog, name: "openai-bundled" } },
-        { plugin: plugin("Runtime plugin", true), marketplace: { ...catalog, name: "openai-primary-runtime" } },
-        { plugin: plugin("Official plugin", true), marketplace: { ...catalog, name: "openai-curated-remote" } }
-      ])
+    installed: [
+      ...[personal, disabled, policy, implicit].map((plugin) => ({ plugin, marketplace: catalog })),
+      { plugin: plugin("Bundled plugin", true), marketplace: { ...catalog, name: "openai-bundled" } },
+      { plugin: plugin("Runtime plugin", true), marketplace: { ...catalog, name: "openai-primary-runtime" } },
+      { plugin: plugin("Official plugin", true), marketplace: { ...catalog, name: "openai-curated-remote" } }
+    ]
   })
   const view = render(<PluginsPage cwd={null} active />)
   expect(view.getByRole("button", { name: "Personal plugin" })).toBeInTheDocument()

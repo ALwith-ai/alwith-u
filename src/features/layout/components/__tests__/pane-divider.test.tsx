@@ -53,13 +53,13 @@ test("pane dragging coalesces movement and flushes the final position on release
   fireEvent.pointerMove(divider, { clientX: -1000, pointerId: 2 })
   fireEvent.pointerUp(divider, { pointerId: 2 })
   const chat = view.container.querySelector<HTMLElement>('[data-screen-panel="chat"]')!
-  expect(parseFloat(chat.style.width)).toBeGreaterThanOrEqual(420)
-  expect(parseFloat(preview.style.width)).toBeGreaterThanOrEqual(320)
-  expect(parseFloat(chat.style.width) + parseFloat(preview.style.width)).toBeLessThanOrEqual(952)
+  expect(Number.parseFloat(chat.style.width)).toBeGreaterThanOrEqual(420)
+  expect(Number.parseFloat(preview.style.width)).toBeGreaterThanOrEqual(320)
+  expect(Number.parseFloat(chat.style.width) + Number.parseFloat(preview.style.width)).toBeLessThanOrEqual(952)
   fireEvent.pointerDown(divider, { button: 0, clientX: 500, pointerId: 3 })
   fireEvent.pointerMove(divider, { clientX: 1500, pointerId: 3 })
   fireEvent.pointerUp(divider, { pointerId: 3 })
-  expect(parseFloat(chat.style.width)).toBe(952)
-  expect(parseFloat(preview.style.width)).toBe(1200)
+  expect(Number.parseFloat(chat.style.width)).toBe(952)
+  expect(Number.parseFloat(preview.style.width)).toBe(1200)
   document.body.style.userSelect = ""
 })

@@ -112,10 +112,10 @@ export function SkillsTab({ query, ready }: { query: string; ready: boolean }) {
     }
   }
   const currentGroup = groups.find((group) => group.id === selectedGroup) ?? groups[0]
-  const currentLoading = currentGroup?.path ? projectLoading[currentGroup.path] === true : false
+  const currentLoading = currentGroup?.path ? projectLoading[currentGroup.path] : false
   const currentError = currentGroup?.path ? projectErrors[currentGroup.path] : undefined
   const groupSkills = currentGroup ? sorted.filter((skill) => currentGroup.paths.has(skill.path)) : []
-  const groupExpanded = currentGroup ? expandedGroups[currentGroup.id] === true : false
+  const groupExpanded = currentGroup ? expandedGroups[currentGroup.id] : false
   const groupSummary = groupExpanded || q ? groupSkills : groupSkills.slice(0, 6)
   const summary = expanded || q ? sorted : sorted.slice(0, 6)
   const renderSkills = (entries: SkillMetadata[]) => (

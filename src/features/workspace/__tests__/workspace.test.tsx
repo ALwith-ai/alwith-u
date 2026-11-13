@@ -182,7 +182,7 @@ test("a delayed default directory cannot replace a newly selected project", asyn
   const view = render(<Surface cwd="/a" />)
   fireEvent.click(screen.getByRole("button", { name: "Open workspace" }))
   await screen.findByRole("treeitem", { name: "one.txt" })
-  vi.mocked(client.refreshProjectContext).mockReturnValueOnce(pending.promise)
+  vi.spyOn(client, "refreshProjectContext").mockReturnValueOnce(pending.promise)
   view.rerender(<Surface cwd={null} />)
   view.rerender(<Surface cwd="/b" />)
   await screen.findByRole("treeitem", { name: "two.txt" })

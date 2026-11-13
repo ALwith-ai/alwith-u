@@ -72,7 +72,7 @@ export function NativeFileDrop({
                     ? source
                     : await commands.chatWritePastedFile({
                         name: source.name,
-                        data: Array.from(new Uint8Array(await source.arrayBuffer()))
+                        data: [...new Uint8Array(await source.arrayBuffer())]
                       })
                 if (!writable()) return
                 const file = await commands.chatReadDroppedFile({ path: sourcePath })
@@ -123,8 +123,8 @@ export function NativeFileDrop({
       if (!target.closest("[data-chat-drop-zone]") || target.closest('[role="dialog"]')) return
       const clipboard = event.clipboardData
       if (!clipboard) return
-      const files = Array.from(clipboard.files ?? [])
-      const items = Array.from(clipboard.items ?? [])
+      const files = [...(clipboard.files ?? [])]
+      const items = [...(clipboard.items ?? [])]
       // Image-only clipboard data already belongs to the shared textarea's image handler.
       const nativeFiles =
         clipboard.types.includes("Files") && !files.length && !items.some((item) => item.type.startsWith("image/"))

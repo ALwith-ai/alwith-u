@@ -30,14 +30,14 @@ export function describeProviderError(error: unknown): string {
     return details.length ? details.join("; ") : "Unknown provider error"
   }
   return describe(error)
-    .replace(/(\b(?:https?|wss?|socks5h?):\/\/)[^\s/?#]*@/gi, "$1[redacted]@")
-    .replace(
+    .replaceAll(/(\b(?:https?|wss?|socks5h?):\/\/)[^\s/?#]*@/gi, "$1[redacted]@")
+    .replaceAll(
       /(\b(?:authorization|proxy-authorization|api[_-]?key|access[_-]?token|refresh[_-]?token|id[_-]?token|password|client[_-]?secret|token|secret)\b["']*\s*[:=]\s*)(?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|(?:Bearer|Basic)\s+[^\s,;}\]]+|[^\s,;}\]]+)/gi,
       "$1[redacted]"
     )
-    .replace(/\bsk-[\w-]+/gi, "[redacted]")
-    .replace(/\b(Bearer|Basic)\s+[^\s";,]+/gi, "$1 [redacted]")
-    .replace(/([?&](?:api[_-]?key|token|access_token)=)[^&\s]+/gi, "$1[redacted]")
+    .replaceAll(/\bsk-[\w-]+/gi, "[redacted]")
+    .replaceAll(/\b(Bearer|Basic)\s+[^\s";,]+/gi, "$1 [redacted]")
+    .replaceAll(/([?&](?:api[_-]?key|token|access_token)=)[^&\s]+/gi, "$1[redacted]")
 }
 
 export function logProviderError(operation: string, error: unknown): void {

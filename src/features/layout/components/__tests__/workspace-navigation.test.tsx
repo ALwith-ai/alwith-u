@@ -26,7 +26,7 @@ test("showing a shared preview then resizing keeps chat; completed navigation is
   let width = 1200
   vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockImplementation(() => width)
   vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockImplementation(function (this: HTMLElement) {
-    return parseFloat(this.style.width) || (this.hasAttribute("data-atlas-region") ? 0 : width)
+    return Number.parseFloat(this.style.width) || (this.hasAttribute("data-atlas-region") ? 0 : width)
   })
   vi.spyOn(HTMLElement.prototype, "offsetLeft", "get").mockImplementation(function (this: HTMLElement) {
     if (!this.hasAttribute("data-atlas-region")) return 0

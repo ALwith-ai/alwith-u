@@ -31,7 +31,7 @@ function mockGeometry() {
   vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(800)
   vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockImplementation(function (this: HTMLElement) {
     if (this.style.width.startsWith("calc(")) return 956
-    return parseFloat(this.style.width) || (this.hasAttribute("data-atlas-region") ? 0 : 1200)
+    return Number.parseFloat(this.style.width) || (this.hasAttribute("data-atlas-region") ? 0 : 1200)
   })
   vi.spyOn(HTMLElement.prototype, "offsetLeft", "get").mockImplementation(function (this: HTMLElement) {
     if (!this.hasAttribute("data-atlas-region")) return 0
