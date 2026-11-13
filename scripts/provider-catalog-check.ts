@@ -1,10 +1,12 @@
 // Exercise provider routing against real isolated Codex processes and a local Responses fixture.
+import assert from "node:assert/strict"
 import { resolve } from "node:path"
 
 import { startTestRuntime } from "@alwith/api/node"
 import { textOf } from "@alwith/module-chat/client"
 
 import { CodexClient } from "../src/agent/client"
+import { isAuthenticationRequired } from "../src/core/request-error"
 import { staged, stagedCodexEngine } from "./lib/runtime"
 
 const requests: { model: string; path: string }[] = []
@@ -14,7 +16,13 @@ const server = Bun.serve({
   hostname: "127.0.0.1",
   async fetch(request) {
     const path = new URL(request.url).pathname
-    if (path.endsWith("/models")) return Response.json({ data: [{ id: "deepseek-flash" }, { id: "alternate-model" }] })
+    if (path.endsWith("/models"))
+      return Response.json({
+        data: [
+          { id: "deepseek-flash", label: "DeepSeek", description: null },
+          { id: "alternate-model", label: "Alternate", description: null }
+        ]
+      })
     const body = (await request.json()) as { model: string }
     requests.push({ model: body.model, path })
     if (failNext) {
@@ -65,7 +73,14 @@ const client = new CodexClient(() => Promise.resolve(runtime.client), {
   resolveModel: (model) => Promise.resolve(model ?? gateway("one"))
 })
 const ids: string[] = []
-const catalog = resolve(import.meta.dirname, "../src-tauri/resources/deepseek/models.json")
+const catalog = resolve(runtime.workspace, "models.json")
+const source = (await Bun.file(resolve(import.meta.dirname, "../src-tauri/resources/deepseek/models.json")).json()) as {
+  models: Record<string, unknown>[]
+}
+await Bun.write(
+  catalog,
+  JSON.stringify({ models: [...source.models, { ...source.models[0], slug: "alternate-model" }] })
+)
 const gateway = (provider: string, model = "deepseek-flash") => `gateway:${provider}:${model}`
 async function reply(id: string, label: string) {
   const previous = client.session(id).items.length
@@ -100,38 +115,97 @@ try {
           bearerToken: "local-fixture",
           config: { model_catalog_json: catalog }
         },
-        alwith: { models: [{ id: "deepseek-flash" }, { id: "alternate-model" }] }
+        alwith: {
+          models: [
+            { id: "deepseek-flash", label: "DeepSeek", description: null },
+            { id: "alternate-model", label: "Alternate", description: null }
+          ]
+        }
       }
     })
   }
   const id = await client.newSession(runtime.workspace, gateway("one"))
   ids.push(id)
   await reply(id, "cold start without Codex account")
-  failNext = true
-  await client.prompt(id, [{ type: "text", text: "Exercise provider failure" }])
-  const failedDeadline = Date.now() + 20_000
-  while (client.session(id).state !== "idle") {
-    if (Date.now() > failedDeadline) throw new Error("Failed turn did not settle")
-    await Bun.sleep(20)
+  if (!process.argv.includes("--recovery-only")) {
+    failNext = true
+    await client.prompt(id, [{ type: "text", text: "Exercise provider failure" }])
+    const failedDeadline = Date.now() + 20_000
+    while (client.session(id).state !== "idle" || client.session(id).lastStopReason !== "error") {
+      if (Date.now() > failedDeadline) throw new Error("Failed turn did not settle")
+      await Bun.sleep(20)
+    }
+    if (client.session(id).lastStopReason !== "error") throw new Error("Expected the fixture failure")
+    await client.setConfig(id, "model", gateway("two"))
+    await reply(id, "switch after a failed native turn")
+    for (const model of [gateway("two"), gateway("one"), gateway("one", "alternate-model"), gateway("two")]) {
+      await client.setConfig(id, "model", model)
+      await reply(id, `switch to ${model}`)
+    }
+    await client.close(id)
+    await client.open(id, runtime.workspace)
+    await reply(id, "reopen gateway session without Codex account")
+    const defaultId = await client.newSession(runtime.workspace)
+    ids.push(defaultId)
+    await reply(defaultId, "configured default without Codex account")
+    const draft = await client.prepareDraft("main", runtime.workspace)
+    ids.push(draft)
+    const replacement = await client.prepareDraft("main", runtime.workspace, gateway("two"))
+    ids.push(replacement)
+    await reply(replacement, "switch unsent draft between providers")
   }
-  if (client.session(id).lastStopReason !== "error") throw new Error("Expected the fixture failure")
-  await client.setConfig(id, "model", gateway("two"))
-  await reply(id, "switch after a failed native turn")
-  for (const model of [gateway("two"), gateway("one"), gateway("one", "alternate-model"), gateway("two")]) {
-    await client.setConfig(id, "model", model)
-    await reply(id, `switch to ${model}`)
+
+  // A fresh adapter has no registered gateway; recover the persisted chat explicitly.
+  for (const session of Object.values(client.state.sessions)) {
+    if (session.attached) await client.close(session.id)
   }
-  await client.close(id)
-  await client.open(id, runtime.workspace)
-  await reply(id, "reopen gateway session without Codex account")
-  const defaultId = await client.newSession(runtime.workspace)
-  ids.push(defaultId)
-  await reply(defaultId, "configured default without Codex account")
-  const draft = await client.prepareDraft("main", runtime.workspace)
-  ids.push(draft)
-  const replacement = await client.prepareDraft("main", runtime.workspace, gateway("two"))
-  ids.push(replacement)
-  await reply(replacement, "switch unsent draft between providers")
+  await runtime.client.stop("codex")
+  client.disconnect()
+  const restored = new CodexClient(() => Promise.resolve(runtime.client), {
+    agentId: "codex",
+    launch: { engine: "codex" }
+  })
+  try {
+    await restored.connect()
+    await restored.open(id, runtime.workspace)
+    assert.equal(isAuthenticationRequired(restored.session(id).error?.error), true)
+    const users = restored.session(id).items.filter((item) => item.kind === "user").length
+    const sent = requests.length
+    await runtime.client.acpRequest("codex", "providers/set", {
+      providerId: "openai",
+      apiType: "openai",
+      baseUrl: `${server.url}two/`,
+      _meta: {
+        codex: {
+          id: "two",
+          name: "two",
+          mode: "catalog",
+          bearerToken: "local-fixture",
+          config: { model_catalog_json: catalog, web_search: "disabled" }
+        },
+        alwith: { models: [{ id: "deepseek-flash", label: "DeepSeek", description: null }] }
+      }
+    })
+    await restored.resumeModel(id, gateway("two"))
+    assert.equal(restored.session(id).attached, true)
+    assert.equal(restored.session(id).error, null)
+    assert.equal(restored.session(id).items.filter((item) => item.kind === "user").length, users)
+    assert.equal(requests.length, sent)
+    await restored.prompt(id, [{ type: "text", text: "Reply with PROVIDER_OK after recovery" }])
+    const deadline = Date.now() + 20_000
+    while (requests.length === sent || restored.session(id).state !== "idle") {
+      if (Date.now() > deadline) throw new Error("Recovered gateway reply timed out")
+      await Bun.sleep(20)
+    }
+    assert.equal(restored.session(id).lastStopReason, "end_turn")
+    assert.equal(requests.at(-1)?.path, "/two/responses")
+    assert.equal(restored.session(id).items.filter((item) => item.kind === "user").length, users + 1)
+    console.log(
+      "PASS explicit gateway recovery after adapter restart: same session and history, no ChatGPT login or prompt resend; subsequent gateway turn completes"
+    )
+  } finally {
+    restored.disconnect()
+  }
 } finally {
   for (const id of ids) await client.delete(id).catch(() => {})
   client.disconnect()

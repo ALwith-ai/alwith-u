@@ -5,6 +5,7 @@ import { explainRequestError, isAuthenticationRequired, isModelSelectionRequired
 
 test.each([
   [new Error("The selected provider connection or model is unavailable"), true],
+  [new Error("The selected model connection is unavailable. Select another model before sending."), true],
   [
     new RuntimeRequestError("acpRequest", {
       code: -32602,

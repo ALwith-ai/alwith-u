@@ -18,7 +18,6 @@ import { VoiceButton } from "@/features/voice/voice-button"
 import { useWorkspace } from "@/features/workspace/context"
 import { client } from "@/lib/client"
 
-import { AuthenticationRecovery } from "./composer/authentication-recovery"
 import { ImageModelSelect } from "./composer/image-model-select"
 import { ImageInputTools } from "./composer/image-tools"
 import { useInputMode } from "./composer/input-mode"
@@ -153,11 +152,11 @@ export function ChatComposer({
         }
       }
     : props.onSubmit
-  if (!props.session.attached && isAuthenticationRequired(props.session.error?.error))
-    return <AuthenticationRecovery session={props.session} />
   return (
     <>
-      {modelRecovery && <ModelRecovery key={props.session.id} session={props.session} />}
+      {modelRecovery && !isAuthenticationRequired(props.session.error?.error) && (
+        <ModelRecovery key={props.session.id} session={props.session} />
+      )}
       <Composer
         modelMenu={chatModelMenu}
         {...props}

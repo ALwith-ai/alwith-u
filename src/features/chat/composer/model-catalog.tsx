@@ -1,13 +1,12 @@
 import providerCatalog from "@alwith/module-chat/assets/provider-catalog.json"
 import type { ModelMenuProps } from "@alwith/module-chat/conversation"
 import type { ChatModelOption } from "@alwith/module-chat/model-select"
-import { Bot } from "lucide-react"
 
 import { NATIVE_MODEL_GROUP } from "@/agent/client"
-import openaiLogo from "@/components/icons/openai-logo.svg"
-import { gatewayModelId, isAccountModel, MODEL_PRESENTATION, PROVIDERS } from "@/lib/providers"
+import { ModelIcon } from "@/components/icons/model-icon"
+import { isEnterpriseModel } from "@/features/auth/enterprise-providers"
+import { gatewayModelId, isAccountModel, MODEL_PRESENTATION } from "@/lib/providers"
 
-import alwithLogo from "../../../../src-tauri/icons/32x32.png"
 import { ModelSettingsAction } from "./model-settings-action"
 
 type ModelOption = ChatModelOption & { shortLabel?: string }
@@ -37,19 +36,24 @@ export function presentModelCatalog(groups: ModelGroup[]): ModelGroup[] {
   const ordered = groups.toSorted((a, b) => (groupPriorities.get(a.id) ?? 3) - (groupPriorities.get(b.id) ?? 3))
   return ordered.map((group) => {
     const native = group.id === NATIVE_MODEL_GROUP.id
-    const Logo = PROVIDERS.find((provider) => provider.id === group.id)?.logo ?? Bot
     return {
       ...group,
       models: group.models.map((model) => ({
         ...model,
         label: managedLabels.get(model.api_id) ?? model.label,
         shortLabel: model.shortLabel ?? presentation[model.api_id]?.shortLabel,
-        icon: native ? (
-          <img src={openaiLogo} alt="" className="size-4 shrink-0 dark:invert" />
-        ) : group.id === "litellm" || group.id === "finture-enterprise" || isAccountModel(model.api_id) ? (
-          <img src={alwithLogo} alt="" className="size-4 shrink-0" />
-        ) : (
-          <Logo aria-hidden="true" className="size-4 shrink-0" />
+        icon: (
+          <ModelIcon
+            provider={
+              native
+                ? "chatgpt"
+                : group.id === "finture-enterprise" || isEnterpriseModel(model.api_id)
+                  ? "alwith-enterprise"
+                  : group.id === "litellm" || group.id === "alwith-managed-litellm" || isAccountModel(model.api_id)
+                    ? "alwith-account"
+                    : group.id
+            }
+          />
         )
       }))
     }

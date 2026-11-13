@@ -17,6 +17,7 @@ export function isModelSelectionRequired(error: unknown): boolean {
       typeof message === "string" &&
       [
         "The selected provider connection or model is unavailable",
+        "The selected model connection is unavailable",
         "The selected ALwith account model is unavailable",
         "The ALwith account changed"
       ].some((reason) => message.includes(reason))

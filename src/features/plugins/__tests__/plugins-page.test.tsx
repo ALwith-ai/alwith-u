@@ -44,6 +44,28 @@ test("until Codex is connected the catalogs are loading, not empty", () => {
   expect(view.queryByText("No skills found")).toBeNull()
 })
 
+test("a hidden catalog does not rescan history on unrelated state changes or parent renders", () => {
+  let reads = 0
+  client.store.setState({
+    projectContext: projectContext(),
+    sessionList: Array.from({ length: 100 }, (_, index) => ({
+      sessionId: `history-${index}`,
+      get cwd() {
+        reads++
+        return "/work/project"
+      },
+      title: null,
+      updatedAt: null,
+      archived: false
+    }))
+  })
+  const view = render(<PluginsPage cwd="/work/project" active={false} />)
+  reads = 0
+  act(() => client.store.setState({ runStates: { ...client.state.runStates } }))
+  view.rerender(<PluginsPage cwd="/work/project" active={false} />)
+  expect(reads).toBe(0)
+})
+
 function plugin(id: string, installed = false): PluginSummary {
   return {
     id,
