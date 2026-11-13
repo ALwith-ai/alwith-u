@@ -160,6 +160,10 @@
     "effect": "^4.0.6"
   },
   "patchedDependencies": {
-    "vite@8.3.7": "patches/vite@8.3.7.patch"
+    "vite@8.3.7": "patches/vite@8.3.7.patch",
+    "@alwith/module-desktop-shell@0.6.5": "patches/@alwith%2Fmodule-desktop-shell@0.6.5.patch",
+    "@alwith/module-auth@0.6.3": "patches/@alwith%2Fmodule-auth@0.6.3.patch",
+    "@alwith/module-file-tree@0.6.3": "patches/@alwith%2Fmodule-file-tree@0.6.3.patch",
+    "@alwith/module-fs@0.6.2": "patches/@alwith%2Fmodule-fs@0.6.2.patch"
   }
 }
