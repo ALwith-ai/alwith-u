@@ -365,6 +365,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
 
   return (
     <main
+      data-chat-window-transparent={transparent ? "" : undefined}
       className={cn(
         "relative flex h-dvh flex-col overflow-hidden border text-foreground",
         !transparent && "bg-background"

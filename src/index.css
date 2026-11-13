@@ -108,6 +108,11 @@ pre,
     background: transparent;
   }
 }
+/* The timeline's bottom fade paints the opaque background colour; over the chat window's native
+   backdrop it would show as a dark band above the composer. */
+[data-chat-window-transparent] .codex-timeline-bottom-fade {
+  display: none;
+}
 /* Account for the header buttons' own inset when aligning their icons to the surface gutter. */
 [data-main-chat-header] {
   padding-inline: 8px;
