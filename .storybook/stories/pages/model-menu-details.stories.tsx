@@ -8,6 +8,7 @@ import { expect, fn, waitFor, within } from "storybook/test"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 
 import { modelTriggerLabel, presentModelCatalog } from "../../../src/features/chat/composer/model-catalog"
+import { gatewayModelId } from "../../../src/lib/providers"
 import type { SettingsRequest } from "../../../src/lib/settings-store"
 import { handleNativeRequest } from "../../fixtures/native"
 
@@ -19,6 +20,12 @@ const catalog = [
       api_id: label,
       label
     }))
+  },
+  { id: "litellm", name: "ALwith", models: [{ api_id: gatewayModelId("litellm", "model"), label: "ALwith Model" }] },
+  {
+    id: "custom_alwith_enterprise_account",
+    name: "Enterprise",
+    models: [{ api_id: gatewayModelId("custom_alwith_enterprise_account", "model"), label: "Enterprise Model" }]
   },
   { id: "deepseek", name: "DeepSeek", models: [{ api_id: "deepseek", label: "DeepSeek-Flash" }] },
   {
@@ -148,7 +155,7 @@ export const Providers: Story = {
   play: async ({ canvas, userEvent }) => {
     const body = within(document.body)
     await userEvent.click(canvas.getByTestId("model-trigger"))
-    await expect(await body.findAllByRole("menuitemradio")).toHaveLength(11)
+    await expect(await body.findAllByRole("menuitemradio")).toHaveLength(13)
     const qwen = body.getByRole("menuitemradio", { name: "3.8 Flash" })
     qwen.focus()
     await userEvent.keyboard("{Enter}")

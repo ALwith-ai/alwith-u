@@ -9,7 +9,6 @@ import { useCallback, useLayoutEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useStore } from "zustand"
 
-import { isAuthenticationRequired } from "@/core/request-error"
 import { observeVoiceTurn } from "@/core/voice-turn"
 import { useImageAvailability } from "@/features/images/availability"
 import { RealtimeVoiceButton } from "@/features/voice/realtime-voice-button"
@@ -19,7 +18,6 @@ import { useWorkspace } from "@/features/workspace/context"
 import { client } from "@/lib/client"
 
 import { AccountModelRecovery } from "./composer/account-model-recovery"
-import { AuthenticationRecovery } from "./composer/authentication-recovery"
 import { ImageModelSelect } from "./composer/image-model-select"
 import { ImageInputTools } from "./composer/image-tools"
 import { useInputMode } from "./composer/input-mode"
@@ -150,11 +148,11 @@ export function ChatComposer({
         }
       }
     : props.onSubmit
-  if (!props.session.attached && isAuthenticationRequired(props.session.error?.error))
-    return <AuthenticationRecovery session={props.session} />
   return (
     <>
-      {accountRecovery && <AccountModelRecovery key={props.session.id} session={props.session} />}
+      {accountRecovery && !props.session.error?.error && (
+        <AccountModelRecovery key={props.session.id} session={props.session} />
+      )}
       <Composer
         modelMenu={chatModelMenu}
         {...props}
