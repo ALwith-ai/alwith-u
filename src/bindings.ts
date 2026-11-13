@@ -181,8 +181,12 @@ export const commands = {
   resizeChatWindow: (args: { direction: string; x: number; y: number; width: number; height: number }): Promise<null> =>
     __t3Invoke<null>("resize_chat_window", args),
   /**
-   *  Applies the chat window's native backdrop: Liquid Glass on macOS, Acrylic on Windows.
-   *  A corner radius in native points enables it; `None` clears it for the opaque appearance.
+   *  Applies the chat window's transparent appearance: Liquid Glass on macOS, Acrylic on Windows.
+   *  A corner radius in native points enables it; `None` restores the opaque appearance.
+   *
+   *  While the backdrop is on, the window is pinned dark and has no native shadow: the system draws
+   *  that shadow for the full window rectangle once a backdrop view is present, which shows as a
+   *  square frame around the rounded glass. Opaque content shapes the shadow correctly by itself.
    */
   setChatWindowBackdrop: (args: { cornerRadius: number | null }): Promise<null> =>
     __t3Invoke<null>("set_chat_window_backdrop", args),

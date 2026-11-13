@@ -1,7 +1,7 @@
 // The one bootstrap for auxiliary windows (ALwith Desktop's aux-window-bootstrap): the
 // same providers the main window mounts, minus the App and its Runtime connection.
 import { attachConsole, error as logError } from "@tauri-apps/plugin-log"
-import { type ComponentType, StrictMode } from "react"
+import { type ComponentType, type ReactNode, StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 import { toast } from "sonner"
 
@@ -30,10 +30,14 @@ export function bootstrapAuxWindow(opts: {
   zoomControls?: "feedback" | "silent"
   setup?: () => Promise<void>
   transparent?: boolean
-  /** Pins the window to one appearance regardless of the user's theme. */
-  theme?: "dark" | "light"
+  /** A hook that pins the window to one appearance regardless of the user's theme, or returns undefined to follow it. */
+  useForcedTheme?: () => "dark" | "light" | undefined
 }): void {
   const Component = opts.component
+  const useForcedTheme = opts.useForcedTheme ?? (() => undefined)
+  function Themed({ children }: { children: ReactNode }) {
+    return <ThemeProvider forced={useForcedTheme()}>{children}</ThemeProvider>
+  }
   async function bootstrap() {
     await bootstrapSettings()
     await attachConsole()
@@ -61,7 +65,7 @@ export function bootstrapAuxWindow(opts: {
     createRoot(root).render(
       <StrictMode>
         <AppDirectionProvider>
-          <ThemeProvider forced={opts.theme}>
+          <Themed>
             <TooltipProvider>
               <ErrorBoundary>
                 <AuthGate auxiliary>
@@ -71,7 +75,7 @@ export function bootstrapAuxWindow(opts: {
               </ErrorBoundary>
               {opts.toaster ? <Toaster position="top-center" /> : null}
             </TooltipProvider>
-          </ThemeProvider>
+          </Themed>
         </AppDirectionProvider>
       </StrictMode>
     )

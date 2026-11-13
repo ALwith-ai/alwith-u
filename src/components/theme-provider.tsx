@@ -32,7 +32,7 @@ function systemTheme(): ResolvedTheme {
 /**
  * `forced` pins this window to one appearance whatever the user's theme is. The preference itself
  * is still read and saved unchanged, and the application-wide native theme is left alone; on macOS
- * the window's native appearance is pinned where the window is prepared (see `panel.rs`).
+ * the window's native appearance is pinned by whoever forces it (the chat window's backdrop command).
  */
 export function ThemeProvider({ children, forced }: { children: React.ReactNode; forced?: ResolvedTheme }) {
   const [theme, setThemeState] = React.useState<Theme>(() => {
@@ -60,6 +60,7 @@ export function ThemeProvider({ children, forced }: { children: React.ReactNode;
   )
 
   React.useEffect(() => {
+    const perWindowTheme = forced !== undefined && isTauri() && platform() !== "macos"
     const apply = () => {
       const resolved = forced ?? (theme === "system" ? systemTheme() : theme)
       const root = document.documentElement
@@ -73,13 +74,21 @@ export function ThemeProvider({ children, forced }: { children: React.ReactNode;
         forced === undefined
           ? setNativeTheme(theme === "system" ? null : theme)
           : // Windows themes each window separately; macOS pins the window natively.
-            platform() === "macos"
-            ? Promise.resolve()
-            : getCurrentWindow().setTheme(forced)
+            perWindowTheme
+            ? getCurrentWindow().setTheme(forced)
+            : Promise.resolve()
       void native.catch((error: unknown) => console.error("Failed to set native theme", error))
     }
     apply()
-    if (forced !== undefined || theme !== "system") return
+    // Release the per-window theme when the window stops being forced.
+    const release = (): void => {
+      if (perWindowTheme)
+        void getCurrentWindow()
+          .setTheme(null)
+          .catch((error: unknown) => console.error("Failed to release native theme", error))
+    }
+    if (forced !== undefined) return release
+    if (theme !== "system") return
     const query = window.matchMedia(COLOR_SCHEME_QUERY)
     query.addEventListener("change", apply)
     return () => query.removeEventListener("change", apply)

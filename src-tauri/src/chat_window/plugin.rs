@@ -55,8 +55,12 @@ const BACKDROP: tauri::window::Effect = tauri::window::Effect::LiquidGlassRegula
 #[cfg(not(target_os = "macos"))]
 const BACKDROP: tauri::window::Effect = tauri::window::Effect::Acrylic;
 
-/// Applies the chat window's native backdrop: Liquid Glass on macOS, Acrylic on Windows.
-/// A corner radius in native points enables it; `None` clears it for the opaque appearance.
+/// Applies the chat window's transparent appearance: Liquid Glass on macOS, Acrylic on Windows.
+/// A corner radius in native points enables it; `None` restores the opaque appearance.
+///
+/// While the backdrop is on, the window is pinned dark and has no native shadow: the system draws
+/// that shadow for the full window rectangle once a backdrop view is present, which shows as a
+/// square frame around the rounded glass. Opaque content shapes the shadow correctly by itself.
 #[tauri3_specta::command]
 pub async fn set_chat_window_backdrop(window: WebviewWindow, corner_radius: Option<f64>) -> Result<(), String> {
     if window.label() != "chat" {
@@ -65,9 +69,23 @@ pub async fn set_chat_window_backdrop(window: WebviewWindow, corner_radius: Opti
     if corner_radius.is_some_and(|radius| !radius.is_finite() || radius < 0.0) {
         return Err("The chat window corner radius must be finite and nonnegative".into());
     }
+    let transparent = corner_radius.is_some();
     let effects =
         corner_radius.map(|radius| tauri::window::EffectsBuilder::new().effect(BACKDROP).radius(radius).build());
-    window.set_effects(effects).map_err(|error| error.to_string())
+    window.set_effects(effects).map_err(|error| error.to_string())?;
+    window.set_shadow(!transparent).map_err(|error| error.to_string())?;
+    #[cfg(target_os = "macos")]
+    {
+        let handle = window.clone();
+        let (send, receive) = tokio::sync::oneshot::channel();
+        window
+            .run_on_main_thread(move || {
+                let _ = send.send(crate::panel::pin_dark_appearance(&handle, transparent));
+            })
+            .map_err(|error| error.to_string())?;
+        receive.await.map_err(|error| error.to_string())??;
+    }
+    Ok(())
 }
 
 pub fn init() -> TauriPlugin<tauri::DynRuntime> {
