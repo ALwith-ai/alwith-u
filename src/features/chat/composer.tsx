@@ -196,7 +196,7 @@ export function ChatComposer({
         predictions={!imageMode && predictions && !predictionUnavailable}
         attachmentPolicy={nativeAttachmentPolicy}
         onShellCommand={imageMode ? undefined : (command) => client.executeShell(props.session.id, command)}
-        actions={imageMode ? undefined : <ComposerVoice voiceResume={voiceResume} />}
+        actions={<ComposerVoice voiceResume={voiceResume} />}
       >
         <ComposerFileDrop />
       </Composer>
