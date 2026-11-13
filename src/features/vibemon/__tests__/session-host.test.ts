@@ -88,6 +88,21 @@ async function fixture() {
     }
   }
 }
+test("account revocation disables replies without turning an idle or completed task into a failure", async () => {
+  const f = await fixture()
+  for (const state of ["idle", "done"] as const) {
+    f.client.applyRunStates([{ ...f.run(f.a.id), state }])
+    await f.host.collapse(f.a.id)
+    f.client.markAccountModelsUnavailable([f.a.id])
+    await f.host.refresh()
+    const observation = must(f.host.snapshot(), "revoked account observation")
+    expect(observation).toMatchObject({ state, error: null, access: "unavailable" })
+    expect(f.client.state.modelRecovery[f.a.id]).toBe(true)
+    await expect(f.host.send(observation.binding, `revoked-${state}`, "hello")).rejects.toThrow()
+  }
+  expect(f.prompt).not.toHaveBeenCalled()
+})
+
 test("the explicit binding survives an unrelated selected-chat change and cannot be replayed", async () => {
   const f = await fixture()
   await f.host.surface("main", { sessionId: f.b.id, visible: true })
