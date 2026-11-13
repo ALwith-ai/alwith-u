@@ -8,18 +8,18 @@
         "@agentclientprotocol/sdk": "^2.5.0",
         "@alwith/api": "^0.6.1",
         "@alwith/enterprise-client": "0.6.3",
-        "@alwith/module-auth": "^0.6.3",
+        "@alwith/module-auth": "^0.6.4",
         "@alwith/module-browser": "^0.6.0",
-        "@alwith/module-chat": "^0.6.15",
+        "@alwith/module-chat": "^0.6.16",
         "@alwith/module-collection": "^0.5.0",
-        "@alwith/module-computer": "^0.6.5",
-        "@alwith/module-desktop-shell": "^0.6.5",
+        "@alwith/module-computer": "^0.6.6",
+        "@alwith/module-desktop-shell": "^0.6.7",
         "@alwith/module-device": "^0.6.1",
-        "@alwith/module-drive": "^0.6.4",
+        "@alwith/module-drive": "^0.6.5",
         "@alwith/module-editor": "^0.6.3",
         "@alwith/module-extension": "^0.6.0",
-        "@alwith/module-file-tree": "^0.6.3",
-        "@alwith/module-fs": "^0.6.2",
+        "@alwith/module-file-tree": "^0.6.4",
+        "@alwith/module-fs": "^0.6.3",
         "@alwith/module-gamepad": "^0.6.1",
         "@alwith/module-installed-apps": "^0.6.1",
         "@alwith/module-mobile": "^0.6.0",
@@ -137,11 +137,7 @@
     },
   },
   "patchedDependencies": {
-    "@alwith/module-file-tree@0.6.3": "patches/@alwith%2Fmodule-file-tree@0.6.3.patch",
-    "@alwith/module-fs@0.6.2": "patches/@alwith%2Fmodule-fs@0.6.2.patch",
-    "@alwith/module-auth@0.6.3": "patches/@alwith%2Fmodule-auth@0.6.3.patch",
     "vite@8.3.7": "patches/vite@8.3.7.patch",
-    "@alwith/module-desktop-shell@0.6.5": "patches/@alwith%2Fmodule-desktop-shell@0.6.5.patch",
   },
   "overrides": {
     "effect": "^4.0.6",
@@ -155,29 +151,29 @@
 
     "@alwith/enterprise-client": ["@alwith/enterprise-client@0.6.3", "", { "peerDependencies": { "@alwith/native-kit": "0.5.2" } }, "sha512-6vvzfPNDA8ZJsA5Rn8aAmyjP8iDUa601RRF4zW7TuxAWRsDRBOCwtpz72uYeeBxQkRpTkxvY7jTQ45hcjzRolw=="],
 
-    "@alwith/module-auth": ["@alwith/module-auth@0.6.3", "", { "dependencies": { "@base-ui/react": "^1.9.0", "@nyssance/atlas": "^0.1.11", "class-variance-authority": "^0.7.1", "cn": "^0.5.2", "fflate": "0.8.3", "ldrs": "^1.1.9", "lucide-react": "^1.70.0", "motion": "^14.10.1", "sonner": "^2.0.8", "tyme4ts": "^1.5.5", "zustand": "^5.1.0" }, "peerDependencies": { "@agentclientprotocol/sdk": "^2.4.0", "@alwith/api": "^0.6.1", "@alwith/module-chat": "^0.6.0", "@tauri-apps/api": "^3.0.0-alpha.3", "@tauri-apps/plugin-os": "^3.0.0-alpha.3", "i18next": "^27.0.0", "react": "^19.3.1", "react-dom": "^19.3.1", "react-i18next": "^18.0.0" }, "optionalPeers": ["@agentclientprotocol/sdk", "@alwith/api", "@alwith/module-chat", "@tauri-apps/api", "@tauri-apps/plugin-os", "react", "react-dom"] }, "sha512-0HZZ5xIV99ecn46dgRLlLJkthAF4SM3zixktODiOFU5GttPChuo5Z1ulSTOpztfmXT6CMatpAwEsySzmO457mw=="],
+    "@alwith/module-auth": ["@alwith/module-auth@0.6.4", "", { "dependencies": { "@base-ui/react": "^1.9.0", "@nyssance/atlas": "^0.1.11", "class-variance-authority": "^0.7.1", "cn": "^0.5.2", "fflate": "0.8.3", "ldrs": "^1.1.9", "lucide-react": "^1.70.0", "motion": "^14.10.1", "sonner": "^2.0.8", "tyme4ts": "^1.5.5", "zustand": "^5.1.0" }, "peerDependencies": { "@agentclientprotocol/sdk": "^2.4.0", "@alwith/api": "^0.6.1", "@alwith/module-chat": "^0.6.0", "@tauri-apps/api": "^3.0.0-alpha.3", "@tauri-apps/plugin-os": "^3.0.0-alpha.3", "i18next": "^27.0.0", "react": "^19.3.1", "react-dom": "^19.3.1", "react-i18next": "^18.0.0" }, "optionalPeers": ["@agentclientprotocol/sdk", "@alwith/api", "@alwith/module-chat", "@tauri-apps/api", "@tauri-apps/plugin-os", "react", "react-dom"] }, "sha512-f7t3V5nZviw1NB4T4qVg19yuaJKViXzrnd1ZmqvSznYhy6gkbCVws/m/EG2m79u7RGmkD+kHKEv515Y6ZRrwOg=="],
 
     "@alwith/module-browser": ["@alwith/module-browser@0.6.0", "", { "peerDependencies": { "@tauri-apps/api": "^3.0.0-alpha.3", "react": "^19.3.1" }, "optionalPeers": ["@tauri-apps/api"] }, "sha512-ciTJgf9eoJZsx8GKvV2kTGohbOqTzxDscirrRbP2yCzY7TL+/zsJIDa4kGCNp4RHMKJ9yoYCNxY1JJdSroNudw=="],
 
-    "@alwith/module-chat": ["@alwith/module-chat@0.6.15", "", { "dependencies": { "@base-ui/react": "^1.9.0", "@dnd-kit/core": "^6.3.1", "@dnd-kit/sortable": "^10.0.0", "@dnd-kit/utilities": "^3.2.2", "@floating-ui/dom": "^1.8.0", "@nyssance/codex-acp-v2": "^0.7.66", "@nyssance/shadcn": "^4.23.4", "@shadcn/react": "^0.3.1", "@solar-icons/react": "^2.3.5", "ansi_up": "^6.0.6", "class-variance-authority": "^0.7.1", "cn": "^0.5.2", "date-fns": "^4.4.0", "diff2html": "^3.4.56", "entities": "^9.0.0", "frimousse": "^0.4.0", "highlight.js": "^11.12.0", "katex": "^0.19.1", "ldrs": "^1.1.9", "lucide-react": "^1.70.0", "marked": "^18.1.3", "marked-linkify-it": "^4.0.2", "motion": "^14.10.1", "smplr": "^1.2.0" }, "peerDependencies": { "@agentclientprotocol/sdk": "^2.2.0", "@alwith/api": "^0.6.0", "@tauri-apps/api": "^3.0.0-alpha.3", "react": "^19.3.1", "react-dom": "^19.3.1" }, "optionalPeers": ["@tauri-apps/api"] }, "sha512-Fpjgv1D0dSZcDMChIfWu5zFeBvY9Z5hlsY5y6KvlAZBf/vQyhApduzB/3VA9CIfkNQaq7hJc1DQHyZ2Xk/vdNQ=="],
+    "@alwith/module-chat": ["@alwith/module-chat@0.6.16", "", { "dependencies": { "@base-ui/react": "^1.9.0", "@dnd-kit/core": "^6.3.1", "@dnd-kit/sortable": "^10.0.0", "@dnd-kit/utilities": "^3.2.2", "@floating-ui/dom": "^1.8.0", "@nyssance/codex-acp-v2": "^0.7.66", "@nyssance/shadcn": "^4.23.4", "@shadcn/react": "^0.3.1", "@solar-icons/react": "^2.3.5", "ansi_up": "^6.0.6", "class-variance-authority": "^0.7.1", "cn": "^0.5.2", "date-fns": "^4.4.0", "diff2html": "^3.4.56", "entities": "^9.0.0", "frimousse": "^0.4.0", "highlight.js": "^11.12.0", "katex": "^0.19.1", "ldrs": "^1.1.9", "lucide-react": "^1.70.0", "marked": "^18.1.3", "marked-linkify-it": "^4.0.2", "motion": "^14.10.1", "smplr": "^1.2.0" }, "peerDependencies": { "@agentclientprotocol/sdk": "^2.2.0", "@alwith/api": "^0.6.0", "@tauri-apps/api": "^3.0.0-alpha.3", "react": "^19.3.1", "react-dom": "^19.3.1" }, "optionalPeers": ["@tauri-apps/api"] }, "sha512-g7PdbmIlr6w/Vn2oByW5VnoKO7oJBqMs+LH2bGK470vNPlkvfKTsdQtHX4GfpRKRfZCPEwAh0jK+EzBbd10Ysw=="],
 
     "@alwith/module-collection": ["@alwith/module-collection@0.5.0", "", {}, "sha512-7QQuhJOZfLCo89VGsvpv7G+i9PPUhgb79eiZeTwsy4u9hHG+qyU7QdhUHyXIqC13s6+oIqc3HmNwd2I2WIdaEg=="],
 
-    "@alwith/module-computer": ["@alwith/module-computer@0.6.5", "", { "peerDependencies": { "@tauri-apps/api": "^3.0.0-alpha.3" } }, "sha512-bJnWkPkuqtHpWj/2odqIwvY2qknQAealzkwO5VDxU8j9vZt60dddD61dG+8MxIeaSiqXKQsiGRSpmAI6gx8JzA=="],
+    "@alwith/module-computer": ["@alwith/module-computer@0.6.6", "", { "peerDependencies": { "@tauri-apps/api": "^3.0.0-alpha.3" } }, "sha512-J1k9Alz11gGfBc7Q4YAGuR4nRSNRWFddyePSLLaP6c7TwdLag9gcxkIa//1HTRNUKC/a8b7+fPC2uR43C/o1OQ=="],
 
-    "@alwith/module-desktop-shell": ["@alwith/module-desktop-shell@0.6.5", "", { "dependencies": { "@base-ui/react": "^1.9.0", "@nyssance/reui": "^2.8.1", "@nyssance/shadcn": "^4.23.4", "class-variance-authority": "^0.7.1", "cn": "^0.5.2", "lucide-react": "^1.70.0" }, "peerDependencies": { "@nyssance/atlas": "^0.1.11", "@tauri-apps/api": "^3.0.0-alpha.3", "react": "^19.3.1", "react-dom": "^19.3.1" }, "optionalPeers": ["@nyssance/atlas"] }, "sha512-82h6KOJtCN+eivGlYfKiainQ40qcOX8aqEPR1T1WjXm4xPn6SOWtgQualFmua+DMtCcHOkvoA1yq6On639TWIQ=="],
+    "@alwith/module-desktop-shell": ["@alwith/module-desktop-shell@0.6.7", "", { "dependencies": { "@base-ui/react": "^1.9.0", "@nyssance/reui": "^2.8.1", "@nyssance/shadcn": "^4.23.4", "class-variance-authority": "^0.7.1", "cn": "^0.5.2", "lucide-react": "^1.70.0" }, "peerDependencies": { "@nyssance/atlas": "^0.1.11", "@tauri-apps/api": "^3.0.0-alpha.3", "react": "^19.3.1", "react-dom": "^19.3.1" }, "optionalPeers": ["@nyssance/atlas"] }, "sha512-rg/2sooIQI7KZknen6a99QsAuoMQWUM3XzcblcUyxPo15jEm3qgma7wssx14YGos3xQs7cZWSG0eIW1axZ+5Mg=="],
 
     "@alwith/module-device": ["@alwith/module-device@0.6.1", "", { "dependencies": { "@nyssance/shadcn": "^4.23.4", "lucide-react": "^1.70.0", "sonner": "^2.0.8" }, "peerDependencies": { "@tauri-apps/api": "^3.0.0-alpha.3", "react": "^19.3.1", "react-dom": "^19.3.1" } }, "sha512-yLOTZGQkchY9fidtvQwUh4AaLSFs2Ds908gfME36Ni+wl+63kNgAx3iqyqcvwD81lqW8t9wF3Fkb6eWjcElraQ=="],
 
-    "@alwith/module-drive": ["@alwith/module-drive@0.6.4", "", { "peerDependencies": { "@alwith/module-editor": "^0.6.0", "@milkdown/core": "^7.22.2", "@milkdown/ctx": "^7.22.2", "@milkdown/plugin-collab": "^7.22.2", "@milkdown/prose": "^7.22.2", "@milkdown/utils": "^7.22.2", "@tauri-apps/api": "^3.0.0-alpha.3", "lucide-react": "^1.61.0", "react": "^19.3.1", "react-dom": "^19.3.1", "y-prosemirror": "^1.3.7", "y-protocols": "^1.0.7", "y-websocket": "^3.1.0", "yjs": "^13.6.33" }, "optionalPeers": ["@alwith/module-editor", "@milkdown/core", "@milkdown/ctx", "@milkdown/plugin-collab", "@milkdown/prose", "@milkdown/utils", "lucide-react", "y-prosemirror", "y-protocols", "y-websocket", "yjs"] }, "sha512-zZwubTW/kwD7n8v0sgjxT+1N0v2z07DrZIuwTxVIp8G/dQkguvY6ikYhi7IwJrkIiHmJjbvfLFyPM7+SMRVbUw=="],
+    "@alwith/module-drive": ["@alwith/module-drive@0.6.5", "", { "peerDependencies": { "@alwith/module-editor": "^0.6.0", "@milkdown/core": "^7.22.2", "@milkdown/ctx": "^7.22.2", "@milkdown/plugin-collab": "^7.22.2", "@milkdown/prose": "^7.22.2", "@milkdown/utils": "^7.22.2", "@tauri-apps/api": "^3.0.0-alpha.3", "lucide-react": "^1.61.0", "react": "^19.3.1", "react-dom": "^19.3.1", "y-prosemirror": "^1.3.7", "y-protocols": "^1.0.7", "y-websocket": "^3.1.0", "yjs": "^13.6.33" }, "optionalPeers": ["@alwith/module-editor", "@milkdown/core", "@milkdown/ctx", "@milkdown/plugin-collab", "@milkdown/prose", "@milkdown/utils", "lucide-react", "y-prosemirror", "y-protocols", "y-websocket", "yjs"] }, "sha512-2DrYcA//kLIC/7b6OU2lZr+YoyhGfrbPs2dH1dAUZ3KVyFcS9qvDg3wlLQw4I/Fs9XGNlgwA9PuaW4kNHgVmsQ=="],
 
     "@alwith/module-editor": ["@alwith/module-editor@0.6.3", "", { "dependencies": { "@alwith/module-fs": "^0.6.0", "@alwith/module-tabs": "^0.6.0", "@base-ui/react": "^1.9.0" }, "peerDependencies": { "@alwith/module-chat": "^0.6.0", "@milkdown/core": "^7.22.2", "@milkdown/plugin-history": "^7.22.2", "@milkdown/plugin-math": "^7.5.9", "@milkdown/preset-commonmark": "^7.22.2", "@milkdown/preset-gfm": "^7.22.2", "@milkdown/prose": "^7.22.2", "@milkdown/utils": "^7.22.2", "@nyssance/shadcn": "^4.23.4", "@tauri-apps/api": "^3.0.0-alpha.3", "audiomotion-analyzer": "^4.5.4", "docx-preview": "^0.4.1", "dompurify": "^3.4.17", "katex": "^0.19.1", "lucide-react": "^1.61.0", "monaco-editor": "^0.57.0", "pdfjs-dist": "^6.4.299", "react": "^19.3.1", "react-dom": "^19.3.1", "react-player": "^3.4.0", "shiki": "^4.5.0", "utif": "^3.1.0", "x-data-spreadsheet": "^1.1.9", "xlsx": "^0.20.3" }, "optionalPeers": ["@alwith/module-chat", "@milkdown/core", "@milkdown/plugin-history", "@milkdown/plugin-math", "@milkdown/preset-commonmark", "@milkdown/preset-gfm", "@milkdown/prose", "@milkdown/utils", "audiomotion-analyzer", "docx-preview", "dompurify", "katex", "monaco-editor", "pdfjs-dist", "react-player", "shiki", "utif", "x-data-spreadsheet", "xlsx"] }, "sha512-rNb8+i6oVeGEGWQ0jOn6ex5aSLq5/qrGhQW9mXfhsYTIRe3qRAGeqzx8Gl45hUDW4fSuQQc6eIiDu1BQNLVM3g=="],
 
     "@alwith/module-extension": ["@alwith/module-extension@0.6.0", "", { "dependencies": { "@babel/parser": "^8.1.0", "@base-ui/react": "^1.9.0", "class-variance-authority": "^0.7.1", "cn": "^0.5.2", "effect": "^4.1.2", "lucide-react": "^1.66.0", "semver": "^7.8.6" }, "peerDependencies": { "@tauri-apps/api": "^3.0.0-alpha.3", "@tauri-apps/plugin-http": "^3.0.0-alpha.1", "react": "^19.3.1", "react-dom": "^19.3.1" }, "optionalPeers": ["@tauri-apps/api", "@tauri-apps/plugin-http", "react", "react-dom"] }, "sha512-ZsAo01KmoM6on7st5e41y6B2pH5unMcVfnae28gmTWSbm+Ol3GS3oKlzVS9gsKDcGuJttqr0AH2PmpTHsC5SOw=="],
 
-    "@alwith/module-file-tree": ["@alwith/module-file-tree@0.6.3", "", { "dependencies": { "@alwith/module-fs": "^0.6.0", "@base-ui/react": "^1.9.0", "@iconify-json/vscode-icons": "1.2.95", "@iconify/react": "^6.0.4", "@tanstack/react-virtual": "^3.14.26", "@vscode/codicons": "^0.0.46-24", "lucide-react": "^1.70.0" }, "peerDependencies": { "react": "^19.3.1", "react-dom": "^19.3.1" } }, "sha512-LiaT7qbQ0Xs0hr2a+4SxELx+c/al23Kg2PNqTUcDBIJW98P+XogEUd9eDGKx0ViHMx/A57nsIEls0GPIznAlDg=="],
+    "@alwith/module-file-tree": ["@alwith/module-file-tree@0.6.4", "", { "dependencies": { "@alwith/module-fs": "^0.6.0", "@base-ui/react": "^1.9.0", "@iconify-json/vscode-icons": "1.2.95", "@iconify/react": "^6.0.4", "@tanstack/react-virtual": "^3.14.26", "@vscode/codicons": "^0.0.46-24", "lucide-react": "^1.70.0" }, "peerDependencies": { "react": "^19.3.1", "react-dom": "^19.3.1" } }, "sha512-tNxfbzbfMWIu+f1ZfLPdCawCWWDOm0KD7FjMPpTfzysBL0G7nddnmhPdM9CywQxEtpApftsX0LQDUM1xXkNwUg=="],
 
-    "@alwith/module-fs": ["@alwith/module-fs@0.6.2", "", { "peerDependencies": { "@tauri-apps/api": "^3.0.0-alpha.3" } }, "sha512-x4VeE/1UpxfiijOLZ4Y8MZGSBzXn5eaSI9hGB3wwfBTEFo6fXga2uZwwPpEAUfP91bBaLbqku66QIZcXXGxI4A=="],
+    "@alwith/module-fs": ["@alwith/module-fs@0.6.3", "", { "peerDependencies": { "@tauri-apps/api": "^3.0.0-alpha.3" } }, "sha512-LXKu3V2AjXm1sUwV8uA44Nbx/w8w4rJaC77ZALw2fZt5vbOqUT+Uin+k7etxKOxdiJ/WiC9JnPafbm1zzUurpg=="],
 
     "@alwith/module-gamepad": ["@alwith/module-gamepad@0.6.1", "", { "dependencies": { "@base-ui/react": "^1.9.0", "class-variance-authority": "^0.7.1", "cn": "^0.5.2", "lucide-react": "^1.67.0", "sonner": "^2.0.8" }, "peerDependencies": { "@alwith/module-installed-apps": "^0.6.0", "@tauri-apps/api": "^3.0.0-alpha.3", "i18next": "^27.0.0", "react": "^19.3.1", "react-dom": "^19.3.1", "react-i18next": "^18.0.0" }, "optionalPeers": ["@alwith/module-installed-apps", "i18next", "react", "react-dom"] }, "sha512-9vkpaT0Od1PBQH1WOdTL8LQJFgPNF93dddbRyKmkizni1N182OUt8D+5XibU6ibRWyC7ZJV42rIn9eYmD652fw=="],
 

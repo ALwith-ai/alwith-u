@@ -24,7 +24,7 @@ async function fixture() {
     adapter,
     tree,
     report,
-    async change(paths: string[]) {
+    change: async (paths: string[]) => {
       notify({ type: "change", source: "watch", paths })
       await vi.advanceTimersByTimeAsync(100)
     }

@@ -277,7 +277,7 @@ test("floating presentation finishes before history restoration completes", asyn
   try {
     await waitFor(() => expect(env.ready()).toBe(true))
     await act(() => env.present(id))
-    expect(client.open).toHaveBeenCalledWith(id, "/tmp/restoring-floating")
+    expect(mockOf(client, "open")).toHaveBeenCalledWith(id, "/tmp/restoring-floating")
     expect(view.getByRole("main")).not.toHaveAttribute("inert")
     expect(view.getByRole("main")).not.toHaveAttribute("aria-busy")
     expect(chatWindow.publishChatWindowSurface).toHaveBeenCalledWith(id, true)
