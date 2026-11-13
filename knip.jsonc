@@ -6,6 +6,8 @@
     "scripts/**/*.ts",
     // Host boundaries are selected by the Storybook Vite resolver.
     ".storybook/fixtures/*.{ts,tsx}",
+    // Run by hand, as .storybook/README.md says: generators and the player check.
+    ".storybook/*.mjs",
     ".storybook/vitest.config.ts",
     "src/features/story/use-story-available.ts"
   ],
@@ -16,7 +18,6 @@
     "@alwith/native-kit",
     // Bundled into the app by scripts/stage.ts from the pinned package versions
     "@openai/codex",
-    "@alwith/module-mobile",
     // Bundled with immutable resources by scripts/lib/workbuddy-artifact.ts.
     "create-alwith",
     // invoked as `bun ts7-lint` by the fabfile.py check gate
