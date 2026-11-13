@@ -1,11 +1,21 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 
-import { expect, test } from "vitest"
+import type { PluginSummary } from "@alwith/module-chat/client"
+import { cleanup, fireEvent, render } from "@testing-library/react"
+import { createElement } from "react"
+import { afterEach, expect, test, vi } from "vitest"
 
 import { must } from "@/lib/__tests__/must"
 
-import { pluginIconSrc } from "../plugin-icon"
+import { PluginIcon, pluginIconSrc } from "../plugin-icon"
+
+const theme = vi.hoisted(() => ({ resolvedTheme: "light" }))
+vi.mock("@/components/theme-provider", () => ({ useTheme: () => theme }))
+vi.mock("@tauri-apps/api/core", () => ({
+  convertFileSrc: (path: string) => `asset://localhost/${encodeURIComponent(path)}`
+}))
+afterEach(cleanup)
 
 test("canonical names use Desktop's stable hash into the Figma collection", (): void => {
   expect(pluginIconSrc("alpha").split("#")[1]).toBe("plugin-ladybug")
@@ -50,4 +60,68 @@ test("every assigned icon resolves to the shared sprite with isolated paint refe
       expect(ids.includes(must(reference[1], "paint reference"))).toBe(true)
     }
   })
+})
+
+test("official catalog logos override local icons and follow the app theme", () => {
+  const light = "https://files.openai.com/content?id=light"
+  const dark = "https://files.openai.com/content?id=dark"
+  const info: NonNullable<PluginSummary["interface"]> = {
+    displayName: null,
+    shortDescription: null,
+    longDescription: null,
+    developerName: null,
+    category: null,
+    capabilities: [],
+    websiteUrl: null,
+    privacyPolicyUrl: null,
+    termsOfServiceUrl: null,
+    defaultPrompt: null,
+    brandColor: null,
+    composerIcon: "/Users/test/.codex/plugins/icon.svg",
+    composerIconUrl: null,
+    logo: "/Users/test/.codex/plugins/logo.svg",
+    logoDark: null,
+    logoUrl: light,
+    logoUrlDark: dark,
+    screenshots: [],
+    screenshotUrls: []
+  }
+  const view = render(createElement(PluginIcon, { name: "alpha", info }))
+  expect(view.container.querySelector("img")).toHaveAttribute("src", light)
+  theme.resolvedTheme = "dark"
+  view.rerender(createElement(PluginIcon, { name: "alpha", info }))
+  expect(view.container.querySelector("img")).toHaveAttribute("src", dark)
+  theme.resolvedTheme = "light"
+  view.rerender(
+    createElement(PluginIcon, {
+      name: "alpha",
+      info: { ...info, logoUrl: null, logoUrlDark: null, composerIconUrl: light }
+    })
+  )
+  expect(view.container.querySelector("img")).toHaveAttribute("src", light)
+  for (const resolvedTheme of ["light", "dark"]) {
+    theme.resolvedTheme = resolvedTheme
+    for (const remoteFields of [
+      { logoUrl: light, logoUrlDark: null, composerIconUrl: null },
+      { logoUrl: null, logoUrlDark: dark, composerIconUrl: null },
+      { logoUrl: null, logoUrlDark: null, composerIconUrl: light }
+    ]) {
+      view.rerender(
+        createElement(PluginIcon, {
+          name: "alpha",
+          info: { ...info, ...remoteFields, logoDark: "/Users/test/.codex/plugins/dark.svg" }
+        })
+      )
+      expect(view.container.querySelector("img")).toHaveAttribute("src", remoteFields.logoUrlDark ?? light)
+    }
+  }
+  theme.resolvedTheme = "light"
+
+  fireEvent.error(must(view.container.querySelector("img"), "plugin logo"))
+  expect(view.container.querySelector("img")).toBeNull()
+  expect(view.container.querySelector("use")).toHaveAttribute("href", pluginIconSrc("alpha"))
+  view.rerender(
+    createElement(PluginIcon, { name: "alpha", info: { ...info, logoUrl: "https://example.com/second.svg" } })
+  )
+  expect(view.container.querySelector("img")).toHaveAttribute("src", "https://example.com/second.svg")
 })

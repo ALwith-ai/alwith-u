@@ -17,12 +17,11 @@ export function CatalogSkeleton({ skills = false }: { skills?: boolean }) {
         {[1, 2, 3, 4, 5, 6, 7, 8].map((id) => (
           <Item key={id} size="xs" className="toolbox-row">
             <ItemMedia>
-              <Skeleton className="size-10 rounded-xl" />
+              <Skeleton className="size-9 rounded-lg" />
             </ItemMedia>
             <ItemContent className="min-w-0 group-data-[size=xs]/item:gap-2">
               <Skeleton className="h-4 w-2/3" />
               <Skeleton className="h-3 w-full" />
-              <Skeleton className="h-3 w-1/3" />
             </ItemContent>
             <ItemActions>
               <Skeleton className="size-8 rounded-full" />

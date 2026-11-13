@@ -1,5 +1,8 @@
-/// <reference types="vite/client" />
-import type { ReactNode } from "react"
+import type { PluginSummary } from "@alwith/module-chat/client"
+import { convertFileSrc } from "@tauri-apps/api/core"
+import { type ReactNode, useState } from "react"
+
+import { useTheme } from "@/components/theme-provider"
 
 import sprite from "./plugin-icons.svg?raw"
 
@@ -93,10 +96,45 @@ export function pluginIconSrc(name: string): string {
   return `#plugin-${ICON_NAMES[hash % ICON_NAMES.length]}`
 }
 
-export function PluginIcon({ name, className = "size-6 shrink-0" }: { name: string; className?: string }): ReactNode {
-  return (
+export function PluginIcon({
+  name,
+  info,
+  className = "size-6 shrink-0"
+}: {
+  name: string
+  info?: PluginSummary["interface"]
+  className?: string
+}): ReactNode {
+  const { resolvedTheme } = useTheme()
+  const remote =
+    resolvedTheme === "dark"
+      ? (info?.logoUrlDark ?? info?.logoUrl ?? info?.composerIconUrl)
+      : (info?.logoUrl ?? info?.composerIconUrl ?? info?.logoUrlDark)
+  const local =
+    resolvedTheme === "dark"
+      ? (info?.logoDark ?? info?.logo ?? info?.composerIcon)
+      : (info?.logo ?? info?.composerIcon ?? info?.logoDark)
+  const source = remote ?? (local ? convertFileSrc(local) : null)
+  const fallback = (
     <svg aria-hidden="true" focusable="false" width={36} height={36} viewBox="0 0 36 36" className={className}>
       <use href={pluginIconSrc(name)} />
     </svg>
+  )
+  return source ? <PluginImage key={source} source={source} className={className} fallback={fallback} /> : fallback
+}
+
+function PluginImage({ source, className, fallback }: { source: string; className: string; fallback: ReactNode }) {
+  const [failed, setFailed] = useState(false)
+  if (failed) return fallback
+  return (
+    <img
+      src={source}
+      alt=""
+      aria-hidden="true"
+      width={36}
+      height={36}
+      className={`object-contain ${className}`}
+      onError={() => setFailed(true)}
+    />
   )
 }

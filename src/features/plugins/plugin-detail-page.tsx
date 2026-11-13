@@ -88,7 +88,7 @@ export function PluginDetailPage({ entry, onBack }: { entry: PluginEntry; onBack
           </nav>
           <div className="flex min-h-9 flex-wrap items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-3">
-              <PluginIcon name={summary.name} className="size-9 shrink-0 rounded-lg" />
+              <PluginIcon name={summary.name} info={summary.interface} className="size-9 shrink-0 rounded-lg" />
               <h1 className="min-w-0 text-2xl leading-8 font-semibold break-words">{title}</h1>
             </div>
             <div className="flex shrink-0 items-center gap-3">
@@ -197,7 +197,7 @@ export function PluginDetailPage({ entry, onBack }: { entry: PluginEntry; onBack
             <DetailSection label={t("plugins.detail.mcpServers")} count={detail.mcpServers.length}>
               {detail.mcpServers.map((name) => (
                 <div key={name} className="flex items-center gap-3 py-1">
-                  <PluginIcon name={summary.name} className="size-6 rounded-md" />
+                  <PluginIcon name={summary.name} info={summary.interface} className="size-6 rounded-md" />
                   <span className="text-sm font-medium">{name}</span>
                 </div>
               ))}
@@ -212,7 +212,7 @@ export function PluginDetailPage({ entry, onBack }: { entry: PluginEntry; onBack
                   className="h-auto w-full justify-start gap-3 rounded-xl px-3 py-3 text-start whitespace-normal"
                   onClick={() => setSkill(item)}
                 >
-                  <SkillIcon name={item.name} />
+                  <SkillIcon name={item.name} info={item.interface} />
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-medium">{item.interface?.displayName ?? item.name}</span>
                     <span className="mt-1 block truncate text-[13px] leading-5 font-normal text-muted-foreground">
@@ -267,7 +267,7 @@ export function PluginDetailPage({ entry, onBack }: { entry: PluginEntry; onBack
           {skill && (
             <>
               <div className="shrink-0 pr-8">
-                <SkillIcon name={skill.name} className="size-9 shrink-0" />
+                <SkillIcon name={skill.name} info={skill.interface} className="size-9 shrink-0" />
               </div>
               <div className="min-h-0 space-y-6 overflow-y-auto overscroll-contain">
                 <DialogHeader className="gap-3">

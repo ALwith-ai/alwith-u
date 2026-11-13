@@ -29,7 +29,12 @@
     "security": {
       "assetProtocol": {
         "enable": true,
-        "scope": ["$HOME/.codex/**", "$APPDATA/vibemon/**"]
+        "scope": [
+          "$HOME/.codex/**",
+          "$HOME/.codex/.tmp/bundled-marketplaces/**",
+          "$HOME/.cache/codex-runtimes/*/plugins/**",
+          "$APPDATA/vibemon/**"
+        ]
       }
     }
   },

@@ -11,6 +11,7 @@ import {
   ItemDescription,
   ItemMedia,
   PanelItem,
+  PanelItemTitle,
   PanelList
 } from "@/components/alwith-ui/panel-item"
 import { toolboxContentClassName, toolboxDialogClassName } from "@/components/alwith-ui/toolbox-layout"
@@ -23,7 +24,6 @@ import {
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog"
-import { ItemTitle } from "@/components/ui/item"
 import { Spinner } from "@/components/ui/spinner"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -133,12 +133,12 @@ export function SkillsTab({ query, ready }: { query: string; ready: boolean }) {
             onClick={() => setSelectedPath(skill.path)}
           />
           <ItemMedia className="pointer-events-none relative translate-none! self-center!">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted">
-              <SkillIcon name={skill.name} />
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted">
+              <SkillIcon name={skill.name} info={skill.interface} />
             </div>
           </ItemMedia>
           <ItemContent className="pointer-events-none relative min-w-0">
-            <ItemTitle className="block truncate">{skill.interface?.displayName ?? skill.name}</ItemTitle>
+            <PanelItemTitle className="mb-0.5">{skill.interface?.displayName ?? skill.name}</PanelItemTitle>
             <ItemDescription
               className="line-clamp-1"
               title={skill.interface?.shortDescription ?? skill.shortDescription ?? skill.description}
@@ -146,7 +146,7 @@ export function SkillsTab({ query, ready }: { query: string; ready: boolean }) {
               {skill.interface?.shortDescription ?? skill.shortDescription ?? skill.description}
             </ItemDescription>
           </ItemContent>
-          <ItemActions className="pointer-events-none relative text-muted-foreground">
+          <ItemActions className="pointer-events-none relative w-8 shrink-0 justify-center text-muted-foreground">
             {skill.enabled ? (
               <CheckIcon className="size-4" strokeWidth={2} aria-label={t("plugins.skills.enabledStatus")} />
             ) : (
@@ -295,7 +295,7 @@ export function SkillsTab({ query, ready }: { query: string; ready: boolean }) {
               renderHeader={(actions) => (
                 <>
                   <div className="flex items-center justify-between gap-4">
-                    <SkillIcon name={selected.name} className="size-9 shrink-0" />
+                    <SkillIcon name={selected.name} info={selected.interface} className="size-9 shrink-0" />
                     <div className="flex shrink-0 items-center gap-2">
                       <SkillToggle skill={selected} />
                       {actions}

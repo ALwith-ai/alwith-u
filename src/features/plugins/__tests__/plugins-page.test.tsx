@@ -89,6 +89,29 @@ test("the installed sidebar excludes official and policy installations but keeps
     expect(view.queryByRole("button", { name })).not.toBeInTheDocument()
 })
 
+test("bundled plugins remain visible and searchable when Codex provides no hidden metadata", async () => {
+  const marketplace: PluginMarketplaceEntry = {
+    name: "openai-bundled",
+    path: "/bundled/marketplace.json",
+    interface: { displayName: "Bundled catalog" },
+    plugins: ["codex-app-tools", "unified-computer-use", "browser"].map((name) => ({
+      ...plugin(`${name}@openai-bundled`, true),
+      name
+    }))
+  }
+  pluginsStore.setState({ marketplaces: [marketplace] })
+  const view = render(<PluginsPage cwd={null} active />)
+  const section = must(view.getByRole("heading", { name: "Bundled catalog" }).closest("section"), "bundled section")
+  expect(within(section).getByText("3", { exact: true })).toBeInTheDocument()
+  for (const name of ["codex-app-tools", "unified-computer-use", "browser"])
+    expect(within(section).getByRole("button", { name })).toBeInTheDocument()
+  fireEvent.change(view.getByPlaceholderText("Search plugins"), { target: { value: "computer" } })
+  await waitFor(() => expect(view.queryByRole("button", { name: "codex-app-tools" })).not.toBeInTheDocument())
+  const results = must(view.getByRole("heading", { name: "Bundled catalog" }).closest("section"), "search results")
+  expect(within(results).getByRole("button", { name: "unified-computer-use" })).toBeInTheDocument()
+  expect(within(results).getByText("1", { exact: true })).toBeInTheDocument()
+})
+
 test("plugin controls and skill scopes follow a language change without remounting the page", async () => {
   const installed = plugin("Installed example", true)
   const disabled = { ...plugin("Disabled example", true), enabled: false }

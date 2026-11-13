@@ -103,9 +103,6 @@ function PluginRow({
   onOpen: (entry: PluginEntry) => void
 }) {
   const description = pluginDescription(plugin)
-  const developer = plugin.interface?.developerName
-  const version = plugin.localVersion ?? plugin.version
-  const meta = [developer, version ? `v${version}` : null].filter(Boolean).join(" · ")
   return (
     <PanelItem className="toolbox-row relative">
       <Button
@@ -116,8 +113,8 @@ function PluginRow({
         onClick={() => onOpen({ plugin, marketplace })}
       />
       <ItemMedia className="pointer-events-none relative translate-none! self-center!">
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted">
-          <PluginIcon name={plugin.name} />
+        <div className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-background">
+          <PluginIcon name={plugin.name} info={plugin.interface} className="size-full object-contain" />
         </div>
       </ItemMedia>
       <ItemContent className="pointer-events-none relative min-w-0">
@@ -125,7 +122,6 @@ function PluginRow({
         <ItemDescription className="line-clamp-1" title={description}>
           {description || marketplace.interface?.displayName || marketplace.name}
         </ItemDescription>
-        {meta && <ItemDescription data-toolbox-metadata="">{meta}</ItemDescription>}
       </ItemContent>
       <ItemActions className="relative w-8 shrink-0 justify-center">{actions}</ItemActions>
     </PanelItem>
@@ -534,7 +530,7 @@ export function PluginsPage({
                     active={!extensions?.active && selected?.plugin.id === entry.plugin.id}
                     onClick={() => openPlugin(entry)}
                   >
-                    <PluginIcon name={entry.plugin.name} className="size-4 shrink-0" />
+                    <PluginIcon name={entry.plugin.name} info={entry.plugin.interface} className="size-4 shrink-0" />
                     <span className="truncate">{pluginTitle(entry.plugin)}</span>
                   </NavigationItemButton>
                 ))
