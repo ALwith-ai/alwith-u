@@ -51,7 +51,7 @@ pub async fn resize_chat_window(
 }
 
 #[cfg(target_os = "macos")]
-const BACKDROP: tauri::window::Effect = tauri::window::Effect::LiquidGlassClear;
+const BACKDROP: tauri::window::Effect = tauri::window::Effect::LiquidGlassRegular;
 #[cfg(not(target_os = "macos"))]
 const BACKDROP: tauri::window::Effect = tauri::window::Effect::Acrylic;
 
