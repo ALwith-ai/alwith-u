@@ -28,6 +28,12 @@ pre,
 
 @custom-variant dark (&:is(.dark *));
 
+/* Reserve the status bar before Atlas initializes so startup has no vertical layout transition. */
+.main-canvas-viewport {
+  --atlas-inset-bottom: 32px;
+  --atlas-layout-duration: 0ms;
+}
+
 @theme inline {
   --font-heading: var(--font-sans);
   --font-sans: "Inter Variable", sans-serif;

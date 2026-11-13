@@ -82,3 +82,34 @@ pub fn attach_window_to_main(app: tauri::AppHandle, label: String) -> Result<boo
     let _ = (&app, &label);
     Ok(true)
 }
+
+/// Fit initial or restored geometry to the monitor's usable area without resetting valid placement.
+pub fn initialize_main_window(app: &tauri::AppHandle) -> tauri::Result<()> {
+    let window = app.get_webview_window("main").expect("main window exists at setup");
+    let monitor = window.current_monitor()?.or(window.primary_monitor()?).expect("main window has a monitor");
+    let area = monitor.work_area();
+    let scale = monitor.scale_factor();
+    let inner = window.inner_size()?;
+    let outer = window.outer_size()?;
+    let available_width = area.size.width.saturating_sub(outer.width.saturating_sub(inner.width)).max(1);
+    let available_height = area.size.height.saturating_sub(outer.height.saturating_sub(inner.height)).max(1);
+    window.set_min_size(Some(tauri::LogicalSize::new(
+        960.0_f64.min(available_width as f64 / scale),
+        640.0_f64.min(available_height as f64 / scale),
+    )))?;
+    if !window.is_maximized()? && !window.is_fullscreen()? {
+        let fitted = tauri::PhysicalSize::new(inner.width.min(available_width), inner.height.min(available_height));
+        if fitted != inner {
+            window.set_size(fitted)?;
+        }
+        let outer = window.outer_size()?;
+        let position = window.outer_position()?;
+        let x = position.x.clamp(area.position.x, area.position.x + area.size.width.saturating_sub(outer.width) as i32);
+        let y =
+            position.y.clamp(area.position.y, area.position.y + area.size.height.saturating_sub(outer.height) as i32);
+        if x != position.x || y != position.y {
+            window.set_position(tauri::PhysicalPosition::new(x, y))?;
+        }
+    }
+    Ok(())
+}
