@@ -114,18 +114,21 @@ export const SourceUnavailable: Story = { name: "插件来源不可用", args: {
 export const SkillMarkdown: Story = {
   name: "技能文档预览",
   beforeEach: () => {
-    mockIPC((command, payload) => {
-      if (command === "plugin:alwith-fs|workspace_open") return "/example/research"
-      if (command === "plugin:alwith-fs|workspace_read_file")
-        return [
-          ...new TextEncoder().encode(
-            `---\nname: Research\n---\n# Research instructions\n\nUse **primary sources** and compare the evidence.\n\n## Deliverable\n\n- Cite each source.\n- Explain uncertainty.\n${"\n\nEvidence and implementation details for the research report.\n".repeat(
-              60
-            )}`
-          )
-        ]
-      return handleNativeRequest(command, payload)
-    })
+    mockIPC(
+      (command, payload) => {
+        if (command === "plugin:alwith-fs|workspace_open") return "/example/research"
+        if (command === "plugin:alwith-fs|workspace_read_file")
+          return [
+            ...new TextEncoder().encode(
+              `---\nname: Research\n---\n# Research instructions\n\nUse **primary sources** and compare the evidence.\n\n## Deliverable\n\n- Cite each source.\n- Explain uncertainty.\n${"\n\nEvidence and implementation details for the research report.\n".repeat(
+                60
+              )}`
+            )
+          ]
+        return handleNativeRequest(command, payload)
+      },
+      { shouldMockEvents: true }
+    )
     const skill = detail.skills[0]
     const previous = { ...skill }
     skill.path = "/example/research/SKILL.md"

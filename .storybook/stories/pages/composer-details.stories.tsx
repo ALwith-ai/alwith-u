@@ -67,23 +67,29 @@ const meta = {
     drafts.delete(session.id)
     let revision = Date.now()
     let values: Record<string, unknown> = { "voice.enabled": true }
-    mockIPC((command, payload) => {
-      if (command === "plugin:log|log") return
-      if (command === "draft_directory") return "/Users/demo/Documents/Codex"
-      if (command === "settings_request") {
-        if (!payload || !("input" in payload)) throw new Error("Missing settings request")
-        const input = payload.input as SettingsRequest
-        values = { ...values, ...input.changes }
-        return { revision: ++revision, values, browserMigrated: true }
-      }
-      return handleNativeRequest(command, payload)
-    })
+    mockIPC(
+      (command, payload) => {
+        if (command === "plugin:log|log") return
+        if (command === "draft_directory") return "/Users/demo/Documents/Codex"
+        if (command === "settings_request") {
+          if (!payload || !("input" in payload)) throw new Error("Missing settings request")
+          const input = payload.input as SettingsRequest
+          values = { ...values, ...input.changes }
+          return { revision: ++revision, values, browserMigrated: true }
+        }
+        return handleNativeRequest(command, payload)
+      },
+      { shouldMockEvents: true }
+    )
     return () => {
       drafts.delete(session.id)
-      mockIPC((command, payload) => {
-        if (command === "plugin:log|log") return
-        return handleNativeRequest(command, payload)
-      })
+      mockIPC(
+        (command, payload) => {
+          if (command === "plugin:log|log") return
+          return handleNativeRequest(command, payload)
+        },
+        { shouldMockEvents: true }
+      )
     }
   }
 } satisfies Meta<typeof Composer>

@@ -28,36 +28,42 @@ const meta = {
       }
     ]
     settingsStore.accept({ revision: ++revision, values, browserMigrated: true })
-    mockIPC((command, payload) => {
-      if (command === "plugin:log|log" || command === "plugin:event|unlisten") return
-      if (command === "plugin:event|listen") return 1
-      if (command === "mobile_bridge_status") return { running: true, connected: true, relayConnected: true }
-      if (command === "bridge_trusted_list") return devices
-      if (command === "bridge_trusted_revoke") {
-        devices = []
-        return
-      }
-      if (command === "bridge_pairing_start")
-        return {
-          deviceId: "preview-u",
-          publicKeyB64: "preview",
-          code: "123456",
-          hostApp: "u",
-          expiresAt: Date.now() + 300000
-        }
-      if (command === "mobile_bridge_start" || command === "mobile_bridge_stop") return
-      if (command === "settings_request") {
-        const input = (payload as { input: SettingsRequest }).input
-        values = { ...values, ...input.changes }
-        return { revision: ++revision, values, browserMigrated: true }
-      }
-      return handleNativeRequest(command, payload)
-    })
-    return () => {
-      mockIPC((command, payload) => {
+    mockIPC(
+      (command, payload) => {
         if (command === "plugin:log|log" || command === "plugin:event|unlisten") return
+        if (command === "plugin:event|listen") return 1
+        if (command === "mobile_bridge_status") return { running: true, connected: true, relayConnected: true }
+        if (command === "bridge_trusted_list") return devices
+        if (command === "bridge_trusted_revoke") {
+          devices = []
+          return
+        }
+        if (command === "bridge_pairing_start")
+          return {
+            deviceId: "preview-u",
+            publicKeyB64: "preview",
+            code: "123456",
+            hostApp: "u",
+            expiresAt: Date.now() + 300000
+          }
+        if (command === "mobile_bridge_start" || command === "mobile_bridge_stop") return
+        if (command === "settings_request") {
+          const input = (payload as { input: SettingsRequest }).input
+          values = { ...values, ...input.changes }
+          return { revision: ++revision, values, browserMigrated: true }
+        }
         return handleNativeRequest(command, payload)
-      })
+      },
+      { shouldMockEvents: true }
+    )
+    return () => {
+      mockIPC(
+        (command, payload) => {
+          if (command === "plugin:log|log" || command === "plugin:event|unlisten") return
+          return handleNativeRequest(command, payload)
+        },
+        { shouldMockEvents: true }
+      )
     }
   }
 } satisfies Meta<typeof MobileSection>

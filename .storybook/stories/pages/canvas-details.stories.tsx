@@ -817,10 +817,15 @@ export const TitlebarRestoreThenClose: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "Maximize" }))
     await waitFor(() => expect(canvas.getByRole("button", { name: "Restore" })).toBeVisible())
     // From the title bar, the first press takes the preview out of view mode; the second closes it.
-    const titlebar = within(canvasElement.querySelector<HTMLElement>(".main-workspace-toolbar")!)
-    await userEvent.click(await titlebar.findByRole("button", { name: "Close workspace" }))
+    // The preview carries a control of the same name; the title bar's is the one outside it.
+    const titlebarClose = (): HTMLElement =>
+      canvas
+        .getAllByRole("button", { name: "Close workspace" })
+        .find((button) => !button.closest("#file-workspace-panel"))!
+    await waitFor(() => expect(titlebarClose()).toBeVisible())
+    await userEvent.click(titlebarClose())
     await sideBySide(canvas, canvasElement)
-    await userEvent.click(titlebar.getByRole("button", { name: "Close workspace" }))
+    await userEvent.click(titlebarClose())
     await waitFor(() =>
       expect(canvasElement.querySelector('.main-screen-pane[data-atlas-region="preview"]')).toHaveAttribute(
         "data-atlas-collapsed",

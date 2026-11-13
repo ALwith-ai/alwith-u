@@ -97,21 +97,27 @@ const meta = {
     configureModels.mockClear()
     let revision = Date.now()
     let values: Record<string, unknown> = {}
-    mockIPC((command, payload) => {
-      if (command === "plugin:log|log" || command === "plugin:app|set_app_theme") return
-      if (command === "settings_request") {
-        if (!payload || !("input" in payload)) throw new Error("Missing settings request")
-        const input = payload.input as SettingsRequest
-        values = { ...values, ...input.changes }
-        return { revision: ++revision, values, browserMigrated: true }
-      }
-      return handleNativeRequest(command, payload)
-    })
-    return () => {
-      mockIPC((command, payload) => {
+    mockIPC(
+      (command, payload) => {
         if (command === "plugin:log|log" || command === "plugin:app|set_app_theme") return
+        if (command === "settings_request") {
+          if (!payload || !("input" in payload)) throw new Error("Missing settings request")
+          const input = payload.input as SettingsRequest
+          values = { ...values, ...input.changes }
+          return { revision: ++revision, values, browserMigrated: true }
+        }
         return handleNativeRequest(command, payload)
-      })
+      },
+      { shouldMockEvents: true }
+    )
+    return () => {
+      mockIPC(
+        (command, payload) => {
+          if (command === "plugin:log|log" || command === "plugin:app|set_app_theme") return
+          return handleNativeRequest(command, payload)
+        },
+        { shouldMockEvents: true }
+      )
     }
   }
 } satisfies Meta<typeof ModelMenuPreview>
