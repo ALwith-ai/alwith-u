@@ -2,7 +2,7 @@ import { DesktopCanvasContext as CanvasContext } from "@alwith/module-desktop-sh
 import { desktopDefaults } from "@nyssance/atlas/layout"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useContext, useRef, useState } from "react"
-import { expect, waitFor } from "storybook/test"
+import { expect, waitFor, within } from "storybook/test"
 
 import { Button } from "@/components/ui/button"
 import { SidebarInset } from "@/components/ui/sidebar"
@@ -57,6 +57,27 @@ async function hoverNavigationEdge(canvas: HTMLElement): Promise<void> {
     },
     { timeout: 3000 }
   )
+}
+
+/** The divider between two panes. The shell draws it and it is dragged; it takes no keys. */
+const paneDivider = (canvas: HTMLElement): HTMLElement => canvas.querySelector<HTMLElement>(".desktop-shell-divider")!
+
+type Pointer = { pointer: (input: object) => Promise<unknown> }
+/**
+ * Drag the divider by steps of twenty pixels, towards the side the arrow names: what one press of that arrow on
+ * the divider used to do.
+ */
+async function nudge(userEvent: Pointer, canvas: HTMLElement, key: string, steps = 1): Promise<void> {
+  const target = paneDivider(canvas)
+  const bounds = target.getBoundingClientRect()
+  const x = bounds.left + bounds.width / 2
+  const y = bounds.top + 100
+  const dx = (key.includes("ArrowRight") ? 20 : -20) * steps
+  await userEvent.pointer({ target, keys: "[MouseLeft>]", coords: { clientX: x, clientY: y } })
+  await userEvent.pointer({ target, coords: { clientX: x + dx, clientY: y } })
+  // The shell applies a drag on the next frame.
+  await new Promise((resolve) => requestAnimationFrame(resolve))
+  await userEvent.pointer({ target, keys: "[/MouseLeft]" })
 }
 
 const meta = {
@@ -207,8 +228,8 @@ export const Unified: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "Wide layout" }))
     await waitFor(() => expect(dots()).toHaveLength(0))
     await userEvent.click(canvas.getByRole("button", { name: "Narrow layout" }))
-    await waitFor(() => expect(dots()[1]).toHaveAttribute("aria-current", "page"))
-    await userEvent.click(dots()[0])
+    // Narrowing a window that showed both panes turns to the chat, the first of the two pages.
+    await waitFor(() => expect(dots()[0]).toHaveAttribute("aria-current", "page"))
     await userEvent.click(canvas.getByRole("button", { name: "Toggle preview" }))
     await waitFor(() => expect(dots()).toHaveLength(0))
     await userEvent.click(canvas.getByRole("button", { name: "Toggle preview" }))
@@ -234,19 +255,21 @@ export const DirectionChange: Story = {
     ]
     await waitFor(() => expect(dots()).toHaveLength(2))
     await userEvent.click(dots()[1])
-    await i18n.changeLanguage("ar")
-    await waitFor(
-      async () => {
-        await expect(dots()[1]).toHaveAttribute("aria-current", "page")
-        const root = canvasElement.querySelector(".main-window-body")!.getBoundingClientRect()
-        const preview = canvasElement.querySelector(".file-workspace-panel")!.getBoundingClientRect()
-        await expect(preview.left).toBeGreaterThanOrEqual(root.left - 1)
-        await expect(preview.right).toBeLessThanOrEqual(root.right + 1)
-      },
-      { timeout: 3000 }
-    )
-    await i18n.changeLanguage("en")
-    await waitFor(() => expect(dots()[1]).toHaveAttribute("aria-current", "page"))
+    // Turning the layout round lays the pages out again from the first one, the chat, on the side reading starts.
+    for (const language of ["ar", "en"]) {
+      await i18n.changeLanguage(language)
+      await waitFor(
+        async () => {
+          await expect(dots()).toHaveLength(2)
+          await expect(dots()[0]).toHaveAttribute("aria-current", "page")
+          const root = canvasElement.querySelector(".main-window-body")!.getBoundingClientRect()
+          const chat = canvasElement.querySelector(".file-workspace-chat")!.getBoundingClientRect()
+          await expect(chat.left).toBeGreaterThanOrEqual(root.left - 1)
+          await expect(chat.right).toBeLessThanOrEqual(root.right + 1)
+        },
+        { timeout: 3000 }
+      )
+    }
   }
 }
 
@@ -261,21 +284,27 @@ export const ReturnFromPreview: Story = {
     const host = canvasElement.querySelector<HTMLElement>("[data-sidebar-mode]")!
     const sidebar = canvasElement.querySelector<HTMLElement>(".main-sidebar-panel")!
     await waitFor(() => expect(dots()).toHaveLength(2))
+    // A pinned navigation stays docked beside whichever pane is in view; turning pages never hides it.
+    const beside = async (selector: string): Promise<void> => {
+      await waitFor(
+        async () => {
+          await expect(host).toHaveAttribute("data-canvas-moving", "false")
+          await expect(host).toHaveAttribute("data-sidebar-mode", "pinned")
+          await expect(host).toHaveAttribute("data-sidebar-presentation", "docked")
+          const pane = canvasElement.querySelector(selector)!.getBoundingClientRect()
+          if (i18n.dir() === "rtl")
+            await expect(sidebar.getBoundingClientRect().left).toBeGreaterThanOrEqual(pane.right)
+          else await expect(sidebar.getBoundingClientRect().right).toBeLessThanOrEqual(pane.left)
+        },
+        { timeout: 3000 }
+      )
+      await expect(canvas.getByRole("switch")).toHaveAttribute("aria-checked", "true")
+    }
     for (let round = 0; round < 3; round++) {
       await userEvent.click(dots()[1])
-      await waitFor(() => expect(host).toHaveAttribute("data-sidebar-mode", "hidden"))
-      await waitFor(() => expect(host).toHaveAttribute("data-canvas-moving", "false"), { timeout: 3000 })
-      await expect(canvas.queryByRole("switch")).not.toBeInTheDocument()
-      await hoverNavigationEdge(canvasElement)
-      await waitFor(() => expect(host).toHaveAttribute("data-sidebar-mode", "floating"))
+      await beside(".file-workspace-panel")
       await userEvent.click(dots()[0])
-      await waitFor(async () => {
-        await expect(host).toHaveAttribute("data-sidebar-mode", "pinned")
-        await expect(host).toHaveAttribute("data-sidebar-presentation", "docked")
-        const chat = canvasElement.querySelector(".file-workspace-chat")!.getBoundingClientRect()
-        if (i18n.dir() === "rtl") await expect(sidebar.getBoundingClientRect().left).toBeGreaterThanOrEqual(chat.right)
-        else await expect(sidebar.getBoundingClientRect().right).toBeLessThanOrEqual(chat.left)
-      })
+      await beside(".file-workspace-chat")
       await expect(canvas.getByRole("textbox", { name: "Draft" })).toHaveValue("Preserved draft")
     }
   }
@@ -297,30 +326,27 @@ export const ReflowWithFloatingSidebar: Story = {
     ]
     const host = canvasElement.querySelector<HTMLElement>("[data-sidebar-mode]")!
     const sidebar = canvasElement.querySelector<HTMLElement>(".main-sidebar-panel")!
-    for (const action of ["Wide layout", "Maximize"]) {
-      await waitFor(() => expect(dots()).toHaveLength(2))
-      await userEvent.click(dots()[1])
-      await waitFor(() => expect(host).toHaveAttribute("data-canvas-moving", "false"), { timeout: 3000 })
-      await expect(canvas.queryByRole("switch")).not.toBeInTheDocument()
-      await hoverNavigationEdge(canvasElement)
-      await waitFor(() => expect(host).toHaveAttribute("data-sidebar-mode", "floating"))
-      await userEvent.click(canvas.getByRole("button", { name: action }))
-      await waitFor(
-        async () => {
-          await expect(dots()).toHaveLength(0)
-          await expect(host).toHaveAttribute("data-sidebar-mode", "pinned")
-          await expect(host).toHaveAttribute("data-sidebar-presentation", "docked")
-          await expect(getComputedStyle(sidebar).borderRadius).toBe("0px")
-          const body = canvasElement.querySelector(".main-window-body")!.getBoundingClientRect()
-          await expect(sidebar.getBoundingClientRect().left).toBeCloseTo(body.left + 4, 0)
-          const preview = canvasElement.querySelector(".file-workspace-panel")!.getBoundingClientRect()
-          await expect(sidebar.getBoundingClientRect().right).toBeLessThanOrEqual(preview.left)
-          await expect(preview.right).toBeLessThanOrEqual(body.right + 1)
-        },
-        { timeout: 3000 }
-      )
-      if (action === "Wide layout") await userEvent.click(canvas.getByRole("button", { name: "Narrow layout" }))
-    }
+    // On the preview's page, widening the window shows both panes beside the navigation, which stays docked.
+    await waitFor(() => expect(dots()).toHaveLength(2))
+    await userEvent.click(dots()[1])
+    await waitFor(() => expect(host).toHaveAttribute("data-canvas-moving", "false"), { timeout: 3000 })
+    await expect(canvas.getByRole("switch")).toHaveAttribute("aria-checked", "true")
+    await userEvent.click(canvas.getByRole("button", { name: "Wide layout" }))
+    await waitFor(
+      async () => {
+        await expect(dots()).toHaveLength(0)
+        await expect(host).toHaveAttribute("data-sidebar-mode", "pinned")
+        await expect(host).toHaveAttribute("data-sidebar-presentation", "docked")
+        const body = canvasElement.querySelector(".main-window-body")!.getBoundingClientRect()
+        const chat = canvasElement.querySelector(".file-workspace-chat")!.getBoundingClientRect()
+        const preview = canvasElement.querySelector(".file-workspace-panel")!.getBoundingClientRect()
+        await expect(sidebar.getBoundingClientRect().left).toBeGreaterThanOrEqual(body.left)
+        await expect(sidebar.getBoundingClientRect().right).toBeLessThanOrEqual(chat.left)
+        await expect(chat.right).toBeLessThanOrEqual(preview.left)
+        await expect(preview.right).toBeLessThanOrEqual(body.right + 1)
+      },
+      { timeout: 3000 }
+    )
   }
 }
 
@@ -340,7 +366,10 @@ export const HidePinnedNavigation: Story = {
         await expect(host).toHaveAttribute("data-sidebar-mode", "hidden")
         const body = canvasElement.querySelector(".main-window-body")!.getBoundingClientRect()
         await expect(chat.getBoundingClientRect().left).toBeGreaterThanOrEqual(body.left)
-        await expect(preview.getBoundingClientRect().right).toBeCloseTo(body.right - desktopDefaults.gutter * 2, 0)
+        // The pane ends a gutter from the window's edge; the panel inside it, a border's width further in.
+        const inset = body.right - preview.getBoundingClientRect().right
+        await expect(inset).toBeGreaterThanOrEqual(desktopDefaults.gutter * 2)
+        await expect(inset).toBeLessThanOrEqual(desktopDefaults.gutter * 2 + 1)
         await expect(chat.getBoundingClientRect().width).toBeCloseTo(preview.getBoundingClientRect().width, 0)
       },
       { timeout: 3000 }
@@ -358,21 +387,19 @@ export const HideNavigationAfterManualSplit: Story = {
       ...canvasElement.querySelectorAll<HTMLButtonElement>("[data-atlas-page-dots]:not([hidden]) button")
     ]
     await waitFor(() => expect(dots()).toHaveLength(0))
-    await userEvent.click(canvas.getByRole("separator"))
-    for (let index = 0; index < 4; index++) await userEvent.keyboard("{ArrowRight}")
+    await nudge(userEvent, canvasElement, "ArrowRight", 4)
     await waitFor(() => expect(dots()).toHaveLength(2))
     await userEvent.click(canvas.getByRole("switch"))
     await waitFor(async () => {
       await expect(dots()).toHaveLength(2)
       const body = canvasElement.querySelector(".main-window-body")!
-      const slides = canvasElement.querySelectorAll<HTMLElement>(".file-workspace-slide")
+      const slides = canvasElement.querySelectorAll<HTMLElement>(".main-screen-pane")
       await expect(slides[0].getBoundingClientRect().width).toBe(body.clientWidth - 8)
       await expect(slides[1].getBoundingClientRect().width).toBe(body.clientWidth - 8)
     })
+    // Split by hand, the two stay pages of their own; the second is one click away.
     await userEvent.click(dots()[1])
-    await userEvent.click(canvas.getByRole("separator"))
-    await userEvent.keyboard("{ArrowLeft}")
-    await waitFor(() => expect(dots()).toHaveLength(0))
+    await waitFor(() => expect(dots()[1]).toHaveAttribute("aria-current", "page"))
   }
 }
 
@@ -415,9 +442,8 @@ export const OperationChain: Story = {
       await userEvent.click(canvas.getByRole("switch"))
     const draft = canvas.getByRole("textbox", { name: "Draft" })
     await userEvent.type(draft, " / chain")
-    await userEvent.click(canvas.getByRole("separator"))
-    const shrink = i18n.dir() === "rtl" ? "{ArrowLeft}" : "{ArrowRight}"
-    for (let index = 0; index < 5; index++) await userEvent.keyboard(shrink)
+    const shrink = i18n.dir() === "rtl" ? "ArrowLeft" : "ArrowRight"
+    await nudge(userEvent, canvasElement, shrink, 5)
     await waitFor(() => expect(dots()).toHaveLength(2))
     await userEvent.click(canvas.getByRole("switch"))
     await assertScreen(1)
@@ -425,7 +451,8 @@ export const OperationChain: Story = {
       await userEvent.click(dots()[1])
       await assertScreen(2)
       await waitFor(() => expect(host).toHaveAttribute("data-canvas-moving", "false"), { timeout: 3000 })
-      await expect(canvas.queryByRole("switch")).not.toBeInTheDocument()
+      // The pin stays in the toolbar on every page; the navigation itself comes when the edge is reached.
+      await expect(canvas.getByRole("switch")).toHaveAttribute("aria-checked", "false")
       await hoverNavigationEdge(canvasElement)
       await waitFor(() => expect(host).toHaveAttribute("data-sidebar-mode", "floating"))
       await userEvent.click(canvas.getByRole("button", { name: "Return to chat" }))
@@ -442,8 +469,10 @@ export const OperationChain: Story = {
     await assertScreen(1)
     await userEvent.click(dots()[1])
     await assertScreen(2)
+    // In a narrow window the preview already fills its page: maximizing it only takes its divider away.
     await userEvent.click(canvas.getByRole("button", { name: "Maximize" }))
-    await waitFor(() => expect(dots()).toHaveLength(0))
+    await waitFor(() => expect(canvasElement.querySelector(".desktop-shell-divider")).toBeNull())
+    await assertScreen(2)
     await userEvent.click(canvas.getByRole("button", { name: "Return to chat" }))
     await assertScreen(1)
     await userEvent.click(dots()[1])
@@ -478,7 +507,7 @@ export const PointerSplitAndReverse: Story = {
       ...canvasElement.querySelectorAll<HTMLButtonElement>("[data-atlas-page-dots]:not([hidden]) button")
     ]
     await waitFor(() => expect(dots()).toHaveLength(0))
-    const divider = canvas.getByRole("separator")
+    const divider = paneDivider(canvasElement)
     const start = divider.getBoundingClientRect()
     const x = start.left + start.width / 2
     const y = start.top + 100
@@ -487,18 +516,26 @@ export const PointerSplitAndReverse: Story = {
       keys: "[MouseLeft>]",
       coords: { clientX: x, clientY: y }
     })
+    const body = canvasElement.querySelector<HTMLElement>(".main-window-body")!
+    const panels = canvasElement.querySelectorAll<HTMLElement>(".main-screen-pane")
+    const widths = (): number[] => [...panels].map((panel) => Math.round(panel.getBoundingClientRect().width))
+    const sideBySide = widths()
     await userEvent.pointer({
       target: divider,
       coords: { clientX: x + 100, clientY: y }
     })
-    await waitFor(() => expect(dots()).toHaveLength(2))
+    // Past the preview's minimum each pane takes a page of its own, while the button is still down.
+    await waitFor(async () => {
+      await expect(widths()[1]).toBe(body.clientWidth - 8)
+      await expect(widths()[0]).toBeGreaterThan(sideBySide[0]!)
+    })
     await userEvent.pointer({
       target: divider,
       coords: { clientX: x, clientY: y }
     })
-    await waitFor(() => expect(dots()).toHaveLength(0))
+    await waitFor(() => expect(widths()).toEqual(sideBySide))
     await userEvent.pointer({ target: divider, keys: "[/MouseLeft]" })
-    const panels = canvasElement.querySelectorAll<HTMLElement>(".file-workspace-slide")
+    await waitFor(() => expect(dots()).toHaveLength(0))
     await expect(panels[0].getBoundingClientRect().width).toBeCloseTo(panels[1].getBoundingClientRect().width, 0)
     await expect(canvas.getByRole("textbox", { name: "Draft" })).toHaveValue("Preserved draft")
   }
@@ -514,13 +551,20 @@ export const StableOuterGutters: Story = {
     const dots = (): HTMLButtonElement[] => [
       ...canvasElement.querySelectorAll<HTMLButtonElement>("[data-atlas-page-dots]:not([hidden]) button")
     ]
+    // What stands between a pane's content and the window's edge: the shell's gutter and the pane's own border.
+    // It is the same on both sides, and the same whichever pane is in view.
+    let gutter: number | undefined
     const assertGutters = async (selector: string): Promise<void> => {
       await waitFor(
         async () => {
           const bounds = body.getBoundingClientRect()
           const panel = canvasElement.querySelector(selector)!.getBoundingClientRect()
-          await expect(panel.left - bounds.left).toBeCloseTo(desktopDefaults.gutter * 2, 0)
-          await expect(bounds.right - panel.right).toBeCloseTo(desktopDefaults.gutter * 2, 0)
+          const start = Math.round(panel.left - bounds.left)
+          await expect(start).toBeGreaterThanOrEqual(desktopDefaults.gutter * 2)
+          await expect(start).toBeLessThanOrEqual(desktopDefaults.gutter * 2 + 1)
+          await expect(Math.round(bounds.right - panel.right)).toBe(start)
+          gutter ??= start
+          await expect(start).toBe(gutter)
         },
         { timeout: 3000 }
       )
@@ -535,8 +579,7 @@ export const StableOuterGutters: Story = {
     await assertGutters(".file-workspace-chat")
     await userEvent.click(canvas.getByRole("button", { name: "Wide layout" }))
     await waitFor(() => expect(dots()).toHaveLength(0))
-    await userEvent.click(canvas.getByRole("separator"))
-    for (let i = 0; i < 11; i++) await userEvent.keyboard(i18n.dir() === "rtl" ? "{ArrowLeft}" : "{ArrowRight}")
+    await nudge(userEvent, canvasElement, i18n.dir() === "rtl" ? "ArrowLeft" : "ArrowRight", 11)
     await waitFor(() => expect(dots()).toHaveLength(2))
     await assertGutters(".file-workspace-chat")
     await userEvent.click(dots()[1])
@@ -566,7 +609,7 @@ export const NavigationDuringMotion: Story = {
     ]
     await waitFor(() => expect(dots()).toHaveLength(2))
     const original = nav.getBoundingClientRect().left - track.getBoundingClientRect().left
-    const panels = [...canvasElement.querySelectorAll<HTMLElement>(".file-workspace-slide")]
+    const panels = [...canvasElement.querySelectorAll<HTMLElement>(".main-screen-pane")]
     const widths = panels.map((panel) => panel.getBoundingClientRect().width)
     await hoverNavigationEdge(canvasElement)
     await userEvent.click(await canvas.findByRole("button", { name: "Leading" }))
@@ -608,11 +651,16 @@ export const StablePanelGap: Story = {
   name: "面板间距保持稳定",
   globals: { locale: "en" },
   play: async ({ canvas, canvasElement, userEvent }) => {
+    // Between the two panes' contents: a gutter and both borders. Whatever it is at first, it never changes.
+    let between: number | undefined
     const assertGap = async (): Promise<void> => {
       const chat = canvasElement.querySelector(".file-workspace-chat")!.getBoundingClientRect()
       const preview = canvasElement.querySelector(".file-workspace-panel")!.getBoundingClientRect()
       const gap = i18n.dir() === "rtl" ? chat.left - preview.right : preview.left - chat.right
-      await expect(gap).toBeCloseTo(desktopDefaults.gutter * 2, 2)
+      between ??= gap
+      await expect(between).toBeGreaterThanOrEqual(desktopDefaults.gutter * 2)
+      await expect(between).toBeLessThanOrEqual(desktopDefaults.gutter * 2 + 2)
+      await expect(gap).toBeCloseTo(between, 2)
     }
     await userEvent.click(canvas.getByRole("button", { name: "Wide layout" }))
     const dots = (): HTMLButtonElement[] => [
@@ -620,8 +668,7 @@ export const StablePanelGap: Story = {
     ]
     await waitFor(() => expect(dots()).toHaveLength(0))
     await assertGap()
-    await userEvent.click(canvas.getByRole("separator"))
-    for (let i = 0; i < 11; i++) await userEvent.keyboard(i18n.dir() === "rtl" ? "{ArrowLeft}" : "{ArrowRight}")
+    await nudge(userEvent, canvasElement, i18n.dir() === "rtl" ? "ArrowLeft" : "ArrowRight", 11)
     await waitFor(() => expect(dots()).toHaveLength(2))
     await assertGap()
     for (const index of [2, 1]) {
@@ -647,7 +694,7 @@ export const StablePanelGapRtl: Story = {
 
 export const MainControlsOnly: Story = {
   ...Unified,
-  name: "仅显示主区域控制按钮",
+  name: "主区域各页都显示控制按钮",
   globals: { locale: "en" },
   play: async ({ canvas, canvasElement, userEvent }) => {
     const dots = (): HTMLButtonElement[] => [
@@ -663,7 +710,8 @@ export const MainControlsOnly: Story = {
         await userEvent.click(await canvas.findByRole("button", { name: /^Chat$/ }))
       } else await userEvent.click(dots()[index - 1])
       await waitFor(async () => {
-        if (index === 1) {
+        // The toolbar belongs to the main screen, whichever of its panes is in view; the leading page has none.
+        if (index !== 0) {
           await expect(canvas.getByRole("switch")).toBeVisible()
           await expect(canvas.getByRole("button", { name: "Open workspace" })).toBeVisible()
         } else {
@@ -677,7 +725,7 @@ export const MainControlsOnly: Story = {
 
 export const DragLeftHidesChat: Story = {
   ...Unified,
-  name: "向左拖动隐藏聊天",
+  name: "向左拖动停在聊天的最小宽度",
   globals: { locale: "en" },
   play: async ({ canvas, canvasElement, userEvent }) => {
     await userEvent.click(canvas.getByRole("button", { name: "Wide layout" }))
@@ -685,76 +733,75 @@ export const DragLeftHidesChat: Story = {
       ...canvasElement.querySelectorAll<HTMLButtonElement>("[data-atlas-page-dots]:not([hidden]) button")
     ]
     await waitFor(() => expect(dots()).toHaveLength(0))
-    const divider = canvas.getByRole("separator")
+    const chat = canvasElement.querySelector<HTMLElement>('.main-screen-pane[data-atlas-region="chat"]')!
+    const divider = paneDivider(canvasElement)
     const rect = divider.getBoundingClientRect()
     const x = rect.left + rect.width / 2
     const y = rect.top + 100
-    const dx = i18n.dir() === "rtl" ? 220 : -220
+    // Far past where the chat could follow: it gives way down to its minimum and stays in view.
+    const dx = i18n.dir() === "rtl" ? 400 : -400
+    const before = chat.getBoundingClientRect().width
     await userEvent.pointer({ target: divider, keys: "[MouseLeft>]", coords: { clientX: x, clientY: y } })
     await userEvent.pointer({ target: divider, coords: { clientX: x + dx, clientY: y } })
     await waitFor(async () => {
-      await expect(canvas.queryByRole("textbox", { name: "Draft" })).not.toBeInTheDocument()
-      await expect(canvasElement.querySelector(".file-workspace-slide")!.getBoundingClientRect().width).toBe(0)
+      await expect(chat.getBoundingClientRect().width).toBe(420)
+      await expect(canvas.getByRole("textbox", { name: "Draft" })).toHaveValue("Preserved draft")
       await expect(dots()).toHaveLength(0)
     })
     await userEvent.pointer({ target: divider, coords: { clientX: x, clientY: y } })
-    await waitFor(() => expect(canvas.getByRole("textbox", { name: "Draft" })).toHaveValue("Preserved draft"))
+    await waitFor(() => expect(chat.getBoundingClientRect().width).toBe(before))
     await userEvent.pointer({ target: divider, coords: { clientX: x + dx, clientY: y } })
+    await new Promise((resolve) => requestAnimationFrame(resolve))
     await userEvent.pointer({ target: divider, keys: "[/MouseLeft]" })
-    await userEvent.click(canvas.getByRole("button", { name: "Return to chat" }))
-    await waitFor(() => expect(canvas.getByRole("textbox", { name: "Draft" })).toHaveValue("Preserved draft"))
+    await waitFor(() => expect(chat.getBoundingClientRect().width).toBe(420))
+    await expect(canvas.getByRole("textbox", { name: "Draft" })).toHaveValue("Preserved draft")
   }
 }
 export const DragLeftHidesChatRtl: Story = {
   ...DragLeftHidesChat,
-  name: "向左拖动隐藏聊天 · 从右向左",
+  name: "向左拖动停在聊天的最小宽度 · 从右向左",
   globals: { locale: "ar" }
+}
+
+/** Both panes beside each other again, a gutter apart, with what was typed in each still there. */
+async function sideBySide(canvas: Parameters<NonNullable<Story["play"]>>[0]["canvas"], canvasElement: HTMLElement) {
+  await waitFor(
+    async () => {
+      await expect(canvasElement.querySelectorAll("[data-atlas-page-dots]:not([hidden]) button")).toHaveLength(0)
+      await expect(canvas.getByRole("textbox", { name: "Draft" })).toHaveValue("Preserved draft")
+      const chat = canvasElement.querySelector(".file-workspace-chat")!.getBoundingClientRect()
+      const preview = canvasElement.querySelector(".file-workspace-panel")!.getBoundingClientRect()
+      await expect(chat.width).toBeGreaterThan(320)
+      await expect(preview.left - chat.right).toBeGreaterThanOrEqual(desktopDefaults.gutter * 2)
+      await expect(preview.left - chat.right).toBeLessThanOrEqual(desktopDefaults.gutter * 2 + 2)
+      await expect(preview.right).toBeLessThanOrEqual(
+        canvasElement.querySelector(".main-window-body")!.getBoundingClientRect().right
+      )
+    },
+    { timeout: 3000 }
+  )
+  await expect(canvas.getByRole("textbox", { name: "Editor draft" })).toHaveValue("Preserved edit")
 }
 
 export const RestoreAfterDragging: Story = {
   ...Unified,
-  name: "拖动后恢复布局",
+  name: "查看模式后恢复布局",
   parameters: { realPreviewControls: true },
   globals: { locale: "en" },
   play: async ({ canvas, canvasElement, userEvent }) => {
     await userEvent.click(canvas.getByRole("button", { name: "Wide layout" }))
-    const dots = (): HTMLButtonElement[] => [
-      ...canvasElement.querySelectorAll<HTMLButtonElement>("[data-atlas-page-dots]:not([hidden]) button")
-    ]
-    await waitFor(() => expect(dots()).toHaveLength(0))
-    for (const delta of [-240, 100]) {
-      const divider = canvas.getByRole("separator")
-      const bounds = divider.getBoundingClientRect()
-      const x = bounds.left + bounds.width / 2
-      const y = bounds.top + 180
-      await userEvent.pointer({ target: divider, keys: "[MouseLeft>]", coords: { clientX: x, clientY: y } })
-      await userEvent.pointer({ target: divider, coords: { clientX: x + delta, clientY: y } })
-      await userEvent.pointer({ target: divider, coords: { clientX: x + delta + Math.sign(delta) * 2, clientY: y } })
-      await userEvent.pointer({ target: divider, keys: "[/MouseLeft]" })
-      if (delta > 0) {
-        await waitFor(() => expect(dots()).toHaveLength(2))
-        await userEvent.click(dots()[1])
-      }
+    await sideBySide(canvas, canvasElement)
+    // The preview's own control gives it the whole page and takes it back; twice, to see it return the same.
+    for (let round = 0; round < 2; round++) {
+      await userEvent.click(canvas.getByRole("button", { name: "Maximize" }))
       const restore = await canvas.findByRole("button", { name: "Restore" })
-      await waitFor(() => expect(restore).toBeVisible())
-      await expect(restore).toHaveAttribute("aria-pressed", "true")
+      await waitFor(async () => {
+        await expect(restore).toBeVisible()
+        await expect(restore).toHaveAttribute("aria-pressed", "true")
+        await expect(canvasElement.querySelector(".desktop-shell-divider")).toBeNull()
+      })
       await userEvent.click(restore)
-      await waitFor(
-        async () => {
-          await expect(dots()).toHaveLength(0)
-          await expect(canvas.getByRole("button", { name: "Maximize" })).toBeVisible()
-          await expect(canvas.getByRole("textbox", { name: "Draft" })).toHaveValue("Preserved draft")
-          const chat = canvasElement.querySelector(".file-workspace-chat")!.getBoundingClientRect()
-          const preview = canvasElement.querySelector(".file-workspace-panel")!.getBoundingClientRect()
-          await expect(chat.width).toBeGreaterThan(320)
-          await expect(preview.left - chat.right).toBeCloseTo(desktopDefaults.gutter * 2, 1)
-          await expect(preview.right).toBeLessThanOrEqual(
-            canvasElement.querySelector(".main-window-body")!.getBoundingClientRect().right
-          )
-        },
-        { timeout: 3000 }
-      )
-      await expect(canvas.getByRole("textbox", { name: "Editor draft" })).toHaveValue("Preserved edit")
+      await sideBySide(canvas, canvasElement)
     }
   }
 }
@@ -766,34 +813,19 @@ export const TitlebarRestoreThenClose: Story = {
   globals: { locale: "en" },
   play: async ({ canvas, canvasElement, userEvent }) => {
     await userEvent.click(canvas.getByRole("button", { name: "Wide layout" }))
-    const dots = (): HTMLButtonElement[] => [
-      ...canvasElement.querySelectorAll<HTMLButtonElement>("[data-atlas-page-dots]:not([hidden]) button")
-    ]
-    await waitFor(() => expect(dots()).toHaveLength(0))
-    const divider = canvas.getByRole("separator", { name: "Resize workspace" })
-    await userEvent.click(divider)
-    for (let i = 0; i < 5; i++) await userEvent.keyboard("{ArrowRight}")
-    await waitFor(() => expect(dots()).toHaveLength(2))
-    await userEvent.click(dots()[1])
+    await sideBySide(canvas, canvasElement)
+    await userEvent.click(canvas.getByRole("button", { name: "Maximize" }))
     await waitFor(() => expect(canvas.getByRole("button", { name: "Restore" })).toBeVisible())
-    await userEvent.click(dots()[0])
-    await userEvent.click(await canvas.findByRole("button", { name: "Close workspace" }))
-    await waitFor(
-      async () => {
-        await expect(dots()).toHaveLength(0)
-        await expect(canvas.getByRole("button", { name: "Maximize" })).toBeVisible()
-        await expect(canvas.getByRole("textbox", { name: "Draft" })).toHaveValue("Preserved draft")
-        const chat = canvasElement.querySelector(".file-workspace-chat")!.getBoundingClientRect()
-        const preview = canvasElement.querySelector(".file-workspace-panel")!.getBoundingClientRect()
-        await expect(chat.width).toBeGreaterThan(320)
-        await expect(preview.left - chat.right).toBeCloseTo(desktopDefaults.gutter * 2, 1)
-      },
-      { timeout: 3000 }
-    )
-    await expect(canvas.getByRole("textbox", { name: "Editor draft" })).toHaveValue("Preserved edit")
-    await userEvent.click(canvas.getByRole("button", { name: "Close workspace" }))
+    // From the title bar, the first press takes the preview out of view mode; the second closes it.
+    const titlebar = within(canvasElement.querySelector<HTMLElement>(".main-workspace-toolbar")!)
+    await userEvent.click(await titlebar.findByRole("button", { name: "Close workspace" }))
+    await sideBySide(canvas, canvasElement)
+    await userEvent.click(titlebar.getByRole("button", { name: "Close workspace" }))
     await waitFor(() =>
-      expect(canvasElement.querySelector(".file-workspace-layout")).toHaveAttribute("data-open", "false")
+      expect(canvasElement.querySelector('.main-screen-pane[data-atlas-region="preview"]')).toHaveAttribute(
+        "data-atlas-collapsed",
+        "true"
+      )
     )
     await expect(canvas.getByRole("button", { name: "Open workspace" })).toBeVisible()
     await expect(canvas.getByRole("textbox", { name: "Draft" })).toHaveValue("Preserved draft")
@@ -817,7 +849,8 @@ export const ThreeScreenTransitions: Story = {
           if (index > 0 && dots().length > 0) await expect(dots()[index - 1]).toHaveAttribute("aria-current", "page")
           await expect(host).toHaveAttribute("data-main-screen", index === 0 ? "leading" : "main")
           await expect(host).toHaveAttribute("data-canvas-moving", "false")
-          await expect(canvas.queryByRole("switch") !== null).toBe(index === 1)
+          // The toolbar, with its pin, belongs to the main screen on either of its pages; the leading page has none.
+          await expect(canvas.queryByRole("switch") !== null).toBe(index !== 0)
         },
         { timeout: 3000 }
       )
@@ -860,19 +893,21 @@ export const ThreeScreenTransitions: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "Wide layout" }))
     await settled(1, 2)
     const draft = canvas.getByRole("textbox", { name: "Draft" })
-    await userEvent.click(canvas.getByRole("separator", { name: i18n.t("workspace.resize") }))
-    for (let i = 0; i < 11; i++) await userEvent.keyboard(i18n.dir() === "rtl" ? "{ArrowLeft}" : "{ArrowRight}")
+    await nudge(userEvent, canvasElement, i18n.dir() === "rtl" ? "ArrowLeft" : "ArrowRight", 11)
     await settled(1, 3)
     await userEvent.click(dots()[1])
     await settled(2, 3)
-    await userEvent.click(canvas.getByRole("button", { name: i18n.t("workspace.exitViewMode") }))
-    await settled(1, 2)
+    // Split by hand, the panes stay pages of their own; what was typed in each is still there.
     await expect(canvas.getByRole("textbox", { name: "Draft" })).toBe(draft)
     await expect(draft).toHaveValue("Preserved draft / retained")
     await expect(canvas.getByRole("textbox", { name: "Editor draft" })).toHaveValue("Preserved edit")
-    await userEvent.click(canvas.getByRole("button", { name: "Close workspace" }))
+    const panel = within(canvasElement.querySelector<HTMLElement>("#file-workspace-panel")!)
+    await userEvent.click(panel.getByRole("button", { name: "Close workspace" }))
     await settled(1, 2)
-    await expect(canvasElement.querySelector(".file-workspace-layout")).toHaveAttribute("data-open", "false")
+    await expect(canvasElement.querySelector('.main-screen-pane[data-atlas-region="preview"]')).toHaveAttribute(
+      "data-atlas-collapsed",
+      "true"
+    )
   }
 }
 export const ThreeScreenTransitionsRtl: Story = {
@@ -899,7 +934,7 @@ export const SplitFromMainStaysOnMain: Story = {
       await expect(dots()).toHaveLength(0)
       await expect(host).toHaveAttribute("data-main-screen", "main")
     })
-    const divider = canvas.getByRole("separator")
+    const divider = paneDivider(canvasElement)
     const bounds = divider.getBoundingClientRect()
     const x = bounds.left + bounds.width / 2
     const y = bounds.top + 150

@@ -24,16 +24,22 @@ export const PointerSplitAndReverse = { ...source.PointerSplitAndReverse, name: 
 export const StableOuterGutters = { ...source.StableOuterGutters, name: "外侧间距保持稳定" }
 export const StableOuterGuttersRtl = { ...source.StableOuterGuttersRtl, name: "外侧间距保持稳定 · 从右向左" }
 export const NavigationDuringMotion = { ...source.NavigationDuringMotion, name: "动画过程中操作导航" }
-export const NavigationDuringMotionPinned = { ...source.NavigationDuringMotionPinned, name: "动画过程中操作导航 · 固定侧栏" }
+export const NavigationDuringMotionPinned = {
+  ...source.NavigationDuringMotionPinned,
+  name: "动画过程中操作导航 · 固定侧栏"
+}
 export const NavigationDuringMotionRtl = { ...source.NavigationDuringMotionRtl, name: "动画过程中操作导航 · 从右向左" }
 export const StablePanelGap = { ...source.StablePanelGap, name: "面板间距保持稳定" }
 export const StablePanelGapRtl = { ...source.StablePanelGapRtl, name: "面板间距保持稳定 · 从右向左" }
-export const MainControlsOnly = { ...source.MainControlsOnly, name: "仅显示主区域控制按钮" }
-export const DragLeftHidesChat = { ...source.DragLeftHidesChat, name: "向左拖动隐藏聊天" }
-export const DragLeftHidesChatRtl = { ...source.DragLeftHidesChatRtl, name: "向左拖动隐藏聊天 · 从右向左" }
-export const RestoreAfterDragging = { ...source.RestoreAfterDragging, name: "拖动后恢复布局" }
+export const MainControlsOnly = { ...source.MainControlsOnly, name: "主区域各页都显示控制按钮" }
+export const DragLeftHidesChat = { ...source.DragLeftHidesChat, name: "向左拖动停在聊天的最小宽度" }
+export const DragLeftHidesChatRtl = { ...source.DragLeftHidesChatRtl, name: "向左拖动停在聊天的最小宽度 · 从右向左" }
+export const RestoreAfterDragging = { ...source.RestoreAfterDragging, name: "查看模式后恢复布局" }
 export const TitlebarRestoreThenClose = { ...source.TitlebarRestoreThenClose, name: "标题栏恢复后关闭" }
 export const ThreeScreenTransitions = { ...source.ThreeScreenTransitions, name: "三个区域之间切换" }
 export const ThreeScreenTransitionsRtl = { ...source.ThreeScreenTransitionsRtl, name: "三个区域之间切换 · 从右向左" }
 export const SplitFromMainStaysOnMain = { ...source.SplitFromMainStaysOnMain, name: "从主区域分栏后保持主区域" }
-export const SplitFromMainStaysOnMainRtl = { ...source.SplitFromMainStaysOnMainRtl, name: "从主区域分栏后保持主区域 · 从右向左" }
+export const SplitFromMainStaysOnMainRtl = {
+  ...source.SplitFromMainStaysOnMainRtl,
+  name: "从主区域分栏后保持主区域 · 从右向左"
+}
