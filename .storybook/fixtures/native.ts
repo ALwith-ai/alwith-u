@@ -130,6 +130,16 @@ export function installNativeMock(os: "macos" | "windows" | "linux" = "macos"): 
   mockIPC(handleNativeRequest, { shouldMockEvents: true })
 }
 
+const fileOperations: Record<string, NativeRequest["operation"] | undefined> = {
+  "plugin:alwith-fs|workspace_stat": "stat",
+  "plugin:alwith-fs|workspace_read_directory": "readDirectory",
+  "plugin:alwith-fs|workspace_read_file": "readFile",
+  "plugin:alwith-fs|workspace_write_file": "writeFile",
+  "plugin:alwith-fs|workspace_create_directory": "createDirectory",
+  "plugin:alwith-fs|workspace_remove": "remove",
+  "plugin:alwith-fs|workspace_move": "move",
+  "plugin:alwith-fs|workspace_copy": "copy"
+}
 export function handleNativeRequest(command: string, payload?: unknown): unknown {
   const args = (payload ?? {}) as Record<string, unknown>
   nativeCalls.push({ command, payload })
@@ -192,8 +202,13 @@ export function handleNativeRequest(command: string, payload?: unknown): unknown
     return { kind: "text", text: new TextDecoder().decode(bytes) }
   }
   if (command === "draft_directory") return args.cwd ?? QUICK_DIRECTORY
-  if (command === "workspace_open") return args.path ?? PROJECT_DIRECTORY
-  if (command === "workspace_file") return fileRequest(args.request as NativeRequest)
+  if (command === "workspace_open" || command === "plugin:alwith-fs|workspace_open")
+    return args.path ?? PROJECT_DIRECTORY
+  // The file system module asks for each operation by a command of its own.
+  const operation = fileOperations[command]
+  if (operation) return fileRequest({ ...(args as Omit<NativeRequest, "operation">), operation }) ?? null
+  if (command === "plugin:alwith-fs|workspace_watch") return null
+  if (command === "plugin:alwith-fs|capability_roots") return [PROJECT_DIRECTORY]
   if (command === "show_main_window") {
     navigatePreview("chat")
     return
