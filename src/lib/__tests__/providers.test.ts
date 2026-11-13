@@ -10,7 +10,7 @@ import {
   resolveSessionModel
 } from "../providers"
 
-test("Desktop defaults prefer configured providers and leave native defaults to the engine", () => {
+test("session models stay strict while drafts may inherit configured defaults", () => {
   const snapshot: ProviderSnapshot = {
     revision: 1,
     appliedRevision: 1,
@@ -20,7 +20,8 @@ test("Desktop defaults prefer configured providers and leave native defaults to 
     customProviders: []
   }
   expect(resolveSessionModel(null, snapshot)).toBeNull()
-  expect(resolveSessionModel("gateway:removed:model", snapshot)).toBeNull()
+  expect(() => resolveSessionModel("gateway:removed:model", snapshot)).toThrow(/unavailable/)
+  expect(resolveSessionModel("gateway:removed:model", snapshot, "draft")).toBeNull()
   snapshot.customProviders.push({
     id: "custom_private",
     name: "Private",
@@ -31,7 +32,10 @@ test("Desktop defaults prefer configured providers and leave native defaults to 
     ]
   })
   expect(resolveSessionModel(null, snapshot)).toBe(gatewayModelId("custom_private", "model-a"))
-  expect(resolveSessionModel("gateway:removed:model", snapshot)).toBe(gatewayModelId("custom_private", "model-a"))
+  expect(() => resolveSessionModel("gateway:removed:model", snapshot)).toThrow(/unavailable/)
+  expect(resolveSessionModel("gateway:removed:model", snapshot, "draft")).toBe(
+    gatewayModelId("custom_private", "model-a")
+  )
   expect(resolveSessionModel(gatewayModelId("custom_private", "model-b"), snapshot)).toBe(
     gatewayModelId("custom_private", "model-b")
   )
@@ -164,12 +168,14 @@ test("a failed custom provider snapshot preserves the explicitly selected native
     status: "failed",
     error: "Provider My GLM gateway (custom_broken) could not apply (-32602)",
     providers: {},
-    customProviders: [{
-      id: "custom_broken",
-      name: "My GLM gateway",
-      baseUrl: "https://gateway.example.test/v1",
-      models: [{ api_id: "glm-5", label: "GLM 5" }]
-    }]
+    customProviders: [
+      {
+        id: "custom_broken",
+        name: "My GLM gateway",
+        baseUrl: "https://gateway.example.test/v1",
+        models: [{ api_id: "glm-5", label: "GLM 5" }]
+      }
+    ]
   }
   expect(resolveSessionModel("gpt-6.1-sol", snapshot, "session")).toBe("gpt-6.1-sol")
   expect(resolveSessionModel("gpt-6.1-sol", snapshot, "draft")).toBe("gpt-6.1-sol")

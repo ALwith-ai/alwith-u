@@ -154,7 +154,6 @@ try {
             mode: "catalog",
             bearerToken: provider.apiKey,
             config: {
-              web_search: "disabled",
               model_reasoning_summary: "none",
               model_catalog_json: resolve("src-tauri/resources/custom/models.json")
             }

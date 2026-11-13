@@ -98,7 +98,7 @@ try {
           name: id,
           mode: "catalog",
           bearerToken: "local-fixture",
-          config: { model_catalog_json: catalog, web_search: "disabled" }
+          config: { model_catalog_json: catalog }
         },
         alwith: { models: [{ id: "deepseek-flash" }, { id: "alternate-model" }] }
       }

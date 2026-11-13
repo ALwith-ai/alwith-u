@@ -77,7 +77,6 @@ async function configure() {
         mode: "catalog",
         bearerToken: key,
         config: {
-          web_search: "disabled",
           model_catalog_json: resolve(import.meta.dirname, "../src-tauri/resources/deepseek/models.json")
         }
       },

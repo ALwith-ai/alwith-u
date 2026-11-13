@@ -101,8 +101,8 @@ export function resolveSessionModel(
     if (migrated) return migrated
   }
   if (model !== null && (!model.startsWith("gateway:") || models.includes(model))) return model
-  if (isAccountModel(model) && purpose === "session")
-    throw new Error("The selected ALwith account model is unavailable. Select another model before sending.")
+  if (model !== null && purpose === "session")
+    throw new Error("The selected provider connection or model is unavailable. Select another model before sending.")
   return models[0] ?? null
 }
 

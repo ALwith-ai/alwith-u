@@ -165,7 +165,7 @@ fn connection_params(
 ) -> Connection {
     let models: Vec<_> = provider.models.iter().map(|model| serde_json::json!({"id":model.api_id,"label":model.label,"description":model.description,"contextWindow":model.context_window})).collect();
     let mut config = if known {
-        serde_json::json!({"web_search":"disabled","model_reasoning_summary":"none"})
+        serde_json::json!({"model_reasoning_summary":"none"})
     } else {
         serde_json::json!({"features":{"code_mode":false,"code_mode_only":false}})
     };
@@ -184,6 +184,32 @@ fn connection_params(
 mod connection_tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn enterprise_connections_preserve_codex_search_defaults() {
+        for known in [false, true] {
+            let provider = parse(json!([{"provider_id":"from-api","auth_type":"enterprise_session","name":"Issued","base_url":"https://issued.test","models":[{"api_id":"issued/model","label":"Issued"}]}])).unwrap().unwrap();
+            let connection = connection_params(
+                provider_id("account", &provider.provider_id),
+                provider,
+                alwith_enterprise_client::RelayConnection {
+                    base_url: "http://127.0.0.1:8123/v1".into(),
+                    api_key: "test-secret".into(),
+                },
+                "test-catalog.json".into(),
+                known,
+            );
+            let config = &connection.params["_meta"]["codex"]["config"];
+            assert!(config.get("web_search").is_none(), "known={known}");
+            assert_eq!(config["model_catalog_json"], "test-catalog.json");
+            if known {
+                assert_eq!(config["model_reasoning_summary"], "none");
+            } else {
+                assert_eq!(config["features"], json!({"code_mode":false,"code_mode_only":false}));
+            }
+        }
+    }
+
     #[test]
     fn relay_credentials_are_only_in_the_native_runtime_request() {
         let provider = parse(json!([{"provider_id":"from-api","auth_type":"enterprise_session","name":"Issued","base_url":"https://issued.test","models":[{"api_id":"issued/model","label":"Issued","context_window":120000}]}])).unwrap().unwrap();
