@@ -24,10 +24,7 @@ export const PointerSplitAndReverse = { ...source.PointerSplitAndReverse, name: 
 export const StableOuterGutters = { ...source.StableOuterGutters, name: "外侧间距保持稳定" }
 export const StableOuterGuttersRtl = { ...source.StableOuterGuttersRtl, name: "外侧间距保持稳定 · 从右向左" }
 export const NavigationDuringMotion = { ...source.NavigationDuringMotion, name: "动画过程中操作导航" }
-export const NavigationDuringMotionPinned = {
-  ...source.NavigationDuringMotionPinned,
-  name: "动画过程中操作导航 · 固定侧栏"
-}
+export const NavigationDuringMotionPinned = { ...source.NavigationDuringMotionPinned, name: "动画过程中操作导航 · 固定侧栏" }
 export const NavigationDuringMotionRtl = { ...source.NavigationDuringMotionRtl, name: "动画过程中操作导航 · 从右向左" }
 export const StablePanelGap = { ...source.StablePanelGap, name: "面板间距保持稳定" }
 export const StablePanelGapRtl = { ...source.StablePanelGapRtl, name: "面板间距保持稳定 · 从右向左" }
@@ -39,7 +36,4 @@ export const TitlebarRestoreThenClose = { ...source.TitlebarRestoreThenClose, na
 export const ThreeScreenTransitions = { ...source.ThreeScreenTransitions, name: "三个区域之间切换" }
 export const ThreeScreenTransitionsRtl = { ...source.ThreeScreenTransitionsRtl, name: "三个区域之间切换 · 从右向左" }
 export const SplitFromMainStaysOnMain = { ...source.SplitFromMainStaysOnMain, name: "从主区域分栏后保持主区域" }
-export const SplitFromMainStaysOnMainRtl = {
-  ...source.SplitFromMainStaysOnMainRtl,
-  name: "从主区域分栏后保持主区域 · 从右向左"
-}
+export const SplitFromMainStaysOnMainRtl = { ...source.SplitFromMainStaysOnMainRtl, name: "从主区域分栏后保持主区域 · 从右向左" }

@@ -157,7 +157,7 @@ export const EqualPanels: Story = {
       async () =>
         await expect(canvasElement.querySelector(".file-workspace-tree")).toHaveAttribute("data-collapsed", "false")
     )
-    await userEvent.click(canvas.getByRole("button", { name: "Close preview" }))
+    await userEvent.click(canvas.getByRole("button", { name: "Close workspace" }))
     await waitFor(async () => expect(chat.getBoundingClientRect().width).toBe(layout.clientWidth - edges))
     await userEvent.click(canvas.getByRole("button", { name: "Open preview" }))
     await waitFor(
