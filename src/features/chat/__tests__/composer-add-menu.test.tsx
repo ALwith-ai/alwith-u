@@ -354,7 +354,7 @@ test("slash groups commands, skills and callable apps in keyboard order", async 
       { id: "blocked", runtimeName: "Blocked", enabled: true, callable: false }
     ]
   })
-  render(<Composer session={{ ...session, commands: [...session.commands].reverse() }} />)
+  render(<Composer session={{ ...session, commands: session.commands.toReversed() }} />)
   const input = await slash()
   await screen.findByRole("option", { name: "Sites" })
   expect(screen.getByRole("group", { name: "命令" })).toContainElement(screen.getByRole("option", { name: /review/ }))

@@ -49,7 +49,7 @@ function scenario(options: Scenario): Story["play"] {
     if (options.mode !== "code")
       await userEvent.click(canvas.getByRole("tab", { name: options.mode === "password" ? "密码登录" : "注册" }))
     const email = options.email ?? "lin.ran@example.test"
-    if (email) fireEvent.change(canvas.getByLabelText("邮箱"), { target: { value: email } })
+    if (email) void fireEvent.change(canvas.getByLabelText("邮箱"), { target: { value: email } })
     if (options.stage === "email") return
     if (options.stage === "send") {
       configureAuthScenario(args.authCase, args.authError)
@@ -66,9 +66,9 @@ function scenario(options: Scenario): Story["play"] {
     const code = options.code ?? "123456"
     const password = options.password ?? "DemoPassword123!"
     if (options.mode !== "password" && code)
-      fireEvent.change(canvas.getByLabelText("验证码"), { target: { value: code } })
+      void fireEvent.change(canvas.getByLabelText("验证码"), { target: { value: code } })
     if (options.mode !== "code" && password)
-      fireEvent.change(canvas.getByLabelText("密码", { exact: true }), { target: { value: password } })
+      void fireEvent.change(canvas.getByLabelText("密码", { exact: true }), { target: { value: password } })
     if (options.stage === "filled") return
     configureAuthScenario(args.authCase, args.authError)
     const submit = canvas.getByRole("button", { name: options.mode === "register" ? /^注册$/ : /^登录$/ })

@@ -6,14 +6,14 @@ import { describeProviderError } from "@/lib/provider-errors"
 /** Never log browser proofs, callback URLs, account tokens or request payloads. */
 export function logEnterpriseError(stage: string, reason: unknown): void {
   const detail = describeProviderError(reason)
-    .replace(/\b(?:https?|wss?):\/\/[^\s<>"']+/gi, (value) => {
+    .replaceAll(/\b(?:https?|wss?):\/\/[^\s<>"']+/gi, (value) => {
       try {
         return `${new URL(value).origin}/[redacted]`
       } catch {
         return "[redacted-url]"
       }
     })
-    .replace(/\b(state|ticket|otp|proof)(["']*\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s,;}\]]+)/gi, "$1$2[redacted]")
+    .replaceAll(/\b(state|ticket|otp|proof)(["']*\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s,;}\]]+)/gi, "$1$2[redacted]")
   logBackgroundError(`enterprise/${stage}`, detail)
 }
 

@@ -7,10 +7,11 @@ test("a closed file's view survives document replacement while a fresh navigatio
   const controller = {} as EditorController
   const view = { cursorState: [{ position: { lineNumber: 12, column: 4 } }], viewState: { scrollTop: 230 } }
   let cursor = (): void => {}
+  const restoreViewState = vi.fn()
   const instance = {
     getModel: () => ({}),
     saveViewState: () => view,
-    restoreViewState: vi.fn(),
+    restoreViewState,
     onDidChangeCursorPosition: (listener: () => void) => {
       cursor = listener
       return { dispose: vi.fn() }
@@ -22,14 +23,14 @@ test("a closed file's view survives document replacement while a fresh navigatio
   cursor()
   first()
   const reopened = preserveFileTabView(controller, instance, () => "/a.txt", navigation)
-  expect(instance.restoreViewState).toHaveBeenCalledWith(view)
+  expect(restoreViewState).toHaveBeenCalledWith(view)
   reopened()
-  vi.mocked(instance.restoreViewState).mockClear()
+  restoreViewState.mockClear()
   const jump = preserveFileTabView(controller, instance, () => "/a.txt", { ...navigation })
-  expect(instance.restoreViewState).not.toHaveBeenCalled()
+  expect(restoreViewState).not.toHaveBeenCalled()
   jump()
   releaseFileTabViews(controller)
   const cleared = preserveFileTabView(controller, instance, () => "/a.txt")
-  expect(instance.restoreViewState).not.toHaveBeenCalled()
+  expect(restoreViewState).not.toHaveBeenCalled()
   cleared()
 })

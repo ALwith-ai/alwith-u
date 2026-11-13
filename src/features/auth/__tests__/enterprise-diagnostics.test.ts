@@ -32,12 +32,12 @@ test("operation failures are traced and rethrown intact", async () => {
 })
 
 test("HTTP rejection diagnostics retain the response for authentication retry and include server correlation", async () => {
-  const response = new Response(
-    JSON.stringify({
+  const response = Response.json(
+    {
       detail: "Enterprise authorization expired",
       error: { code: "invalid_grant" },
       access_token: "private-token"
-    }),
+    },
     { status: 401, headers: { "x-request-id": "auth-request" } }
   )
   await logEnterpriseResponse("GET /api/v1/me/enterprise/finture", response)

@@ -11,7 +11,7 @@ export function dependencyPatchReload(root = path.resolve(import.meta.dirname, "
   if (existsSync(directory)) {
     for (const file of readdirSync(directory)
       .filter((file) => file.endsWith(".patch"))
-      .sort()) {
+      .toSorted()) {
       hash
         .update(file)
         .update("\0")

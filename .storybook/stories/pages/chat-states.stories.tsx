@@ -131,7 +131,7 @@ export const Running: Story = {
     const timer = window.setInterval(() => {
       client.store.setState((state) => {
         const session = state.sessions.streaming
-        if (!session || session.state !== "running" || state.runStates.streaming?.state !== "running") return state
+        if (session?.state !== "running" || state.runStates.streaming?.state !== "running") return state
         if (index === chunks.length) {
           index = 0
           return { sessions: { ...state.sessions, streaming: makeSession("streaming") } }
@@ -168,7 +168,7 @@ export const QuestionSubmitting: Story = {
   parameters: { pageStateGroup: "03 需要用户处理" },
   args: { chatCase: "questionSubmitting" },
   play: async ({ canvas, userEvent }) => {
-    const prompt = client.prompt
+    const prompt = client.prompt.bind(client)
     client.prompt = () => new Promise(() => {})
     try {
       const submit = canvas.getAllByRole("button", { name: "提交回答" })[0]
@@ -203,7 +203,7 @@ export const ErrorRetryFailed: Story = {
   parameters: { pageStateGroup: "06 停止与异常" },
   args: { chatCase: "error" },
   play: async ({ canvas, userEvent }) => {
-    const retry = client.retrySession
+    const retry = client.retrySession.bind(client)
     client.retrySession = () => Promise.reject(new globalThis.Error("重试仍未成功，请检查网络后手动重试。"))
     try {
       await userEvent.click(await canvas.findByRole("button", { name: /秒后重试/ }))

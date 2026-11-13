@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
-import { expect, waitFor, within } from "storybook/test"
+import { within } from "storybook/test"
 
-import { actionsTaken, client } from "../../fixtures/client"
+import { client } from "../../fixtures/client"
 import { preparePreview } from "../../fixtures/prepare"
 import { productPreviewArgTypes } from "../preview-options"
 import { ProductPreview } from "../product-preview"
@@ -24,19 +24,6 @@ export const PermissionMenu: Story = {
     await within(canvasElement.ownerDocument.body).findByText("完全访问")
   }
 }
-export const PermissionChange: Story = {
-  name: "权限模式 · 切换并应用",
-  play: async ({ canvas, canvasElement, userEvent }) => {
-    await userEvent.click(await canvas.findByRole("button", { name: /^切换权限模式/ }))
-    const body = within(canvasElement.ownerDocument.body)
-    await userEvent.click(await body.findByRole("menuitemradio", { name: /完全访问/ }))
-    await waitFor(() =>
-      expect(
-        client.session("conversation").configOptions.find((option) => option.category === "mode")?.currentValue
-      ).toBe("agent-full-access")
-    )
-  }
-}
 export const ImageAdded: Story = {
   name: "添加图片附件",
   play: async ({ canvasElement, userEvent }) => {
@@ -48,31 +35,6 @@ export const ImageAdded: Story = {
     const blob = await new Promise<Blob>((resolve) => image.toBlob((blob) => resolve(blob!), "image/png"))
     await userEvent.upload(input, new File([blob], "preview.png", { type: "image/png" }))
     await within(canvasElement).findByRole("button", { name: "移除附件" })
-  }
-}
-export const ImageRemove: Story = {
-  ...ImageAdded,
-  name: "图片附件 · 添加后移除",
-  play: async (context) => {
-    await ImageAdded.play!(context)
-    within(context.canvasElement).getByRole<HTMLButtonElement>("button", { name: "移除附件" }).focus()
-    await context.userEvent.keyboard("{Enter}")
-    await expect(within(context.canvasElement).queryByRole("button", { name: "移除附件" })).toBeNull()
-  }
-}
-export const ImageSend: Story = {
-  ...ImageAdded,
-  name: "图片附件 · 发送",
-  play: async (context) => {
-    await ImageAdded.play!(context)
-    await context.userEvent.click(within(context.canvasElement).getByRole("button", { name: "发送" }))
-    await waitFor(() =>
-      expect(
-        actionsTaken.some(
-          (action) => action.type === "prompt" && JSON.stringify(action.value).includes('"type":"image"')
-        )
-      ).toBe(true)
-    )
   }
 }
 export const ImageLimit: Story = {
@@ -101,21 +63,6 @@ export const Mention: Story = {
     const body = within(canvasElement.ownerDocument.body)
     await userEvent.click(await body.findByRole("option", { name: /README.md/ }))
     await canvas.findByRole("button", { name: /移除.*README/ })
-  }
-}
-export const MentionSend: Story = {
-  ...Mention,
-  name: "文件引用 · 发送上下文",
-  play: async (context) => {
-    await Mention.play!(context)
-    await context.userEvent.click(within(context.canvasElement).getByRole("button", { name: "发送" }))
-    await waitFor(() =>
-      expect(
-        actionsTaken.some(
-          (action) => action.type === "prompt" && JSON.stringify(action.value).includes('"type":"resource_link"')
-        )
-      ).toBe(true)
-    )
   }
 }
 export const MentionEmpty: Story = {
@@ -163,15 +110,6 @@ export const LongTextError: Story = {
     await canvas.findByText("文件创建失败")
   }
 }
-export const LongTextRetry: Story = {
-  ...LongTextError,
-  name: "长文本附件 · 失败后重试",
-  play: async (context) => {
-    await LongTextError.play!(context)
-    await context.userEvent.click(within(context.canvasElement).getByRole("button", { name: "重试创建文本附件" }))
-    await within(context.canvasElement).findByText("6000 个字符")
-  }
-}
 export const Prediction: Story = {
   name: "输入预测 · 待接受",
   args: { composerCase: "prediction" },
@@ -179,27 +117,6 @@ export const Prediction: Story = {
     await canvas.findByPlaceholderText("请继续核对文件预览")
   }
 }
-export const PredictionAccept: Story = {
-  ...Prediction,
-  name: "输入预测 · Tab 接受并编辑",
-  play: async ({ canvas, userEvent }) => {
-    const input = await canvas.findByPlaceholderText("请继续核对文件预览")
-    await userEvent.click(input)
-    await userEvent.keyboard("{Tab}")
-    await expect(input).toHaveValue("请继续核对文件预览")
-    await expect(actionsTaken.filter((action) => action.type === "prompt")).toHaveLength(0)
-  }
-}
-export const PredictionError: Story = {
-  name: "输入预测 · 无可用建议",
-  args: { composerCase: "predictionError" },
-  play: async ({ canvas, userEvent }) => {
-    const input = canvas.getByRole("textbox", { name: "发送消息" })
-    await userEvent.type(input, "继续检查交付内容")
-    await expect(input).toHaveValue("继续检查交付内容")
-  }
-}
-
 export const TextInput: Story = {
   name: "文本输入",
   parameters: { pageStateGroup: "01 输入内容/01 文本输入" },

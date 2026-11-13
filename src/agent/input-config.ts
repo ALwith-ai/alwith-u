@@ -1,4 +1,4 @@
-export type InputJson = null | string | number | boolean | InputJson[] | { [key: string]: InputJson }
+type InputJson = null | string | number | boolean | InputJson[] | { [key: string]: InputJson }
 export type SessionInputConfig = { mode: string; config: { [key: string]: InputJson } }
 export type SessionInputConfigSnapshot = { sessionId: string; revision: number; inputConfig: SessionInputConfig | null }
 
@@ -14,7 +14,7 @@ function inputJson(value: unknown, depth = 0): InputJson {
   )
     return Object.fromEntries(
       Object.keys(value)
-        .sort()
+        .toSorted()
         .map((key) => [key, inputJson((value as Record<string, unknown>)[key], depth + 1)])
     )
   throw new Error("Session input config must contain only JSON values")

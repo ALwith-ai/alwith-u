@@ -68,24 +68,24 @@ export default meta
 export const WithoutEditor: StoryObj<typeof meta> = {
   play: async ({ canvas, canvasElement, userEvent }) => {
     const tabs = canvas.getAllByRole("tab")
-    expect(tabs).toHaveLength(3)
-    expect(canvasElement.querySelector(".alwith-editor")).toBeNull()
+    void expect(tabs).toHaveLength(3)
+    void expect(canvasElement.querySelector(".alwith-editor")).toBeNull()
     const rows = tabs.map((tab) => tab.closest<HTMLElement>("[data-tab-id]")!)
     await waitFor(() => {
-      expect(rows[0].getBoundingClientRect().height).toBe(32)
-      expect(rows[0].getBoundingClientRect().width).toBeGreaterThanOrEqual(90)
-      expect(rows[0].getBoundingClientRect().width).toBeLessThanOrEqual(240)
-      expect(rows[1].getBoundingClientRect().left - rows[0].getBoundingClientRect().right).toBeCloseTo(4, 1)
+      void expect(rows[0].getBoundingClientRect().height).toBe(32)
+      void expect(rows[0].getBoundingClientRect().width).toBeGreaterThanOrEqual(90)
+      void expect(rows[0].getBoundingClientRect().width).toBeLessThanOrEqual(240)
+      void expect(rows[1].getBoundingClientRect().left - rows[0].getBoundingClientRect().right).toBeCloseTo(4, 1)
     })
     const add = canvas.getByRole("button", { name: "New page" })
-    expect(add.getBoundingClientRect().width).toBe(30)
-    expect(canvasElement.querySelector(".alwith-workspace-tab-scroll")!.contains(add)).toBe(false)
+    void expect(add.getBoundingClientRect().width).toBe(30)
+    void expect(canvasElement.querySelector(".alwith-workspace-tab-scroll")!.contains(add)).toBe(false)
     for (let index = 0; index < 8; index++) await userEvent.click(add)
     await waitFor(() => {
       const scroll = canvasElement.querySelector<HTMLElement>(".alwith-workspace-tab-scroll")!
-      expect(scroll.scrollWidth).toBeGreaterThan(scroll.clientWidth)
-      expect(rows[0].getBoundingClientRect().width).toBe(90)
+      void expect(scroll.scrollWidth).toBeGreaterThan(scroll.clientWidth)
+      void expect(rows[0].getBoundingClientRect().width).toBe(90)
     })
-    expect(canvasElement.querySelector(".alwith-tab-controls")).toHaveAttribute("data-new-tab-docked", "true")
+    void expect(canvasElement.querySelector(".alwith-tab-controls")).toHaveAttribute("data-new-tab-docked", "true")
   }
 }

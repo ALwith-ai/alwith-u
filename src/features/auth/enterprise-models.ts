@@ -92,14 +92,14 @@ export function createEnterpriseModels(host: EnterpriseModelsHost) {
     toast.error(i18n.t("enterprise.error"))
   }
   const handleEvent = createEnterpriseEventHandler({
-    account: host.account,
+    account: () => host.account(),
     status: () => commands.enterpriseStatus(),
     refreshModels: refresh,
     failed
   })
   return {
-    confirm: providers.confirm,
-    clear: providers.clear,
+    confirm: providers.confirm.bind(providers),
+    clear: providers.clear.bind(providers),
     refresh,
     refreshInBackground(): void {
       void refresh().catch(failed)

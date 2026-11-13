@@ -16,7 +16,7 @@ test("the installed shared projection groups default chats under their registere
     recencyAt: null
   })
   const chat = { cwd: context.chatDirectory, projectId: "default" }
-  const project = { cwd: context.chatDirectory + "/workspace" }
+  const project = { cwd: `${context.chatDirectory  }/workspace` }
   expect(sessionGroup(context, chat).id).toBe("project:default")
   expect(isQuickChatDirectory(context.chatDirectory, context)).toBe(false)
   expect(groupSessions([chat, project], context).map(([id, rows]) => [id, rows])).toEqual([

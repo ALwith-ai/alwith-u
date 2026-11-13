@@ -17,9 +17,9 @@ export async function stageDocs(root: string, destination = join(root, "src-taur
   }
   writeFileSync(
     join(destination, "references/manual.md"),
-    `# ALwith U ${version}\n\n` +
+    `# ALwith U ${version}\n\n${ 
       chapters
         .map((chapter) => `## ${chapter.title}\n\nSource: [${chapter.title}](${chapter.url})\n\n${chapter.text}\n`)
-        .join("\n")
+        .join("\n")}`
   )
 }

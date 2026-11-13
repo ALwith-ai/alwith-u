@@ -64,7 +64,7 @@ const details = chapters.map((chapter) => {
 
 function chapterIndex(id: string): number {
   const index = chapters.findIndex((chapter) => chapter.id === id)
-  if (index < 0) throw new Error(`Unknown guide chapter: ${id}`)
+  if (index === -1) throw new Error(`Unknown guide chapter: ${id}`)
   return index
 }
 

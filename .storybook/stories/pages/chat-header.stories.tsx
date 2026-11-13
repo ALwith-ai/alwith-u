@@ -119,7 +119,7 @@ export const FavoriteCreate: Story = {
     if (!header) throw new Error("Chat header is missing")
     await userEvent.hover(await within(header).findByRole("button", { name: "收藏" }))
     const body = within(canvasElement.ownerDocument.body)
-    fireEvent.click(await body.findByRole("menuitem", { name: "创建集合" }))
+    void fireEvent.click(await body.findByRole("menuitem", { name: "创建集合" }))
     const input = await body.findByRole("textbox", { name: "集合名称" })
     await body.findByRole("button", { name: "确认" })
     input.focus()

@@ -40,13 +40,13 @@ export function createEnterpriseEventHandler(host: EnterpriseEventHost) {
         host.failed("configuration")
       } else {
         if (value.error || value.type === "enterpriseEventStreamInterrupted") {
-          logEnterpriseError(`event/${value.type} generation=${value.generation}`, value.error ?? value)
+          logEnterpriseError(`event/${String(value.type)} generation=${value.generation}`, value.error ?? value)
           host.failed("authorization")
         }
         await host.refreshModels()
       }
     } catch (reason) {
-      logEnterpriseError(`event-refresh/${value.type} generation=${value.generation}`, reason)
+      logEnterpriseError(`event-refresh/${String(value.type)} generation=${value.generation}`, reason)
       if (host.account() === account) host.failed("refresh")
     }
   }

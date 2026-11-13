@@ -82,7 +82,7 @@ const collectionKeyboardCoordinates: KeyboardCoordinateGetter = (event, args) =>
     .filter((item) =>
       item.data.current?.type === "collection" && item.id !== DEFAULT_COLLECTION_ID && droppableRects.has(item.id)
     )
-    .sort((a, b) => droppableRects.get(a.id)!.top - droppableRects.get(b.id)!.top)
+    .toSorted((a, b) => droppableRects.get(a.id)!.top - droppableRects.get(b.id)!.top)
   const index = targets.findIndex((item) => item.id === (over?.id ?? active.id))
   const target = targets[index + (event.code === "ArrowUp" ? -1 : 1)]
   const rect = target && droppableRects.get(target.id)

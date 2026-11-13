@@ -293,7 +293,7 @@ export function makeSession(kind: ChatCase, id: string = kind): Session {
     htmlCode: "下面是 HTML 源码，在聊天中显示为代码块：\n\n```html\n<!doctype html>\n<html lang=\"zh-CN\">\n  <head><title>项目报告</title></head>\n  <body><main><h1>检查结果</h1><p>报告已整理。</p></main></body>\n</html>\n```",
     links: "## 相关链接\n\n- [网页报告（HTML 链接）](https://example.test/report.html)\n- [交付清单（本地 Markdown 文件）](docs/交付清单.md)\n\n网页地址与本地文件链接复用真实产品的链接处理逻辑。",
     diagram: "以下是交付流程：\n\n```mermaid\nflowchart LR\n  A[整理需求] --> B[检查页面]\n  B --> C[交付结果]\n```",
-    math: String.raw`行内公式：$E=mc^2$。` + "\n\n" + String.raw`$$\sum_{i=1}^{n} i = \frac{n(n+1)}{2}$$`,
+    math: `${String.raw`行内公式：$E=mc^2$。`  }\n\n${  String.raw`$$\sum_{i=1}^{n} i = \frac{n(n+1)}{2}$$`}`,
     linkedImage: "项目中的图片：\n\n![品牌示例图](assets/brand.svg)",
     fileResource: "已生成交付资料：\n\n[示例 PDF](samples/sample.pdf)\n\n[任务清单 CSV](data/tasks.csv)"
   }

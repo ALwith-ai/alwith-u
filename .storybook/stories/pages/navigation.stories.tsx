@@ -204,7 +204,7 @@ function searchFor(value: string): Story["play"] {
   return async ({ canvasElement, userEvent }) => {
     await userEvent.click(sidebar(canvasElement).getByRole("button", { name: "搜索聊天…" }))
     const input = await within(canvasElement.ownerDocument.body).findByRole("combobox")
-    fireEvent.change(input, { target: { value } })
+    void fireEvent.change(input, { target: { value } })
   }
 }
 
@@ -392,7 +392,7 @@ async function openCollectionMenu(context: Parameters<NonNullable<Story["play"]>
   const row = await sidebar(context.canvasElement).findByRole("button", { name })
   const trigger = row.parentElement?.querySelector<HTMLElement>(`[aria-label="${name}的更多操作"]`)
   if (!trigger) throw new Error(`Collection menu trigger is missing: ${name}`)
-  fireEvent.click(trigger)
+  void fireEvent.click(trigger)
   return within(context.canvasElement.ownerDocument.body)
 }
 
@@ -760,8 +760,8 @@ export const ActivityHover: Story = {
   play: async ({ canvasElement, userEvent }) => {
     const row = canvasElement.querySelector<HTMLElement>('[data-session-id="conversation"]')
     if (!row) throw new Error("Running activity is missing")
-    fireEvent.keyUp(window, { key: "Meta" })
-    fireEvent.keyUp(window, { key: "Control" })
+    void fireEvent.keyUp(window, { key: "Meta" })
+    void fireEvent.keyUp(window, { key: "Control" })
     await userEvent.hover(row)
     // Focus exposes the real row actions; synthetic hover does not activate CSS :hover.
     row.focus()

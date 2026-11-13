@@ -7,7 +7,7 @@ export function readGuideLocation(): number {
   if (saved === null) return 0
   const { id } = JSON.parse(saved) as { id: string }
   const index = guideChapters.findIndex((chapter) => chapter.id === id)
-  if (index < 0) throw new Error(`Unknown guide chapter: ${id}`)
+  if (index === -1) throw new Error(`Unknown guide chapter: ${id}`)
   return index
 }
 

@@ -19,7 +19,7 @@ export function parseGuide(content: string, metadata: ChapterMetadata[]): GuideC
     if (!/^[a-z][a-z0-9-]*$/.test(entry.id) || ids.has(entry.id)) throw new Error(`Invalid guide ID: ${entry.id}`)
     ids.add(entry.id)
     const end = section.indexOf("\n")
-    if (end < 0) throw new Error(`Empty guide chapter: ${entry.id}`)
+    if (end === -1) throw new Error(`Empty guide chapter: ${entry.id}`)
     return {
       ...entry,
       title: index === 0 ? "Welcome" : section.slice(0, end).trim(),
@@ -37,7 +37,7 @@ export function searchGuide(chapters: GuideChapter[], query: string) {
         /\p{Script=Han}/u.test(word)
           ? [
               word,
-              ...Array.from(word)
+              ...[...word]
                 .slice(1)
                 .map((character, index) => word[index] + character)
             ]
@@ -54,6 +54,6 @@ export function searchGuide(chapters: GuideChapter[], query: string) {
       return { id: chapter.id, title: chapter.title, url: chapter.url, summary: chapter.summary, score }
     })
     .filter((entry) => entry.score > 0)
-    .sort((a, b) => b.score - a.score)
+    .toSorted((a, b) => b.score - a.score)
     .slice(0, 8)
 }

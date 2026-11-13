@@ -13,7 +13,7 @@ export class DesktopCodexClient extends CodexClient {
       ...response,
       apps: response.apps.filter((app) => {
         // These account applications have no corresponding U experience.
-        const name = (app.runtimeName ?? app.id).toLowerCase().replace(/[\s/_-]+/g, "")
+        const name = (app.runtimeName ?? app.id).toLowerCase().replaceAll(/[\s/_-]+/g, "")
         return !["pets", "pages", "space", "chatgptspace", "pagesspace"].includes(name)
       })
     }

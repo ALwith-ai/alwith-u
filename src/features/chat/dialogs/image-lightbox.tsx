@@ -106,7 +106,7 @@ function ImagePreview({
     if (!data) return Promise.reject(new Error("Image data is unavailable"))
     return (exportedPath.current ??= Promise.try(async () => {
       const bytes = Uint8Array.from(atob(data[2]), (character) => character.charCodeAt(0))
-      return await commands.chatWritePastedFile({ name, data: Array.from(bytes) })
+      return await commands.chatWritePastedFile({ name, data: [...bytes] })
     }).catch((error: unknown) => {
       exportedPath.current = null
       throw error

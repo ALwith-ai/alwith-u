@@ -141,8 +141,8 @@ const followsPointer: NonNullable<Story["play"]> = async ({ canvas, canvasElemen
   const before = neighbor.closest("[data-tab-id]")!.getBoundingClientRect()
   const rects = [...canvasElement.querySelectorAll("[data-tab-id]")]
     .map((tab) => tab.getBoundingClientRect())
-    .sort((a, b) => a.left - b.left)
-  expect(rects[1].left - rects[0].right).toBeCloseTo(4, 1)
+    .toSorted((a, b) => a.left - b.left)
+  void expect(rects[1].left - rects[0].right).toBeCloseTo(4, 1)
   const x = start.left + start.width / 2
   const y = start.top + start.height / 2
   const dx = target.left - start.left
@@ -154,17 +154,17 @@ const followsPointer: NonNullable<Story["play"]> = async ({ canvas, canvasElemen
     pointer(document, "pointermove", x + dx, y + 20)
     await waitFor(() => {
       const overlay = document.querySelector<HTMLElement>(".alwith-tab-drag-overlay")!
-      expect(overlay.getBoundingClientRect().left).toBeCloseTo(target.left, 0)
-      expect(overlay.getBoundingClientRect().top).toBeCloseTo(start.top, 0)
-      expect(Math.abs(neighbor.closest("[data-tab-id]")!.getBoundingClientRect().left - before.left)).toBeGreaterThan(
+      void expect(overlay.getBoundingClientRect().left).toBeCloseTo(target.left, 0)
+      void expect(overlay.getBoundingClientRect().top).toBeCloseTo(start.top, 0)
+      void expect(Math.abs(neighbor.closest("[data-tab-id]")!.getBoundingClientRect().left - before.left)).toBeGreaterThan(
         start.width - 2
       )
     })
     pointer(document, "pointerup", x + dx, y + 20)
     await waitFor(() => {
-      expect(document.querySelector(".alwith-tab-drag-overlay")).toBeNull()
-      expect(source.closest("[data-tab-id]")!.getBoundingClientRect().left).toBeCloseTo(target.left, 0)
-      expect([...canvasElement.querySelectorAll('[role="tab"]')].map((tab) => tab.textContent)).toEqual(
+      void expect(document.querySelector(".alwith-tab-drag-overlay")).toBeNull()
+      void expect(source.closest("[data-tab-id]")!.getBoundingClientRect().left).toBeCloseTo(target.left, 0)
+      void expect([...canvasElement.querySelectorAll('[role="tab"]')].map((tab) => tab.textContent)).toEqual(
         reverse ? ["2.txt", "0.txt", "1.txt"] : ["1.txt", "2.txt", "0.txt"]
       )
     })
@@ -192,8 +192,8 @@ export const Cancel: Story = {
       pointer(document, "pointermove", x + 200, y)
       document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", code: "Escape", bubbles: true }))
       await waitFor(() => {
-        expect(document.querySelector(".alwith-tab-drag-overlay")).toBeNull()
-        expect(source.getBoundingClientRect().left).toBeCloseTo(start.left, 0)
+        void expect(document.querySelector(".alwith-tab-drag-overlay")).toBeNull()
+        void expect(source.getBoundingClientRect().left).toBeCloseTo(start.left, 0)
       })
     } finally {
       pointer(document, "pointercancel", x, y)
@@ -218,8 +218,8 @@ const scrollsAtEdge: NonNullable<Story["play"]> = async ({ canvas, canvasElement
     pointer(document, "pointermove", edge, y)
     await waitFor(() => expect(Math.abs(scroll.scrollLeft)).toBeGreaterThan(100))
     const overlay = document.querySelector<HTMLElement>(".alwith-tab-drag-overlay")!
-    expect(overlay.getBoundingClientRect().left).toBeGreaterThanOrEqual(viewport.left - 1)
-    expect(overlay.getBoundingClientRect().right).toBeLessThanOrEqual(viewport.right + 1)
+    void expect(overlay.getBoundingClientRect().left).toBeGreaterThanOrEqual(viewport.left - 1)
+    void expect(overlay.getBoundingClientRect().right).toBeLessThanOrEqual(viewport.right + 1)
   } finally {
     pointer(document, "pointercancel", x, y)
   }
@@ -234,24 +234,24 @@ export const HeaderControls: Story = {
   play: async ({ canvas, canvasElement }) => {
     await waitFor(() => expect(canvas.getAllByRole("tab")).toHaveLength(3))
     const buttons = [...canvasElement.querySelectorAll<HTMLButtonElement>(".alwith-tab-action")]
-    expect(buttons).toHaveLength(4)
+    void expect(buttons).toHaveLength(4)
     for (const button of buttons) {
-      expect(button.getBoundingClientRect().width).toBe(30)
-      expect(button.getBoundingClientRect().height).toBe(30)
+      void expect(button.getBoundingClientRect().width).toBe(30)
+      void expect(button.getBoundingClientRect().height).toBe(30)
       const icon = button.querySelector("svg")!
-      expect(icon.classList.contains("lucide")).toBe(true)
-      expect(icon).toHaveAttribute("viewBox", "0 0 24 24")
-      expect(getComputedStyle(icon).strokeWidth).toBe("2px")
-      expect(getComputedStyle(icon).strokeLinecap).toBe("round")
-      expect(getComputedStyle(icon).strokeLinejoin).toBe("round")
-      expect(icon.getBoundingClientRect().width).toBe(16)
-      expect(icon.getBoundingClientRect().height).toBe(16)
+      void expect(icon.classList.contains("lucide")).toBe(true)
+      void expect(icon).toHaveAttribute("viewBox", "0 0 24 24")
+      void expect(getComputedStyle(icon).strokeWidth).toBe("2px")
+      void expect(getComputedStyle(icon).strokeLinecap).toBe("round")
+      void expect(getComputedStyle(icon).strokeLinejoin).toBe("round")
+      void expect(icon.getBoundingClientRect().width).toBe(16)
+      void expect(icon.getBoundingClientRect().height).toBe(16)
     }
     for (const icon of canvasElement.querySelectorAll(".alwith-workspace-tab-close svg")) {
-      expect(icon.getBoundingClientRect().width).toBe(16)
-      expect(icon.getBoundingClientRect().height).toBe(16)
-      expect(icon.closest("button")!.getBoundingClientRect().width).toBe(24)
-      expect(icon.closest("button")!.getBoundingClientRect().height).toBe(24)
+      void expect(icon.getBoundingClientRect().width).toBe(16)
+      void expect(icon.getBoundingClientRect().height).toBe(16)
+      void expect(icon.closest("button")!.getBoundingClientRect().width).toBe(24)
+      void expect(icon.closest("button")!.getBoundingClientRect().height).toBe(24)
     }
     if (import.meta.env.STORYBOOK_TEST) {
       const { page } = await import("vitest/browser")
@@ -279,9 +279,9 @@ export const HeaderControls: Story = {
             (element) =>
               element.textContent?.includes(button.getAttribute("aria-label")!) && !element.hasAttribute("data-closed")
           )
-          expect(tooltip).toBeDefined()
-          expect(tooltip).toHaveAttribute("data-side", "bottom")
-          expect(tooltip!.getBoundingClientRect().top).toBeGreaterThanOrEqual(button.getBoundingClientRect().bottom)
+          void expect(tooltip).toBeDefined()
+          void expect(tooltip).toHaveAttribute("data-side", "bottom")
+          void expect(tooltip!.getBoundingClientRect().top).toBeGreaterThanOrEqual(button.getBoundingClientRect().bottom)
         })
       }
     }
@@ -297,21 +297,21 @@ export const FileNameTruncation: Story = {
     const secondTitle = second.querySelector<HTMLElement>(".alwith-workspace-tab-title")!
     const shortTitle = short.querySelector<HTMLElement>(".alwith-workspace-tab-title")!
     await waitFor(() => {
-      expect(firstTitle).toHaveAttribute("data-overflow", "true")
-      expect(secondTitle).toHaveAttribute("data-overflow", "true")
-      expect(shortTitle).toHaveAttribute("data-overflow", "false")
-      expect(getComputedStyle(firstTitle).textOverflow).toBe("clip")
-      expect(getComputedStyle(firstTitle).maskImage).not.toBe("none")
-      expect(getComputedStyle(shortTitle).maskImage).toBe("none")
-      expect(getComputedStyle(first).paddingInlineEnd).toBe("34px")
-      expect(getComputedStyle(second).paddingInlineEnd).toBe("9px")
-      expect(secondTitle.clientWidth - firstTitle.clientWidth).toBe(25)
+      void expect(firstTitle).toHaveAttribute("data-overflow", "true")
+      void expect(secondTitle).toHaveAttribute("data-overflow", "true")
+      void expect(shortTitle).toHaveAttribute("data-overflow", "false")
+      void expect(getComputedStyle(firstTitle).textOverflow).toBe("clip")
+      void expect(getComputedStyle(firstTitle).maskImage).not.toBe("none")
+      void expect(getComputedStyle(shortTitle).maskImage).toBe("none")
+      void expect(getComputedStyle(first).paddingInlineEnd).toBe("34px")
+      void expect(getComputedStyle(second).paddingInlineEnd).toBe("9px")
+      void expect(secondTitle.clientWidth - firstTitle.clientWidth).toBe(25)
     })
     await userEvent.click(second)
     await waitFor(() => {
-      expect(getComputedStyle(first).paddingInlineEnd).toBe("9px")
-      expect(getComputedStyle(second).paddingInlineEnd).toBe("34px")
-      expect(firstTitle.clientWidth - secondTitle.clientWidth).toBe(25)
+      void expect(getComputedStyle(first).paddingInlineEnd).toBe("9px")
+      void expect(getComputedStyle(second).paddingInlineEnd).toBe("34px")
+      void expect(firstTitle.clientWidth - secondTitle.clientWidth).toBe(25)
     })
   }
 }
@@ -326,34 +326,34 @@ export const WorkspaceHeaderLayout: Story = {
     const scroll = canvasElement.querySelector<HTMLElement>(".alwith-workspace-tab-scroll")!
     const add = canvasElement.querySelector<HTMLElement>(".alwith-workspace-new-tab")!
     const controls = canvasElement.querySelector<HTMLElement>(".alwith-tab-controls")!
-    expect(scroll.contains(add)).toBe(false)
-    expect(bar.getBoundingClientRect().width).toBe(surface.getBoundingClientRect().width)
+    void expect(scroll.contains(add)).toBe(false)
+    void expect(bar.getBoundingClientRect().width).toBe(surface.getBoundingClientRect().width)
     const before = add.getBoundingClientRect().left
     scroll.scrollLeft = 200
     await waitFor(() => expect(scroll.scrollLeft).toBeGreaterThan(0))
-    expect(add.getBoundingClientRect().left).toBe(before)
-    expect(controls.getBoundingClientRect().left - add.getBoundingClientRect().right).toBe(16)
+    void expect(add.getBoundingClientRect().left).toBe(before)
+    void expect(controls.getBoundingClientRect().left - add.getBoundingClientRect().right).toBe(16)
     await userEvent.click(canvas.getByRole("button", { name: "Show file tree" }))
     await waitFor(() => {
       const tree = canvasElement.querySelector<HTMLElement>(".file-workspace-tree")!
       const editor = canvasElement.querySelector<HTMLElement>(".file-workspace-editor")!
-      expect(tree).toHaveAttribute("aria-hidden", "false")
-      expect(tree.getBoundingClientRect().left).toBeGreaterThanOrEqual(editor.getBoundingClientRect().right - 1)
-      expect(tree.getBoundingClientRect().top).toBe(bar.getBoundingClientRect().top)
-      expect(bar.getBoundingClientRect().width).toBe(editor.getBoundingClientRect().width)
-      expect(bar.getBoundingClientRect().width).toBeLessThan(surface.getBoundingClientRect().width)
-      expect(editor.getBoundingClientRect().top).toBe(bar.getBoundingClientRect().bottom)
+      void expect(tree).toHaveAttribute("aria-hidden", "false")
+      void expect(tree.getBoundingClientRect().left).toBeGreaterThanOrEqual(editor.getBoundingClientRect().right - 1)
+      void expect(tree.getBoundingClientRect().top).toBe(bar.getBoundingClientRect().top)
+      void expect(bar.getBoundingClientRect().width).toBe(editor.getBoundingClientRect().width)
+      void expect(bar.getBoundingClientRect().width).toBeLessThan(surface.getBoundingClientRect().width)
+      void expect(editor.getBoundingClientRect().top).toBe(bar.getBoundingClientRect().bottom)
     })
     const hide = canvas.getByRole("button", { name: "Hide file tree" })
-    expect(hide.closest(".file-workspace-tree")).not.toBeNull()
-    expect(bar.contains(hide)).toBe(false)
+    void expect(hide.closest(".file-workspace-tree")).not.toBeNull()
+    void expect(bar.contains(hide)).toBe(false)
     await userEvent.click(hide)
     await waitFor(() => {
       const show = canvas.getByRole("button", { name: "Show file tree" })
-      expect(bar.contains(show)).toBe(true)
-      expect(bar.getBoundingClientRect().width).toBe(surface.getBoundingClientRect().width)
+      void expect(bar.contains(show)).toBe(true)
+      void expect(bar.getBoundingClientRect().width).toBe(surface.getBoundingClientRect().width)
     })
-    expect(canvas.getByRole("button", { name: "Close workspace" })).toBeVisible()
+    void expect(canvas.getByRole("button", { name: "Close workspace" })).toBeVisible()
   }
 }
 
@@ -371,19 +371,19 @@ export const CloseTitleFade: Story = {
     const width = title.clientWidth
     await page.getByRole("tab", { name: title.textContent!, exact: true }).hover()
     await waitFor(() => {
-      expect(getComputedStyle(title).getPropertyValue("--file-tab-title-occlusion").trim()).toBe("25px")
-      expect(getComputedStyle(title).maskImage).toContain("100% - 25px")
-      expect(title.clientWidth).toBe(width)
-      expect(title.getBoundingClientRect().right - 25).toBeLessThan(close.getBoundingClientRect().left)
+      void expect(getComputedStyle(title).getPropertyValue("--file-tab-title-occlusion").trim()).toBe("25px")
+      void expect(getComputedStyle(title).maskImage).toContain("100% - 25px")
+      void expect(title.clientWidth).toBe(width)
+      void expect(title.getBoundingClientRect().right - 25).toBeLessThan(close.getBoundingClientRect().left)
     })
     await page.getByRole("button", { name: close.getAttribute("aria-label")!, exact: true }).hover()
-    expect(getComputedStyle(title).maskImage).toContain("100% - 25px")
-    expect(title.clientWidth).toBe(width)
+    void expect(getComputedStyle(title).maskImage).toContain("100% - 25px")
+    void expect(title.clientWidth).toBe(width)
     await page.getByRole("button", { name: "New tab", exact: true }).hover()
     await waitFor(() =>
       expect(getComputedStyle(title).getPropertyValue("--file-tab-title-occlusion").trim()).toBe("0px")
     )
-    expect(canvasElement.querySelectorAll(".alwith-workspace-tab")).toHaveLength(3)
+    void expect(canvasElement.querySelectorAll(".alwith-workspace-tab")).toHaveLength(3)
   }
 }
 
@@ -395,14 +395,14 @@ export const NewTabDockDivider: Story = {
     const host = canvasElement.querySelector<HTMLElement>(".alwith-editor")!
     const controls = canvasElement.querySelector<HTMLElement>(".alwith-tab-controls")!
     await waitFor(() => expect(controls).toHaveAttribute("data-new-tab-docked", "false"))
-    expect(getComputedStyle(controls, "::before").content).toBe("none")
+    void expect(getComputedStyle(controls, "::before").content).toBe("none")
     host.style.width = "300px"
     await waitFor(() => expect(controls).toHaveAttribute("data-new-tab-docked", "true"))
-    expect(getComputedStyle(controls, "::before").width).toBe("1px")
-    expect(getComputedStyle(controls, "::before").height).toBe("16px")
+    void expect(getComputedStyle(controls, "::before").width).toBe("1px")
+    void expect(getComputedStyle(controls, "::before").height).toBe("16px")
     host.style.width = "520px"
     await waitFor(() => expect(controls).toHaveAttribute("data-new-tab-docked", "false"))
-    expect(getComputedStyle(controls, "::before").content).toBe("none")
+    void expect(getComputedStyle(controls, "::before").content).toBe("none")
   }
 }
 
@@ -430,7 +430,7 @@ export const SidebarIconParity: Story = {
   play: async ({ canvasElement, canvas }) => {
     await waitFor(() => expect(canvas.getAllByRole("tab")).toHaveLength(3))
     const reference = canvasElement.querySelector<SVGSVGElement>("[data-icon-reference] svg")!
-    expect(reference.getBoundingClientRect().width).toBe(16)
+    void expect(reference.getBoundingClientRect().width).toBe(16)
     if (import.meta.env.STORYBOOK_TEST) {
       const { page } = await import("vitest/browser")
       await page.getByRole("button", { name: "Reference new", exact: true }).hover()
@@ -451,17 +451,17 @@ export const SidebarIconParity: Story = {
     for (const icon of canvasElement.querySelectorAll<SVGSVGElement>(".alwith-tab-action svg")) {
       const button = icon.closest("button")!
       const referenceButton = reference.closest("button")!
-      expect(button.getBoundingClientRect().width).toBe(referenceButton.getBoundingClientRect().width)
-      expect(button.getBoundingClientRect().height).toBe(referenceButton.getBoundingClientRect().height)
+      void expect(button.getBoundingClientRect().width).toBe(referenceButton.getBoundingClientRect().width)
+      void expect(button.getBoundingClientRect().height).toBe(referenceButton.getBoundingClientRect().height)
       for (const property of ["borderTopWidth", "borderTopColor", "borderRadius", "padding", "boxSizing"] as const) {
-        expect(getComputedStyle(button)[property]).toBe(getComputedStyle(referenceButton)[property])
+        void expect(getComputedStyle(button)[property]).toBe(getComputedStyle(referenceButton)[property])
       }
-      expect(icon).toHaveClass("size-4")
-      expect(icon.getBoundingClientRect().width).toBe(reference.getBoundingClientRect().width)
-      expect(icon.getBoundingClientRect().height).toBe(reference.getBoundingClientRect().height)
-      expect(getComputedStyle(icon).strokeWidth).toBe(getComputedStyle(reference).strokeWidth)
-      expect(icon.getScreenCTM()!.a).toBe(reference.getScreenCTM()!.a)
-      expect(icon.getScreenCTM()!.d).toBe(reference.getScreenCTM()!.d)
+      void expect(icon).toHaveClass("size-4")
+      void expect(icon.getBoundingClientRect().width).toBe(reference.getBoundingClientRect().width)
+      void expect(icon.getBoundingClientRect().height).toBe(reference.getBoundingClientRect().height)
+      void expect(getComputedStyle(icon).strokeWidth).toBe(getComputedStyle(reference).strokeWidth)
+      void expect(icon.getScreenCTM()!.a).toBe(reference.getScreenCTM()!.a)
+      void expect(icon.getScreenCTM()!.d).toBe(reference.getScreenCTM()!.d)
     }
   }
 }
@@ -483,10 +483,10 @@ export const DragBounds: Story = {
         pointer(document, "pointermove", edge, y + 100)
         await waitFor(() => {
           const rect = document.querySelector(".alwith-tab-drag-overlay")!.getBoundingClientRect()
-          expect(rect.left).toBeGreaterThanOrEqual(bounds.left - 1)
-          expect(rect.right).toBeLessThanOrEqual(bounds.right + 1)
-          expect(rect.top).toBeCloseTo(start.top, 0)
-          expect(edge < bounds.left ? rect.left : rect.right).toBeCloseTo(
+          void expect(rect.left).toBeGreaterThanOrEqual(bounds.left - 1)
+          void expect(rect.right).toBeLessThanOrEqual(bounds.right + 1)
+          void expect(rect.top).toBeCloseTo(start.top, 0)
+          void expect(edge < bounds.left ? rect.left : rect.right).toBeCloseTo(
             edge < bounds.left ? bounds.left : bounds.right,
             0
           )
