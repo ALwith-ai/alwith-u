@@ -42,7 +42,6 @@ export const commands = {
     auth: string
     github: string | null
   }): Promise<string> => __t3Invoke<string>("workbuddy_create", args),
-  prepareCursorImport: (args: { cwds: string[] }): Promise<null> => __t3Invoke<null>("prepare_cursor_import", args),
   drivePathExists: (args: { path: string }): Promise<boolean> => __t3Invoke<boolean>("drive_path_exists", args),
   chatSaveFile: (args: { name: string; data: string }): Promise<boolean> => __t3Invoke<boolean>("chat_save_file", args),
   chatWriteTextAttachment: (args: { name: string; text: string }): Promise<string> =>
@@ -236,7 +235,6 @@ export type CommandErrors = {
   extensionInboxFailed: string
   draftDirectory: string
   workbuddyCreate: string
-  prepareCursorImport: string
   drivePathExists: string
   chatSaveFile: string
   chatWriteTextAttachment: string

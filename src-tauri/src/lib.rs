@@ -21,7 +21,6 @@ mod extension_wire;
 mod gamepad;
 mod html_preview;
 mod images;
-mod imports;
 mod legacy_extensions;
 mod menu;
 mod mobile;
@@ -233,6 +232,7 @@ pub fn run() {
                 Err(error) => log::warn!("Cannot resolve panic report directory: {error}"),
             }
             settings::initialize(app.handle())?;
+            window::initialize_main_window(app.handle())?;
             log::info!("ALwith U {} starting", env!("CARGO_PKG_VERSION"));
             #[cfg(target_os = "windows")]
             app.get_webview_window("main").expect("main window exists at setup").hide()?;
@@ -343,7 +343,6 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 extension_inbox::extension_inbox_failed,
                 draft_directory::draft_directory,
                 workbuddy::workbuddy_create,
-                imports::prepare_cursor_import,
                 drive::drive_path_exists,
                 chat_files::chat_save_file,
                 chat_files::chat_write_text_attachment,

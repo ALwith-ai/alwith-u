@@ -68,3 +68,10 @@ test("explorer settings expose the global hidden-file switch", () => {
   expect(screen.getByRole("region", { name: "Explorer" })).toBeVisible()
   expect(screen.getByRole("switch", { name: "Show hidden files" })).toBeVisible()
 })
+
+test("settings navigation uses media and extension labels without an import entry", () => {
+  render(<SettingsPage />)
+  expect(screen.getByRole("button", { name: "Images & video" })).toBeVisible()
+  expect(screen.getByRole("button", { name: "Extensions" })).toBeVisible()
+  expect(screen.queryByRole("button", { name: "Import" })).not.toBeInTheDocument()
+})

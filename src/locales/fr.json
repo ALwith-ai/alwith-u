@@ -192,7 +192,6 @@
     "trackpad": "Pavé tactile",
     "trackpadEnabled": "Activer les gestes du pavé tactile",
     "threeFingerSwipeDesc": "Balayez horizontalement avec trois doigts pour déplacer le canevas",
-    "import": "Importer",
     "explorer": "Explorateur",
     "explorerHiddenDescription": "Afficher les fichiers et dossiers cachés dont le nom commence par un point (.)"
   },
