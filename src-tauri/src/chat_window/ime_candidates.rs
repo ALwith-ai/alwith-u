@@ -46,21 +46,13 @@ thread_local! {
     static UPDATING: Cell<bool> = const { Cell::new(false) };
 }
 
-struct UpdateGuard;
-
-impl Drop for UpdateGuard {
-    fn drop(&mut self) {
-        UPDATING.set(false);
-    }
-}
-
 fn with_bindings(action: impl FnOnce(&mut Vec<CandidateBinding>)) {
     MainThreadMarker::new().expect("IME candidate ownership requires the main thread");
     // AppKit parent/child window operations may post notifications synchronously; this outer update handles nested notifications.
     if UPDATING.replace(true) {
         return;
     }
-    let _guard = UpdateGuard;
+    let _guard = std::mem::DropGuard::new((), |()| UPDATING.set(false));
     BINDINGS.with_borrow_mut(action);
 }
 
