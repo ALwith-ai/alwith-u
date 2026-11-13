@@ -23,6 +23,27 @@ beforeEach(() => {
 afterEach(() => client.store.setState({ projectContext: originalContext }))
 afterEach(() => vi.restoreAllMocks())
 
+test("parent updates reuse the project list until its directory inputs change", async () => {
+  let reads = 0
+  const recent = ["/tmp/recent"]
+  Object.defineProperty(recent, 0, {
+    get: () => {
+      reads++
+      return "/tmp/recent"
+    }
+  })
+  const onChange = vi.fn()
+  const view = render(<DraftProjectPicker cwd="/tmp/current" recentProjects={recent} onChange={onChange} />)
+  await waitFor(() => expect(view.getByRole("button", { name: "Work outside a project" })).toBeEnabled())
+  reads = 0
+  view.rerender(<DraftProjectPicker cwd="/tmp/current" recentProjects={recent} onChange={onChange} preparing />)
+  expect(reads).toBe(0)
+  view.rerender(<DraftProjectPicker cwd="/tmp/current" recentProjects={["/tmp/new"]} onChange={onChange} />)
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "current" }))))
+  expect(view.getByRole("menuitemradio", { name: "new" })).toBeVisible()
+  expect(view.queryByRole("menuitemradio", { name: "recent" })).toBeNull()
+})
+
 test("project preparation keeps the folder and hover-clear icons without a spinner", async () => {
   const onChange = vi.fn()
   const view = render(<DraftProjectPicker cwd="/tmp/current" recentProjects={[]} onChange={onChange} preparing />)

@@ -1,5 +1,5 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
-import { type RuntimeClient } from "@alwith/api"
+import { type RuntimeClient, type SessionRunState } from "@alwith/api"
 import { type StateSetter } from "@alwith/api/client"
 // U's Codex client extends the adapter-owned ACP client with two chat slots, gateway
 // model hints, and fork titles. Runtime transport and run states remain in @alwith/api.
@@ -21,6 +21,7 @@ import {
   type PendingAction,
   type PromptOptions,
   type ReplayScope,
+  runStateSource,
   type Session,
   type SessionOperation,
   type SessionRequestOptions,
@@ -293,6 +294,22 @@ export class CodexClient extends CodexAcpClient<AppState> {
 
   private setApp(partial: StateSetter<AppState>): void {
     this.store.setState(partial)
+  }
+
+  override applyRunStates(sessions: SessionRunState[], source: "snapshot" | "event" = "event"): void {
+    const previous = this.state.runStates
+    const records = sessions.map((record) => {
+      const current = previous[record.sessionId]
+      return current && JSON.stringify(current) === JSON.stringify(record) ? current : record
+    })
+    // The first live event admits activity even when its data matches the startup snapshot.
+    if (
+      runStateSource(previous) === source &&
+      records.length === Object.keys(previous).length &&
+      records.every((record) => record === previous[record.sessionId])
+    )
+      return
+    super.applyRunStates(records, source)
   }
 
   /** Keep a model change and its default effort in the existing admission transaction. */

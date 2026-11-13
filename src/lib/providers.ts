@@ -57,11 +57,17 @@ export const providersPort: ReturnType<typeof createProvidersPort> = {
   apply: async () => project(await rawProvidersPort.apply()),
   onChanged: async (listener) => {
     let revision = 0
+    let previous: string | undefined
     const changed = (snapshot?: ProviderSnapshot) => {
       const expected = ++revision
       void (async () => {
         const result = await project(snapshot ?? (await rawProvidersPort.read()))
-        if (expected === revision) listener(result)
+        if (expected !== revision) return
+        // Application status and enterprise models can change without a saved revision change.
+        const fingerprint = JSON.stringify(result)
+        if (fingerprint === previous) return
+        previous = fingerprint
+        listener(result)
       })().catch((error) => console.error("Enterprise provider projection failed", error))
     }
     const stopNative = await listen("enterprise:models-changed", () => changed())

@@ -411,18 +411,20 @@ export function PluginsPage({
   const error = kind === "skills" ? skillsError : pluginsError
   const query = kind === "skills" ? queries.skills : queries.plugins
   const setQuery = (value: string) => setQueries((current) => ({ ...current, [kind]: value }))
-  const knownDirectories = useApp((state) =>
-    JSON.stringify(
-      [
-        ...new Set(
-          state.sessionList
-            .map((sessionRow) => newChatDirectory(sessionRow.cwd, state.projectContext))
-            .filter((path): path is string => path !== null)
-        )
-      ].toSorted()
-    )
+  const sessionRows = useApp((state) => state.sessionList)
+  const projectContext = useApp((state) => state.projectContext)
+  // Runtime traffic must not rescan history while this offscreen catalog stays mounted.
+  const knownDirectories = useMemo(
+    () =>
+      JSON.stringify(
+        [...new Set(sessionRows.map((row) => row.cwd))]
+          .map((cwd) => newChatDirectory(cwd, projectContext))
+          .filter((path): path is string => path !== null)
+          .toSorted()
+      ),
+    [sessionRows, projectContext]
   )
-  const directory = useApp((state) => newChatDirectory(cwd, state.projectContext))
+  const directory = useMemo(() => newChatDirectory(cwd, projectContext), [cwd, projectContext])
   const directoriesKey = JSON.stringify(directory === null ? [] : [directory])
   const installed = useStore(pluginsStore, (state) => state.installed)
   // Official catalogs and policy installations do not belong in the personal installed list.

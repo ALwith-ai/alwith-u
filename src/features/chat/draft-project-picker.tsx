@@ -4,7 +4,7 @@
 import { QUICK_CHATS_GROUP, sessionGroup } from "@alwith/module-chat/client"
 import { open as openDialog } from "@tauri-apps/plugin-dialog"
 import { FolderClosedIcon, FolderPlusIcon, XIcon } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
@@ -61,8 +61,12 @@ export function DraftProjectPicker({
       active = false
     }
   }, [])
-  const projects = [...(cwd !== null ? [cwd] : []), ...recentProjects.filter((path) => path !== cwd)].filter(
-    (path) => path !== defaultCwd && (!context || sessionGroup(context, { cwd: path }).id !== QUICK_CHATS_GROUP)
+  const projects = useMemo(
+    () =>
+      [...(cwd !== null ? [cwd] : []), ...recentProjects.filter((path) => path !== cwd)].filter(
+        (path) => path !== defaultCwd && (!context || sessionGroup(context, { cwd: path }).id !== QUICK_CHATS_GROUP)
+      ),
+    [cwd, recentProjects, defaultCwd, context]
   )
   const hasProject = cwd !== null && cwd !== defaultCwd
   const workOutsideProject = (): void => {
