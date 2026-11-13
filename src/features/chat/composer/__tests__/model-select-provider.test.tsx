@@ -5,6 +5,7 @@ import { afterEach, beforeAll, expect, test, vi } from "vitest"
 
 import { ThemeProvider } from "@/components/theme-provider"
 import { initI18n } from "@/lib/i18n"
+import { gatewayModelId } from "@/lib/providers"
 
 import { ChatHostProvider } from "../../chat-host"
 import { chatModelMenu, modelTriggerLabel, presentModelCatalog } from "../model-catalog"
@@ -534,4 +535,23 @@ test("changing effort keeps the model trigger and menu stable until the confirme
   act(() => {
     finish()
   })
+})
+
+test.each([
+  [
+    "custom_alwith_enterprise_account",
+    gatewayModelId("custom_alwith_enterprise_account", "issued/model"),
+    "#ee305a",
+    false
+  ],
+  ["finture-enterprise", "gateway:finture-enterprise:issued%2Fmodel", "#ee305a", false],
+  ["finture-enterprise", "legacy-model", "#ee305a", false],
+  ["alwith-managed-litellm", "gateway:alwith-managed-litellm:model", "currentColor", true]
+])("shows the correct account or enterprise logo for %s", (id, apiId, filename, inverted) => {
+  const [group] = presentModelCatalog([{ id, name: id, models: [{ api_id: apiId, label: "Model" }] }])
+  const view = render(<>{group.models[0].icon}</>)
+  const icon = view.container.querySelector("svg")!
+  expect(icon).toHaveAttribute("fill", filename)
+  expect(icon).toHaveClass("size-4", "shrink-0")
+  expect(icon.getAttribute("fill") === "currentColor").toBe(inverted)
 })
