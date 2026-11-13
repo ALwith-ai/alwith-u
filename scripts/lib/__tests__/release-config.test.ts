@@ -160,6 +160,13 @@ test("TOS mirroring follows successful tagged builds and can retry a draft relea
   const register = job.steps!.findIndex((step) => step.name === "Register release artifacts")
   expect(register).toBeGreaterThan(upload)
   expect(job.steps![register]?.run).toBe('bun scripts/register-release.ts "$RUNNER_TEMP/tos-release" "$RELEASE_TAG"')
+  const notify = job.steps!.findIndex((step) => step.name === "Notify Feishu")
+  expect(notify).toBeGreaterThan(register)
+  expect(job.steps![notify]?.env).toEqual({
+    RELEASE_TAG: "${{ inputs.tos_release_tag || github.ref_name }}",
+    LARK_ROBOT_URL: "${{ secrets.LARK_ROBOT_URL }}"
+  })
+  expect(job.steps![notify]?.run).toBe('bun scripts/notify-release.ts "$RUNNER_TEMP/tos-release" "$RELEASE_TAG"')
   expect(job.steps![register]?.env).toMatchObject({
     API_BASE: "${{ vars.API_BASE || secrets.API_BASE }}",
     CI_RELEASE_TOKEN: "${{ secrets.CI_RELEASE_TOKEN || vars.CI_RELEASE_TOKEN }}"

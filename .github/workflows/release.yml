@@ -290,3 +290,8 @@ jobs:
           API_BASE: ${{ vars.API_BASE || secrets.API_BASE }}
           CI_RELEASE_TOKEN: ${{ secrets.CI_RELEASE_TOKEN || vars.CI_RELEASE_TOKEN }}
         run: bun scripts/register-release.ts "$RUNNER_TEMP/tos-release" "$RELEASE_TAG"
+      - name: Notify Feishu
+        env:
+          RELEASE_TAG: ${{ inputs.tos_release_tag || github.ref_name }}
+          LARK_ROBOT_URL: ${{ secrets.LARK_ROBOT_URL }}
+        run: bun scripts/notify-release.ts "$RUNNER_TEMP/tos-release" "$RELEASE_TAG"
