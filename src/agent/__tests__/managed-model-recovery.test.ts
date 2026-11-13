@@ -133,3 +133,68 @@ test("revocation received before session/new returns remains visible after the n
     client.disconnect()
   }
 })
+
+test("authentication recovery preserves error details and accepts an explicit gateway without login", async () => {
+  const fake = createFakeAgent()
+  const port = new FakeHubPort(() => fake.app)
+  const requests = vi.spyOn(port, "acpRequest")
+  const client = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
+  fake.resumeResponse.current = () =>
+    Promise.reject(RequestError.authRequired({ source: "gateway" }, "Gateway authorization expired"))
+  try {
+    await client.connect()
+    await client.open("gateway-recovery", "/tmp/project")
+    expect(client.session("gateway-recovery").error?.error).toMatchObject({
+      code: -32000,
+      message: "Authentication required: Gateway authorization expired",
+      data: { source: "gateway" }
+    })
+    await expect(client.resumeAccountModel("gateway-recovery", null)).rejects.toThrow(/Select a model/)
+    await port.acpRequest("codex", "providers/set", {
+      providerId: "openai",
+      apiType: "openai",
+      baseUrl: "https://gateway.example.test/v1",
+      _meta: {
+        codex: { id: "deepseek", name: "Gateway", mode: "catalog", bearerToken: "test-only" },
+        alwith: { models: [{ id: "test-model", label: "Test model" }] }
+      }
+    })
+    fake.resumeResponse.current = null
+    await client.resumeAccountModel("gateway-recovery", "gateway:deepseek:test-model")
+    expect(client.session("gateway-recovery")).toMatchObject({ attached: true, error: null })
+    expect(requests.mock.calls.findLast((call) => call[1] === "session/resume")?.[2]).toMatchObject({
+      sessionId: "gateway-recovery",
+      _meta: { alwith: { model: "gateway:deepseek:test-model", accountModelSelection: true } }
+    })
+    expect(requests.mock.calls.some((call) => ["auth/login", "session/prompt", "session/new"].includes(call[1]))).toBe(
+      false
+    )
+  } finally {
+    client.disconnect()
+  }
+})
+
+test.each(["The selected provider connection or model is unavailable", "The selected model connection is unavailable"])(
+  "a missing connection remains readable and can be reselected: %s",
+  async (message) => {
+    const fake = createFakeAgent()
+    const port = new FakeHubPort(() => fake.app)
+    const client = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
+    fake.resumeResponse.current = () => Promise.reject(RequestError.invalidParams(undefined, message))
+    try {
+      await client.connect()
+      await client.open("missing-provider", "/tmp/project")
+      expect(client.session("missing-provider")).toMatchObject({ attached: false, readOnly: true, restoring: false })
+      expect(client.session("missing-provider").items.length).toBeGreaterThan(0)
+      expect(client.state.accountModelRecovery["missing-provider"]).toBe(true)
+      await expect(client.resumeAccountModel("missing-provider", "gpt-6.1-sol")).rejects.toThrow()
+      expect(client.session("missing-provider").attached).toBe(false)
+      fake.resumeResponse.current = null
+      await client.resumeAccountModel("missing-provider", "gpt-6.1-sol")
+      expect(client.session("missing-provider")).toMatchObject({ attached: true, readOnly: false, error: null })
+      expect(client.state.accountModelRecovery["missing-provider"]).toBeUndefined()
+    } finally {
+      client.disconnect()
+    }
+  }
+)

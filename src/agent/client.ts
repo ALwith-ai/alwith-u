@@ -626,14 +626,24 @@ export class CodexClient extends CodexAcpClient<AppState> {
         attached: false,
         restoring: false,
         readOnly: false,
-        error: { stopReason: "error", error: { code: -32000, message: "Authentication required" }, meta: null }
+        error: {
+          stopReason: "error",
+          error: {
+            code: -32000,
+            message: (error as { reason?: string; message?: string }).reason ?? (error as Error).message,
+            data: (error as { data?: acp.Error["data"] }).data
+          },
+          meta: null
+        }
       })
       return true
     }
     const message = error instanceof Error ? error.message : String(error)
     if (
       !message.includes("The ALwith account changed") &&
-      !message.includes("The selected ALwith account model is unavailable")
+      !message.includes("The selected ALwith account model is unavailable") &&
+      !message.includes("The selected provider connection or model is unavailable") &&
+      !message.includes("The selected model connection is unavailable")
     )
       return super.recoverReplay(id, cwd, error, scope)
     await super.afterResume(id, cwd, scope)
@@ -671,7 +681,10 @@ export class CodexClient extends CodexAcpClient<AppState> {
   /** Explicit recovery is separate from the automatic model hints used by normal history replay. */
   async resumeAccountModel(id: string, model: string | null): Promise<void> {
     const session = this.session(id)
-    if (!this.state.accountModelRecovery[id]) throw new Error("Account model recovery is not required")
+    if (!this.state.accountModelRecovery[id] && (session.attached || !isAuthenticationRequired(session.error?.error)))
+      throw new Error("Model recovery is not required")
+    if (!this.state.accountModelRecovery[id] && model === null)
+      throw new Error("Select a model before restoring this conversation")
     const revision = this.accountRevocations.get(id) ?? 0
     let selected = model === null ? null : await this.resolveModel(model)
     if (selected === null) {
