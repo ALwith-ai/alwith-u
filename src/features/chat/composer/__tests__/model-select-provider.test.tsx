@@ -1,5 +1,6 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { ModelMenu, type ModelMenuProps } from "@alwith/module-chat/conversation"
+import { modelTriggerLabel, presentModelCatalog } from "@alwith/module-chat/desktop"
 import { act, cleanup, fireEvent, render, waitFor, within } from "@testing-library/react"
 import { afterEach, beforeAll, expect, test, vi } from "vitest"
 
@@ -8,7 +9,7 @@ import { initI18n } from "@/lib/i18n"
 import { gatewayModelId } from "@/lib/providers"
 
 import { ChatHostProvider } from "../../chat-host"
-import { chatModelMenu, modelTriggerLabel, presentModelCatalog } from "../model-catalog"
+import { chatCatalog, chatModelMenu } from "../model-catalog"
 
 const controls = vi.hoisted(() => ({
   setConfig: vi.fn(),
@@ -548,7 +549,7 @@ test.each([
   ["finture-enterprise", "legacy-model", "#ee305a", false],
   ["alwith-managed-litellm", "gateway:alwith-managed-litellm:model", "currentColor", true]
 ])("shows the correct account or enterprise logo for %s", (id, apiId, filename, inverted) => {
-  const [group] = presentModelCatalog([{ id, name: id, models: [{ api_id: apiId, label: "Model" }] }])
+  const [group] = presentModelCatalog([{ id, name: id, models: [{ api_id: apiId, label: "Model" }] }], chatCatalog)
   const view = render(<>{group.models[0].icon}</>)
   const icon = view.container.querySelector("svg")!
   expect(icon).toHaveAttribute("fill", filename)

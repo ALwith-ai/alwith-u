@@ -19,6 +19,7 @@ import { useTheme } from "@/components/theme-provider"
 import { computerActionKey, privateComputerAction } from "@/features/computer/action-label"
 import { skillIconSrc } from "@/features/plugins/skill-icon"
 import { client } from "@/lib/client"
+import { openSettingsWindow } from "@/lib/window-manager"
 
 import { ForkOriginDivider, ForkTurnButton } from "./chat-branches"
 import { useChatActivityHost } from "./codex/activity-host"
@@ -64,6 +65,7 @@ export function useChatHost(sessionId?: string): ConversationHost {
       FileIcon: CodexFileIcon,
       EditedFilesActions: sessionId ? (props) => <UndoActions sessionId={sessionId} {...props} /> : undefined,
       reportError,
+      openSettings: openSettingsWindow,
       writeTextAttachment: (name, text) => commands.chatWriteTextAttachment({ name, text })
     }),
     [activity, resolvedTheme, t, sessionId]

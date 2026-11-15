@@ -7,7 +7,7 @@ import { afterEach, expect, test, vi } from "vitest"
 import { initI18n } from "@/lib/i18n"
 
 import { ChatTimelineHost } from "../../__tests__/timeline-host"
-import { presentModelCatalog } from "../model-catalog"
+import { presentModelCatalog } from "@alwith/module-chat/desktop"
 
 await initI18n("en")
 afterEach(() => {

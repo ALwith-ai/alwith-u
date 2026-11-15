@@ -7,11 +7,11 @@ import {
   type CustomProviderInput,
   gatewayModelId,
   isAccountModel as sharedAccountModel,
-  providerGroups,
   type ProviderInput,
   PROVIDERS as sharedProviders,
   type ProviderSnapshot,
-  type ProviderTestResult
+  type ProviderTestResult,
+  resolveSessionModel as sharedResolveSessionModel
 } from "@alwith/module-chat/settings"
 
 export type {
@@ -25,7 +25,6 @@ export type {
 } from "@alwith/module-chat/settings"
 export {
   gatewayModelId,
-  MODEL_PRESENTATION,
   parseCustomModels,
   providerGroups,
   providerKeyUrl,
@@ -89,15 +88,12 @@ export function isAccountModel(model: string | null | undefined): boolean {
   return sharedAccountModel(model) || isEnterpriseModel(model)
 }
 
-/** Preserve strict historical selections; only unsent drafts inherit a replacement default. */
+/** The shared resolution, with U's enterprise models as account models and their old ids migrated. */
 export function resolveSessionModel(
   model: string | null,
   snapshot: ProviderSnapshot,
   purpose: "session" | "draft" = "session"
 ): string | null {
-  const models = providerGroups(snapshot).flatMap((group) =>
-    group.models.map((entry) => gatewayModelId(group.id, entry.id))
-  )
   if (model?.startsWith("gateway:finture-enterprise:")) {
     const apiId = model.slice("gateway:finture-enterprise:".length)
     const migrated = (snapshot.managedProviders ?? [])
@@ -106,14 +102,7 @@ export function resolveSessionModel(
       .find((candidate) => candidate.endsWith(`:${apiId}`))
     if (migrated) return migrated
   }
-  if (model !== null && (!model.startsWith("gateway:") || models.includes(model))) return model
-  if (model !== null && purpose === "session")
-    throw new Error(
-      isAccountModel(model)
-        ? "The selected ALwith account model is unavailable. Select another model before sending."
-        : "The selected model connection is unavailable. Select another model before sending."
-    )
-  return models[0] ?? null
+  return sharedResolveSessionModel(model, snapshot, purpose, isAccountModel)
 }
 
 export function loadProviders(): Promise<ProviderSnapshot> {

@@ -7,7 +7,7 @@ import { expect, fn, waitFor, within } from "storybook/test"
 
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 
-import { modelTriggerLabel, presentModelCatalog } from "../../../src/features/chat/composer/model-catalog"
+import { modelTriggerLabel, presentModelCatalog } from "@alwith/module-chat/desktop"
 import { gatewayModelId } from "../../../src/lib/providers"
 import type { SettingsRequest } from "../../../src/lib/settings-store"
 import { handleNativeRequest } from "../../fixtures/native"
