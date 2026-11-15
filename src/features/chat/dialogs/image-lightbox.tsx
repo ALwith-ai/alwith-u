@@ -1,5 +1,6 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import type { ActivityImage } from "@alwith/module-chat/activity-host"
+import { commands as chatCommands } from "@alwith/module-chat/commands"
 import { revealItemsInDir } from "@tauri-apps/plugin-opener"
 import {
   ChevronDownIcon,
@@ -16,7 +17,6 @@ import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { create } from "zustand"
 
-import { commands } from "@/bindings"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import {
@@ -106,7 +106,7 @@ function ImagePreview({
     if (!data) return Promise.reject(new Error("Image data is unavailable"))
     return (exportedPath.current ??= Promise.try(async () => {
       const bytes = Uint8Array.from(atob(data[2]), (character) => character.charCodeAt(0))
-      return await commands.chatWritePastedFile({ name, data: [...bytes] })
+      return await chatCommands.writePastedFile({ name, data: [...bytes] })
     }).catch((error: unknown) => {
       exportedPath.current = null
       throw error

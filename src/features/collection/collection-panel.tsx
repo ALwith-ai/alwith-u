@@ -30,7 +30,7 @@ import {
 import { type ReactNode, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
-import type { SessionSummary } from "@/agent/client"
+import type { SessionSummary } from "@alwith/module-chat/client"
 import { Pane } from "@/components/alwith-ui/pane"
 import { Button } from "@/components/ui/button"
 import {

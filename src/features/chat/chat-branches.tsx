@@ -6,7 +6,7 @@ import { createContext, type ReactNode, useContext, useEffect, useRef, useState 
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
-import type { ForkOrigin, SessionSummary } from "@/agent/client"
+import type { ForkOrigin, SessionSummary } from "@alwith/module-chat/client"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Spinner } from "@/components/ui/spinner"

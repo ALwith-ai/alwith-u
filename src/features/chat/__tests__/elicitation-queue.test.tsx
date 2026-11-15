@@ -4,7 +4,7 @@ import { useStore } from "zustand"
 
 import { createFakeAgent } from "@/agent/__tests__/fake-agent"
 import { FakeHubPort } from "@/agent/__tests__/fake-runtime-client"
-import { type AppState, CodexClient } from "@/agent/client"
+import { type AppState, CodexClient } from "@alwith/module-chat/client"
 import { ThemeProvider } from "@/components/theme-provider"
 import { initI18n } from "@/lib/i18n"
 

@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useStore } from "zustand"
 
-import type { SessionSummary } from "@/agent/client"
+import type { SessionSummary } from "@alwith/module-chat/client"
 import { events } from "@/bindings"
 import { Button } from "@/components/ui/button"
 import { usePlatformAuth } from "@/features/auth/store"

@@ -1,16 +1,16 @@
 import { observeRunStates } from "@alwith/api"
-import type { Session } from "@alwith/module-chat/client"
+import type { AppState, Session } from "@alwith/module-chat/client"
+import { macProjectPaths } from "@alwith/module-chat/client"
 import { createManagedProvidersPort } from "@alwith/module-chat/settings"
 // The app-wide CodexClient instance and the React bindings to its store.
 import { commands as computer } from "@alwith/module-computer/commands"
 import { commands as device } from "@alwith/module-device/commands"
+import { generateImage } from "@alwith/module-media"
 import { invoke, isTauri } from "@tauri-apps/api/core"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { useStore } from "zustand"
 
-import type { AppState } from "@/agent/client"
 import { createDocsTools } from "@/agent/docs-tools"
-import { macProjectPaths } from "@/agent/project-path"
 import { configureSessionInputConfig, readSessionInputMode } from "@/features/chat/composer/input-mode-config"
 import { computerRuntimeEnv } from "@/features/computer/runtime-config"
 import { hostSessionContext } from "@/features/computer/session-context"
@@ -33,19 +33,7 @@ export const client =
         imageService: {
           inputMode: readSessionInputMode,
           selection: () => useImagePreferences.getState().selection,
-          generateExternal: async (selection, prompt, images, signal) => {
-            const requestId = crypto.randomUUID()
-            const cancel = () => {
-              void invoke("images_cancel", { requestId }).catch(() => undefined)
-            }
-            signal?.throwIfAborted()
-            signal?.addEventListener("abort", cancel, { once: true })
-            try {
-              return await invoke("images_generate", { input: { ...selection, prompt, images, requestId } })
-            } finally {
-              signal?.removeEventListener("abort", cancel)
-            }
-          }
+          generateExternal: generateImage
         },
         projectPaths: isMac() ? macProjectPaths : undefined,
         resolveModel: async (model, purpose) => {

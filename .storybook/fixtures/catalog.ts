@@ -3,7 +3,7 @@ import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { asyncQuestionId, questionReplyEnvelope } from "@alwith/module-chat/async-question-card"
 import { acknowledgePrompt, addPrompt, applyUpdate, createSession, type Session } from "@alwith/module-chat/client"
 
-import type { PendingAction, SessionSummary } from "../../src/agent/client"
+import type { PendingAction, SessionSummary } from "@alwith/module-chat/client"
 
 export const QUICK_DIRECTORY = "/Users/demo/Documents/ALwith U"
 export const PROJECT_DIRECTORY = "/Users/demo/Projects/产品工作台"

@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "chat-files",
+  "description": "Chat attachments, local image and file previews, and saving attachments",
+  "windows": ["main", "chat"],
+  "permissions": ["alwith-chat:files"]
+}

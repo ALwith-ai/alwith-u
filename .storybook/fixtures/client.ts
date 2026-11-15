@@ -3,8 +3,7 @@ import type { Session } from "@alwith/module-chat/client"
 import { applyUpdate, codexTurnId, createSession, isSelectOption, isText } from "@alwith/module-chat/client"
 import { useStore } from "zustand"
 
-import { type AppState, CodexClient } from "../../src/agent/client"
-import { forkTitle } from "../../src/agent/fork-title"
+import { type AppState, CodexClient, forkTitle } from "@alwith/module-chat/client"
 import {
   assistantMessage,
   configOptions,
@@ -408,6 +407,7 @@ client.retrySession = (id) => Promise.resolve(finish(id, "重试成功，页面�
 client.readAccount = () =>
   Promise.resolve({
     account: { type: "chatgpt", email: "lin.ran@example.test", planType: "plus", workspaceName: null },
+    userId: null,
     requiresOpenaiAuth: true,
     workspaceRouting: null
   })

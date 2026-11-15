@@ -20,7 +20,7 @@ test("previews a selected external file read-only and provides explicit system a
   act(() => openFilePreview("/outside/中文 #1.txt"))
   const view = render(<FilePreviewModal />)
   await view.findByText("external content")
-  expect(invoke).toHaveBeenCalledWith("chat_preview_file", { path: "/outside/中文 #1.txt" })
+  expect(invoke).toHaveBeenCalledWith("plugin:alwith-chat|preview_file", { path: "/outside/中文 #1.txt" })
   expect(view.queryByRole("textbox")).toBeNull()
   expect(open).not.toHaveBeenCalled()
   fireEvent.click(view.getByRole("button", { name: "Show in file manager" }))

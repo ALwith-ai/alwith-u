@@ -26,7 +26,7 @@ vi.mock("@tauri-apps/api/event", () => ({
     for (const handler of host.changed) handler()
   }
 }))
-vi.mock("@/bindings", () => ({
+vi.mock("@alwith/module-media/commands", () => ({
   commands: {
     imagesReadSettings: host.read,
     imagesSaveSettings: host.save,

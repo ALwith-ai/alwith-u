@@ -99,8 +99,6 @@
     },
     "tool": {
       "running": "Em execução",
-      "stopped": "Interrompido",
-      "failed": "Falhou",
       "output": "Saída",
       "input": "Entrada"
     },

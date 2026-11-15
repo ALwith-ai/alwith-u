@@ -5,7 +5,7 @@ import { expect, test, vi } from "vitest"
 
 import { createFakeAgent } from "@/agent/__tests__/fake-agent"
 import { FakeHubPort } from "@/agent/__tests__/fake-runtime-client"
-import { CodexClient } from "@/agent/client"
+import { CodexClient } from "@alwith/module-chat/client"
 
 import { type ChatEvents, RemoteChatClient, serveChatClient } from "../chat-window-client"
 import { DesktopCodexClient } from "../desktop-client"

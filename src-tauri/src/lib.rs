@@ -23,7 +23,6 @@ mod browser_site;
 mod bundled_extensions;
 #[cfg(feature = "runtime-cef")]
 mod cef_runtime;
-mod chat_files;
 mod chat_window;
 mod desktop_runtime;
 mod diagnostics;
@@ -35,7 +34,6 @@ mod extension_inbox;
 mod extension_wire;
 mod gamepad;
 mod html_preview;
-mod images;
 mod legacy_extensions;
 mod menu;
 mod mobile;
@@ -194,6 +192,10 @@ pub fn run() {
             development_directory: native::development_directory(),
             ..Default::default()
         }))
+        .plugin(alwith_media::init(
+            voice_credentials.clone(),
+            alwith_media::Config { development_directory: native::development_directory() },
+        ))
         .plugin(alwith_voice::init(
             voice_credentials.clone(),
             alwith_voice::Config { development_directory: native::development_directory() },
@@ -527,20 +529,6 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 draft_directory::draft_directory,
                 workbuddy::workbuddy_create,
                 drive::drive_path_exists,
-                chat_files::chat_save_file,
-                chat_files::chat_write_text_attachment,
-                chat_files::chat_read_image,
-                images::images_configured,
-                images::images_read_settings,
-                images::images_save_settings,
-                images::images_test_key,
-                images::images_prepare_references,
-                images::images_generate,
-                images::images_cancel,
-                chat_files::chat_preview_file,
-                chat_files::chat_read_dropped_file,
-                chat_files::chat_clipboard_file_paths,
-                chat_files::chat_write_pasted_file,
                 workspace::workspace_import,
                 workspace::workspace_dirty,
                 workspace::workspace_exit,

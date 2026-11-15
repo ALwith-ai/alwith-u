@@ -1,6 +1,6 @@
 import type { AppsInstalledParams, FuzzyFileSearchParams, FuzzyFileSearchResponse } from "@alwith/module-chat/client"
 
-import { CodexClient } from "@/agent/client"
+import { CodexClient } from "@alwith/module-chat/client"
 import { deleteSessionInputMode } from "@/features/chat/composer/input-mode-config"
 
 import { initialFileResults } from "./initial-file-results"

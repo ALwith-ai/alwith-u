@@ -1,6 +1,6 @@
 import type { SessionRunState } from "@alwith/api"
 
-import type { AppState } from "@/agent/client"
+import type { AppState } from "@alwith/module-chat/client"
 
 /** Return only conversations already open in main; Runtime also reports other clients' sessions. */
 export function recentMainActivity(state: AppState, departingId: string | null): SessionRunState | null {

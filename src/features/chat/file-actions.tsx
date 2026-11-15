@@ -1,6 +1,6 @@
+import { commands as chatCommands } from "@alwith/module-chat/commands"
 import { containsPath, dirname } from "@alwith/module-fs"
 import { commands as fsCommands } from "@alwith/module-fs/commands"
-import { invoke } from "@tauri-apps/api/core"
 import { createContext, useCallback, useContext } from "react"
 import { toast } from "sonner"
 
@@ -90,5 +90,5 @@ export function chatFileName(uri: string): string {
 }
 
 export function downloadChatFile(uri: string, data: string): Promise<boolean> {
-  return invoke<boolean>("chat_save_file", { name: chatFileName(uri), data })
+  return chatCommands.saveFile({ name: chatFileName(uri), data })
 }

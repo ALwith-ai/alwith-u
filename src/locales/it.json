@@ -98,9 +98,7 @@
       "context": "Finestra di contesto"
     },
     "tool": {
-      "running": "In esecuzione",
-      "stopped": "Interrotto",
-      "failed": "Fallito"
+      "running": "In esecuzione"
     },
     "working": "In corso",
     "thought": "Ragionamento completato",

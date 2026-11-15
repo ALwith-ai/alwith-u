@@ -7,7 +7,7 @@ import { startTestRuntime } from "@alwith/api/node"
 import { isGroupedSelect, isSelectOption, isText } from "@alwith/module-chat/client"
 
 import catalog from "../src-tauri/resources/custom/models.json"
-import { CodexClient } from "../src/agent/client"
+import { CodexClient } from "@alwith/module-chat/client"
 import { staged, stagedCodexEngine } from "./lib/runtime"
 
 interface SavedProvider {

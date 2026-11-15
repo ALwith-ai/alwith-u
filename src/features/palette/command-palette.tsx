@@ -5,7 +5,7 @@ import { type ReactNode, useMemo, useRef, useState } from "react"
 import { flushSync } from "react-dom"
 import { useTranslation } from "react-i18next"
 
-import type { SessionSummary } from "@/agent/client"
+import type { SessionSummary } from "@alwith/module-chat/client"
 import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import {

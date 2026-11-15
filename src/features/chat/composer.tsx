@@ -1,15 +1,15 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { isSelectOption, type PromptOptions } from "@alwith/module-chat/client"
 /**
- * U's composer: the package composer with U's dictation and realtime voice, native file drops,
- * model catalog and prediction preference.
+ * U's composer: the shared desktop composer with U's dictation and realtime voice, image input,
+ * workspace file references, enterprise model marks and prediction preference.
  */
-import { Composer, type ComposerProps, useComposer } from "@alwith/module-chat/conversation"
+import { type ComposerProps, useComposer } from "@alwith/module-chat/conversation"
+import { DesktopComposer } from "@alwith/module-chat/desktop"
 import { useCallback, useLayoutEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useStore } from "zustand"
 
-import { isAuthenticationRequired } from "@/core/request-error"
 import { observeVoiceTurn } from "@/core/voice-turn"
 import { useImageAvailability } from "@/features/images/availability"
 import { RealtimeVoiceButton } from "@/features/voice/realtime-voice-button"
@@ -17,13 +17,12 @@ import type { VoiceResume } from "@/features/voice/use-voice-handoff"
 import { VoiceButton } from "@/features/voice/voice-button"
 import { useWorkspace } from "@/features/workspace/context"
 import { client } from "@/lib/client"
+import { providersPort } from "@/lib/providers"
 
 import { ImageModelSelect } from "./composer/image-model-select"
 import { ImageInputTools } from "./composer/image-tools"
 import { useInputMode } from "./composer/input-mode"
-import { chatModelMenu } from "./composer/model-catalog"
-import { ModelRecovery } from "./composer/model-recovery"
-import { nativeAttachmentPolicy, NativeFileDrop } from "./composer/native-file-drop"
+import { chatCatalog } from "./composer/model-catalog"
 import { predictionPreference } from "./composer/prediction-preference"
 
 function ComposerVoice({ voiceResume }: { voiceResume?: VoiceResume }) {
@@ -77,7 +76,8 @@ function ComposerVoice({ voiceResume }: { voiceResume?: VoiceResume }) {
   )
 }
 
-function ComposerFileDrop() {
+/** Files the workspace sends to the chat become mentions, as dropped files do. */
+function WorkspaceFileReferences() {
   const composer = useComposer()
   const register = useWorkspace()?.registerFileReference
   const { t } = useTranslation()
@@ -95,14 +95,7 @@ function ComposerFileDrop() {
       }),
     [register, sessionId, inputReady, sending, shellMode, addMention, textareaRef, t]
   )
-  return (
-    <NativeFileDrop
-      sessionId={composer.session.id}
-      enabled={composer.inputReady && !composer.sending && !composer.shellMode}
-      onMention={composer.addMention}
-      onBusyChange={composer.setAdding}
-    />
-  )
+  return null
 }
 
 export type ChatSubmit = (
@@ -115,7 +108,7 @@ export function ChatComposer({
   voiceResume,
   inputDisabled = false,
   ...props
-}: Omit<ComposerProps, "actions" | "children" | "attachmentPolicy" | "predictions" | "onSubmit"> & {
+}: Omit<ComposerProps, "actions" | "children" | "attachmentPolicy" | "onShellCommand" | "predictions" | "onSubmit"> & {
   voiceResume?: VoiceResume
   /** Draft changes protect input without disabling the window or pending request dialogs. */
   inputDisabled?: boolean
@@ -132,7 +125,6 @@ export function ChatComposer({
       (((option.category === "model" || option.configId === "model") && option.currentValue.startsWith("gateway:")) ||
         (option.configId === "collaboration_mode" && option.currentValue === "plan"))
   )
-  const modelRecovery = useStore(client.store, (state) => state.modelRecovery?.[props.session.id] ?? false)
   const submit: ComposerProps["onSubmit"] = imageMode
     ? async (prompt, accept) => {
         if (!availability.canGenerate) throw new Error(t("images.connectServices"))
@@ -153,52 +145,47 @@ export function ChatComposer({
       }
     : props.onSubmit
   return (
-    <>
-      {modelRecovery && !isAuthenticationRequired(props.session.error?.error) && (
-        <ModelRecovery key={props.session.id} session={props.session} />
-      )}
-      <Composer
-        modelMenu={chatModelMenu}
-        {...props}
-        disabled={
-          inputDisabled || props.disabled || inputMode?.ready === false || (imageMode && !availability.canGenerate)
-        }
-        allowPendingInput={!inputDisabled && (imageMode || props.allowPendingInput)}
-        agentControls={imageMode ? false : props.agentControls}
-        onSubmit={submit}
-        placeholder={imageMode ? t("chat.inputMode.placeholder") : props.placeholder}
-        leadingTools={
-          imageMode ? (
-            <ImageInputTools
-              value={inputMode.aspect}
-              onChange={inputMode.setAspect}
-              disabled={Boolean(inputDisabled || props.disabled || props.preparing || props.session.readOnly)}
-            />
-          ) : (
-            props.leadingTools
-          )
-        }
-        modelSelector={
-          imageMode ? (
-            <ImageModelSelect
-              selection={inputMode.selection}
-              onChange={inputMode.setSelection}
-              disabled={
-                !inputMode.draft ||
-                Boolean(inputDisabled || props.disabled || props.preparing || props.session.readOnly)
-              }
-            />
-          ) : (
-            props.modelSelector
-          )
-        }
-        predictions={!imageMode && predictions && !predictionUnavailable}
-        attachmentPolicy={nativeAttachmentPolicy}
-        onShellCommand={imageMode ? undefined : (command) => client.executeShell(props.session.id, command)}
-        actions={<ComposerVoice voiceResume={voiceResume} />}
-      >
-        <ComposerFileDrop />
-      </Composer>
-    </>
+    <DesktopComposer
+      client={client}
+      providers={providersPort}
+      catalog={chatCatalog}
+      shellCommands={!imageMode}
+      {...props}
+      disabled={
+        inputDisabled || props.disabled || inputMode?.ready === false || (imageMode && !availability.canGenerate)
+      }
+      allowPendingInput={!inputDisabled && (imageMode || props.allowPendingInput)}
+      agentControls={imageMode ? false : props.agentControls}
+      onSubmit={submit}
+      placeholder={imageMode ? t("chat.inputMode.placeholder") : props.placeholder}
+      leadingTools={
+        imageMode ? (
+          <ImageInputTools
+            value={inputMode.aspect}
+            onChange={inputMode.setAspect}
+            disabled={Boolean(inputDisabled || props.disabled || props.preparing || props.session.readOnly)}
+          />
+        ) : (
+          props.leadingTools
+        )
+      }
+      modelSelector={
+        imageMode ? (
+          <ImageModelSelect
+            selection={inputMode.selection}
+            onChange={inputMode.setSelection}
+            disabled={
+              !inputMode.draft || Boolean(inputDisabled || props.disabled || props.preparing || props.session.readOnly)
+            }
+          />
+        ) : (
+          props.modelSelector
+        )
+      }
+      predictions={!imageMode && predictions && !predictionUnavailable}
+      actions={<ComposerVoice voiceResume={voiceResume} />}
+    >
+      <WorkspaceFileReferences />
+    </DesktopComposer>
   )
 }

@@ -4,7 +4,7 @@ import { ConversationView } from "@alwith/module-chat/conversation"
 import { type ReactNode, type RefObject, useCallback, useRef } from "react"
 import { useTranslation } from "react-i18next"
 
-import type { SessionSummary } from "@/agent/client"
+import type { SessionSummary } from "@alwith/module-chat/client"
 import { CollectionPicker } from "@/features/collection/collection-menu"
 import { SessionPreview } from "@/features/computer/session-preview"
 import { prepareImageEdit } from "@/features/images/prepare-edit"

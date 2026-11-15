@@ -9,7 +9,7 @@ import { emitTo, listen } from "@tauri-apps/api/event"
 import * as React from "react"
 import { toast } from "sonner"
 
-import type { PendingAction } from "@/agent/client"
+import type { PendingAction } from "@alwith/module-chat/client"
 
 export type SettingsEvents = { listen: typeof listen; emitTo: typeof emitTo }
 const nativeEvents: SettingsEvents = { listen, emitTo }

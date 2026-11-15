@@ -6,7 +6,7 @@ import { join } from "node:path"
 import { ProcessRuntimeClient } from "@alwith/api/node"
 import { promptSuggestion } from "@alwith/module-chat/client"
 
-import { CodexClient } from "../src/agent/client"
+import { CodexClient } from "@alwith/module-chat/client"
 import { staged, stagedCodexEngine } from "./lib/runtime"
 
 const cwd = await realpath(await mkdtemp(join(tmpdir(), "alwith-predictions-")))

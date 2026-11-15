@@ -6,7 +6,7 @@ import { invoke } from "@tauri-apps/api/core"
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
-import type { DraftOwner } from "@/agent/client"
+import type { DraftOwner } from "@alwith/module-chat/client"
 import { dispatchCollection, reportCollection } from "@/features/collection/store"
 import { client, useApp, useSession } from "@/lib/client"
 import type { ProviderSnapshot } from "@/lib/providers"

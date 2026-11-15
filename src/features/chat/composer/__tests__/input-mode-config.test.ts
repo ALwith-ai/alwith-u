@@ -1,7 +1,7 @@
 import { DEFAULT_IMAGE_SELECTION, type ImageSelection } from "@alwith/module-chat/image"
 import { beforeEach, expect, test, vi } from "vitest"
 
-import type { SessionInputConfig, SessionInputConfigSnapshot } from "@/agent/input-config"
+import type { SessionInputConfig, SessionInputConfigSnapshot } from "@alwith/module-chat/client"
 
 import {
   configureSessionInputConfig,

@@ -1,4 +1,5 @@
 import { codexTurnId } from "@alwith/module-chat/client"
+import { commands as chatCommands } from "@alwith/module-chat/commands"
 import {
   type ConversationHost,
   ConversationProvider,
@@ -6,19 +7,18 @@ import {
   type TimelineSlots
 } from "@alwith/module-chat/conversation"
 import type { NavigationRailAudio, TimelineViewportProps } from "@alwith/module-chat/session-timeline"
-import { invoke } from "@tauri-apps/api/core"
 import { type ReactNode, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useStore } from "zustand"
 
-import { commands } from "@/bindings"
 import { Pane } from "@/components/alwith-ui/pane"
 import { CodexFileIcon } from "@/components/icons/codex/file-icon"
 import { useTheme } from "@/components/theme-provider"
 import { computerActionKey, privateComputerAction } from "@/features/computer/action-label"
 import { skillIconSrc } from "@/features/plugins/skill-icon"
 import { client } from "@/lib/client"
+import { openSettingsWindow } from "@/lib/window-manager"
 
 import { ForkOriginDivider, ForkTurnButton } from "./chat-branches"
 import { useChatActivityHost } from "./codex/activity-host"
@@ -59,12 +59,13 @@ export function useChatHost(sessionId?: string): ConversationHost {
           : block
       },
       saveFile: async (name, data) => {
-        await invoke<boolean>("chat_save_file", { name, data })
+        await chatCommands.saveFile({ name, data })
       },
       FileIcon: CodexFileIcon,
       EditedFilesActions: sessionId ? (props) => <UndoActions sessionId={sessionId} {...props} /> : undefined,
       reportError,
-      writeTextAttachment: (name, text) => commands.chatWriteTextAttachment({ name, text })
+      openSettings: openSettingsWindow,
+      writeTextAttachment: (name, text) => chatCommands.writeTextAttachment({ name, text })
     }),
     [activity, resolvedTheme, t, sessionId]
   )

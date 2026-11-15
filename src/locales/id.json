@@ -94,9 +94,7 @@
       "context": "Jendela konteks"
     },
     "tool": {
-      "running": "Berjalan",
-      "stopped": "Berhenti",
-      "failed": "Gagal"
+      "running": "Berjalan"
     },
     "working": "Sedang bekerja",
     "thought": "Selesai berpikir",

@@ -10,7 +10,7 @@ import { expect, test, vi } from "vitest"
 import { createFakeAgent } from "@/agent/__tests__/fake-agent"
 import { FakeHubPort } from "@/agent/__tests__/fake-runtime-client"
 import { projectContext } from "@/agent/__tests__/project-context"
-import { type ClientOptions, CodexClient } from "@/agent/client"
+import { type ClientOptions, CodexClient } from "@alwith/module-chat/client"
 import { ThemeProvider } from "@/components/theme-provider"
 import { ChatWindow } from "@/features/chat-window/chat-window"
 import { must } from "@/lib/__tests__/must"
@@ -114,6 +114,9 @@ async function windowEnvironment(visible = false) {
       if (command === "plugin:log|log") return
       if (command === "plugin:window|is_focused" || command === "plugin:window|is_minimized") return false
       if (command === "plugin:window|is_visible") return !hidden
+      // The floating window's rounded backdrop follows the display scale.
+      if (command === "plugin:window|scale_factor") return 1
+      if (command === "set_chat_window_backdrop") return
       if (command === "plugin:window|hide") {
         hidden = true
         return

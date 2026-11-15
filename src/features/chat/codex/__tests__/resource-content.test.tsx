@@ -93,7 +93,9 @@ test("download passes the exact payload to the native save dialog and reports fa
   )
   const button = view.getByRole("button", { name: "Download photo.png" })
   fireEvent.click(button)
-  await waitFor(() => expect(invoke).toHaveBeenCalledWith("chat_save_file", { name: "photo.png", data: "aGVsbG8=" }))
+  await waitFor(() =>
+    expect(invoke).toHaveBeenCalledWith("plugin:alwith-chat|save_file", { name: "photo.png", data: "aGVsbG8=" })
+  )
   await waitFor(() => expect(button.hasAttribute("disabled")).toBe(false))
   expect(error).not.toHaveBeenCalled()
   invoke.mockRejectedValue(new Error("Disk full"))

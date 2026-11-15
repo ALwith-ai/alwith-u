@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react
 import { useState } from "react"
 import { afterEach, expect, test } from "vitest"
 
-import type { SessionSummary } from "@/agent/client"
+import type { SessionSummary } from "@alwith/module-chat/client"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import { client } from "@/lib/client"

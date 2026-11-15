@@ -1,24 +1,15 @@
-import { Bot } from "lucide-react"
-import type { ComponentType, SVGProps } from "react"
+import { ModelIcon as SharedModelIcon } from "@alwith/module-chat/desktop"
+import type { SVGProps } from "react"
 
-import { PROVIDERS } from "@/lib/providers"
 import { cn } from "@/lib/utils"
 
-import { AlwithAccountLogo, AlwithEnterpriseLogo, ChatGPTLogo, MiniMaxLogo, SeedreamLogo } from "./model/provider-logos"
-
-const logos: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
-  "alwith-account": AlwithAccountLogo,
-  "alwith-enterprise": AlwithEnterpriseLogo,
-  chatgpt: ChatGPTLogo,
-  minimax: MiniMaxLogo,
-  seedream: SeedreamLogo
-}
+import { AlwithEnterpriseLogo } from "./model/provider-logos"
 
 type ModelIconProps = SVGProps<SVGSVGElement> & { provider: string }
 
+/** The shared model marks plus U's enterprise mark. */
 export function ModelIcon({ provider, className, ...props }: ModelIconProps) {
-  const Logo = Object.hasOwn(logos, provider)
-    ? logos[provider]
-    : (PROVIDERS.find((item) => item.id === provider)?.logo ?? Bot)
-  return <Logo aria-hidden="true" {...props} className={cn("size-4 shrink-0", className)} />
+  if (provider === "alwith-enterprise")
+    return <AlwithEnterpriseLogo aria-hidden="true" {...props} className={cn("size-4 shrink-0", className)} />
+  return <SharedModelIcon provider={provider} {...props} className={className} />
 }

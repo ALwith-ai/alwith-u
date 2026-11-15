@@ -5,8 +5,8 @@ import { resolve } from "node:path"
 import { startTestRuntime } from "@alwith/api/node"
 import { textOf } from "@alwith/module-chat/client"
 
-import { CodexClient } from "../src/agent/client"
-import { isAuthenticationRequired } from "../src/core/request-error"
+import { CodexClient } from "@alwith/module-chat/client"
+import { isAuthenticationRequired } from "@alwith/module-chat/client"
 import { staged, stagedCodexEngine } from "./lib/runtime"
 
 const requests: { model: string; path: string }[] = []

@@ -8,7 +8,7 @@ import {
 } from "@alwith/module-chat/choice-schema"
 import { isFormElicitation, isToolCallSubject } from "@alwith/module-chat/client"
 
-import type { PendingAction } from "@/agent/client"
+import type { PendingAction } from "@alwith/module-chat/client"
 
 /** Mirrors Desktop's quick-answer boundary; complex forms retain their full context. */
 export function vibemonPrompt(action: PendingAction | undefined, rawInput?: unknown): VibemonPrompt | null {

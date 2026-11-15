@@ -62,6 +62,52 @@ impl alwith_voice::Credentials for VoiceCredentials {
         })
     }
 }
+
+/// Image provider settings and keys share the settings store's revision and lock.
+impl alwith_media::ImageStore for VoiceCredentials {
+    fn read(&self, provider: alwith_media::ImageProvider) -> Result<alwith_media::StoredImageProvider, String> {
+        self.with(|store| {
+            let name = image_provider(provider);
+            let (revision, values) = store.snapshot().map_err(store_error)?;
+            let text = |key: String| values.get(&key).and_then(Value::as_str).map(str::to_owned);
+            Ok(alwith_media::StoredImageProvider {
+                revision,
+                base_url: text(format!("images.{name}.baseUrl")).filter(|url| !url.is_empty()),
+                region: match text(format!("images.{name}.region")).as_deref() {
+                    Some("cn") => Some(alwith_media::ImageRegion::Cn),
+                    Some("intl") => Some(alwith_media::ImageRegion::Intl),
+                    None => None,
+                    Some(_) => return Err(NativeError::new("failed", "Invalid MiniMax region")),
+                },
+                api_key: store.secret(&format!("images.{name}.apiKey")).map_err(store_error)?,
+            })
+        })
+        .map_err(|error| error.message)
+    }
+    fn save(&self, change: &alwith_media::ImageSettingsInput) -> Result<(), String> {
+        self.with(|store| {
+            store
+                .save_image_provider_for(
+                    image_provider(change.provider),
+                    &change.base_url,
+                    change.api_key.as_deref(),
+                    change.expected_revision,
+                    change.region.map(|region| match region {
+                        alwith_media::ImageRegion::Cn => "cn",
+                        alwith_media::ImageRegion::Intl => "intl",
+                    }),
+                )
+                .map_err(store_error)
+        })
+        .map_err(|error| error.message)
+    }
+}
+fn image_provider(provider: alwith_media::ImageProvider) -> &'static str {
+    match provider {
+        alwith_media::ImageProvider::Seedream => "seedream",
+        alwith_media::ImageProvider::Minimax => "minimax",
+    }
+}
 #[tauri::command]
 pub fn settings_request(
     window: tauri::Window, state: State<'_, SharedSettings>, input: Value,

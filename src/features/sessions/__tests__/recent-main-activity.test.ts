@@ -2,7 +2,7 @@ import { type SessionRunState } from "@alwith/api"
 import { createSession } from "@alwith/module-chat/client"
 import { expect, test } from "vitest"
 
-import { type AppState, CodexClient } from "@/agent/client"
+import { type AppState, CodexClient } from "@alwith/module-chat/client"
 
 import { recentMainActivity } from "../recent-main-activity"
 

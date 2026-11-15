@@ -99,8 +99,6 @@
     },
     "tool": {
       "running": "En cours",
-      "stopped": "Arrêté",
-      "failed": "Échec",
       "output": "Sortie",
       "input": "Entrée"
     },

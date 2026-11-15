@@ -100,8 +100,6 @@
     },
     "tool": {
       "running": "Wird ausgeführt",
-      "stopped": "Gestoppt",
-      "failed": "Fehlgeschlagen",
       "output": "Ausgabe",
       "input": "Eingabe"
     },

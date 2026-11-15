@@ -1,7 +1,7 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { isToolCallSubject } from "@alwith/module-chat/client"
 
-import type { CodexClient } from "@/agent/client"
+import type { CodexClient } from "@alwith/module-chat/client"
 
 export type MobilePrompt = {
   sessionId: string

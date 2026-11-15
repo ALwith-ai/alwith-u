@@ -3,7 +3,7 @@ import { createSession, type MessageItem } from "@alwith/module-chat/client"
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 
-import type { SessionSummary } from "@/agent/client"
+import type { SessionSummary } from "@alwith/module-chat/client"
 import { useChatWindowSurface } from "@/lib/chat-window-state"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"

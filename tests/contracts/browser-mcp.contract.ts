@@ -10,7 +10,7 @@ import { startTestRuntime } from "@alwith/api/node"
 import { afterAll, beforeAll, describe, test } from "vitest"
 
 import { staged, stagedCodexEngine } from "../../scripts/lib/runtime"
-import { CodexClient } from "../../src/agent/client"
+import { CodexClient } from "@alwith/module-chat/client"
 import { ipc, ui, waitFor } from "./lib/app"
 
 describe("browser tools over MCP", () => {
