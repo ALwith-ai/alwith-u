@@ -58,6 +58,8 @@ export const config = (mode = "development"): UserConfig => ({
       "@milkdown/plugin-history",
       "@milkdown/prose/state",
       "@milkdown/preset-commonmark",
+      // module-chat loads Mermaid only when a conversation shows a diagram.
+      "mermaid",
       "@milkdown/preset-gfm",
       "@milkdown/utils"
     ]
