@@ -7,7 +7,7 @@ test("macOS development allows restart switching; production only builds CEF", (
 test("Windows always builds Wry without default CEF features", () => {
   for (const mode of ["dev", "build"]) {
     const args = desktopArgs("win32", mode)
-    expect(args).toContain("--no-default-features")
+    expect(args.slice(args.indexOf("--"))).toContain("--no-default-features")
     expect(args.join(" ")).toContain("runtime-wry")
     expect(args.join(" ")).not.toContain("cef")
   }
