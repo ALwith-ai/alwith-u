@@ -94,19 +94,22 @@ dependencies = [
 
 [[package]]
 name = "alwith-chat"
-version = "0.6.10"
+version = "0.6.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "159d2c215c436401de8d08815e31cdb40b44744f6712318a282c0148b5af5b8a"
+checksum = "ba3ad1d891d51cb40baacaf320de9d062122b5d020a6b4d2751c359871b47355"
 dependencies = [
  "alwith-api",
  "alwith-native-client 0.6.2",
+ "arboard",
  "axum",
+ "base64 0.23.1",
  "chrono",
  "futures-util",
  "hex",
  "http-body-util",
  "hyper",
  "hyper-util",
+ "image",
  "log",
  "native-tls",
  "regex",
@@ -296,6 +299,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "alwith-media"
+version = "0.6.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab5616e03c362f67d50f8218e2d200d223cabdc0875d3b48b15c704f046fcba7"
+dependencies = [
+ "alwith-native-client 0.6.2",
+ "serde",
+ "serde_json",
+ "specta",
+ "tauri",
+ "tauri-plugin",
+ "tauri3-specta",
+ "tokio",
+]
+
+[[package]]
 name = "alwith-mobile"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -383,6 +402,7 @@ dependencies = [
  "alwith-fs",
  "alwith-gamepad",
  "alwith-installed-apps",
+ "alwith-media",
  "alwith-mobile",
  "alwith-store",
  "alwith-voice",
@@ -5104,13 +5124,13 @@ dependencies = [
 
 [[package]]
 name = "sha1"
-version = "0.10.7"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a978451301f4db1d02937a4ab3ccce137717b81826e79b7d49ffe3244a13c3b8"
+checksum = "aacc4cc499359472b4abe1bf11d0b12e688af9a805fa5e3016f9a386dc2d0214"
 dependencies = [
  "cfg-if",
- "cpufeatures 0.2.17",
- "digest 0.10.7",
+ "cpufeatures 0.3.1",
+ "digest 0.11.3",
 ]
 
 [[package]]
@@ -6382,9 +6402,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-tungstenite"
-version = "0.28.0"
+version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d25a406cddcc431a75d3d9afc6a7c0f7428d4891dd973e4d54c56b46127bf857"
+checksum = "17a073bfed563fa236697a068031408a93cd9522e08abf9933ead3e73411bd71"
 dependencies = [
  "futures-util",
  "log",
@@ -6619,19 +6639,18 @@ checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 
 [[package]]
 name = "tungstenite"
-version = "0.28.0"
+version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8628dcc84e5a09eb3d8423d6cb682965dea9133204e8fb3efee74c2a0c259442"
+checksum = "e48ac77174b19c110a50ab2128b24215ac9cb40e0e12e093fb602d175c569d22"
 dependencies = [
  "bytes",
  "data-encoding",
  "http",
  "httparse",
  "log",
- "rand 0.9.5",
+ "rand 0.10.4",
  "sha1",
  "thiserror 2.0.21",
- "utf-8",
 ]
 
 [[package]]
@@ -6705,12 +6724,6 @@ dependencies = [
  "serde",
  "url",
 ]
-
-[[package]]
-name = "utf-8"
-version = "0.7.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09cc8ee72d2a9becf2f2febe0205bbed8fc6615b7cb429ad062dc7b7ddd036a9"
 
 [[package]]
 name = "utf8_iter"
