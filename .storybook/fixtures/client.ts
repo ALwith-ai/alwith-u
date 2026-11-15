@@ -407,6 +407,7 @@ client.retrySession = (id) => Promise.resolve(finish(id, "重试成功，页面�
 client.readAccount = () =>
   Promise.resolve({
     account: { type: "chatgpt", email: "lin.ran@example.test", planType: "plus", workspaceName: null },
+    userId: null,
     requiresOpenaiAuth: true,
     workspaceRouting: null
   })
