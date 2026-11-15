@@ -120,7 +120,7 @@
   "devDependencies": {
     "@babel/parser": "^8.1.2",
     "@nyssance/ts7-lint": "^0.1.3",
-    "@nyssance/tsconfig": "^0.1.0",
+    "@nyssance/tsconfig": "^0.1.2",
     "@openai/codex": "0.169.0",
     "@storybook/addon-a11y": "^10.6.7",
     "@storybook/addon-docs": "^10.6.7",

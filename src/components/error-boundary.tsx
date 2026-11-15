@@ -16,14 +16,14 @@ interface State {
 }
 
 export class ErrorBoundary extends Component<Props, State> {
-  state: State = { error: null, errorInfo: null }
+  override state: State = { error: null, errorInfo: null }
   private readonly handleLanguageChanged = () => this.forceUpdate()
 
-  componentDidMount() {
+  override componentDidMount() {
     i18n.on("languageChanged", this.handleLanguageChanged)
   }
 
-  componentWillUnmount() {
+  override componentWillUnmount() {
     i18n.off("languageChanged", this.handleLanguageChanged)
   }
 
@@ -31,7 +31,7 @@ export class ErrorBoundary extends Component<Props, State> {
     return { error }
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // The production UI only says "Something went wrong."; the details live in the log file.
     void logError(
       `[react] ${error.message}\n${error.stack ?? ""}\ncomponentStack:${errorInfo.componentStack ?? ""}`
@@ -39,7 +39,7 @@ export class ErrorBoundary extends Component<Props, State> {
     this.setState({ error, errorInfo })
   }
 
-  render() {
+  override render() {
     const { error, errorInfo } = this.state
     if (!error) return this.props.children
     if (this.props.fallback) return this.props.fallback

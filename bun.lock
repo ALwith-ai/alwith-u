@@ -98,7 +98,7 @@
       "devDependencies": {
         "@babel/parser": "^8.1.2",
         "@nyssance/ts7-lint": "^0.1.3",
-        "@nyssance/tsconfig": "^0.1.0",
+        "@nyssance/tsconfig": "^0.1.2",
         "@openai/codex": "0.169.0",
         "@storybook/addon-a11y": "^10.6.7",
         "@storybook/addon-docs": "^10.6.7",
@@ -466,7 +466,7 @@
 
     "@nyssance/ts7-lint": ["@nyssance/ts7-lint@0.1.3", "", { "bin": { "ts7-lint": "src/index.ts" } }, "sha512-i6lTThgMw6JoCgDB1clmlNMMgOJSj2nU62qZjZn6KhG55YYmNwkkZw889Am9YuXAnXNcJDi8qZKC23HpV+lx8Q=="],
 
-    "@nyssance/tsconfig": ["@nyssance/tsconfig@0.1.0", "", {}, "sha512-tLXTdPG1MehZI0kc3ZA37KYLp9az9ktUI/SKMjO+DHdqlgzsY2yHcSIG0yE8c2nfjqD0bb8ulOLqJkun1IKxTQ=="],
+    "@nyssance/tsconfig": ["@nyssance/tsconfig@0.1.2", "", {}, "sha512-BQ0PzHmJEQJQ0oQ+2sVEAsxzz5LEcq3kPKVcXMg1JJxt219C24wQab6z9FuC/JJzyM6XIQQpYLNU3UhvNL3hfA=="],
 
     "@openai/codex": ["@openai/codex@0.169.0", "https://registry.npmmirror.com/@openai/codex/-/codex-0.169.0.tgz", { "optionalDependencies": { "@openai/codex-darwin-arm64": "npm:@openai/codex@0.169.0-darwin-arm64", "@openai/codex-darwin-x64": "npm:@openai/codex@0.169.0-darwin-x64", "@openai/codex-linux-arm64": "npm:@openai/codex@0.169.0-linux-arm64", "@openai/codex-linux-x64": "npm:@openai/codex@0.169.0-linux-x64", "@openai/codex-win32-arm64": "npm:@openai/codex@0.169.0-win32-arm64", "@openai/codex-win32-x64": "npm:@openai/codex@0.169.0-win32-x64" }, "bin": { "codex": "bin/codex.js" } }, "sha512-KhzYlkKPxoNssR8CEm45IjqnFWn7UtlF4CiD3tOJPea51xBs7MaHy0UQG9GSbCqk6Lrjn5QdJDV0QD1/FgWlGw=="],
 
