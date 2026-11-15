@@ -343,7 +343,8 @@ test("Codex loading resolves to real usage without presenting a signed-out actio
     account: {
       account: { type: "chatgpt", email: "test@example.test", planType: "pro", workspaceName: null },
       requiresOpenaiAuth: true,
-      workspaceRouting: null
+      workspaceRouting: null,
+      userId: null
     },
     rateLimits: {
       limitId: null,
@@ -373,7 +374,7 @@ test("Codex loading resolves to real usage without presenting a signed-out actio
   expect(view.queryByRole("button")).toBeNull()
   view.rerender(
     <CodexAccountSummary
-      account={{ account: { account: null, requiresOpenaiAuth: true, workspaceRouting: null }, rateLimits: null }}
+      account={{ account: { account: null, requiresOpenaiAuth: true, workspaceRouting: null, userId: null }, rateLimits: null }}
       disabled={false}
       onSignOut={signOut}
     />
