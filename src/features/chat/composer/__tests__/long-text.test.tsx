@@ -1,10 +1,10 @@
 import { createSession } from "@alwith/module-chat/client"
+import { commands } from "@alwith/module-chat/commands"
 import { drafts, exportDraft, importDraft, isPastedTextAttachment } from "@alwith/module-chat/conversation"
 import { commands as fsCommands } from "@alwith/module-fs/commands"
 import { act, createEvent, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
-import { commands } from "@/bindings"
 import { initI18n } from "@/lib/i18n"
 
 import { Composer } from "../../__tests__/timeline-host"
@@ -17,7 +17,7 @@ const longText = "中文".repeat(2500)
 beforeEach(() => {
   vi.spyOn(fsCommands, "workspaceOpen").mockImplementation(async ({ path }) => path)
   vi.spyOn(fsCommands, "workspaceStat").mockResolvedValue({ kind: "file", size: 100, version: "1" })
-  vi.spyOn(commands, "chatWriteTextAttachment").mockResolvedValue("/tmp/paste #1?.txt")
+  vi.spyOn(commands, "writeTextAttachment").mockResolvedValue("/tmp/paste #1?.txt")
 })
 afterEach(() => {
   vi.restoreAllMocks()
@@ -53,7 +53,7 @@ test.each(windowsFiles)("submits a Windows file reference with a valid URI: %s",
 })
 
 test.each(windowsFiles)("submits a native Windows text attachment with a valid URI: %s", async (path, uri) => {
-  vi.mocked(commands.chatWriteTextAttachment).mockResolvedValue(path)
+  vi.mocked(commands.writeTextAttachment).mockResolvedValue(path)
   const submit = vi.fn().mockResolvedValue(undefined)
   render(<Composer session={session()} onSubmit={submit} />)
   paste(longText)
@@ -68,11 +68,11 @@ test("converts a single 5000-character paste, not 4999 characters or accumulated
   const input = screen.getByRole("textbox")
   fireEvent.change(input, { target: { value: "existing prompt" } })
   expect(paste("中".repeat(4999)).defaultPrevented).toBe(false)
-  expect(commands.chatWriteTextAttachment).not.toHaveBeenCalled()
+  expect(commands.writeTextAttachment).not.toHaveBeenCalled()
   expect(paste(longText).defaultPrevented).toBe(true)
   expect(input).toHaveValue("existing prompt")
   await screen.findByText("5000 characters")
-  expect(commands.chatWriteTextAttachment).toHaveBeenCalledWith({ name: "pasted-text.txt", text: longText })
+  expect(commands.writeTextAttachment).toHaveBeenCalledWith({ name: "pasted-text.txt", text: longText })
   fireEvent.click(screen.getByRole("button", { name: "Send" }))
   await waitFor(() =>
     expect(submit).toHaveBeenCalledWith([
@@ -95,12 +95,12 @@ test("uses UTF-16 length for emoji and leaves long typed text inline at submissi
   fireEvent.change(screen.getByRole("textbox"), { target: { value: text } })
   fireEvent.click(screen.getByRole("button", { name: "Send" }))
   await waitFor(() => expect(submit).toHaveBeenCalledWith([{ type: "text", text }]))
-  expect(commands.chatWriteTextAttachment).toHaveBeenCalledTimes(1)
+  expect(commands.writeTextAttachment).toHaveBeenCalledTimes(1)
 })
 
 test("blocks submission while writing and routes completion to the original draft after switching chats", async () => {
   let finish!: (path: string) => void
-  vi.mocked(commands.chatWriteTextAttachment).mockReturnValue(
+  vi.mocked(commands.writeTextAttachment).mockReturnValue(
     new Promise((resolve) => {
       finish = resolve
     })
@@ -119,7 +119,7 @@ test("blocks submission while writing and routes completion to the original draf
 
 test("waits for native writes when transferring a prepared draft to another window", async () => {
   let finish!: (path: string) => void
-  vi.mocked(commands.chatWriteTextAttachment).mockReturnValue(
+  vi.mocked(commands.writeTextAttachment).mockReturnValue(
     new Promise((resolve) => {
       finish = resolve
     })
@@ -141,7 +141,7 @@ test("waits for native writes when transferring a prepared draft to another wind
 
 test("retries failed writes and opens the attachment as a file without changing the input", async () => {
   const openPreview = vi.spyOn(preview, "openFilePreview").mockImplementation(() => {})
-  vi.mocked(commands.chatWriteTextAttachment).mockRejectedValueOnce(new Error("disk full"))
+  vi.mocked(commands.writeTextAttachment).mockRejectedValueOnce(new Error("disk full"))
   render(<Composer session={session()} />)
   paste(longText)
   await screen.findByText("Could not create file")
@@ -159,7 +159,7 @@ test("retries failed writes and opens the attachment as a file without changing 
 
 test("does not resurrect an attachment removed before the native write finishes", async () => {
   let finish!: (path: string) => void
-  vi.mocked(commands.chatWriteTextAttachment).mockReturnValue(
+  vi.mocked(commands.writeTextAttachment).mockReturnValue(
     new Promise((resolve) => {
       finish = resolve
     })

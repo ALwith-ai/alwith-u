@@ -9,7 +9,6 @@ mod dropped_file_url_tests;
 mod appearance;
 mod autostart;
 mod bundled_extensions;
-mod chat_files;
 mod chat_window;
 mod diagnostics;
 mod draft_directory;
@@ -344,9 +343,6 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 draft_directory::draft_directory,
                 workbuddy::workbuddy_create,
                 drive::drive_path_exists,
-                chat_files::chat_save_file,
-                chat_files::chat_write_text_attachment,
-                chat_files::chat_read_image,
                 images::images_configured,
                 images::images_read_settings,
                 images::images_save_settings,
@@ -354,10 +350,6 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 images::images_prepare_references,
                 images::images_generate,
                 images::images_cancel,
-                chat_files::chat_preview_file,
-                chat_files::chat_read_dropped_file,
-                chat_files::chat_clipboard_file_paths,
-                chat_files::chat_write_pasted_file,
                 workspace::workspace_import,
                 workspace::workspace_dirty,
                 workspace::workspace_exit,

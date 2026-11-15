@@ -101,8 +101,6 @@
     },
     "tool": {
       "running": "実行中",
-      "stopped": "停止済み",
-      "failed": "失敗",
       "output": "出力",
       "input": "入力"
     },

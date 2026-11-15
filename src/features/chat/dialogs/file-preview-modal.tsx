@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core"
+import { commands as chatCommands } from "@alwith/module-chat/commands"
 import { openPath, revealItemsInDir } from "@tauri-apps/plugin-opener"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -25,7 +25,7 @@ function PreviewContent({ request }: { request: Request }) {
   const line = useRef<HTMLElement>(null)
   useEffect(() => {
     let active = true
-    void invoke<Preview>("chat_preview_file", { path: request.path }).then(
+    void chatCommands.previewFile({ path: request.path }).then(
       (value) => {
         if (active) setResult(value)
       },

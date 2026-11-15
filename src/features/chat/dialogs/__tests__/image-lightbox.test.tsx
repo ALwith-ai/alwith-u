@@ -1,8 +1,8 @@
+import { commands as chatCommands } from "@alwith/module-chat/commands"
 import { act, fireEvent, render, waitFor, within } from "@testing-library/react"
 import { toast } from "sonner"
 import { afterEach, expect, test, vi } from "vitest"
 
-import { commands } from "@/bindings"
 import { WorkspaceContext } from "@/features/workspace/context"
 import { openPathInApp } from "@/lib/open-with-app"
 
@@ -105,7 +105,7 @@ test("failed file actions report the error and keep the preview usable", async (
 })
 
 test("inline images are materialized once for opening and reset zoom when another image opens", async () => {
-  const write = vi.spyOn(commands, "chatWritePastedFile").mockResolvedValue("/tmp/cache/image.png")
+  const write = vi.spyOn(chatCommands, "writePastedFile").mockResolvedValue("/tmp/cache/image.png")
   const open = vi.mocked(openPathInApp).mockResolvedValue(undefined)
   const view = render(<ImageLightbox />)
   mounted.push(view)

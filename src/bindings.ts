@@ -43,11 +43,6 @@ export const commands = {
     github: string | null
   }): Promise<string> => __t3Invoke<string>("workbuddy_create", args),
   drivePathExists: (args: { path: string }): Promise<boolean> => __t3Invoke<boolean>("drive_path_exists", args),
-  chatSaveFile: (args: { name: string; data: string }): Promise<boolean> => __t3Invoke<boolean>("chat_save_file", args),
-  chatWriteTextAttachment: (args: { name: string; text: string }): Promise<string> =>
-    __t3Invoke<string>("chat_write_text_attachment", args),
-  chatReadImage: (args: { path: string; cwd: string }): Promise<ChatImage> =>
-    __t3Invoke<ChatImage>("chat_read_image", args),
   imagesConfigured: (args: { provider: "seedream" | "minimax" | null }): Promise<boolean> =>
     __t3Invoke<boolean>("images_configured", args),
   imagesReadSettings: (args: { provider: "seedream" | "minimax" | null }): Promise<ImageSettings_Serialize> =>
@@ -61,20 +56,6 @@ export const commands = {
   imagesGenerate: (args: { input: ImageInput }): Promise<ImageResult> =>
     __t3Invoke<ImageResult>("images_generate", args),
   imagesCancel: (args: { requestId: string }): Promise<null> => __t3Invoke<null>("images_cancel", args),
-  /**
-   *  Explicit file-link clicks may preview one external file without authorizing
-   *  its parent directory or creating a writable workspace.
-   */
-  chatPreviewFile: (args: { path: string }): Promise<ChatFilePreview> =>
-    __t3Invoke<ChatFilePreview>("chat_preview_file", args),
-  chatReadDroppedFile: (args: { path: string }): Promise<ChatDroppedFile_Serialize> =>
-    __t3Invoke<ChatDroppedFile_Serialize>("chat_read_dropped_file", args),
-  /**
-   *  Read native file references that WebKit/WebView2 may omit from the DOM clipboard.
-   */
-  chatClipboardFilePaths: (): Promise<string[]> => __t3Invoke<string[]>("chat_clipboard_file_paths"),
-  chatWritePastedFile: (args: { name: string; data: number[] }): Promise<string> =>
-    __t3Invoke<string>("chat_write_pasted_file", args),
   /**
    *  Import only the explicitly confirmed source paths; never grant their parents to the webview.
    */
@@ -246,9 +227,6 @@ export type CommandErrors = {
   draftDirectory: string
   workbuddyCreate: string
   drivePathExists: string
-  chatSaveFile: string
-  chatWriteTextAttachment: string
-  chatReadImage: string
   imagesConfigured: string
   imagesReadSettings: string
   imagesSaveSettings: string
@@ -256,10 +234,6 @@ export type CommandErrors = {
   imagesPrepareReferences: string
   imagesGenerate: string
   imagesCancel: string
-  chatPreviewFile: string
-  chatReadDroppedFile: string
-  chatClipboardFilePaths: string
-  chatWritePastedFile: string
   workspaceImport: string
   workspaceDirty: string
   workspaceExit: string
@@ -439,28 +413,6 @@ export type BundledExtension = {
   id: string
   version: string
   source: string
-}
-
-export type ChatDroppedFile = ChatDroppedFile_Serialize | ChatDroppedFile_Deserialize
-
-export type ChatDroppedFile_Deserialize = {
-  path: string
-  name: string
-  image?: ChatImage | null
-}
-
-export type ChatDroppedFile_Serialize = {
-  path: string
-  name: string
-  image: ChatImage | null
-}
-
-export type ChatFilePreview =
-  { kind: "text"; text: string } | { kind: "image"; data: string; mimeType: string } | { kind: "unsupported" }
-
-export type ChatImage = {
-  data: string
-  mimeType: string
 }
 
 export type CloseTab = null
