@@ -43,19 +43,6 @@ export const commands = {
     github: string | null
   }): Promise<string> => __t3Invoke<string>("workbuddy_create", args),
   drivePathExists: (args: { path: string }): Promise<boolean> => __t3Invoke<boolean>("drive_path_exists", args),
-  imagesConfigured: (args: { provider: "seedream" | "minimax" | null }): Promise<boolean> =>
-    __t3Invoke<boolean>("images_configured", args),
-  imagesReadSettings: (args: { provider: "seedream" | "minimax" | null }): Promise<ImageSettings_Serialize> =>
-    __t3Invoke<ImageSettings_Serialize>("images_read_settings", args),
-  imagesSaveSettings: (args: { input: ImageSettingsInput_Deserialize }): Promise<ImageSettings_Serialize> =>
-    __t3Invoke<ImageSettings_Serialize>("images_save_settings", args),
-  imagesTestKey: (args: { provider: ImageProvider }): Promise<ImageKeyTestResult_Serialize> =>
-    __t3Invoke<ImageKeyTestResult_Serialize>("images_test_key", args),
-  imagesPrepareReferences: (args: { input: ImageReferencesInput_Deserialize }): Promise<string[]> =>
-    __t3Invoke<string[]>("images_prepare_references", args),
-  imagesGenerate: (args: { input: ImageInput }): Promise<ImageResult> =>
-    __t3Invoke<ImageResult>("images_generate", args),
-  imagesCancel: (args: { requestId: string }): Promise<null> => __t3Invoke<null>("images_cancel", args),
   /**
    *  Import only the explicitly confirmed source paths; never grant their parents to the webview.
    */
@@ -227,13 +214,6 @@ export type CommandErrors = {
   draftDirectory: string
   workbuddyCreate: string
   drivePathExists: string
-  imagesConfigured: string
-  imagesReadSettings: string
-  imagesSaveSettings: string
-  imagesTestKey: string
-  imagesPrepareReferences: string
-  imagesGenerate: string
-  imagesCancel: string
   workspaceImport: string
   workspaceDirty: string
   workspaceExit: string
@@ -496,95 +476,6 @@ export type HttpResponse = {
   url: string
   headers: { [key in string]: string }
   body: number[]
-}
-
-export type ImageData = {
-  mimeType: string
-  data: string
-}
-
-export type ImageInput = {
-  requestId: string
-  model: string
-  size: string
-  prompt: string
-  images: string[]
-}
-
-export type ImageKeyTestResult = ImageKeyTestResult_Serialize | ImageKeyTestResult_Deserialize
-
-export type ImageKeyTestResult_Deserialize = {
-  ok: boolean
-  code: string
-  message: string
-  status?: number | null
-  latencyMs?: number | null
-}
-
-export type ImageKeyTestResult_Serialize = {
-  ok: boolean
-  code: string
-  message: string
-  status: number | null
-  latencyMs: number | null
-}
-
-export type ImageProvider = "seedream" | "minimax"
-
-export type ImageReferencesInput = ImageReferencesInput_Serialize | ImageReferencesInput_Deserialize
-
-export type ImageReferencesInput_Deserialize = {
-  model?: string | null
-  images: string[]
-  envelopeBytes: number
-}
-
-export type ImageReferencesInput_Serialize = {
-  model: string | null
-  images: string[]
-  envelopeBytes: number
-}
-
-export type ImageRegion = "cn" | "intl"
-
-export type ImageResult = {
-  images: ImageData[]
-}
-
-export type ImageSettings = ImageSettings_Serialize | ImageSettings_Deserialize
-
-export type ImageSettingsInput = ImageSettingsInput_Serialize | ImageSettingsInput_Deserialize
-
-export type ImageSettingsInput_Deserialize = {
-  provider?: ImageProvider
-  region?: ImageRegion | null
-  expectedRevision: number
-  baseUrl: string
-  apiKey?: string | null
-}
-
-export type ImageSettingsInput_Serialize = {
-  provider: ImageProvider
-  region: ImageRegion | null
-  expectedRevision: number
-  baseUrl: string
-  apiKey: string | null
-}
-
-export type ImageSettings_Deserialize = {
-  region?: ImageRegion | null
-  revision: number
-  baseUrl: string
-  defaultBaseUrl: string
-  configured: boolean
-}
-
-export type ImageSettings_Serialize = {
-  region: ImageRegion | null
-  revision: number
-  baseUrl: string
-  defaultBaseUrl: string
-  configured: boolean
 }
 
 export type ImportedImage = {

@@ -126,6 +126,7 @@ const MODULES = [
   "extension",
   "device",
   "chat",
+  "media",
   "fs",
   "drive"
 ]

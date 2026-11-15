@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "media-settings",
+  "description": "Image provider settings and credential probes",
+  "windows": ["settings"],
+  "permissions": ["alwith-media:settings"]
+}

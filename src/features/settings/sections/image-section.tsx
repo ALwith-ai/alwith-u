@@ -1,10 +1,10 @@
+import { commands, type ImageSettings_Serialize as ImageSettings } from "@alwith/module-media/commands"
 import { emit, listen } from "@tauri-apps/api/event"
 import { ExternalLinkIcon, EyeIcon, EyeOffIcon } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
-import { commands, type ImageSettings } from "@/bindings"
 import { Button } from "@/components/ui/button"
 import { Field, FieldLabel } from "@/components/ui/field"
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group"

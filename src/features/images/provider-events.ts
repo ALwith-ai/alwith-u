@@ -1,1 +1,1 @@
-export const IMAGE_PROVIDERS_CHANGED = "images:providers-changed"
+export { IMAGE_PROVIDERS_CHANGED } from "@alwith/module-media"
