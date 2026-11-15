@@ -3,8 +3,7 @@ import type { Session } from "@alwith/module-chat/client"
 import { applyUpdate, codexTurnId, createSession, isSelectOption, isText } from "@alwith/module-chat/client"
 import { useStore } from "zustand"
 
-import { type AppState, CodexClient } from "../../src/agent/client"
-import { forkTitle } from "../../src/agent/fork-title"
+import { type AppState, CodexClient, forkTitle } from "@alwith/module-chat/client"
 import {
   assistantMessage,
   configOptions,

@@ -3,7 +3,7 @@ import { buildGamepadPrompt, extractJson, sanitizeAiConfig } from "@alwith/modul
 import type { GamepadHost } from "@alwith/module-gamepad/react"
 import { platform } from "@tauri-apps/plugin-os"
 
-import { CodexClient } from "@/agent/client"
+import { CodexClient } from "@alwith/module-chat/client"
 import { commands } from "@/bindings"
 import { loadPreferences } from "@/lib/preferences"
 import { loadProviders, resolveSessionModel } from "@/lib/providers"

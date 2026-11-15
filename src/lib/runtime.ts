@@ -4,7 +4,7 @@
 import { TauriRuntimeClient } from "@alwith/api/tauri"
 
 import { events, type RuntimeExit } from "@/bindings"
-import { explainRequestError } from "@/core/request-error"
+import { explainRequestError } from "@alwith/module-chat/client"
 import { logBackgroundError } from "@/lib/background-errors"
 
 /** Emitted by Rust when the alwith-runtime process ends. */

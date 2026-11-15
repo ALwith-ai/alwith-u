@@ -2,7 +2,7 @@ import providerCatalog from "@alwith/module-chat/assets/provider-catalog.json"
 import type { ModelMenuProps } from "@alwith/module-chat/conversation"
 import type { ChatModelOption } from "@alwith/module-chat/model-select"
 
-import { NATIVE_MODEL_GROUP } from "@/agent/client"
+import { NATIVE_MODEL_GROUP } from "@alwith/module-chat/client"
 import { ModelIcon } from "@/components/icons/model-icon"
 import { isEnterpriseModel } from "@/features/auth/enterprise-providers"
 import { gatewayModelId, isAccountModel, MODEL_PRESENTATION } from "@/lib/providers"

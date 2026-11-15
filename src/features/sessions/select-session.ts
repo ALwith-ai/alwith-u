@@ -1,6 +1,6 @@
 import type { ComposerDraft } from "@alwith/module-chat/conversation"
 
-import type { SessionSummary } from "@/agent/client"
+import type { SessionSummary } from "@alwith/module-chat/client"
 import type { ChatTransfer } from "@/lib/chat-window"
 
 export type SelectSessionActions = {

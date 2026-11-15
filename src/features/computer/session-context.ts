@@ -2,7 +2,7 @@ import { computerContext } from "@alwith/module-computer"
 import { commands } from "@alwith/module-computer/commands"
 import { isTauri } from "@tauri-apps/api/core"
 
-import type { ClientOptions } from "@/agent/client"
+import type { ClientOptions } from "@alwith/module-chat/client"
 import { deviceSessionContext } from "@/features/device/session-context"
 import { driveSessionContext } from "@/features/drive/session-context"
 

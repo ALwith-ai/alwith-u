@@ -1,7 +1,7 @@
 // Desktop notifications for state changes the user is not looking at.
 import { isPermissionGranted, requestPermission, sendNotification } from "@tauri-apps/plugin-notification"
 
-import type { CodexClient } from "@/agent/client"
+import type { CodexClient } from "@alwith/module-chat/client"
 import { useMainWindowSurface } from "@/lib/chat-window-state"
 import i18n from "@/lib/i18n"
 

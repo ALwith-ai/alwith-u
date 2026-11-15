@@ -5,7 +5,7 @@ import { act, fireEvent, render, waitFor } from "@testing-library/react"
 import type { ComponentProps } from "react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
-import type { SessionInputConfig } from "@/agent/input-config"
+import type { SessionInputConfig } from "@alwith/module-chat/client"
 import { useImagePreferences } from "@/features/images/preferences"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"

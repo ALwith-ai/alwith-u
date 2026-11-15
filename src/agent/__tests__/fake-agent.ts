@@ -2,7 +2,7 @@
 // async prompts, steering, permissions, cancellation, replay and archive.
 import * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 
-import type { SessionInputConfig, SessionInputConfigSnapshot } from "../input-config"
+import type { SessionInputConfig, SessionInputConfigSnapshot } from "@alwith/module-chat/client"
 import { projectContext } from "./project-context"
 export const fakeProjectContext = projectContext()
 

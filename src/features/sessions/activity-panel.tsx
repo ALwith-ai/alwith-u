@@ -27,7 +27,7 @@ import { useEffect, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
-import type { SessionSummary } from "@/agent/client"
+import type { SessionSummary } from "@alwith/module-chat/client"
 import { Pane } from "@/components/alwith-ui/pane"
 import { Kbd } from "@/components/ui/kbd"
 import { useCmdHeld } from "@/hooks/use-cmd-held"

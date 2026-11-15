@@ -1,6 +1,6 @@
 import type { NativeFileResponse } from "@alwith/module-extension/host"
 
-import type { SessionSummary } from "@/agent/client"
+import type { SessionSummary } from "@alwith/module-chat/client"
 
 export interface SessionFileSource {
   list: () => Promise<SessionSummary[]>

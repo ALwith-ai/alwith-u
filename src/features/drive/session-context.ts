@@ -2,7 +2,7 @@ import type { DriveRequest, DriveResponse } from "@alwith/module-drive"
 import { commands } from "@alwith/module-drive/commands"
 import { isTauri } from "@tauri-apps/api/core"
 
-import type { ClientOptions } from "@/agent/client"
+import type { ClientOptions } from "@alwith/module-chat/client"
 
 async function request(value: DriveRequest): Promise<DriveResponse> {
   return commands.request({ request: value })

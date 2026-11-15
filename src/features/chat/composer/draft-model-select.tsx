@@ -2,7 +2,7 @@ import { type ChatModelOption, ModelSelect } from "@alwith/module-chat/model-sel
 import { Zap } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
-import { type GatewayModel, NATIVE_MODEL_GROUP } from "@/agent/client"
+import { type GatewayModel, NATIVE_MODEL_GROUP } from "@alwith/module-chat/client"
 import type { ProviderSnapshot } from "@/lib/providers"
 import { gatewayModelId, providerGroups } from "@/lib/providers"
 

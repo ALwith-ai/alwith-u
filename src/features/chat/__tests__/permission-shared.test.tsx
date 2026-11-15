@@ -6,7 +6,7 @@ import { afterEach, expect, test, vi } from "vitest"
 
 import { createFakeAgent } from "@/agent/__tests__/fake-agent"
 import { FakeHubPort } from "@/agent/__tests__/fake-runtime-client"
-import { CodexClient, type PendingAction } from "@/agent/client"
+import { CodexClient, type PendingAction } from "@alwith/module-chat/client"
 import { ThemeProvider } from "@/components/theme-provider"
 import { client as applicationClient } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"

@@ -5,7 +5,7 @@ import { afterAll, beforeEach, expect, test, vi } from "vitest"
 
 import { fakeProjectContext } from "@/agent/__tests__/fake-agent"
 import { projectContext } from "@/agent/__tests__/project-context"
-import type { SessionSummary } from "@/agent/client"
+import type { SessionSummary } from "@alwith/module-chat/client"
 import * as collectionStore from "@/features/collection/store"
 import { SessionListHostProvider } from "@/features/sessions/session-list-host"
 import { must } from "@/lib/__tests__/must"

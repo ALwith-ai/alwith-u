@@ -2,7 +2,7 @@ import { type SessionRunState } from "@alwith/api"
 import { createSession } from "@alwith/module-chat/client"
 import { expect, test, vi } from "vitest"
 
-import { CodexClient } from "@/agent/client"
+import { CodexClient } from "@alwith/module-chat/client"
 
 import { createGamepadConfigGenerator } from "../ai-host"
 

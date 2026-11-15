@@ -8,8 +8,8 @@ import { join } from "node:path"
 import { startTestRuntime } from "@alwith/api/node"
 import { isText, type Session } from "@alwith/module-chat/client"
 
-import { CodexClient } from "../src/agent/client"
-import { isAuthenticationRequired } from "../src/core/request-error"
+import { CodexClient } from "@alwith/module-chat/client"
+import { isAuthenticationRequired } from "@alwith/module-chat/client"
 import { staged, stagedCodexEngine } from "./lib/runtime"
 
 async function until(predicate: () => boolean, description: string): Promise<void> {

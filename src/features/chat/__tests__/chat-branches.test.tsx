@@ -4,7 +4,7 @@ import { act } from "react"
 import { toast } from "sonner"
 import { afterEach, expect, test, vi } from "vitest"
 
-import type { SessionSummary } from "@/agent/client"
+import type { SessionSummary } from "@alwith/module-chat/client"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
 

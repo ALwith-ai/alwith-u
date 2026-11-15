@@ -9,7 +9,7 @@ import {
 } from "@alwith/module-auth/vibemon/core"
 import { inSessionTree, isText, isToolCallSubject } from "@alwith/module-chat/client"
 
-import type { AppState } from "@/agent/client"
+import type { AppState } from "@alwith/module-chat/client"
 
 import { vibemonAnswer, vibemonPrompt } from "./vibemon-prompt"
 

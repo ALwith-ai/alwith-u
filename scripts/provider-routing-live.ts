@@ -6,7 +6,7 @@ import { join, resolve } from "node:path"
 import { ProcessRuntimeClient, startTestRuntime } from "@alwith/api/node"
 import { isGroupedSelect, isSelectOption } from "@alwith/module-chat/client"
 
-import { CodexClient } from "../src/agent/client"
+import { CodexClient } from "@alwith/module-chat/client"
 import { staged, stagedCodexEngine } from "./lib/runtime"
 
 const key = (await Bun.stdin.text()).trim()

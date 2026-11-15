@@ -2,7 +2,7 @@ import { applyCollectionAction, initialCollectionData } from "@alwith/module-col
 import { act, cleanup, fireEvent, render } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 
-import type { SessionSummary } from "@/agent/client"
+import type { SessionSummary } from "@alwith/module-chat/client"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
 

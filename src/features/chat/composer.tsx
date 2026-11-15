@@ -9,7 +9,7 @@ import { useCallback, useLayoutEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useStore } from "zustand"
 
-import { isAuthenticationRequired } from "@/core/request-error"
+import { isAuthenticationRequired } from "@alwith/module-chat/client"
 import { observeVoiceTurn } from "@/core/voice-turn"
 import { useImageAvailability } from "@/features/images/availability"
 import { RealtimeVoiceButton } from "@/features/voice/realtime-voice-button"

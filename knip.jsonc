@@ -12,6 +12,8 @@
     "src/features/story/use-story-available.ts"
   ],
   "project": ["src/**/*.{ts,tsx,css,less,mdx}", "scripts/**/*.ts"],
+  // The shared configuration is extended by the project files, which knip does not read by default.
+  "typescript": { "config": ["tsconfig.json", "tsconfig.app.json", "tsconfig.bun.json", "tsconfig.test.json"] },
   "ignoreDependencies": [
     // Rust-only transport consumed by src-tauri/Cargo.toml.
     "@alwith/enterprise-client",

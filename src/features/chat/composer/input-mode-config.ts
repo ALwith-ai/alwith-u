@@ -1,11 +1,11 @@
 import type { ImageSelection } from "@alwith/module-chat/image"
 
-import { parseInputSnapshot, type SessionInputConfig, type SessionInputConfigSnapshot } from "@/agent/input-config"
-import { type InputMode, inputModeDefinition, resolveInputMode } from "@/agent/input-modes"
-import { imageInputMode } from "@/agent/input-modes/image"
+import { parseInputSnapshot, type SessionInputConfig, type SessionInputConfigSnapshot } from "@alwith/module-chat/client"
+import { type InputMode, inputModeDefinition, resolveInputMode } from "@alwith/module-chat/client"
+import { imageInputMode } from "@alwith/module-chat/client"
 import { openStore } from "@/lib/store"
 
-export type { InputMode } from "@/agent/input-modes"
+export type { InputMode } from "@alwith/module-chat/client"
 const cache = openStore("session-input-cache")
 type PreferencesPort = {
   read: (sessionId: string) => Promise<SessionInputConfigSnapshot>

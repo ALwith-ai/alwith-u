@@ -4,8 +4,8 @@
 import type { RateLimitSnapshot, RealtimeEvent, Session } from "@alwith/module-chat/client"
 import { emitTo, listen } from "@tauri-apps/api/event"
 
-import { type AppState, CodexClient } from "@/agent/client"
-import { macProjectPaths } from "@/agent/project-path"
+import { type AppState, CodexClient } from "@alwith/module-chat/client"
+import { macProjectPaths } from "@alwith/module-chat/client"
 import { isMac } from "@/lib/platform"
 import { asError } from "@/lib/text"
 

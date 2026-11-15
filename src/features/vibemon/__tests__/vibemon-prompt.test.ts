@@ -1,6 +1,6 @@
 import { expect, test } from "vitest"
 
-import type { PendingAction } from "@/agent/client"
+import type { PendingAction } from "@alwith/module-chat/client"
 
 import { vibemonAnswer, vibemonPrompt } from "../vibemon-prompt"
 

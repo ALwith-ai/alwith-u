@@ -3,7 +3,7 @@ import { expect, spyOn, waitFor, within } from "storybook/test"
 
 import { SidebarInset } from "@/components/ui/sidebar"
 
-import type { SessionSummary } from "../../../src/agent/client"
+import type { SessionSummary } from "@alwith/module-chat/client"
 import { LeadingNavigation } from "../../../src/features/layout/components/leading-navigation"
 import { MainSidebarLayout } from "../../../src/features/layout/components/main-sidebar-layout"
 import { ArchivedChatsPage } from "../../../src/features/sessions/archived-chats-page"

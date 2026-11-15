@@ -2,7 +2,7 @@ import { afterEach, expect, test, vi } from "vitest"
 
 import { respondMobilePermission, sendMobilePrompt } from "@/features/mobile/actions"
 
-import { CodexClient } from "../client"
+import { CodexClient } from "@alwith/module-chat/client"
 import { createFakeAgent } from "./fake-agent"
 import { FakeHubPort } from "./fake-runtime-client"
 

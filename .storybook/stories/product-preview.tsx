@@ -8,7 +8,7 @@ import { toast, Toaster } from "sonner"
 
 import { SidebarInset } from "@/components/ui/sidebar"
 
-import type { SessionSummary } from "../../src/agent/client"
+import type { SessionSummary } from "@alwith/module-chat/client"
 import { Pane } from "../../src/components/alwith-ui/pane"
 import { toolboxContentClassName } from "../../src/components/alwith-ui/toolbox-layout"
 import { WindowsMainWindowShell } from "../../src/components/alwith-ui/windows-main-window-shell"
