@@ -209,7 +209,7 @@ Origin: explicit user instruction following stale Storybook catalog verification
 
 ## Build the installed development candidate with the full feature set
 
-- The development application that gets installed and launched is built with `bun run build` followed by `cargo build --features 'dev-backends,hasgard-testing,tauri/custom-protocol'` in `src-tauri`, in that order. Never install a binary built with any other feature set.
+- The development application that gets installed and launched is built with `bun run stage`, then `bun run build`, then `cargo build --features 'dev-backends,hasgard-testing,tauri/custom-protocol'` in `src-tauri`, in that order. Staging copies the native libraries of the installed module packages into `src-tauri/resources/native`, which git does not track; skipping it leaves out a newly added module's library. Never install a binary built with any other feature set.
 - Without `tauri/custom-protocol` the binary runs in development mode: it does not serve the embedded frontend, it copies the resources next to the executable (which then breaks signing the bundle), and without `hasgard-testing` it cannot be inspected. A plain `cargo build --features dev-backends` is a compile check only.
 - The isolated test application is the same command with the test frontend (`ALWITH_NATIVE_TEST=1 bun run build`) and its own identifier. Rebuild the normal frontend and binary before installing afterwards.
 - After installing, confirm that the running application answers on its Hasgard socket and shows the product page before reporting it installed.
