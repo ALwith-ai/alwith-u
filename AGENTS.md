@@ -214,3 +214,10 @@ Origin: explicit user instruction following stale Storybook catalog verification
 - The isolated test application is the same command with the test frontend (`ALWITH_NATIVE_TEST=1 bun run build`) and its own identifier. Rebuild the normal frontend and binary before installing afterwards.
 - After installing, confirm that the running application answers on its Hasgard socket and shows the product page before reporting it installed.
 - Origin: explicit user instruction (2026-11-13; a candidate built without these features was installed twice).
+
+## Never lose the user's login state
+
+- Every build the user runs (`bun tauri dev`, the bundled development candidate, Wry or CEF) keeps the ALwith account, the Codex login and the websites signed in inside the embedded browser. Rebuilding, reinstalling or switching backend must never sign the user out.
+- Never change what that state is keyed by: the application identifier, the CEF root cache path (`~/Library/Caches/<identifier>/cef-development` in development), its secret storage mode, the keychain service names, or the application data directory. If a change must move a store, it migrates the existing data in the same change; starting from an empty store is not allowed.
+- Never delete, reset or overwrite these stores while debugging. Tests use their own identifier and temporary profiles (`.contract-test`, `startTestRuntime`).
+- Origin: explicit user instruction (2026-11-16; moving CEF development from the `ai.alwith.u.cef` identity to `ai.alwith.u` started an empty browser profile and the user had to sign in again).
