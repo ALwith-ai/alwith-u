@@ -69,7 +69,7 @@ export const config = (mode = "development"): UserConfig => ({
     port: 1430,
     strictPort: true,
     host: host ?? "127.0.0.1",
-    hmr: host ? { protocol: "ws", host, port: 1431 } : undefined,
+    hmr: host ? { protocol: "ws", host, port: 1441 } : undefined,
     watch: {
       ignored: ["**/src-tauri/**"]
     }
@@ -80,6 +80,7 @@ export const config = (mode = "development"): UserConfig => ({
     target: "esnext",
     rolldownOptions: {
       input: {
+        ...(process.env.ALWITH_NATIVE_TEST === "1" ? { browserFixture: path.resolve(import.meta.dirname, "browser-fixture.html") } : {}),
         main: path.resolve(import.meta.dirname, "index.html"),
         chat: path.resolve(import.meta.dirname, "chat.html"),
         vibemon: path.resolve(import.meta.dirname, "vibemon.html"),

@@ -1,17 +1,14 @@
 //! U's coordination of the shared filesystem plugin: every workspace mutation runs inside a Drive
 //! transaction, cross-project moves go through Drive, and conversation patches wait for unsaved
 //! editor buffers. Opening, reading, watching and patching are the plugin's commands.
-use std::path::{Path, PathBuf};
-use tauri::{Emitter, Manager};
 use alwith_drive::Drive;
 use alwith_fs::{Change, ChangeKind, FileSystem, NativeError, Operation, Workspace};
+use std::path::{Path, PathBuf};
+use tauri::{Emitter, Manager};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
 
 fn main_window(window: &tauri::WebviewWindow) -> Result<(), String> {
-    if window.label() != "main" {
-        return Err("Workspace access is limited to the main window".into());
-    }
-    Ok(())
+    (window.label() == "main").ok_or_else(|| "Workspace access is limited to the main window".into())
 }
 
 /// The canonical root, only if the main window opened it through the filesystem plugin.

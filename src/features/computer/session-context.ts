@@ -3,6 +3,7 @@ import { commands } from "@alwith/module-computer/commands"
 import { isTauri } from "@tauri-apps/api/core"
 
 import type { ClientOptions } from "@/agent/client"
+import { browserSessionContext } from "@/features/browser/session-context"
 import { deviceSessionContext } from "@/features/device/session-context"
 import { driveSessionContext } from "@/features/drive/session-context"
 
@@ -34,15 +35,17 @@ export const hostSessionContext: NonNullable<ClientOptions["sessionContext"]> = 
   if (!isTauri()) return drive
   const computer = await computerSessionContext()
   const device = await deviceSessionContext()
+  const browser = await browserSessionContext()
   const appendSystemPrompt = [
     "The desktop application is ALwith U. For questions about this app's features, setup or troubleshooting, use ALwith Docs when available and base answers on documentation for the installed ALwith U version.",
     drive.appendSystemPrompt,
     computer.appendSystemPrompt,
-    device.appendSystemPrompt
+    device.appendSystemPrompt,
+    browser.appendSystemPrompt
   ]
     .filter(Boolean)
     .join("\n\n")
-  const binders = [computer.bind, device.bind].filter((bind) => bind !== undefined)
+  const binders = [computer.bind, device.bind, browser.bind].filter((bind) => bind !== undefined)
   return {
     bind:
       binders.length > 0
@@ -50,7 +53,7 @@ export const hostSessionContext: NonNullable<ClientOptions["sessionContext"]> = 
             for (const bind of binders) await bind(sessionId)
           }
         : undefined,
-    mcpServers: [...drive.mcpServers, ...computer.mcpServers, ...device.mcpServers],
+    mcpServers: [...drive.mcpServers, ...computer.mcpServers, ...device.mcpServers, ...browser.mcpServers],
     ...(appendSystemPrompt ? { appendSystemPrompt } : {})
   }
 }

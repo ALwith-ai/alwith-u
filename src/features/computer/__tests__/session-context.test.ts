@@ -16,6 +16,9 @@ vi.mock("@alwith/module-computer/commands", () => ({
 vi.mock("@/features/drive/session-context", () => ({
   driveSessionContext: () => Promise.resolve({ mcpServers: [], appendSystemPrompt: "Workspace knowledge" })
 }))
+vi.mock("@/features/browser/session-context", () => ({
+  browserSessionContext: () => Promise.resolve({ mcpServers: [] })
+}))
 vi.mock("@/features/device/session-context", () => ({ deviceSessionContext: native.deviceContext }))
 import { hostSessionContext } from "../session-context"
 beforeEach(async () => {

@@ -15,10 +15,15 @@ import * as preferences from "@/lib/preferences"
 
 import { type MainScreen, MainSidebarLayout } from "../main-sidebar-layout"
 
+const capabilities = vi.hoisted(() => ({ embeddedBrowser: false }))
+vi.mock("@tauri-apps/api/window", () => ({ getCurrentWindow: () => ({ onFocusChanged: async () => () => {} }) }))
+vi.mock("@/lib/runtime-capabilities", () => ({ useRuntimeCapabilities: () => capabilities }))
+
 await initI18n("en")
 
 let save: MockInstance<typeof preferences.savePreference>
 beforeEach(() => {
+  capabilities.embeddedBrowser = false
   save = vi.spyOn(preferences, "savePreference").mockResolvedValue()
 })
 afterEach(() => {
@@ -449,4 +454,25 @@ test("Windows hosts workspace actions in the title bar instead of the body", () 
   } finally {
     target.remove()
   }
+})
+
+test("the shared layout exposes browser entry only when the host supports it", () => {
+  const view = setup()
+  expect(view.queryByRole("button", { name: "Open the embedded browser" })).toBeNull()
+  cleanup()
+  capabilities.embeddedBrowser = true
+  const pro = setup()
+  expect(pro.getByRole("button", { name: "Open the embedded browser" })).toBeInTheDocument()
+})
+
+test("every pane, the browser included, sits on the shell's plate without drawing its own", async () => {
+  capabilities.embeddedBrowser = true
+  const view = setup()
+  fireEvent.click(view.getByRole("button", { name: "Open the embedded browser" }))
+  const workspace = await view.findByRole("region", { name: "Browser workspace" })
+  // The plate is the pane's body: an Atlas surface the shell paints.
+  expect(workspace.parentElement).toHaveClass("main-screen-pane-body")
+  const bodies = [...view.container.querySelectorAll(".main-screen-pane-body")]
+  expect(bodies.length).toBeGreaterThanOrEqual(3)
+  for (const body of bodies) expect(body).toHaveAttribute("data-atlas-surface")
 })

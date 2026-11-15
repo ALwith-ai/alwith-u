@@ -4,11 +4,7 @@ use serde_json::Value;
 use tauri::Manager;
 
 fn authorize(label: &str) -> Result<(), String> {
-    if matches!(label, "main" | "settings" | "gamepad") {
-        Ok(())
-    } else {
-        Err("Gamepad AI is unavailable in this window".into())
-    }
+    matches!(label, "main" | "settings" | "gamepad").ok_or_else(|| "Gamepad AI is unavailable in this window".into())
 }
 
 fn is_temporary_agent(id: &str) -> bool {

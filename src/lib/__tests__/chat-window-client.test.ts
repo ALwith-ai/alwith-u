@@ -213,8 +213,7 @@ function eventBus(): ChatEvents {
     },
     emitTo: (_target, event, payload) => {
       return Promise.try(() => {
-        for (const callback of handlers.get(event) ?? [])
-          callback({ event, id: 0, payload: structuredClone(payload) })
+        for (const callback of handlers.get(event) ?? []) callback({ event, id: 0, payload: structuredClone(payload) })
       })
     }
   }

@@ -2,8 +2,12 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
     "src/bindings.ts",
+    // Conditional Vite entry for the isolated native browser fixture.
+    "src/features/browser/native-fixture.tsx",
     "src/**/__tests__/**/*.{ts,tsx}",
     "scripts/**/*.ts",
+    // Contracts against a launched test application, run by vitest.contracts.config.ts.
+    "tests/contracts/**/*.contract.ts",
     // Host boundaries are selected by the Storybook Vite resolver.
     ".storybook/fixtures/*.{ts,tsx}",
     // Run by hand, as .storybook/README.md says: generators and the player check.
@@ -11,11 +15,15 @@
     ".storybook/vitest.config.ts",
     "src/features/story/use-story-available.ts"
   ],
-  "project": ["src/**/*.{ts,tsx,css,less,mdx}", "scripts/**/*.ts"],
+  "project": ["src/**/*.{ts,tsx,css,less,mdx}", "scripts/**/*.ts", "tests/**/*.ts"],
+  // The shared configuration is extended by the project files, which knip does not read by default.
+  "typescript": { "config": ["tsconfig.json", "tsconfig.app.json", "tsconfig.bun.json", "tsconfig.test.json"] },
   "ignoreDependencies": [
     // Rust-only transport consumed by src-tauri/Cargo.toml.
     "@alwith/enterprise-client",
     "@alwith/native-kit",
+    "@nyssance/cef-rs",
+    "@nyssance/tauri-runtime-cef",
     // Bundled into the app by scripts/stage.ts from the pinned package versions
     "@openai/codex",
     // Bundled with immutable resources by scripts/lib/workbuddy-artifact.ts.

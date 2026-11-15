@@ -131,10 +131,8 @@ fn library<R: Runtime>(app: &tauri::AppHandle<R>) -> Result<ImageLibrary, String
     Ok(ImageLibrary::new(app.path().app_local_data_dir().map_err(|e| e.to_string())?.join("wallpapers")))
 }
 fn check_window<R: Runtime>(window: &tauri::Window<R>) -> Result<(), String> {
-    if !matches!(window.label(), "main" | "settings") {
-        return Err("Wallpaper access is limited to main and settings windows".into());
-    }
-    Ok(())
+    matches!(window.label(), "main" | "settings")
+        .ok_or_else(|| "Wallpaper access is limited to main and settings windows".into())
 }
 #[tauri3_specta::command]
 pub async fn wallpaper_list(window: tauri::Window) -> Result<Vec<ImportedImage>, String> {

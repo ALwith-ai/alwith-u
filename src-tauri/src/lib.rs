@@ -8,9 +8,24 @@ mod dropped_file_url_tests;
 
 mod appearance;
 mod autostart;
+#[cfg(feature = "runtime-cef")]
+mod browser_ai;
+#[cfg(feature = "runtime-cef")]
+mod browser_chrome;
+#[cfg(feature = "runtime-cef")]
+mod browser_extensions;
+#[cfg(feature = "runtime-cef")]
+mod browser_logins;
+#[cfg(feature = "runtime-cef")]
+mod browser_protocol;
+#[cfg(feature = "runtime-cef")]
+mod browser_site;
 mod bundled_extensions;
+#[cfg(feature = "runtime-cef")]
+mod cef_runtime;
 mod chat_files;
 mod chat_window;
+mod desktop_runtime;
 mod diagnostics;
 mod draft_directory;
 mod drive;
@@ -51,6 +66,33 @@ fn application_context() -> tauri::Context {
 pub fn run() {
     let login_launch = autostart::LoginLaunch::new(std::env::args());
     let mut context = application_context();
+    desktop_runtime::initialize(&context.config().identifier).expect("Cannot select desktop runtime");
+    #[cfg(all(feature = "hasgard-testing", debug_assertions))]
+    if std::env::var_os("ALWITH_U_CEF_SHELL_TEST").is_some() {
+        assert!(
+            context.config().identifier.ends_with(".contract-test")
+                || context.config().identifier.ends_with(".wry-test"),
+            "Shell tests require an isolated application identity"
+        );
+        for window in &mut context.config_mut().app.windows {
+            let backend = if cfg!(feature = "runtime-cef") { "CEF" } else { "Wry" };
+            window.title = format!("ALwith U {backend} — Isolated native test");
+            window.hidden_title = false;
+            window.url = tauri::WebviewUrl::App(
+                if std::env::var_os("ALWITH_U_CEF_BROWSER_TEST").is_some() {
+                    "browser-fixture.html"
+                } else {
+                    "native-shell-test.html"
+                }
+                .into(),
+            );
+            // Browser interaction fixtures need a visible compositor for real input.
+            // Hasgard positions the window on the designated test display.
+            window.visible = std::env::var_os("ALWITH_U_CEF_BROWSER_TEST").is_some();
+            window.width = 1000.0;
+            window.min_width = Some(800.0);
+        }
+    }
     if login_launch.started_hidden() {
         let main = context
             .config_mut()
@@ -65,7 +107,16 @@ pub fn run() {
 
     let voice_credentials = settings::VoiceCredentials::default();
     let builder = tauri::Builder::default()
-        .plugin(alwith_desktop_shell::init_native())
+        .on_web_content_process_terminate(|webview, _| {
+            if webview.label().starts_with("browser-") {
+                browser_chrome::guest_crashed(webview.app_handle(), webview.label());
+            }
+        })
+        .plugin(alwith_desktop_shell::init_with_options(
+            None,
+            alwith_desktop_shell::ShellOptions::new()
+                .host_native_window(cfg!(target_os = "macos") && desktop_runtime::is_cef()),
+        ))
         .plugin(alwith_store::init())
         // U keeps its own vibemon windows; the auth plugin only refreshes tokens here.
         .plugin(alwith_auth::init(alwith_auth::Config {
@@ -75,7 +126,6 @@ pub fn run() {
         .manage(login_launch)
         .manage(enterprise::Enterprise::default())
         .register_asynchronous_uri_scheme_protocol("preview-html", html_preview::handle_protocol)
-        .runtime(tauri_runtime_wry::Wry::default())
         // Second launch: focus the running instance instead of starting a second alwith-runtime
         // against the same ~/.codex.
         .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
@@ -170,7 +220,6 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_process::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             Some(vec![autostart::ARGUMENT]),
@@ -198,10 +247,19 @@ pub fn run() {
         .manage(extension_inbox::InboxState::default())
         .manage(vibemon::BubblePresentation::default());
 
-    #[cfg(feature = "hasgard-testing")]
-    let builder = builder.plugin(tauri_plugin_hasgard::init());
+    let builder = desktop_runtime::configure(builder);
 
     let app = builder
+        .on_window_event(|window, event| {
+            #[cfg(target_os = "macos")]
+            {
+                if matches!(event, tauri::WindowEvent::CloseRequested { .. }) {
+                    panel::before_close(window.app_handle(), window.label());
+                }
+            }
+            #[cfg(not(target_os = "macos"))]
+            let _ = (window, event);
+        })
         .on_menu_event(|app, event| {
             if event.id().0 == menu::QUIT_ID {
                 app.exit(0);
@@ -227,6 +285,31 @@ pub fn run() {
         })
         .setup(|app| {
             diagnostics::install(app.handle())?;
+            #[cfg(feature = "runtime-cef")]
+            if desktop_runtime::is_cef() {
+                browser_ai::start(app.handle())?;
+                // The isolated test application keeps no login beyond its run and stays out of the keychain.
+                let identifier = &app.config().identifier;
+                #[cfg(target_os = "macos")]
+                let logins = if identifier.ends_with(".contract-test") {
+                    browser_logins::Logins::temporary()
+                } else {
+                    browser_logins::Logins::persistent(
+                        app.path().app_data_dir()?.join("browser-logins.json"),
+                        identifier,
+                    )
+                };
+                #[cfg(not(target_os = "macos"))]
+                let logins = {
+                    let _ = identifier;
+                    browser_logins::Logins::temporary()
+                };
+                app.manage(logins);
+            }
+            #[cfg(target_os = "macos")]
+            app.get_webview_window("main").expect("main window exists at setup").set_effects(
+                tauri::window::EffectsBuilder::new().effect(tauri::window::Effect::UnderWindowBackground).build(),
+            )?;
             match app.path().app_log_dir() {
                 Ok(directory) => panic_report::install(directory.join("panic.log")),
                 Err(error) => log::warn!("Cannot resolve panic report directory: {error}"),
@@ -264,9 +347,104 @@ pub fn run() {
         })
         .invoke_handler({
             let typed = bindings().invoke_handler();
-            let binary: fn(tauri::ipc::Invoke) -> bool = tauri::generate_handler![settings::settings_request];
+            let binary: fn(tauri::ipc::Invoke) -> bool = tauri::generate_handler![
+                settings::settings_request,
+                desktop_runtime::runtime_capabilities,
+                desktop_runtime::runtime_restart
+            ];
+            #[cfg(feature = "runtime-cef")]
+            let browser: fn(tauri::ipc::Invoke) -> bool = tauri::generate_handler![
+                cef_runtime::cef_open_guest,
+                cef_runtime::cef_close_guest,
+                cef_runtime::cef_navigate_guest,
+                cef_runtime::cef_guest_history,
+                cef_runtime::cef_guest_metadata,
+                browser_chrome::cef_set_guest_zoom,
+                browser_chrome::cef_guest_find,
+                browser_extensions::cef_guest_extension_actions,
+                browser_extensions::cef_guest_extension_trigger,
+                browser_extensions::cef_guest_extension_activate,
+                browser_extensions::cef_guest_tab_state,
+                browser_extensions::cef_guest_window_focus,
+                browser_chrome::cef_take_tab_requests,
+                browser_extensions::cef_extension_popup_state,
+                browser_chrome::cef_guest_permission,
+                browser_chrome::cef_guest_page_state,
+                browser_chrome::cef_guest_dialog,
+                browser_chrome::cef_guest_context_menu,
+                browser_chrome::cef_guest_save,
+                browser_chrome::cef_guest_print,
+                browser_chrome::cef_guest_inspect,
+                browser_chrome::cef_guest_mute,
+                browser_site::cef_guest_site_permissions,
+                browser_site::cef_guest_reset_site,
+                browser_site::cef_clear_browsing_data,
+                browser_logins::cef_guest_login_answer,
+                browser_logins::cef_logins,
+                browser_logins::cef_guest_logins,
+                browser_logins::cef_guest_fill_login,
+                browser_logins::cef_guest_suggest_password,
+                browser_logins::cef_delete_login,
+                browser_logins::cef_import_logins,
+                browser_chrome::cef_guest_auth,
+                browser_chrome::cef_cancel_download,
+                browser_ai::cef_browser_context,
+                browser_ai::cef_preview_ready,
+                browser_ai::cef_browser_bind,
+                browser_ai::cef_browser_revoke
+            ];
             move |invoke| {
-                if invoke.message.command() == "settings_request" { binary(invoke) } else { typed(invoke) }
+                #[cfg(feature = "runtime-cef")]
+                if desktop_runtime::is_cef()
+                    && matches!(
+                        invoke.message.command(),
+                        "cef_open_guest"
+                            | "cef_close_guest"
+                            | "cef_navigate_guest"
+                            | "cef_guest_history"
+                            | "cef_guest_metadata"
+                            | "cef_set_guest_zoom"
+                            | "cef_guest_find"
+                            | "cef_guest_extension_actions"
+                            | "cef_guest_extension_trigger"
+                            | "cef_guest_extension_activate"
+                            | "cef_guest_tab_state"
+                            | "cef_guest_window_focus"
+                            | "cef_take_tab_requests"
+                            | "cef_extension_popup_state"
+                            | "cef_guest_permission"
+                            | "cef_guest_page_state"
+                            | "cef_guest_dialog"
+                            | "cef_guest_context_menu"
+                            | "cef_guest_save"
+                            | "cef_guest_print"
+                            | "cef_guest_inspect"
+                            | "cef_guest_mute"
+                            | "cef_guest_site_permissions"
+                            | "cef_guest_reset_site"
+                            | "cef_clear_browsing_data"
+                            | "cef_guest_login_answer"
+                            | "cef_logins"
+                            | "cef_guest_logins"
+                            | "cef_guest_fill_login"
+                            | "cef_guest_suggest_password"
+                            | "cef_delete_login"
+                            | "cef_import_logins"
+                            | "cef_guest_auth"
+                            | "cef_cancel_download"
+                            | "cef_browser_context"
+                            | "cef_preview_ready"
+                            | "cef_browser_bind"
+                            | "cef_browser_revoke"
+                    )
+                {
+                    return browser(invoke);
+                }
+                if matches!(invoke.message.command(), "settings_request" | "runtime_capabilities" | "runtime_restart") {
+                    binary(invoke)
+                } else {
+                    typed(invoke)
+                }
             }
         })
         .build(context)
@@ -308,6 +486,11 @@ pub fn run() {
                 || runtime::prevent_exit(app, code)
             {
                 api.prevent_exit();
+            } else {
+                #[cfg(target_os = "macos")]
+                for label in ["chat", "vibemon", "bubble-menu-vibemon"] {
+                    panel::before_close(app, label);
+                }
             }
         }
         tauri::RunEvent::Exit => {

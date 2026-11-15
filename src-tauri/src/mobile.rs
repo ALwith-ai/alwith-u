@@ -1,12 +1,12 @@
 //! U supplies Runtime facts; the shared mobile plugin owns pairing and transport.
 use alwith_api::{RuntimeEvent, SessionRunState};
+use alwith_mobile::{HostFuture, MobileExt, MobileHost};
 use serde_json::{Value, json};
 use std::{
     collections::HashMap,
     sync::{LazyLock, Mutex},
 };
 use tauri::{AppHandle, Manager};
-use alwith_mobile::{HostFuture, MobileExt, MobileHost};
 mod history;
 
 #[derive(Default)]

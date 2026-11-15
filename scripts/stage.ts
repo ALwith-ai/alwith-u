@@ -15,6 +15,7 @@
 import { chmodSync, copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs"
 import { join, resolve } from "node:path"
 
+import { stageBrowser } from "./stage-browser"
 import { stageChromeBridge } from "@alwith/module-browser/stage"
 import { stageChatAdapter } from "@alwith/module-chat/stage"
 import { stageNativeModule } from "@alwith/module-desktop-shell/stage"
@@ -255,3 +256,5 @@ console.log(`licences -> ${licenses}`)
 await stageChromeBridge(join(root, "src-tauri/resources/chrome-bridge"))
 
 await stageWorkBuddy(root, join(root, "src-tauri/resources"))
+
+await stageBrowser(root)

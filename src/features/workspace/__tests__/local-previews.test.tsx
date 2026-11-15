@@ -77,8 +77,8 @@ function installObjectUrls(): { create: ReturnType<typeof vi.fn>; revoke: Return
   vi.stubGlobal(
     "URL",
     class extends OriginalURL {
-      static createObjectURL = create
-      static revokeObjectURL = revoke
+      static override createObjectURL = create
+      static override revokeObjectURL = revoke
     }
   )
   return { create, revoke }

@@ -45,13 +45,16 @@
   height: 100%;
   min-height: 0;
   overflow: clip;
+}
+/*
+ * In the main window each pane already sits on the shell's plate. Only a window that lays these two out itself,
+ * without the shell's canvas, draws the plate here.
+ */
+.file-workspace-layout .file-workspace-chat,
+.file-workspace-layout .file-workspace-panel {
   border: var(--main-surface-border-width) solid var(--border);
   border-radius: var(--main-surface-radius);
-  background: var(--background);
-}
-[data-wallpaper="active"] .file-workspace-chat,
-[data-wallpaper="active"] .file-workspace-panel {
-  background: color-mix(in srgb, var(--background) 88%, transparent);
+  background: var(--main-surface-background, var(--background));
 }
 .file-workspace-resize {
   position: absolute;

@@ -6,6 +6,35 @@ Built on ALwith’s ready-made components. Powered by Codex CLI. Designed by you
 
 Your brand. Your experience. Your edge.
 
+## Desktop runtime
+
+On macOS the application runs on CEF: the main interface, transparent pets, nonactivating panels,
+and an embedded live browser whose tabs conversations can drive through session-bound browser
+tools. On Windows it runs on Wry, which has no embedded browser. See
+[validation notes](docs/cef-validation.md) for the tested scope and
+[docs/browser.md](docs/browser.md) for how the browser is built and checked.
+
+The CEF runtime and its bindings come from the repositories named in `src-tauri/Cargo.toml`
+(`[patch.crates-io]`), pinned by commit; both are public. The patched `tauri` crate is vendored in
+`src-tauri/patches/tauri`. The matching CEF build is downloaded by the bindings when they are
+built; `docs/browser.md` says how a local one is used instead. The `experimental-cef` feature selects
+the experimental CEF ABI; it must only be used with its matching SDK and framework.
+
+```sh
+bun run stage
+bun run build
+CARGO_TARGET_DIR=/path/to/cef-target \
+  bun tauri build --debug --bundles app --features hasgard-testing,experimental-cef \
+  --config '{"bundle":{"macOS":{"signingIdentity":"-","hardenedRuntime":false}}}'
+```
+
+Native shell smoke tests use `ALWITH_U_CEF_SHELL_TEST=1`,
+`ALWITH_U_CEF_TEST_PROFILE` (an absolute disposable directory),
+`TAURI_HASGARD_DISPLAY=secondary` and a dedicated `TAURI_HASGARD_SOCKET`.
+This debug-only mode explicitly refuses Runtime startup and does not validate AI
+sessions. Session tests must use `startTestRuntime` as described in `AGENTS.md`.
+Use `--use-mock-keychain` when launching the smoke-test bundle.
+
 ## User guide
 
 Read the [ALwith U Guide](guide/index.md), or click the question-mark button next to your account in the app. The English guide is bundled with the application and opens in its own window.

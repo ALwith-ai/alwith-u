@@ -41,6 +41,68 @@ pub fn closed(app: &tauri::AppHandle, label: &str) {
     }
 }
 
+pub fn before_close(app: &tauri::AppHandle, label: &str) {
+    if crate::desktop_runtime::is_cef() {
+        #[cfg(feature = "runtime-cef")]
+        before_close_cef(app, label);
+    } else {
+        #[cfg(feature = "runtime-wry")]
+        before_close_wry(app, label);
+    }
+}
+
+/// Restore Winit's original window class before its delegate and NSWindow deallocate.
+#[cfg(feature = "runtime-cef")]
+fn before_close_cef(app: &tauri::AppHandle, label: &str) {
+    use objc2::{msg_send, rc::Retained};
+    use objc2_foundation::{NSKeyValueObservingOptions, NSObject, ns_string};
+    use tauri_nspanel::ManagerExt;
+    let Ok(panel) = app.get_webview_panel(label) else {
+        return;
+    };
+    let native = panel.as_panel();
+    let delegate: Option<Retained<NSObject>> = unsafe { msg_send![native, delegate] };
+    // The original Winit delegate remains installed until windowWillClose.
+    if let Some(delegate) = &delegate {
+        unsafe {
+            let _: () = msg_send![native, removeObserver: &**delegate, forKeyPath: ns_string!("effectiveAppearance")];
+        }
+    }
+    crate::vibemon::window::forget_backdrop(native as *const _ as usize);
+    panel.to_window();
+    if let Some(delegate) = &delegate {
+        unsafe {
+            let _: () = msg_send![native,
+                addObserver: &**delegate,
+                forKeyPath: ns_string!("effectiveAppearance"),
+                options: NSKeyValueObservingOptions::New | NSKeyValueObservingOptions::Old,
+                context: std::ptr::null_mut::<std::ffi::c_void>()
+            ];
+        }
+    }
+    set_presented(label, false);
+}
+
+#[cfg(feature = "runtime-wry")]
+fn before_close_wry(app: &tauri::AppHandle, label: &str) {
+    use tauri_nspanel::ManagerExt;
+    if let Ok(panel) = app.get_webview_panel(label) {
+        let native = panel.as_panel();
+        let content = native.contentView().expect("Overlay must have a content view");
+        let views = content.subviews();
+        // Remove WebKit observers around the reverse class swap as on creation.
+        for view in views.iter() {
+            view.removeFromSuperview();
+        }
+        crate::vibemon::window::forget_backdrop(native as *const _ as usize);
+        panel.to_window();
+        for view in views.iter() {
+            content.addSubview(&view);
+        }
+    }
+    set_presented(label, false);
+}
+
 // Do not set is_floating_panel: Tao uses level 5 to both set and query always-on-top,
 // while AppKit setFloatingPanel changes it to 3, making Tauri's query disagree with the actual policy.
 tauri_nspanel::tauri_panel! {
@@ -98,31 +160,61 @@ pub fn prepare(window: &WebviewWindow) -> Result<(), String> {
     let native = unsafe { &*(pointer as *const NSWindow) };
     let first_responder = native.firstResponder();
     if !native.isKindOfClass(NSPanel::class()) {
-        // Unregister WKWebView KVO before changing the class; never overwrite a dynamic subclass created by an observer.
-        // Never change an already converted window's class again: doing so breaks TouchBar KVO registered after it becomes key.
-        let content = native.contentView().expect("Overlay must have a content view");
-        let views = content.subviews();
-        for view in views.iter() {
-            view.removeFromSuperview();
-        }
+        // WKWebView must detach its KVO observers; CEF's host view must remain
+        // attached, with Winit's appearance observer restored around the class swap.
+        use objc2::{msg_send, rc::Retained};
+        use objc2_foundation::{NSKeyValueObservingOptions, NSObject, ns_string};
+        let delegate: Option<Retained<NSObject>> = if crate::desktop_runtime::is_cef() {
+            let delegate: Option<Retained<NSObject>> = unsafe { msg_send![native, delegate] };
+            let delegate = delegate.ok_or("CEF window delegate unavailable during panel conversion")?;
+            unsafe {
+                let _: () =
+                    msg_send![native, removeObserver: &*delegate, forKeyPath: ns_string!("effectiveAppearance")];
+            }
+            Some(delegate)
+        } else {
+            None
+        };
+        let detached = if !crate::desktop_runtime::is_cef() {
+            let content = native.contentView().expect("Overlay must have a content view");
+            let views = content.subviews();
+            for view in views.iter() {
+                view.removeFromSuperview();
+            }
+            Some((content, views))
+        } else {
+            None
+        };
         let converted = match window.label() {
             "chat" => window.to_panel::<DesktopChatPanel>(),
             "vibemon" => window.to_panel::<VibemonPanel>(),
             "bubble-menu-vibemon" => window.to_panel::<VibemonBubblePanel>(),
             _ => unreachable!("validated overlay label"),
         };
-        for view in views.iter() {
-            content.addSubview(&view);
+        if let Some(delegate) = delegate {
+            unsafe {
+                let _: () = msg_send![native,
+                    addObserver: &*delegate,
+                    forKeyPath: ns_string!("effectiveAppearance"),
+                    options: NSKeyValueObservingOptions::New | NSKeyValueObservingOptions::Old,
+                    context: std::ptr::null_mut::<std::ffi::c_void>()
+                ];
+            }
+        }
+        if let Some((content, views)) = detached {
+            for view in views.iter() {
+                content.addSubview(&view);
+            }
         }
         converted.map_err(|error| error.to_string())?;
     }
     let pointer = window.ns_window().map_err(|error| error.to_string())?;
     // SAFETY: This is the same live window, class conversion has finished, and access is still on the main thread.
     let native = unsafe { &*(pointer as *const NSWindow) };
-    // Conversion runs with WebKit detached for KVO safety. Install IME support only after reattachment.
+    // Ensure text clients can report the panel level to the input method.
     let content = native.contentView().expect("Overlay must have a content view");
     tauri_nspanel::panel::install_text_input_client_window_level(&content);
-    // Detaching and reattaching WKWebView resets the responder; restore the original input target without changing the window's key status.
+    // Preserve the input target across the native panel conversion.
     with_restored_responder(|| restore(window), || native.makeFirstResponder(first_responder.as_deref()))
 }
 
@@ -133,10 +225,7 @@ fn with_restored_responder(
     // A rejected style change may already have disturbed the responder chain.
     let restored = restore_responder();
     result?;
-    if !restored {
-        return Err("Failed to restore overlay input responder".into());
-    }
-    Ok(())
+    restored.ok_or_else(|| "Failed to restore overlay input responder".into())
 }
 
 /// Restore properties only, without showing, moving, or stealing focus; safe for Space changes and wake events.

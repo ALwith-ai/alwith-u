@@ -7,6 +7,12 @@ import {
   useDesktopZoom
 } from "@alwith/module-desktop-shell/react"
 import { MIN_PREVIEW_WIDTH } from "@nyssance/atlas/layout"
+import { Globe } from "lucide-react"
+
+import { Button } from "@/components/ui/button"
+import { BrowserWorkspace } from "@/features/browser/browser-workspace"
+import { usePreviewRequest } from "@/features/browser/preview-request"
+import { useRuntimeCapabilities } from "@/lib/runtime-capabilities"
 import "@nyssance/atlas/styles.css"
 import { type ReactNode, useCallback, useContext, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -58,7 +64,14 @@ export function MainSidebarLayout({
 }) {
   const { t, i18n } = useTranslation()
   const { level: zoom } = useDesktopZoom()
+  const capabilities = useRuntimeCapabilities()
   const trackpad = useThreeFingerSwipeEnabled()
+  const [browser, setBrowser] = useState({ visited: false, hidden: true, maximized: false })
+  const showBrowser = useCallback(() => {
+    setBrowser((state) => ({ ...state, visited: true, hidden: false }))
+    setPreview((state) => ({ ...state, maximized: false }))
+  }, [])
+  const previewRequest = usePreviewRequest(!!capabilities?.embeddedBrowser, showBrowser)
   // Chat, then the preview the file workspace fills from inside chat; hidden until it opens.
   const [previewSlot, setPreviewSlot] = useState<HTMLElement | null>(null)
   const [preview, setPreview] = useState({ hidden: true, maximized: false })
@@ -106,10 +119,46 @@ export function MainSidebarLayout({
             hidden: preview.hidden,
             maximized: preview.maximized,
             resizable: true
-          }
+          },
+          ...(capabilities?.embeddedBrowser
+            ? [
+                {
+                  id: "browser",
+                  title: t("browser.title"),
+                  min: 420,
+                  hidden: browser.hidden,
+                  maximized: browser.maximized,
+                  resizable: true,
+                  children: browser.visited ? (
+                    <BrowserWorkspace
+                      request={previewRequest}
+                      active={!browser.hidden}
+                      maximized={browser.maximized}
+                      onMaximize={() => setBrowser((state) => ({ ...state, maximized: !state.maximized }))}
+                      onClose={() => setBrowser((state) => ({ ...state, hidden: true }))}
+                    />
+                  ) : null
+                }
+              ]
+            : [])
         ]}
         trailing={trailing}
-        toolbar={toolbar}
+        toolbar={
+          <div className="main-workspace-toolbar flex flex-nowrap items-center gap-2">
+            {toolbar}
+            {capabilities?.embeddedBrowser && (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={t("browser.open")}
+                aria-pressed={!browser.hidden}
+                onClick={() => setBrowser((state) => ({ ...state, visited: true, hidden: !state.hidden }))}
+              >
+                <Globe />
+              </Button>
+            )}
+          </div>
+        }
         statusBar={statusBar}
         overlays={children}
         screen={screen}

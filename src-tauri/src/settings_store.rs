@@ -312,11 +312,8 @@ fn normalize(values: &mut BTreeMap<String, Value>) {
     }
 }
 fn validate_secret_key(key: &str) -> Result<(), String> {
-    if matches!(key, "voice.doubao.apiKey" | "voice.vui.apiKey" | "images.seedream.apiKey" | "images.minimax.apiKey") {
-        Ok(())
-    } else {
-        Err("Unknown credential key".into())
-    }
+    matches!(key, "voice.doubao.apiKey" | "voice.vui.apiKey" | "images.seedream.apiKey" | "images.minimax.apiKey")
+        .ok_or_else(|| "Unknown credential key".into())
 }
 fn validate_secret(key: &str, value: &str) -> Result<(), String> {
     validate_secret_key(key)?;

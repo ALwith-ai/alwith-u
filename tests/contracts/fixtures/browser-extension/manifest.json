@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "ALwith browser contract",
+  "version": "1.6",
+  "permissions": ["contextMenus", "declarativeNetRequest", "scripting", "storage", "tabs"],
+  "host_permissions": ["<all_urls>"],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "background": {
+    "service_worker": "worker.js"
+  },
+  "action": {
+    "default_title": "ALwith browser contract",
+    "default_popup": "popup.html"
+  },
+  "options_page": "options.html"
+}

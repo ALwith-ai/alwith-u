@@ -250,6 +250,8 @@ def check(c: Context) -> None:
         # No inline lint suppression anywhere: a rule that does not apply is turned off in bunfig.toml with its reason.
         ("lint suppressions", "! grep -rnE 'eslint-disable|oxlint-disable|biome-ignore' src scripts --include=*.ts --include=*.tsx", "."),
         ("knip", "bun run knip", "."),
+        # The catalog's fixtures follow the application's interfaces; CI checks them, so this table does too.
+        ("storybook types", "bun run storybook:check", "."),
         ("tests", "bun run test", "."),
         ("rustfmt", f"cargo fmt {workspace_packages(c)} -- --check", "src-tauri"),
         ("clippy", "cargo clippy --locked --workspace --all-targets -- -D warnings", "src-tauri"),

@@ -324,10 +324,8 @@ fn save_registry(path: &Path, registry: &Registry) -> Result<(), String> {
     Ok(())
 }
 fn require_main(window: &tauri::Window) -> Result<(), String> {
-    if !matches!(window.label(), "main" | "settings") {
-        return Err("Only the main or settings window imports legacy extensions".into());
-    }
-    Ok(())
+    matches!(window.label(), "main" | "settings")
+        .ok_or_else(|| "Only the main or settings window imports legacy extensions".into())
 }
 
 #[derive(Serialize, specta::Type)]
@@ -406,8 +404,7 @@ pub(crate) async fn prepare_install_from_directory(
         if snapshot_manifest != manifest {
             return Err("Extension manifest changed during import".into());
         }
-        alwith_extension::grant_install(&app, window.label(), &directory, "local")
-            .map_err(|e| e.to_string())?;
+        alwith_extension::grant_install(&app, window.label(), &directory, "local").map_err(|e| e.to_string())?;
         return Ok(PreparedInstall::Current {
             path: directory.to_str().ok_or("Invalid extension directory path")?.into(),
             id: id.into(),
@@ -489,8 +486,7 @@ fn converted_manifest(old: &Value, p: Option<&Profile>) -> Result<Value, String>
     } else if let Some(icon) = old.get("icon").and_then(Value::as_str).map(str::trim).filter(|s| !s.is_empty()) {
         let candidate = if icon.contains(':') { icon.to_owned() } else { format!("lucide:{icon}") };
         manifest["icon"] = json!(candidate);
-        let typed: alwith_extension::Manifest =
-            serde_json::from_value(manifest.clone()).map_err(|e| e.to_string())?;
+        let typed: alwith_extension::Manifest = serde_json::from_value(manifest.clone()).map_err(|e| e.to_string())?;
         // Old Obsidian icon names and local icon paths are optional metadata;
         // keep only forms the public package metadata model can represent.
         if alwith_extension::validate_manifest(&typed).is_err() {

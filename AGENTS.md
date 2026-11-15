@@ -10,7 +10,8 @@ Always answer the user in Chinese.
 - Computer use integrates a shared host module and Cua Driver through application-wide
   tools. Codex retains reasoning and conversation ownership. The application grant applies to all sessions and forks; disabling it must revoke
   every native connection.
-- Kept out on purpose: embedded browser, cloud tasks.
+- Production uses CEF for the main UI, embedded live browser, floating windows and pets. Windows uses Wry and does not build CEF. macOS production uses CEF; macOS development builds include both backends and expose an optional restart-to-switch setting. Non-development builds hide and reject backend switching. Wry has no embedded-browser capability. Atlas gestures are deferred. Never substitute screenshots for live browser composition.
+- Cloud tasks remain out of scope.
   Git stays at diff review; no commit, PR or worktree features.
 - Skills and plugins come from Codex's own catalogs through the adapter's `_codex/skills_*`,
   `_codex/plugin_*` and `_codex/marketplace_*` methods (`src/features/plugins`); the UI is
@@ -24,6 +25,15 @@ Always answer the user in Chinese.
 - ALwith Desktop is a sibling repo, not a parent. Do not copy its modules to maintain
   a second implementation; extract shared pieces into packages both apps consume.
   The Codex chat look under `src/features/chat/codex/` is the one deliberate import.
+
+## Runtime interface compatibility
+
+- Shared application features must use the same public host interfaces on Wry and CEF. Keep method names, argument and result types, coordinate units, errors, and event lifecycle semantics consistent; matching signatures alone is insufficient.
+- Resolve backend differences in the Tauri runtime or shared native adapter. Do not add CEF-specific coordinate corrections, timing delays, or duplicated pet, lounge, and floating-window logic to application components.
+- Preserve the distinction between desktop positions and window-relative offsets, and between logical points and physical pixels. Window restoration must preserve geometry across displays with different scale factors.
+- Expose genuinely additional browser capabilities through explicit capability interfaces. An unsupported capability must report that fact; never silently substitute different behavior.
+- Cover each corrected compatibility regression with a contract test at the affected boundary. A passing CEF test alone does not establish Wry/CEF parity; report which backends were actually tested.
+- Origin: explicit user requirement (2026-11-10).
 
 ## Protocol
 
@@ -136,7 +146,7 @@ Origin: explicit user instruction (2026-09-30).
 
 ## Desktop architecture policy
 
-Windows and Linux distributions support x64 only; do not build, stage, or publish ARM64 packages for either OS. macOS ARM64 remains supported. This also applies to shared Runtime and native module distributions. User decision: 2026-10-25.
+Support macOS ARM64 and Windows x64 distributions only. Do not build, stage, or publish Linux distributions or Windows ARM64 packages. This also applies to shared Runtime and native module distributions. User decision: 2026-10-25.
 
 ## Shared dependency release line
 
@@ -196,3 +206,11 @@ For every Storybook change, follow this sequence:
 When browser control is slow or an action is unverified, inspect the result before retrying. Use the server catalog and logs to diagnose stale/missing stories first; avoid repeated blind clicks, navigation or refresh loops. Follow the active computer-tool restrictions and stop computer actions on connection failure or revocation.
 
 Origin: explicit user instruction following stale Storybook catalog verification (2026-11-03).
+
+## Build the installed development candidate with the full feature set
+
+- The development application that gets installed and launched is built with `bun run build` followed by `cargo build --features 'dev-backends,hasgard-testing,tauri/custom-protocol'` in `src-tauri`, in that order. Never install a binary built with any other feature set.
+- Without `tauri/custom-protocol` the binary runs in development mode: it does not serve the embedded frontend, it copies the resources next to the executable (which then breaks signing the bundle), and without `hasgard-testing` it cannot be inspected. A plain `cargo build --features dev-backends` is a compile check only.
+- The isolated test application is the same command with the test frontend (`ALWITH_NATIVE_TEST=1 bun run build`) and its own identifier. Rebuild the normal frontend and binary before installing afterwards.
+- After installing, confirm that the running application answers on its Hasgard socket and shows the product page before reporting it installed.
+- Origin: explicit user instruction (2026-11-13; a candidate built without these features was installed twice).

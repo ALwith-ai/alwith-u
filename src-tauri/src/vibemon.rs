@@ -73,10 +73,8 @@ pub fn reset_bubble_on_navigation(window: WebviewWindow) {
 }
 
 fn allowed(window: &WebviewWindow) -> Result<(), String> {
-    if !matches!(window.label(), "main" | "vibemon" | "bubble-menu-vibemon") {
-        return Err("This window cannot use Vibemon".into());
-    }
-    Ok(())
+    matches!(window.label(), "main" | "vibemon" | "bubble-menu-vibemon")
+        .ok_or_else(|| "This window cannot use Vibemon".into())
 }
 fn resource_path(window: &WebviewWindow, path: &str) -> Result<PathBuf, String> {
     if !path.starts_with("vibemon/")

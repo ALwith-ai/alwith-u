@@ -65,14 +65,10 @@ fn error(message: impl ToString) -> Value {
     json!({"message":message.to_string()})
 }
 fn controls(window: &tauri::WebviewWindow) -> Result<(), Value> {
-    if matches!(window.label(), "main" | "settings") {
-        Ok(())
-    } else {
-        Err(error("Enterprise controls belong to account settings"))
-    }
+    matches!(window.label(), "main" | "settings").ok_or_else(|| error("Enterprise controls belong to account settings"))
 }
 fn main_window(window: &tauri::WebviewWindow) -> Result<(), Value> {
-    if window.label() == "main" { Ok(()) } else { Err(error("Enterprise account changes belong to the main window")) }
+    (window.label() == "main").ok_or_else(|| error("Enterprise account changes belong to the main window"))
 }
 impl Enterprise {
     async fn host(&self, app: &AppHandle) -> Result<&Arc<EnterpriseClient>, Value> {

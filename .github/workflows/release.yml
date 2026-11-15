@@ -30,8 +30,10 @@ jobs:
         include:
           - target: aarch64-apple-darwin
             runner: macos-26
+            backend: experimental-cef
           - target: x86_64-pc-windows-msvc
             runner: windows-2025
+            backend: runtime-wry
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
@@ -50,7 +52,7 @@ jobs:
       - uses: tauri-apps/tauri-action@v1
         with:
           tauriScript: bun tauri
-          args: --target ${{ matrix.target }} --config src-tauri/tauri.ci-test.conf.json
+          args: --no-default-features --features ${{ matrix.backend }} --target ${{ matrix.target }} --config src-tauri/tauri.ci-test.conf.json
           uploadWorkflowArtifacts: true
           workflowArtifactNamePattern: alwith-u-[version]-[platform]-[arch]-[bundle]
       - name: Verify packaged toolchain (macOS)
@@ -136,8 +138,10 @@ jobs:
         include:
           - target: aarch64-apple-darwin
             runner: macos-26
+            backend: experimental-cef
           - target: x86_64-pc-windows-msvc
             runner: windows-2025
+            backend: runtime-wry
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
@@ -178,7 +182,7 @@ jobs:
           generateReleaseNotes: true
           updaterJsonPreferNsis: true
           releaseAssetNamePattern: alwith-u_[version]_[platform]_[arch][setup][ext]
-          args: --target ${{ matrix.target }}
+          args: --no-default-features --features ${{ matrix.backend }} --target ${{ matrix.target }}
       - name: Verify packaged toolchain (macOS)
         if: runner.os == 'macOS'
         run: bun scripts/verify-bundled-toolchain.ts "src-tauri/target/${{ matrix.target }}/release/bundle/macos/ALwith U.app/Contents/MacOS"

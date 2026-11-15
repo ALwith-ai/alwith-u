@@ -45,6 +45,11 @@ pre,
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
+  --color-tab-group-1: var(--tab-group-1);
+  --color-tab-group-2: var(--tab-group-2);
+  --color-tab-group-3: var(--tab-group-3);
+  --color-tab-group-4: var(--tab-group-4);
+  --color-tab-group-5: var(--tab-group-5);
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
@@ -83,11 +88,23 @@ pre,
   --canvas-page-indicator: oklch(0.985 0 0);
   --success: var(--color-green-500);
   --link: oklch(0.42 0.17 264);
+  /* The colours a group of browser tabs can wear: five hues of one weight, dark enough for light text. */
+  --tab-group-1: oklch(0.52 0.17 255);
+  --tab-group-2: oklch(0.52 0.15 150);
+  --tab-group-3: oklch(0.55 0.16 50);
+  --tab-group-4: oklch(0.52 0.19 320);
+  --tab-group-5: oklch(0.54 0.19 25);
 }
 
 .dark {
   --success: var(--color-green-500);
   --link: oklch(0.64 0.13 255);
+  /* Lighter on the dark strip, under dark text. */
+  --tab-group-1: oklch(0.74 0.12 255);
+  --tab-group-2: oklch(0.76 0.13 150);
+  --tab-group-3: oklch(0.78 0.13 60);
+  --tab-group-4: oklch(0.75 0.13 320);
+  --tab-group-5: oklch(0.74 0.14 25);
 }
 
 @layer base {
@@ -310,6 +327,10 @@ body,
 }
 [data-wallpaper="active"] .main-chat-surface {
   background: color-mix(in srgb, var(--background) 88%, transparent);
+}
+/* Every pane's plate lets the wallpaper through to the same degree. */
+[data-wallpaper="active"] {
+  --main-surface-background: color-mix(in srgb, var(--background) 88%, transparent);
 }
 
 /* ALwith U agent identity, shared with the compiled native cursor artwork. */

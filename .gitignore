@@ -27,3 +27,9 @@ src-tauri/resources/licenses/alwith-native-*/
 src-tauri/resources/chrome-bridge/
 
 src-tauri/resources/create-alwith/
+
+# Machine-local CEF SDK and candidate dependency overrides.
+src-tauri/.cargo/config.toml
+
+# Staged by scripts/stage-browser.ts.
+src-tauri/resources/browser/

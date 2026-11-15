@@ -1,12 +1,12 @@
 //! Isolated HTML previews use revocable capabilities scoped to an authorized workspace.
 
+use alwith_fs::FileSystem;
 use base64::Engine;
 use std::collections::HashMap;
 use std::path::{Component, Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 use tauri::Manager;
 use tauri::http::{Method, Request, Response};
-use alwith_fs::FileSystem;
 
 #[derive(Clone)]
 struct Preview {

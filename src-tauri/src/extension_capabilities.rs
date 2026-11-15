@@ -1,6 +1,6 @@
 //! Host authorization for optional capabilities shared by modern and legacy extensions.
-use tauri::Manager;
 use alwith_extension::{Installation, Snapshot};
+use tauri::Manager;
 
 fn selected_installation(snapshot: Snapshot, window: &str, id: &str) -> Result<Installation, String> {
     if !matches!(window, "main" | "settings") {

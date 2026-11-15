@@ -21,6 +21,7 @@ import { DesktopCodexClient } from "@/lib/desktop-client"
 import { isMac } from "@/lib/platform"
 import { applyProvidersWhenIdle, isAccountModel, resolveSessionModel } from "@/lib/providers"
 import { CODEX_AGENT_ID, runtimeClient } from "@/lib/runtime"
+import { runtimeCapabilities } from "@/lib/runtime-capabilities"
 
 export const client =
   isTauri() && getCurrentWebviewWindow().label === "chat"
@@ -61,6 +62,7 @@ export const client =
             console.error("Cannot release computer access", error)
           })
           await device.stopSession({ sessionId }).catch(() => undefined)
+          if ((await runtimeCapabilities()).embeddedBrowser) await invoke("cef_browser_revoke", { sessionId })
         }
       })
 

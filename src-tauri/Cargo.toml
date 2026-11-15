@@ -5,6 +5,8 @@ description = "An independent desktop client for the OpenAI Codex CLI"
 authors = ["alwith.ai"]
 license = "Apache-2.0"
 edition = "2024"
+# The standard library methods the code uses arrived by this release.
+rust-version = "1.100"
 
 [lib]
 name = "alwith_u_lib"
@@ -14,9 +16,15 @@ crate-type = ["rlib"]
 tauri-build = { version = "3.0.0-alpha.4", features = [] }
 
 [features]
+default = ["experimental-cef"]
+runtime-cef = ["dep:tauri-runtime-cef", "tauri-plugin-hasgard?/cef"]
+runtime-wry = ["dep:tauri-runtime-wry"]
+dev-backends = ["runtime-wry", "experimental-cef"]
+experimental-cef = ["runtime-cef", "tauri-runtime-cef/surface-embed"]
 hasgard-testing = ["dep:tauri-plugin-hasgard"]
 
 [dependencies]
+axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio", "ws"] }
 alwith-enterprise-client = { path = "../node_modules/@alwith/enterprise-client/rust" }
 alwith-editor = "0.6"
 alwith-desktop-shell = "0.6.4"
@@ -42,7 +50,7 @@ sha2 = "0.11"
 hex = "0.4"
 regex = "1"
 zip = { version = "9", default-features = false, features = ["deflate-flate2-zlib-rs"] }
-tauri-plugin-hasgard = { version = "0.6.0-alpha.2", optional = true }
+tauri-plugin-hasgard = { version = "0.6.8", optional = true }
 log = "0.4"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -52,7 +60,8 @@ reqwest = { version = "0.13", default-features = false, features = ["json", "rus
 tauri = { version = "3.0.0-alpha.6", features = ["protocol-asset", "specta", "tray-icon"] }
 specta = { version = "2.0.0-rc.28", features = ["derive", "function"] }
 tauri3-specta = "0.1.0-alpha.5"
-tauri-runtime-wry = "3.0.0-alpha.6"
+tauri-runtime-cef = { version = "3.0.0-alpha.7", features = ["unstable"], optional = true }
+tauri-runtime-wry = { version = "3.0.0-alpha.6", features = ["unstable"], optional = true }
 tauri-plugin-dialog = "3.0.0-alpha.4"
 tauri-plugin-clipboard-manager = "3.0.0-alpha.3"
 tauri-plugin-global-shortcut = "3.0.0-alpha.3"
@@ -74,10 +83,11 @@ base64 = "0.23"
 arboard = { version = "3.7", features = ["wayland-data-control"] }
 semver = "1"
 sys-locale = "0.3"
-tokio = { version = "1", features = ["sync", "time", "macros"] }
+tokio = { version = "1", features = ["sync", "time", "macros", "net"] }
 uuid = { version = "1", features = ["v4"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
+security-framework = "3"
 objc2 = "0.6"
 objc2-foundation = { version = "0.3", features = ["NSNotification", "NSGeometry"] }
 # Tauri 3 adaptation of tauri-nspanel v2.1.1; see patches/tauri-nspanel/MIGRATION.md.
@@ -97,9 +107,17 @@ raw-window-handle = "0.6"
 # Exclude third-party adaptation snapshots from our workspace to avoid formatting them; the root package joins automatically.
 [workspace]
 resolver = "3"
-exclude = ["patches/tauri-nspanel", "patches/wry", "patches/tauri-plugin-decoration", "patches/tauri-plugin-single-instance"]
+exclude = ["patches/tauri", "patches/tauri-runtime-wry", "patches/tauri-nspanel", "patches/wry", "patches/tauri-plugin-decoration", "patches/tauri-plugin-single-instance"]
 
 [patch.crates-io]
+# A window that embeds further webviews keeps its WebviewWindow; see patches/tauri/PATCH.md.
+tauri = { path = "patches/tauri" }
+# The CEF runtime with embedded browser guests, and the bindings generated from the CEF build it needs,
+# installed by Bun from @nyssance/tauri-runtime-cef and @nyssance/cef-rs.
+tauri-runtime-cef = { path = "../node_modules/@nyssance/tauri-runtime-cef/rust" }
+cef = { path = "../node_modules/@nyssance/cef-rs/rust/cef" }
+cef-dll-sys = { path = "../node_modules/@nyssance/cef-rs/rust/sys" }
+tauri-runtime-wry = { path = "patches/tauri-runtime-wry" }
 # Unify module plugins with the installed Runtime SDK.
 alwith-api = { path = "../node_modules/@alwith/api/rust" }
 # Temporary WebKit race fix; removal is tracked in patches/wry/PATCH.md.

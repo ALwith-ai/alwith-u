@@ -230,6 +230,11 @@ fn modules_dir() -> Option<PathBuf> {
 pub async fn runtime_start(
     app: AppHandle, window: WebviewWindow, state: State<'_, RuntimeState>, connection_id: String,
 ) -> Result<(), String> {
+    // Native shell smoke tests must never start an agent against the user's home.
+    #[cfg(all(feature = "hasgard-testing", debug_assertions))]
+    if std::env::var_os("ALWITH_U_CEF_SHELL_TEST").is_some() {
+        return Err("Runtime is disabled for the CEF shell smoke test".into());
+    }
     if connection_id.is_empty() {
         return Err("Missing connection identity".into());
     }
@@ -528,7 +533,7 @@ fn resets_provider_catalog(event: &alwith_api::RuntimeEvent) -> bool {
 }
 
 pub fn request_error(error: ResponseError) -> String {
-    let details = error.data.filter(|data| !data.is_null()).map(|data| format!("; data: {data}")).unwrap_or_default();
+    let details = error.data.filter(|data| !data.is_null()).map_or_default(|data| format!("; data: {data}"));
     format!("Runtime request failed ({}): {}{details}", error.code, error.message)
 }
 

@@ -698,7 +698,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           }
           trailing={<TrailingBoard onOpenVibemon={openVibemon} />}
           toolbar={
-            <div className="main-workspace-toolbar flex items-center gap-2">
+            <div className="flex shrink-0 items-center gap-2">
               <div ref={setWorkspaceToolbar} />
             </div>
           }

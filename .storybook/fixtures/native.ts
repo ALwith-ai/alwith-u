@@ -145,7 +145,8 @@ export function handleNativeRequest(command: string, payload?: unknown): unknown
   nativeCalls.push({ command, payload })
   if (command.startsWith("plugin:alwith-installed-apps|"))
     command = command.slice("plugin:alwith-installed-apps|".length)
-  if (command.startsWith("plugin:alwith-computer|")) command = `computer_${command.slice("plugin:alwith-computer|".length)}`
+  if (command.startsWith("plugin:alwith-computer|"))
+    command = `computer_${command.slice("plugin:alwith-computer|".length)}`
   if (command === "plugin:log|log" || command === "plugin:app|set_app_theme") return
   if (command === "plugin:app|version") return version
   if (command === "plugin:app|identifier") return "ai.alwith.u.storybook"
@@ -309,6 +310,8 @@ export function handleNativeRequest(command: string, payload?: unknown): unknown
   }
   if (command === "computer_stop_session" || command === "computer_request_permissions") return
   if (command.startsWith("voice_")) return voiceRequest(command, args)
+  // The catalog shows the application without an embedded browser, as the Wry backend runs it.
+  if (command === "runtime_capabilities") return { backend: "wry", embeddedBrowser: false, canSwitchBackend: false }
   if (command === "autostart_status") return { enabled: false, supported: true }
   if (command === "autostart_set") return { enabled: args.enabled, supported: true }
   if (command === "plugin:dialog|open") return PROJECT_DIRECTORY
