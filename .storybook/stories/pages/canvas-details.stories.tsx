@@ -284,8 +284,9 @@ export const ReturnFromPreview: Story = {
     const host = canvasElement.querySelector<HTMLElement>("[data-sidebar-mode]")!
     const sidebar = canvasElement.querySelector<HTMLElement>(".main-sidebar-panel")!
     await waitFor(() => expect(dots()).toHaveLength(2))
-    // A pinned navigation stays docked beside whichever pane is in view; turning pages never hides it.
-    const beside = async (selector: string): Promise<void> => {
+    // A pinned navigation stays docked beside whichever pane is in view; turning pages never hides it. Its toggle
+    // reads pinned only on chat's page: elsewhere it returns to chat, so it offers to pin.
+    const beside = async (selector: string, onChat: boolean): Promise<void> => {
       await waitFor(
         async () => {
           await expect(host).toHaveAttribute("data-canvas-moving", "false")
@@ -298,13 +299,13 @@ export const ReturnFromPreview: Story = {
         },
         { timeout: 3000 }
       )
-      await expect(canvas.getByRole("switch")).toHaveAttribute("aria-checked", "true")
+      await expect(canvas.getByRole("switch")).toHaveAttribute("aria-checked", String(onChat))
     }
     for (let round = 0; round < 3; round++) {
       await userEvent.click(dots()[1])
-      await beside(".file-workspace-panel")
+      await beside(".file-workspace-panel", false)
       await userEvent.click(dots()[0])
-      await beside(".file-workspace-chat")
+      await beside(".file-workspace-chat", true)
       await expect(canvas.getByRole("textbox", { name: "Draft" })).toHaveValue("Preserved draft")
     }
   }
@@ -330,7 +331,9 @@ export const ReflowWithFloatingSidebar: Story = {
     await waitFor(() => expect(dots()).toHaveLength(2))
     await userEvent.click(dots()[1])
     await waitFor(() => expect(host).toHaveAttribute("data-canvas-moving", "false"), { timeout: 3000 })
-    await expect(canvas.getByRole("switch")).toHaveAttribute("aria-checked", "true")
+    // Off chat's page the toggle offers to return and pin, while the navigation itself stays docked.
+    await expect(canvas.getByRole("switch")).toHaveAttribute("aria-checked", "false")
+    await expect(host).toHaveAttribute("data-sidebar-mode", "pinned")
     await userEvent.click(canvas.getByRole("button", { name: "Wide layout" }))
     await waitFor(
       async () => {
