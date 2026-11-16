@@ -5,14 +5,10 @@ use alwith_api::{RunState, RuntimeEvent};
 pub(crate) fn check(app: &AppHandle, method: &str, params: Option<&Value>) -> Result<u64, String> {
     let state = app.state::<Enterprise>();
     let gate = state.gate.lock().unwrap();
-    let Some(params) = params else { return Ok(gate.generation) };
-    let (method, body) = if matches!(method, "acpRequest" | "acpNotify") {
-        (params["method"].as_str().unwrap_or(""), &params["params"])
-    } else {
-        (method, params)
-    };
-    check_request(&gate, method, body)?;
-    Ok(gate.generation)
+    match params {
+        Some(params) => gate.check_request(method, params),
+        None => Ok(gate.generation),
+    }
 }
 
 pub(crate) fn observe(app: &AppHandle, agent: &str, session: &str, value: &Value, generation: Option<u64>) {
@@ -26,13 +22,7 @@ pub(crate) fn observe(app: &AppHandle, agent: &str, session: &str, value: &Value
         return;
     };
     let state = app.state::<Enterprise>();
-    let mut gate = state.gate.lock().unwrap();
-    if catalog::is_model(model) {
-        gate.observe(session, agent, model, generation);
-    } else if generation == Some(gate.generation) {
-        gate.routes.remove(session);
-    }
-    drop(gate);
+    state.gate.lock().unwrap().observe(session, agent, model, generation);
     if let Err(reason) = state.changed(app) {
         log::error!("Enterprise session notification failed: {reason}");
     }
@@ -101,11 +91,7 @@ pub(super) async fn cleanup(app: &AppHandle) -> Result<(), Value> {
     let state = app.state::<Enterprise>();
     let routes = {
         let gate = state.gate.lock().unwrap();
-        gate.routes
-            .iter()
-            .filter(|(id, _)| gate.check(None, Some(id.as_str())).is_err())
-            .map(|(id, route)| (id.clone(), route.clone()))
-            .collect::<Vec<_>>()
+        gate.revoked().into_iter().map(|id| (id.clone(), gate.routes[&id].clone())).collect::<Vec<_>>()
     };
     let current = {
         let gate = state.gate.lock().unwrap();
@@ -115,7 +101,7 @@ pub(super) async fn cleanup(app: &AppHandle) -> Result<(), Value> {
             .unwrap()
             .as_ref()
             .filter(|_| gate.account.is_some() && !gate.models.is_empty())
-            .map(|connection| catalog::runtime_id(&connection.provider.id))
+            .map(codex::Connection::runtime_id)
     };
     let obsolete = state
         .configured
@@ -209,59 +195,6 @@ pub(super) async fn cleanup(app: &AppHandle) -> Result<(), Value> {
             .map_err(|_| error("Enterprise provider removal worker failed"))??;
     }
     Ok(())
-}
-
-fn check_request(gate: &gate::Gate, method: &str, body: &Value) -> Result<(), String> {
-    let selection = method == "session/set_config_option" && body["configId"] == "model";
-    let lifecycle = matches!(
-        method,
-        "sessionNew"
-            | "session/new"
-            | "sessionResume"
-            | "session/resume"
-            | "sessionLoad"
-            | "session/load"
-            | "sessionFork"
-            | "session/fork"
-    );
-    let execution = matches!(
-        method,
-        "prompt"
-            | "session/prompt"
-            | "_session/steering"
-            | "_session/goal"
-            | "_codex/session/goal_control"
-            | "_codex/session_retry"
-            | "_codex/session_prediction_request"
-            | "_codex/realtime/start"
-            | "_codex/realtime/appendAudio"
-            | "_codex/realtime/appendText"
-            | "_codex/realtime/appendSpeech"
-    );
-    if !(method == "session/set_config_option" || lifecycle || execution) {
-        return Ok(());
-    }
-    let explicit_resume = matches!(method, "sessionResume" | "session/resume")
-        && (body
-            .pointer("/_meta/alwith/accountModelSelection")
-            .or_else(|| body.pointer("/meta/alwith/accountModelSelection"))
-            == Some(&Value::Bool(true)));
-    let requested = if selection {
-        body["value"].as_str()
-    } else if lifecycle {
-        body.pointer("/_meta/alwith/model").or_else(|| body.pointer("/meta/alwith/model")).and_then(Value::as_str)
-    } else {
-        None
-    };
-    // Prompt metadata is not a model selection. Only the adapter's explicit model option
-    // can authorize an old session under a new account.
-    if explicit_resume && requested.is_none() {
-        return Err("Explicit model recovery requires a model".into());
-    }
-    gate.check(
-        requested.filter(|model| catalog::is_model(model)),
-        if selection || explicit_resume { None } else { body["sessionId"].as_str() },
-    )
 }
 
 /// Apply only U's enterprise relay. Other provider configuration remains entirely shared-chat owned.
@@ -359,68 +292,5 @@ pub(super) async fn apply_ready(app: &AppHandle) {
 }
 
 pub(crate) fn uses_enterprise(app: &AppHandle, method: &str, params: Option<&Value>) -> bool {
-    let Some(params) = params else { return false };
-    let body = if matches!(method, "acpRequest" | "acpNotify") { &params["params"] } else { params };
-    let selection = body["value"].as_str().or_else(|| {
-        body.pointer("/_meta/alwith/model").or_else(|| body.pointer("/meta/alwith/model")).and_then(Value::as_str)
-    });
-    if selection.is_some_and(catalog::is_model) {
-        return true;
-    }
-    let state = app.state::<Enterprise>();
-    body["sessionId"].as_str().is_some_and(|id| state.gate.lock().unwrap().routes.contains_key(id))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn prompt_metadata_and_raw_execution_cannot_reauthorize_a_revoked_route() {
-        let mut gate = gate::Gate::default();
-        let model = catalog::model_id("custom_alwith_enterprise_test", "issued/model");
-        let generation = gate.bind("account".into()).unwrap();
-        gate.commit(generation, BTreeSet::from([model.clone()])).unwrap();
-        gate.observe("session", "codex", &model, Some(generation));
-        gate.invalidate().unwrap();
-        for method in [
-            "prompt",
-            "session/prompt",
-            "_session/steering",
-            "_session/goal",
-            "_codex/session/goal_control",
-            "_codex/session_retry",
-            "_codex/session_prediction_request",
-            "_codex/realtime/start",
-            "_codex/realtime/appendAudio",
-            "_codex/realtime/appendText",
-            "_codex/realtime/appendSpeech",
-        ] {
-            assert!(
-                check_request(
-                    &gate,
-                    method,
-                    &json!({"sessionId":"session","_meta":{"alwith":{"model":"gpt-6","accountModelSelection":true}}})
-                )
-                .is_err(),
-                "{method}"
-            );
-        }
-        assert!(
-            check_request(
-                &gate,
-                "session/set_config_option",
-                &json!({"sessionId":"session","configId":"model","value":"gpt-6"})
-            )
-            .is_ok()
-        );
-        assert!(check_request(&gate, "sessionResume", &json!({"sessionId":"session"})).is_err());
-        assert!(
-            check_request(
-                &gate,
-                "sessionResume",
-                &json!({"sessionId":"session","_meta":{"alwith":{"model":"gpt-6","accountModelSelection":true}}})
-            )
-            .is_ok()
-        );
-    }
+    params.is_some_and(|params| app.state::<Enterprise>().gate.lock().unwrap().uses(method, params))
 }

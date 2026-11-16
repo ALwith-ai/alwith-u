@@ -1,9 +1,7 @@
 //! U orchestrates enterprise authentication and the relay; shared chat owns provider storage and routing.
-mod catalog;
 mod diagnostic;
-mod gate;
 mod runtime;
-use alwith_enterprise_client::{EnterpriseClient, GATEWAY_URL, Protocol};
+use alwith_enterprise_client::{EnterpriseClient, GATEWAY_URL, Protocol, codex, gate};
 pub(crate) use runtime::{apply, check, observe, observe_event, observe_realtime, ready, reset, uses_enterprise};
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -55,7 +53,7 @@ pub struct Enterprise {
     refresh: AsyncMutex<()>,
     transition: AsyncMutex<()>,
     realtime: Mutex<BTreeSet<String>>,
-    connection: Mutex<Option<catalog::Connection>>,
+    connection: Mutex<Option<codex::Connection>>,
     ready_agents: Mutex<BTreeSet<String>>,
     configured: Mutex<BTreeMap<String, BTreeSet<String>>>,
     applied: Mutex<BTreeMap<String, Value>>,
@@ -108,13 +106,7 @@ impl Enterprise {
     }
     fn changed(&self, app: &AppHandle) -> Result<(), Value> {
         app.emit("enterprise:models-changed", ()).map_err(error)?;
-        let gate = self.gate.lock().unwrap();
-        let sessions: Vec<_> = gate
-            .routes
-            .iter()
-            .filter(|(id, _)| gate.check(None, Some(id.as_str())).is_err())
-            .map(|(id, _)| id.clone())
-            .collect();
+        let sessions = self.gate.lock().unwrap().revoked();
         app.emit("providers:managed-revoked", json!({"sessionIds":sessions})).map_err(error)
     }
     async fn current(&self, generation: u64) -> Result<Arc<EnterpriseClient>, Value> {
@@ -218,54 +210,27 @@ pub async fn enterprise_refresh(
             native_generation
         };
         let result = async {
-            let status =
-                diagnostic::trace("native-ensure", Some(native_generation), host.ensure(native_generation)).await?;
-            if status["automatic_renewal"] != true {
-                return Ok(None);
-            }
-            let catalog =
-                diagnostic::trace("native-providers", Some(native_generation), host.providers(native_generation))
-                    .await?;
-            check()?;
-            let Some(mut provider) = catalog::parse(catalog).map_err(error)? else { return Ok(None) };
-            catalog::apply_labels(&mut provider, &model_labels).map_err(error)?;
-            if provider.base_url.trim_end_matches('/') != GATEWAY_URL {
-                return Err(error("Enterprise catalog gateway does not match the configured gateway"));
-            }
-            let gateway = provider.base_url.clone();
-            let relay = diagnostic::trace(
-                "native-relay",
+            let source = alwith_chat::bundled_model_catalogs(app)
+                .map_err(error)?
+                .into_iter()
+                .find(|path| path.ends_with("alwith/models.json"))
+                .ok_or_else(|| error("Shared ALwith model catalog unavailable"))?;
+            let connection = diagnostic::trace(
+                "native-connect",
                 Some(native_generation),
-                host.relay(native_generation, gateway, Protocol::Responses),
+                host.connect(native_generation, &model_labels, Protocol::Responses, Some(&source)),
             )
             .await?;
-            Ok::<_, Value>(Some(
-                catalog::connection(app, &identity, provider, relay, host, native_generation).await.map_err(error)?,
-            ))
+            connection.map(codex::connection).transpose()
         }
         .await;
         check()?;
-        let models = result
-            .as_ref()
-            .ok()
-            .and_then(|connection| connection.as_ref())
-            .map(|connection| {
-                connection
-                    .provider
-                    .models
-                    .iter()
-                    .map(|model| catalog::model_id(&connection.provider.id, &model.api_id))
-                    .collect()
-            })
-            .unwrap_or_default();
+        let connection = result.as_ref().ok().cloned().flatten();
         {
             let mut gate = state.gate.lock().unwrap();
+            let models = connection.as_ref().map(|connection| connection.models.clone()).unwrap_or_default();
             gate.commit(generation, models).map_err(error)?;
-            *state.connection.lock().unwrap() =
-                result.as_ref().ok().and_then(|connection| connection.as_ref()).map(|connection| catalog::Connection {
-                    provider: connection.provider.clone(),
-                    params: connection.params.clone(),
-                });
+            *state.connection.lock().unwrap() = connection;
         }
         let notification = state.changed(app);
         runtime::cleanup(app).await?;
