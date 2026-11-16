@@ -5,7 +5,9 @@ import { dirname, join, resolve } from "node:path"
 export async function stageBrowser(root: string) {
   const destination = join(root, "src-tauri/resources/browser")
   await mkdir(destination, { recursive: true })
-  await cp(join(root, "scripts/browser-mcp.mjs"), join(destination, "stdio.mjs"))
+  for (const name of ["definitions.mjs", "engine.mjs", "worker.mjs"])
+    await cp(join(root, "src/features/web-automation", name), join(destination, name))
+  await rm(join(destination, "stdio.mjs"), { force: true })
   const source = dirname(fileURLToPath(import.meta.resolve("playwright-core/package.json")))
   const installed = join(destination, "node_modules/playwright-core")
   await rm(installed, { recursive: true, force: true })

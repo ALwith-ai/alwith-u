@@ -13,6 +13,7 @@ import { useStore } from "zustand"
 import { createDocsTools } from "@/agent/docs-tools"
 import { configureSessionInputConfig, readSessionInputMode } from "@/features/chat/composer/input-mode-config"
 import { computerRuntimeEnv } from "@/features/computer/runtime-config"
+import { createWebAutomationTools } from "@/features/web-automation/application-tools"
 import { hostSessionContext } from "@/features/computer/session-context"
 import { guideChapters, guideVersion } from "@/features/guide/content"
 import { useImagePreferences } from "@/features/images/preferences"
@@ -29,7 +30,10 @@ export const client =
     : new DesktopCodexClient(runtimeClient, {
         agentId: CODEX_AGENT_ID,
         launch: { engine: "codex", env: computerRuntimeEnv },
-        applicationTools: createDocsTools({ chapters: guideChapters, version: guideVersion }),
+        applicationTools: async () => [
+          ...createDocsTools({ chapters: guideChapters, version: guideVersion }),
+          ...(isTauri() && (await runtimeCapabilities()).embeddedBrowser ? createWebAutomationTools() : [])
+        ],
         imageService: {
           inputMode: readSessionInputMode,
           selection: () => useImagePreferences.getState().selection,

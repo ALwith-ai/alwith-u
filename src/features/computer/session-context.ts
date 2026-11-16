@@ -3,7 +3,7 @@ import { commands } from "@alwith/module-computer/commands"
 import { isTauri } from "@tauri-apps/api/core"
 
 import type { ClientOptions } from "@alwith/module-chat/client"
-import { browserSessionContext } from "@/features/browser/session-context"
+import { browserSessionContext } from "@/features/web-automation/session-context"
 import { deviceSessionContext } from "@/features/device/session-context"
 import { driveSessionContext } from "@/features/drive/session-context"
 

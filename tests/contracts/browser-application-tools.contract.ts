@@ -1,7 +1,4 @@
-/**
- * Native MCP/CDP contract: the bundled browser server as a conversation runs it. The last step
- * drives a real conversation and runs only with BROWSER_AI_LIVE=1, which uses the user's Codex login.
- */
+/** Native application-tool/CDP contract, with an optional isolated real-agent check. */
 import assert from "node:assert/strict"
 import { homedir } from "node:os"
 import { join } from "node:path"
@@ -10,10 +7,11 @@ import { startTestRuntime } from "@alwith/api/node"
 import { afterAll, beforeAll, describe, test } from "vitest"
 
 import { staged, stagedCodexEngine } from "../../scripts/lib/runtime"
-import { CodexClient } from "@alwith/module-chat/client"
+import { tools } from "../../src/features/web-automation/definitions.mjs"
+import { CodexClient, defineApplicationTool } from "@alwith/module-chat/client"
 import { ipc, ui, waitFor } from "./lib/app"
 
-describe("browser tools over MCP", () => {
+describe("browser application tools", () => {
   const nonce = `CEF_BROWSER_${crypto.randomUUID()}`
   const server = Bun.serve({
     hostname: "127.0.0.1",
@@ -26,38 +24,15 @@ describe("browser tools over MCP", () => {
   })
   const sessionId = `browser-regression-${crypto.randomUUID()}`
   let guest: { label: string; token: string } | undefined
-  let child: Bun.Subprocess<"pipe", "pipe", "inherit"> | undefined
   let descriptor: any
   let env: Record<string, string>
-  let reader: ReadableStreamDefaultReader<Uint8Array>
-  let output = ""
-  let nextId = 0
   const raw = (body: unknown, token = env.ALWITH_BROWSER_TOKEN) =>
     fetch(env.ALWITH_BROWSER_ENDPOINT!, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify(body)
     })
-  async function mcp(method: string, params: unknown = {}): Promise<any> {
-    const id = ++nextId
-    void child!.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", id, method, params })}\n`)
-    while (!output.includes("\n")) {
-      const next = await reader.read()
-      assert.ok(!next.done, "MCP process exited")
-      output += new TextDecoder().decode(next.value)
-    }
-    const line = output.slice(0, output.indexOf("\n"))
-    output = output.slice(output.indexOf("\n") + 1)
-    const reply = JSON.parse(line)
-    assert.equal(reply.id, id)
-    assert.ok(!reply.error)
-    return reply.result
-  }
-  async function tool(name: string, args: unknown) {
-    const result = await mcp("tools/call", { name, arguments: args })
-    assert.ok(!result.isError, JSON.stringify(result))
-    return JSON.parse(result.content[0].text)
-  }
+  const tool = (name: string, args: unknown) => ipc("web_automation_execute", { sessionId, name, args })
 
   beforeAll(async () => {
     guest = await ipc("cef_open_guest", { url: `http://127.0.0.1:${server.port}/` })
@@ -69,7 +44,6 @@ describe("browser tools over MCP", () => {
   })
 
   afterAll(async () => {
-    child?.kill()
     await ipc("cef_browser_revoke", { sessionId }).catch(() => {})
     await ui("document.querySelector('#browser-cdp-fixture')?.remove()").catch(() => {})
     if (guest) await ipc("cef_close_guest", { label: guest.label }).catch(() => {})
@@ -85,23 +59,6 @@ describe("browser tools over MCP", () => {
   test("the application's own window and browser-wide commands are refused", async () => {
     assert.equal((await raw({ target: "main", method: "DOM.getDocument", params: {} })).status, 404)
     assert.equal((await raw({ target: guest!.label, method: "Browser.close", params: {} })).status, 400)
-  })
-
-  test("the bundled server introduces itself and lists its tools", async () => {
-    child = Bun.spawn([descriptor.command, ...descriptor.args], {
-      env: { ...process.env, ...env },
-      stdin: "pipe",
-      stdout: "pipe",
-      stderr: "inherit"
-    })
-    reader = child.stdout.getReader()
-    const hello = await mcp("initialize", {
-      protocolVersion: "2024-11-05",
-      capabilities: {},
-      clientInfo: { name: "native-regression", version: "1" }
-    })
-    assert.equal(hello.serverInfo.name, "alwith-cef-browser")
-    assert.ok((await mcp("tools/list")).tools.some((entry: any) => entry.name === "browser_cdp"))
   })
 
   test("its tools list the tab and read the live page", async () => {
@@ -142,14 +99,15 @@ describe("browser tools over MCP", () => {
         transport: "stdio",
         authFrom: process.env.CODEX_HOME ?? join(homedir(), ".codex")
       })
-      const ai = await ipc("cef_browser_context")
       const client = new CodexClient(() => Promise.resolve(runtime.client), {
         agentId: "codex",
         launch: { engine: "codex", env: { INITIAL_AGENT_MODE: "read-only" } },
-        sessionContext: async () => ({
-          mcpServers: [{ type: "stdio", name: "embedded_browser", command: ai.command, args: ai.args, env: ai.env }],
-          bind: (sessionId) => ipc("cef_browser_bind", { token: ai.token, sessionId })
-        })
+        applicationTools: tools.map((definition) => defineApplicationTool({
+          ...definition,
+          revision: "web-automation-v1",
+          parse: (input: unknown) => input,
+          execute: async (args, {sessionId}) => ({success: true, contentItems: [{type: "text", text: JSON.stringify(await ipc("web_automation_execute", {sessionId, name: definition.name, args}))}]})
+        }))
       })
       try {
         await client.connect()
@@ -157,7 +115,7 @@ describe("browser tools over MCP", () => {
         await client.prompt(id, [
           {
             type: "text",
-            text: `Use embedded_browser browser_read_page with target ${guest!.label} to read the test page's heading. Reply with that heading only. This is an authorized read-only fixture test. Do not inspect any other target, files or external services.`
+            text: `Use browser_read_page with target ${guest!.label} to read the test page's heading. Reply with that heading only. This is an authorized read-only fixture test. Do not inspect any other target, files or external services.`
           }
         ])
         const deadline = Date.now() + 120000

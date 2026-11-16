@@ -7,7 +7,7 @@ import { join } from "node:path"
 import { chromium } from "playwright-core"
 import { afterAll, afterEach, beforeAll, describe, test } from "vitest"
 
-import { createBrowserTools } from "../../scripts/browser-mcp.mjs"
+import { createBrowserTools } from "../../src/features/web-automation/engine.mjs"
 
 interface DialogState {
   id: number

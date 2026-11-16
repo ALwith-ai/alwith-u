@@ -1,18 +1,6 @@
 import { expect, test } from "bun:test"
 
-import { createBrowserTools, handleMessage, tools } from "../../browser-mcp.mjs"
-
-test("MCP exposes browser tools and reports tool errors without corrupting the protocol", async () => {
-  const run = async () => {
-    throw new Error("guest closed")
-  }
-  const list = await handleMessage({ id: 1, method: "tools/list" }, run)
-  expect(list.result.tools).toEqual(tools)
-  const reply = await handleMessage({ id: 2, method: "tools/call", params: { name: "browser_list" } }, run)
-  expect(reply.result.isError).toBe(true)
-  expect(reply.result.content[0].text).toContain("guest closed")
-  expect(await handleMessage({ method: "notifications/initialized" }, run)).toBeNull()
-})
+import { createBrowserTools } from "../../../src/features/web-automation/engine.mjs"
 
 test("invalid targets and navigation are rejected before connecting", async () => {
   let attached = false
@@ -68,4 +56,37 @@ test("opening a website needs no existing tab or project", async () => {
   expect(await run("browser_open", { url: "https://example.com" })).toEqual({ target: "browser-new" })
   expect(requests).toEqual([{ method: "open", params: { url: "https://example.com/" } }])
   await expect(run("browser_open", { url: "file:///tmp/test" })).rejects.toThrow("HTTP(S)")
+})
+
+test("application executor scopes native calls by session and never reuses a changed credential", async () => {
+  const { createExecutor } = await import("../../../src/features/web-automation/worker.mjs")
+  const calls: string[] = []
+  const executor = createExecutor(undefined, async (_url, init) => {
+    calls.push(new Headers(init?.headers).get("Authorization")!)
+    return Response.json({ targets: [] })
+  })
+  const request = { version: 1, kind: "call", endpoint: "http://127.0.0.1:12345", sessionId: "a", token: "token-a", name: "browser_list", args: {} }
+  try {
+    await executor.dispatch(request)
+    await executor.dispatch({ ...request, sessionId: "b", token: "token-b" })
+    expect(calls).toEqual(["Bearer token-a", "Bearer token-b"])
+    await expect(executor.dispatch({ ...request, token: "changed" })).rejects.toThrow("binding changed")
+    await expect(executor.dispatch({ version: 1, kind: "release", sessionId: "a", token: "old" })).rejects.toThrow("Stale")
+    await executor.dispatch({ version: 1, kind: "release", sessionId: "a", token: "token-a" })
+    await executor.dispatch({ ...request, token: "renewed" })
+    expect(calls.at(-1)).toBe("Bearer renewed")
+  } finally { await executor.close() }
+})
+
+test("application executor does not retry an ambiguous write failure", async () => {
+  const { createExecutor } = await import("../../../src/features/web-automation/worker.mjs")
+  let calls = 0
+  const executor = createExecutor(undefined, async () => {
+    calls++
+    throw Error("connection lost after delivery")
+  })
+  try {
+    await expect(executor.dispatch({version: 1, kind: "call", endpoint: "http://127.0.0.1:12345", sessionId: "a", token: "token-a", name: "browser_open", args: { url: "https://example.com" }})).rejects.toThrow("connection lost")
+    expect(calls).toBe(1)
+  } finally { await executor.close() }
 })

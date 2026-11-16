@@ -66,22 +66,16 @@ use the actual workspace pane.
 
 ## Internal AI browser tools
 
-The application attaches the `embedded_browser` stdio MCP server through its
-existing session-context boundary. Its authenticated loopback transport forwards
-commands to the CEF guest's native DevTools agent, without a remote-debugging
-port or browser extension. Every request names an app-owned guest; main UI views
-and browser-wide Target/Browser commands are excluded. Per-session credentials
-must be bound before use and are revoked when session access is released.
+The application registers `browser_*` tools through the existing application-tool channel.
+The `web-automation` feature owns their definitions and model-independent Playwright execution.
+A single application-owned Bun worker hosts per-session CDP connections; no browser MCP server
+is registered with Codex. The native host supplies scoped credentials internally. Main UI views,
+private tabs and browser-wide Target/Browser commands remain excluded. Session cancellation
+closes its connections; an ambiguous failure is never automatically replayed.
 
-Native regression: `TAURI_HASGARD_SOCKET=... bun run test:browser-mcp` (`tests/contracts/browser-mcp.contract.ts`; its last step drives a real conversation and runs only with `BROWSER_AI_LIVE=1`).
-It verifies actual stdio MCP initialization, tool discovery, DOM reading,
-trusted input dispatch, Chinese text insertion, target isolation and revocation.
-`BROWSER_AI_LIVE=1` additionally starts an isolated test Runtime with an auth-only
-copy of the existing login and asks a real model to read a local fixture's random
-heading. It does not inspect signed-in Feishu content or write to the real chat
-store. Read-only MCP tool annotations are required by the read-only agent mode.
-
-Validation for this candidate: 236 Rust tests, 1617 frontend tests and 93 script
-tests passed; type checking, Clippy and the frontend build passed. The inherited
-lint script is absent and knip still reports previously identified unused items.
-Signed-in Feishu workflows have not been claimed as tested.
+Native regression: `TAURI_HASGARD_SOCKET=... bun run test:browser-tools`
+(`tests/contracts/browser-application-tools.contract.ts`). It verifies application-tool dispatch,
+DOM reading, Chinese input, target isolation and credential revocation. `BROWSER_AI_LIVE=1`
+additionally uses an isolated test Runtime with an auth-only copy of the existing login and asks
+a real model to read a local fixture heading. The in-process fake-agent tests cover tool registration
+and explicit session routing for new, resumed and forked conversations without MCP configuration.

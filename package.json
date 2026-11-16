@@ -32,7 +32,7 @@
     "test:browser-chrome": "vitest run --config vitest.contracts.config.ts tests/contracts/browser-chrome.contract.ts",
     "test:browser-everyday": "vitest run --config vitest.contracts.config.ts tests/contracts/browser-everyday.contract.ts",
     "test:browser-extensions": "vitest run --config vitest.contracts.config.ts tests/contracts/browser-extensions.contract.ts",
-    "test:browser-mcp": "vitest run --config vitest.contracts.config.ts tests/contracts/browser-mcp.contract.ts",
+    "test:browser-tools": "vitest run --config vitest.contracts.config.ts tests/contracts/browser-application-tools.contract.ts",
     "test:runtime-panels": "vitest run --config vitest.contracts.config.ts tests/contracts/runtime-panels.contract.ts",
     "test:runtime-geometry": "vitest run --config vitest.contracts.config.ts tests/contracts/runtime-window-geometry.contract.ts",
     "build:desktop": "bun scripts/desktop.ts build",

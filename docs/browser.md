@@ -62,7 +62,7 @@ launched test application over its Hasgard socket, named in `TAURI_HASGARD_SOCKE
 | `bun run test:browser-popups` | windows a page opens | browser fixture |
 | `bun run test:browser-chrome` | history, find, menus, permissions, downloads, failures, chords | browser fixture |
 | `bun run test:browser-everyday` | arranging tabs, private tabs, logins, restore, groups, crashes | browser fixture |
-| `bun run test:browser-mcp` | the bundled MCP server | browser fixture |
+| `bun run test:browser-tools` | the application-owned web executor | browser fixture |
 | `bun --bun node_modules/vitest/vitest.mjs run --config vitest.contracts.config.ts tests/contracts/browser-business.contract.ts` | cross-origin editing, attachments, dialogs, and business controls | browser fixture |
 | `bun run test:browser-extensions` | extensions | browser fixture with `ALWITH_U_CEF_TEST_EXTENSION` pointing at `tests/contracts/fixtures/browser-extension` |
 | `bun run test:runtime-panels` | panel windows, on either backend | shell test (`ALWITH_U_CEF_SHELL_TEST=1`) |
@@ -89,7 +89,7 @@ What to know when running them:
   them when it searches.
 - The extension test profile keeps the worker it first registered. After changing the fixture's
   worker, remove `Default/Service Worker` from that profile.
-- The last step of `test:browser-mcp` drives a real conversation with the user's Codex login and
+- The last step of `test:browser-tools` drives a real conversation with the user's Codex login and
   runs only with `BROWSER_AI_LIVE=1`.
 
 - The second step of `test:runtime-geometry` needs two displays of different scale.
@@ -123,3 +123,11 @@ attachment bytes, and verifies that dismissing confirmation does not submit agai
 Chromium-only check, set `BROWSER_BUSINESS_HEADLESS=1` on its command. That check does not
 establish CEF parity or support for any particular production website. Run the same contract
 against the isolated CEF application for the native boundary. Wry has no embedded browser.
+
+## Web automation feature
+
+`src/features/web-automation` separates application-tool definitions, Playwright execution and
+the application worker protocol. The chat client registers its tools through `applicationTools`;
+it does not attach an embedded-browser MCP server. The native host owns the worker, supplies
+per-session CDP credentials and releases connections on cancellation or session revocation.
+Playwright remains outside the UI bundle and continues to use the live CEF pages.

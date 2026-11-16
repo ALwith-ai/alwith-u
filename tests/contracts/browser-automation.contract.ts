@@ -8,7 +8,7 @@ import { type Browser, chromium, type Page } from "playwright-core"
 import { createServer, type ViteDevServer } from "vite"
 import { afterAll, beforeAll, describe, test } from "vitest"
 
-import { createBrowserTools } from "../../scripts/browser-mcp.mjs"
+import { createBrowserTools } from "../../src/features/web-automation/engine.mjs"
 import { type BrowserTools, ipc, ui, waitFor } from "./lib/app"
 
 describe("browser automation", () => {

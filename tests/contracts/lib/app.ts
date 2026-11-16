@@ -3,7 +3,7 @@ import { connect } from "node:net"
 
 import { chromium } from "playwright-core"
 
-import { createBrowserTools } from "../../../scripts/browser-mcp.mjs"
+import { createBrowserTools } from "../../../src/features/web-automation/engine.mjs"
 
 const socketPath = process.env.TAURI_HASGARD_SOCKET
 if (!socketPath) throw new Error("TAURI_HASGARD_SOCKET is required: contracts run against a launched test application")
@@ -58,7 +58,7 @@ export async function requireBrowserFixture() {
   if (!page.includes("browser-fixture.html")) throw new Error(`Use the isolated browser workspace fixture (at ${page})`)
 }
 
-/** The bundled browser tools bound to a conversation of their own, as an AI conversation has them. */
+/** The web automation tools bound to a conversation of their own, as an AI conversation has them. */
 export type BrowserTools = ReturnType<typeof createBrowserTools>
 
 /**

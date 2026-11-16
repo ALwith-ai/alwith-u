@@ -11,6 +11,8 @@ mod autostart;
 #[cfg(feature = "runtime-cef")]
 mod browser_ai;
 #[cfg(feature = "runtime-cef")]
+mod web_automation;
+#[cfg(feature = "runtime-cef")]
 mod browser_chrome;
 #[cfg(feature = "runtime-cef")]
 mod browser_extensions;
@@ -390,6 +392,8 @@ pub fn run() {
                 browser_logins::cef_import_logins,
                 browser_chrome::cef_guest_auth,
                 browser_chrome::cef_cancel_download,
+                web_automation::web_automation_execute,
+                web_automation::web_automation_cancel,
                 browser_ai::cef_browser_context,
                 browser_ai::cef_preview_ready,
                 browser_ai::cef_browser_bind,
@@ -434,6 +438,8 @@ pub fn run() {
                             | "cef_import_logins"
                             | "cef_guest_auth"
                             | "cef_cancel_download"
+                            | "web_automation_execute"
+                            | "web_automation_cancel"
                             | "cef_browser_context"
                             | "cef_preview_ready"
                             | "cef_browser_bind"

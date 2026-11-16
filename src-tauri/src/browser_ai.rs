@@ -326,7 +326,8 @@ struct PreviewReply {
 #[derive(Default)]
 pub struct BrowserAi {
     pub compositor_users: Mutex<usize>,
-    endpoint: Mutex<String>,
+    pub(crate) endpoint: Mutex<String>,
+    pub executor: crate::web_automation::Executor,
     preview_gate: tokio::sync::Mutex<()>,
     previews: Mutex<HashMap<String, PreviewReply>>,
     pub sessions: Mutex<HashMap<String, Option<String>>>,
@@ -529,11 +530,9 @@ pub fn start(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::Error>> {
 #[derive(Serialize)]
 pub struct Context {
     token: String,
-    command: String,
-    args: Vec<String>,
     env: Vec<Value>,
 }
-fn main(webview: &tauri::Webview) -> Result<(), String> {
+pub(crate) fn main(webview: &tauri::Webview) -> Result<(), String> {
     (webview.label() == "main").ok_or_else(|| "Browser sessions belong to the main application document".into())
 }
 /// Acknowledge only after the main UI has mounted and navigated its live surface.
@@ -565,25 +564,10 @@ pub fn cef_browser_context(webview: tauri::Webview) -> Result<Context, String> {
     main(&webview)?;
     let app = webview.app_handle();
     let state = app.state::<BrowserAi>();
-    let script = app.path().resource_dir().map_err(|e| e.to_string())?.join("browser/stdio.mjs");
-    if !script.is_file() {
-        return Err("Bundled browser MCP entry is missing".into());
-    }
-    let exe = std::env::current_exe().map_err(|e| e.to_string())?;
-    let command = exe.parent().ok_or("Application executable has no directory")?.join(if cfg!(windows) {
-        "bun.exe"
-    } else {
-        "bun"
-    });
-    if !command.is_file() {
-        return Err("Bundled Bun is missing".into());
-    }
     let token = uuid::Uuid::new_v4().to_string();
     state.sessions.lock().expect("browser sessions").insert(token.clone(), None);
     Ok(Context {
         token: token.clone(),
-        command: command.to_string_lossy().into(),
-        args: vec!["--no-install".into(), script.to_string_lossy().into()],
         env: vec![
             json!({"name":"ALWITH_BROWSER_ENDPOINT","value":state.endpoint.lock().expect("browser endpoint").clone()}),
             json!({"name":"ALWITH_BROWSER_TOKEN","value":token}),
@@ -603,8 +587,9 @@ pub fn cef_browser_bind(webview: tauri::Webview, token: String, session_id: Stri
     Ok(())
 }
 #[tauri::command]
-pub fn cef_browser_revoke(webview: tauri::Webview, session_id: String) -> Result<(), String> {
+pub async fn cef_browser_revoke(webview: tauri::Webview, session_id: String) -> Result<(), String> {
     main(&webview)?;
+    webview.state::<BrowserAi>().executor.release(webview.app_handle(), &session_id).await?;
     webview
         .state::<BrowserAi>()
         .sessions
