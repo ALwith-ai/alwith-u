@@ -56,7 +56,7 @@ function usePrediction(session: Session, available: boolean, hasDraft: boolean) 
   )
 }
 
-test.each(["Tab", "ArrowRight"])(
+test.each(["Tab", "ArrowRight", "Enter"])(
   "%s accepts an editable draft without sending; modifiers and IME leave it alone",
   async (key) => {
     const session = completed()
@@ -76,7 +76,7 @@ test.each(["Tab", "ArrowRight"])(
     expect(input).toHaveValue("Run the tests")
     expect(submit).not.toHaveBeenCalled()
     fireEvent.change(input, { target: { value: "Run only unit tests" } })
-    fireEvent.keyDown(input, { key })
+    if (key !== "Enter") fireEvent.keyDown(input, { key })
     expect(input).toHaveValue("Run only unit tests")
     fireEvent.change(input, { target: { value: "" } })
     expect(input).toHaveAttribute("placeholder", "Run the tests")
@@ -106,10 +106,10 @@ test("typing, clearing and Escape preserve a prediction for repeated Tab accepta
 
 test("running turns, drafts, replayed history, read-only sessions and a cleared list stay hidden", () => {
   const session = completed()
-  const view = renderHook(
-    ({ session, available, draft }) => usePrediction(session, available, draft),
-    { wrapper: ChatTimelineHost, initialProps: { session, available: true, draft: false } }
-  )
+  const view = renderHook(({ session, available, draft }) => usePrediction(session, available, draft), {
+    wrapper: ChatTimelineHost,
+    initialProps: { session, available: true, draft: false }
+  })
   expect(view.result.current.text).toBeNull()
   view.rerender({ session: predicted(session), available: true, draft: false })
   expect(view.result.current.text).toBe("Run the tests")
@@ -124,7 +124,11 @@ test("running turns, drafts, replayed history, read-only sessions and a cleared 
     draft: false
   })
   expect(view.result.current.text).toBeNull()
-  view.rerender({ session: { ...predicted(completed("readonly", "t4")), readOnly: true }, available: false, draft: false })
+  view.rerender({
+    session: { ...predicted(completed("readonly", "t4")), readOnly: true },
+    available: false,
+    draft: false
+  })
   expect(view.result.current.text).toBeNull()
   view.rerender({ session: predicted(session, null), available: true, draft: false })
   expect(view.result.current.text).toBeNull()

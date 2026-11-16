@@ -1,3 +1,5 @@
+import { commands } from "@alwith/module-chat/commands"
+import { desktopLoadImage } from "@alwith/module-chat/desktop"
 import { CodexMarkdownRenderer, type MarkdownHost } from "@alwith/module-chat/markdown"
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react"
 import { afterEach, describe, expect, test, vi } from "vitest"
@@ -5,6 +7,7 @@ import { afterEach, describe, expect, test, vi } from "vitest"
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
+  vi.restoreAllMocks()
 })
 
 describe("Desktop Markdown through the shared chat package", () => {
@@ -31,6 +34,28 @@ describe("Desktop Markdown through the shared chat package", () => {
     view.rerender(<CodexMarkdownRenderer text="Second **answer**" host={host} />)
     expect(view.container.querySelector(".codex-markdown-content")?.textContent).toBe("Second answer")
     expect(view.container.querySelector("strong")?.textContent).toBe("answer")
+  })
+
+  test("loads both local images in a comparison table through the native image reader", async () => {
+    const preview = vi.spyOn(commands, "previewFile").mockResolvedValue({
+      kind: "image",
+      data: "cG5n",
+      mimeType: "image/png"
+    })
+    const view = render(
+      <CodexMarkdownRenderer
+        host={{ ...host, loadImage: desktopLoadImage }}
+        text={
+          "| Side | Soft |\n| --- | --- |\n| ![Side](/Users/test/.codex/generated_images/side.png) | ![Soft](/Users/test/.codex/generated_images/soft.png) |"
+        }
+      />
+    )
+    await waitFor(() => expect(view.container.querySelectorAll("td img")).toHaveLength(2))
+    expect(preview).toHaveBeenCalledWith({ path: "/Users/test/.codex/generated_images/side.png" })
+    expect(preview).toHaveBeenCalledWith({ path: "/Users/test/.codex/generated_images/soft.png" })
+    for (const image of view.container.querySelectorAll("td img")) {
+      expect(image).toHaveAttribute("src", "data:image/png;base64,cG5n")
+    }
   })
 })
 

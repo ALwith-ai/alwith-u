@@ -1,4 +1,5 @@
 import { type MarkdownHost, CodexMarkdownRenderer as SharedMarkdown } from "@alwith/module-chat/markdown"
+import { desktopLoadImage } from "@alwith/module-chat/desktop"
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -18,6 +19,7 @@ export function CodexMarkdownRenderer({ text, streaming }: { text: string; strea
       theme: resolvedTheme,
       copyLabel,
       openLink,
+      loadImage: desktopLoadImage,
       copyText,
       onCopyError: (error) => toast.error(error instanceof Error ? error.message : String(error))
     }),
