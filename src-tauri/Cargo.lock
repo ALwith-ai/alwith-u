@@ -385,6 +385,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "alwith-terminal"
+version = "0.6.0"
+dependencies = [
+ "alwith-native-client 0.6.2",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-plugin",
+ "tokio",
+]
+
+[[package]]
 name = "alwith-u"
 version = "26.11.14"
 dependencies = [
@@ -405,6 +417,7 @@ dependencies = [
  "alwith-media",
  "alwith-mobile",
  "alwith-store",
+ "alwith-terminal",
  "alwith-voice",
  "arboard",
  "atlas-tauri",
