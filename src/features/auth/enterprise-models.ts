@@ -16,35 +16,6 @@ interface EnterpriseModelsHost {
   labels(): Promise<Record<string, string> | null>
 }
 
-/** Read presentation metadata only; gateway discovery still owns model availability. */
-export function enterpriseModelLabels(value: unknown): Record<string, string> {
-  if (
-    typeof value !== "object" ||
-    value === null ||
-    !("provider_id" in value) ||
-    value.provider_id !== "finture-enterprise" ||
-    !("models" in value) ||
-    !Array.isArray(value.models)
-  )
-    throw new Error("Invalid enterprise provider presentation metadata")
-  const entries = value.models.map((model: unknown): [string, string] => {
-    if (
-      typeof model !== "object" ||
-      model === null ||
-      !("api_id" in model) ||
-      typeof model.api_id !== "string" ||
-      !model.api_id.trim() ||
-      !("label" in model) ||
-      typeof model.label !== "string" ||
-      !model.label.trim()
-    )
-      throw new Error("Invalid enterprise model label")
-    return [model.api_id, model.label]
-  })
-  if (new Set(entries.map(([id]) => id)).size !== entries.length) throw new Error("Duplicate enterprise model labels")
-  return Object.fromEntries(entries)
-}
-
 export function createEnterpriseModels(host: EnterpriseModelsHost) {
   const bindings = new Map<number, { account: Account; generation: number }>()
   const labelsByAccount = new Map<string, Record<string, string>>()

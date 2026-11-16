@@ -1,3 +1,4 @@
+import { enterpriseModelLabels } from "@alwith/enterprise-client/models"
 import {
   assertActiveLogin,
   type AuthActions,
@@ -25,7 +26,7 @@ import i18n from "@/lib/i18n"
 import { openStore } from "@/lib/store"
 
 import { logEnterpriseError, logEnterpriseResponse, traceEnterprise } from "./enterprise-diagnostics"
-import { createEnterpriseModels, enterpriseModelLabels } from "./enterprise-models"
+import { createEnterpriseModels } from "./enterprise-models"
 import { createAccountTransition, createManagedProviders } from "./managed-providers"
 import { createProviderRefreshClient, serveProviderRefresh } from "./provider-refresh-bridge"
 import { registrationContext } from "./registration-context"

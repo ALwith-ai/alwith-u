@@ -30,15 +30,11 @@ export {
   providerKeyUrl,
   providerRegion
 } from "@alwith/module-chat/settings"
+import { PROVIDER_PREFIX } from "@alwith/enterprise-client/models"
 import { listen } from "@tauri-apps/api/event"
 
 import { commands } from "@/bindings"
-import {
-  ENTERPRISE_PROVIDER_PREFIX,
-  enterpriseCatalog,
-  isEnterpriseModel,
-  projectEnterpriseProviders
-} from "@/features/auth/enterprise-providers"
+import { enterpriseCatalog, isEnterpriseModel, projectEnterpriseProviders } from "@/features/auth/enterprise-providers"
 
 // U does not expose Anthropic key configuration.
 export const PROVIDERS = sharedProviders.filter((provider) => provider.id !== "anthropic")
@@ -97,7 +93,7 @@ export function resolveSessionModel(
   if (model?.startsWith("gateway:finture-enterprise:")) {
     const apiId = model.slice("gateway:finture-enterprise:".length)
     const migrated = (snapshot.managedProviders ?? [])
-      .filter((provider) => provider.id.startsWith(ENTERPRISE_PROVIDER_PREFIX))
+      .filter((provider) => provider.id.startsWith(PROVIDER_PREFIX))
       .flatMap((provider) => provider.models.map((entry) => gatewayModelId(provider.id, entry.api_id)))
       .find((candidate) => candidate.endsWith(`:${apiId}`))
     if (migrated) return migrated

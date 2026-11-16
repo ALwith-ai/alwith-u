@@ -14,7 +14,7 @@ vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn() }))
 vi.mock("@/lib/i18n", () => ({ default: { t: (key: string) => key } }))
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
 
-import { createEnterpriseModels, enterpriseModelLabels } from "../enterprise-models"
+import { createEnterpriseModels } from "../enterprise-models"
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -76,19 +76,6 @@ test("account replacement during native binding cannot refresh the old enterpris
   })
   await expect(models.refresh()).rejects.toThrow("account changed")
   expect(native.refresh).not.toHaveBeenCalled()
-})
-
-test("platform model labels come from the configured enterprise provider", () => {
-  expect(
-    enterpriseModelLabels({
-      provider_id: "finture-enterprise",
-      models: [{ api_id: "deepseek-V4.1-flash", label: "企业内部模型123" }]
-    })
-  ).toEqual({ "deepseek-V4.1-flash": "企业内部模型123" })
-  expect(() => enterpriseModelLabels({ provider_id: "litellm", models: [] })).toThrow()
-  expect(() =>
-    enterpriseModelLabels({ provider_id: "finture-enterprise", models: [{ api_id: "deepseek-V4.1-flash", label: "" }] })
-  ).toThrow()
 })
 
 test("account replacement while loading labels cannot apply old metadata", async () => {
