@@ -89,6 +89,9 @@ test("the staged toolchain runs with explicit resources outside the executable d
     mkdirSync(binaries)
     mkdirSync(join(resources, "adapter"), { recursive: true })
     mkdirSync(join(resources, "custom"), { recursive: true })
+    cpSync(join(import.meta.dir, "../../../src-tauri/resources/browser"), join(resources, "browser"), {
+      recursive: true
+    })
     copyFileSync(
       join(import.meta.dir, "../../../src-tauri/resources/custom/models.json"),
       join(resources, "custom/models.json")
@@ -148,6 +151,7 @@ test("the staged toolchain runs with explicit resources outside the executable d
     const packagedResources = process.platform === "darwin" ? join(directory, "Resources") : binaries
     mkdirSync(join(packagedResources, "adapter"), { recursive: true })
     mkdirSync(join(packagedResources, "custom"), { recursive: true })
+    cpSync(join(resources, "browser"), join(packagedResources, "browser"), { recursive: true })
     copyFileSync(join(resources, "custom/models.json"), join(packagedResources, "custom/models.json"))
     for (const provider of providers) {
       const target = join(packagedResources, provider.catalog)

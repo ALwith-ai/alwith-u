@@ -70,6 +70,18 @@ const adapterVersion = await withCleanup(
       "49995000"
     )
     const adapter = join(codexHome, "codex-acp-v2.mjs")
+    // Import outside the checkout so an omitted Playwright dependency cannot be
+    // supplied accidentally by the developer's node_modules.
+    cpSync(join(resources, "browser"), join(codexHome, "browser"), { recursive: true })
+    assertVersion(
+      "packaged browser tools",
+      run("bun", [
+        "--no-install",
+        "--eval",
+        'const {tools}=await import("./browser/stdio.mjs"); console.log(tools.some(tool => tool.name === "browser_open"))'
+      ]),
+      "true"
+    )
     copyFileSync(join(resources, "adapter/codex-acp-v2.mjs"), adapter)
     const adapterVersion = run("bun", ["--no-install", adapter, "--version"])
     if (!/^@nyssance\/codex-acp-v2 \d+\.\d+\.\d+(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$/.test(adapterVersion)) {

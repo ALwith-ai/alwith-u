@@ -46,6 +46,8 @@ enum Secrets {
     /// The system keychain, under a service named for this application.
     #[cfg(target_os = "macos")]
     Keychain(String),
+    #[cfg(target_os = "windows")]
+    CredentialManager(String),
     /// For the isolated test application, whose logins end with it.
     Memory(Mutex<HashMap<String, String>>),
 }
@@ -64,6 +66,8 @@ impl Secrets {
                 password.as_bytes(),
             )
             .map_err(|error| error.to_string()),
+            #[cfg(target_os = "windows")]
+            Self::CredentialManager(service) => windows_credentials::set(service, &account(origin, username), password),
             Self::Memory(values) => {
                 values.lock().unwrap().insert(account(origin, username), password.to_owned());
                 Ok(())
@@ -78,21 +82,93 @@ impl Secrets {
                     .map_err(|error| error.to_string())
                     .and_then(|bytes| String::from_utf8(bytes).map_err(|error| error.to_string()))
             }
+            #[cfg(target_os = "windows")]
+            Self::CredentialManager(service) => windows_credentials::get(service, &account(origin, username)),
             Self::Memory(values) => {
                 values.lock().unwrap().get(&account(origin, username)).cloned().ok_or_else(|| "No such login".into())
             }
         }
     }
-    fn delete(&self, origin: &str, username: &str) {
+    fn delete(&self, origin: &str, username: &str) -> Result<(), String> {
         match self {
             #[cfg(target_os = "macos")]
             Self::Keychain(service) => {
                 let _ = security_framework::passwords::delete_generic_password(service, &account(origin, username));
+                Ok(())
             }
+            #[cfg(target_os = "windows")]
+            Self::CredentialManager(service) => windows_credentials::delete(service, &account(origin, username)),
             Self::Memory(values) => {
                 values.lock().unwrap().remove(&account(origin, username));
+                Ok(())
             }
         }
+    }
+}
+
+#[cfg(target_os = "windows")]
+mod windows_credentials {
+    use windows_sys::Win32::{
+        Foundation::ERROR_NOT_FOUND,
+        Security::Credentials::{
+            CRED_PERSIST_LOCAL_MACHINE, CRED_TYPE_GENERIC, CREDENTIALW, CredDeleteW, CredFree, CredReadW, CredWriteW,
+        },
+    };
+
+    fn target(service: &str, account: &str) -> Result<Vec<u16>, String> {
+        let target = format!("{service}/{account}");
+        if target.contains('\0') {
+            return Err("Credential target contains a null character".into());
+        }
+        Ok(target.encode_utf16().chain(Some(0)).collect())
+    }
+
+    pub fn set(service: &str, account: &str, password: &str) -> Result<(), String> {
+        let mut target = target(service, account)?;
+        let mut bytes = password.as_bytes().to_vec();
+        let credential = CREDENTIALW {
+            Type: CRED_TYPE_GENERIC,
+            TargetName: target.as_mut_ptr(),
+            CredentialBlobSize: bytes.len().try_into().map_err(|_| "Password too large")?,
+            CredentialBlob: bytes.as_mut_ptr(),
+            Persist: CRED_PERSIST_LOCAL_MACHINE,
+            ..Default::default()
+        };
+        // CredWriteW copies the blob before returning; no pointer escapes this call.
+        if unsafe { CredWriteW(&credential, 0) } == 0 {
+            return Err(std::io::Error::last_os_error().to_string());
+        }
+        Ok(())
+    }
+
+    pub fn get(service: &str, account: &str) -> Result<String, String> {
+        let target = target(service, account)?;
+        let mut credential = std::ptr::null_mut();
+        if unsafe { CredReadW(target.as_ptr(), CRED_TYPE_GENERIC, 0, &mut credential) } == 0 {
+            return Err(std::io::Error::last_os_error().to_string());
+        }
+        // Windows owns the returned allocation until CredFree; copy before releasing it.
+        let bytes = unsafe {
+            let value = &*credential;
+            if value.CredentialBlobSize == 0 {
+                Vec::new()
+            } else {
+                std::slice::from_raw_parts(value.CredentialBlob, value.CredentialBlobSize as usize).to_vec()
+            }
+        };
+        unsafe { CredFree(credential.cast()) };
+        String::from_utf8(bytes).map_err(|error| error.to_string())
+    }
+
+    pub fn delete(service: &str, account: &str) -> Result<(), String> {
+        let target = target(service, account)?;
+        if unsafe { CredDeleteW(target.as_ptr(), CRED_TYPE_GENERIC, 0) } == 0 {
+            let error = std::io::Error::last_os_error();
+            if error.raw_os_error() != Some(ERROR_NOT_FOUND as i32) {
+                return Err(error.to_string());
+            }
+        }
+        Ok(())
     }
 }
 
@@ -110,13 +186,16 @@ fn now() -> u64 {
 
 impl Logins {
     /// Logins kept for good: the list in the application's data, passwords in the keychain.
-    #[cfg(target_os = "macos")]
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
     pub fn persistent(path: PathBuf, identifier: &str) -> Self {
         let index = std::fs::read(&path).ok().and_then(|bytes| serde_json::from_slice(&bytes).ok()).unwrap_or_default();
         Self {
             path: Some(path),
             index: Mutex::new(index),
+            #[cfg(target_os = "macos")]
             secrets: Secrets::Keychain(format!("{identifier}.website-logins")),
+            #[cfg(target_os = "windows")]
+            secrets: Secrets::CredentialManager(format!("{identifier}.website-logins")),
         }
     }
     /// Logins that end with the process.
@@ -163,7 +242,7 @@ impl Logins {
         }
     }
     pub fn delete(&self, origin: &str, username: &str) -> Result<(), String> {
-        self.secrets.delete(origin, username);
+        self.secrets.delete(origin, username)?;
         let mut index = self.index.lock().unwrap();
         index.logins.retain(|login| login.origin != origin || login.username != username);
         self.write(&index)
@@ -620,6 +699,33 @@ pub fn cef_import_logins(webview: tauri::Webview, path: String) -> Result<usize,
 mod tests {
     use super::*;
 
+    /// Uses only a unique test credential, never an existing website login.
+    #[cfg(target_os = "windows")]
+    #[test]
+    #[ignore = "writes an isolated Windows credential; run explicitly on Windows"]
+    fn windows_credentials_and_login_index_survive_reopening() {
+        let root = tempfile::tempdir().unwrap();
+        let path = root.path().join("browser-logins.json");
+        let identifier = format!("ai.alwith.u.{}.contract-test", uuid::Uuid::new_v4());
+        let logins = Logins::persistent(path.clone(), &identifier);
+        let result = std::panic::catch_unwind(|| {
+            logins.save("https://a.example", "用户", "first-password").unwrap();
+            let reopened = Logins::persistent(path.clone(), &identifier);
+            assert_eq!(reopened.password("https://a.example", "用户").unwrap(), "first-password");
+            assert_eq!(reopened.all().len(), 1);
+            assert!(!std::fs::read_to_string(&path).unwrap().contains("first-password"));
+            reopened.save("https://a.example", "用户", "updated-password").unwrap();
+            assert_eq!(logins.password("https://a.example", "用户").unwrap(), "updated-password");
+            reopened.delete("https://a.example", "用户").unwrap();
+            assert!(Logins::persistent(path.clone(), &identifier).all().is_empty());
+            assert!(logins.password("https://a.example", "用户").is_err());
+        });
+        logins.secrets.delete("https://a.example", "用户").unwrap();
+        if let Err(panic) = result {
+            std::panic::resume_unwind(panic);
+        }
+    }
+
     #[test]
     fn a_password_export_is_read_by_its_column_names() {
         let chrome = "name,url,username,password,note\n\
@@ -686,7 +792,7 @@ mod tests {
         secrets.set("https://a.example", "ada", "one").unwrap();
         secrets.set("https://a.example", "ada", "two").unwrap();
         assert_eq!(secrets.get("https://a.example", "ada").unwrap(), "two");
-        secrets.delete("https://a.example", "ada");
+        secrets.delete("https://a.example", "ada").unwrap();
         assert!(secrets.get("https://a.example", "ada").is_err());
     }
 

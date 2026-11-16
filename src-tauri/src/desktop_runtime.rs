@@ -3,12 +3,10 @@ use std::sync::OnceLock;
 
 #[cfg(all(feature = "runtime-cef", feature = "runtime-wry", not(feature = "dev-backends")))]
 compile_error!("Both backends require dev-backends");
-#[cfg(all(feature = "dev-backends", not(all(debug_assertions, target_os = "macos"))))]
-compile_error!("dev-backends is supported only by macOS debug builds");
+#[cfg(all(feature = "dev-backends", not(all(debug_assertions, any(target_os = "macos", target_os = "windows")))))]
+compile_error!("dev-backends is supported only by macOS and Windows debug builds");
 #[cfg(not(any(feature = "runtime-cef", feature = "runtime-wry")))]
 compile_error!("Select runtime-cef or runtime-wry");
-#[cfg(all(target_os = "windows", feature = "runtime-cef"))]
-compile_error!("Windows currently uses runtime-wry");
 
 #[derive(Clone, Copy, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -27,6 +25,11 @@ pub fn development_cache() -> &'static std::path::Path {
 static PREFERENCE: OnceLock<std::path::PathBuf> = OnceLock::new();
 #[cfg(feature = "runtime-cef")]
 static BROWSER_LOCALE: OnceLock<String> = OnceLock::new();
+/// Match Tauri's app_data_dir before a runtime or path resolver exists.
+#[cfg(feature = "runtime-cef")]
+fn application_data(identifier: &str) -> Result<std::path::PathBuf, String> {
+    dirs::data_dir().map(|root| root.join(identifier)).ok_or_else(|| "Cannot locate application data".into())
+}
 /// The language the browser words its own pages in and asks websites for.
 #[cfg(feature = "runtime-cef")]
 pub fn browser_locale() -> &'static str {
@@ -36,9 +39,7 @@ pub fn browser_locale() -> &'static str {
 /// the settings state exists, so the one value is read from the file.
 #[cfg(feature = "runtime-cef")]
 fn saved_language(identifier: &str) -> Result<Option<String>, String> {
-    let home = std::env::var_os("HOME").ok_or("Cannot locate application settings")?;
-    let path =
-        std::path::PathBuf::from(home).join("Library/Application Support").join(identifier).join("settings.json");
+    let path = application_data(identifier)?.join("settings.json");
     let bytes = match std::fs::read(&path) {
         Ok(bytes) => bytes,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
@@ -66,11 +67,7 @@ pub fn initialize(identifier: &str) -> Result<(), String> {
     let backend = if cfg!(feature = "runtime-cef") { Backend::Cef } else { Backend::Wry };
     #[cfg(feature = "dev-backends")]
     let backend = {
-        let home = std::env::var_os("HOME").ok_or("Cannot locate development preferences")?;
-        let path = std::path::PathBuf::from(home)
-            .join("Library/Application Support")
-            .join(identifier)
-            .join("dev-runtime.json");
+        let path = application_data(identifier)?.join("dev-runtime.json");
         let backend = match std::fs::read(&path) {
             Ok(bytes) => serde_json::from_slice(&bytes).map_err(|e| format!("Invalid runtime preference: {e}"))?,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => backend,
@@ -138,3 +135,7 @@ pub fn configure(builder: tauri::Builder) -> tauri::Builder {
         unreachable!("CEF is the only compiled runtime")
     }
 }
+
+#[cfg(all(test, feature = "runtime-cef"))]
+#[path = "__tests__/desktop_runtime.rs"]
+mod tests;

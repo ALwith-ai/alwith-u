@@ -139,6 +139,7 @@
     },
   },
   "patchedDependencies": {
+    "@nyssance/cef-rs@158.0.25": "patches/@nyssance%2Fcef-rs@158.0.25.patch",
     "vite@8.3.8": "patches/vite@8.3.8.patch",
   },
   "overrides": {

@@ -11,15 +11,12 @@ test("debug packaging keeps the development identity and includes the full nativ
   expect(args).toContain("src-tauri/tauri.dev-instance.conf.json")
   expect(args).toContain("--debug")
   expect(desktopArgs("darwin", "build")).not.toContain("src-tauri/tauri.dev-instance.conf.json")
-  expect(desktopArgs("win32", "build", ["--debug"])).toContain("runtime-wry,hasgard-testing,tauri/custom-protocol")
+  expect(desktopArgs("win32", "build", ["--debug"])).toContain("dev-backends,hasgard-testing,tauri/custom-protocol")
 })
-test("Windows always builds Wry without default CEF features", () => {
-  for (const mode of ["dev", "build"]) {
-    const args = desktopArgs("win32", mode)
-    expect(args.slice(args.indexOf("--"))).toContain("--no-default-features")
-    expect(args.join(" ")).toContain("runtime-wry")
-    expect(args.join(" ")).not.toContain("cef")
-  }
+test("Windows uses the same CEF and development backend policy as macOS", () => {
+  for (const mode of ["dev", "build"]) expect(desktopArgs("win32", mode)).toEqual(desktopArgs("darwin", mode))
+  expect(desktopArgs("win32", "dev")).toContain("dev-backends,hasgard-testing")
+  expect(desktopArgs("win32", "build")).toContain("experimental-cef,tauri/custom-protocol")
   expect(() => desktopArgs("linux", "build")).toThrow("Only macOS and Windows")
   expect(() => desktopArgs("win32", "build", ["--features=experimental-cef"])).toThrow("policy")
 })

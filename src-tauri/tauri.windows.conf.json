@@ -1,5 +1,11 @@
 {
   "bundle": {
+    "cef": {
+      "embed": false
+    },
+    "resources": {
+      "resources/cef/": ""
+    },
     "targets": ["nsis"],
     "windows": {
       "webviewInstallMode": {

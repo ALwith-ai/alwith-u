@@ -133,7 +133,7 @@ jobs:
 
   windows-staging:
     needs: changes
-    if: needs.changes.outputs.staging == 'true'
+    if: needs.changes.outputs.staging == 'true' || needs.changes.outputs.desktop == 'true'
     runs-on: windows-2025
     steps:
       - uses: actions/checkout@v4
@@ -145,3 +145,11 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run stage
       - run: bun scripts/verify-staged-toolchain.ts
+      - uses: ilammy/msvc-dev-cmd@v1
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          key: windows-cef
+      - run: bun run build
+      - run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --features dev-backends,hasgard-testing,tauri/custom-protocol
+      - run: cargo test --manifest-path src-tauri/Cargo.toml --lib --features dev-backends,hasgard-testing,tauri/custom-protocol browser_
