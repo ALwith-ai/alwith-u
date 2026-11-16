@@ -65,6 +65,28 @@ struct Context {
 
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ProxyRequestBody {
+    declared_bytes: Option<u64>,
+    read_bytes: u64,
+    limit_bytes: u64,
+    encoding: String,
+    complete: bool,
+    aborted: bool,
+}
+
+impl ProxyRequestBody {
+    fn valid(&self) -> bool {
+        const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
+        self.declared_bytes.is_none_or(|bytes| bytes <= MAX_SAFE_INTEGER)
+            && self.read_bytes <= MAX_SAFE_INTEGER
+            && self.limit_bytes > 0
+            && self.limit_bytes <= MAX_SAFE_INTEGER
+            && matches!(self.encoding.as_str(), "identity" | "zstd" | "gzip" | "deflate" | "br" | "other")
+    }
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct ModelProxyDiagnostic {
     version: u8,
     request_id: String,
@@ -80,6 +102,7 @@ struct ModelProxyDiagnostic {
     forwarded_status: Option<u16>,
     close_code: Option<u16>,
     upstream_request_id: Option<String>,
+    request_body: Option<ProxyRequestBody>,
     sent_bytes: u64,
     received_bytes: u64,
     first_byte_ms: Option<u64>,
@@ -88,11 +111,14 @@ struct ModelProxyDiagnostic {
     no_proxy_set: bool,
     elapsed_ms: u64,
     errors: Vec<String>,
+    #[serde(default)]
+    error_names: Vec<String>,
 }
 
 impl ModelProxyDiagnostic {
     fn valid(&self) -> bool {
         self.version == 1
+            && self.request_body.as_ref().is_none_or(ProxyRequestBody::valid)
             && self.request_id.len() == 24
             && self.request_id.bytes().all(|c| c.is_ascii_hexdigit())
             && matches!(self.transport.as_str(), "http" | "websocket")
@@ -148,11 +174,23 @@ impl ModelProxyDiagnostic {
                     "HTTPS_PROXY" | "https_proxy" | "HTTP_PROXY" | "http_proxy" | "ALL_PROXY" | "all_proxy"
                 )
             })
+            && self.error_names.len() <= 4
+            && self.error_names.iter().all(|name| {
+                matches!(
+                    name.as_str(),
+                    "Error" | "TypeError" | "RangeError" | "AbortError" | "TimeoutError" | "AggregateError" | "Other"
+                )
+            })
             && self.errors.len() <= 4
             && self.errors.iter().all(|code| {
                 matches!(
                     code.as_str(),
                     "UNKNOWN"
+                        | "ERR_INVALID_ARG_TYPE"
+                        | "ERR_HTTP_REQUEST_BODY_TOO_LARGE"
+                        | "REQUEST_BODY_TOO_LARGE"
+                        | "REQUEST_BODY_READ_FAILED"
+                        | "WS_ERR_UNSUPPORTED_MESSAGE_LENGTH"
                         | "NATIVE_NETWORK_CONNECT_FAILED"
                         | "NATIVE_PROXY_RESOLUTION_FAILED"
                         | "NATIVE_NETWORK_AUTH_FAILED"
@@ -396,6 +434,9 @@ struct ErrorSignature {
 fn signature(message: &str) -> ErrorSignature {
     let lower = message.to_ascii_lowercase();
     let transport_code = [
+        "REQUEST_BODY_TOO_LARGE",
+        "REQUEST_BODY_READ_FAILED",
+        "WS_ERR_UNSUPPORTED_MESSAGE_LENGTH",
         "NATIVE_NETWORK_CONNECT_FAILED",
         "NATIVE_PROXY_RESOLUTION_FAILED",
         "NATIVE_NETWORK_AUTH_FAILED",
@@ -440,7 +481,7 @@ fn signature(message: &str) -> ErrorSignature {
     let words = lower.split_whitespace().collect::<Vec<_>>();
     let http_status = words.windows(2).find_map(|pair| {
         (matches!(pair[0].trim_end_matches(':'), "status" | "http")
-            && ["400", "401", "403", "404", "408", "429", "500", "502", "503", "504"].contains(&pair[1]))
+            && ["400", "401", "403", "404", "408", "413", "429", "500", "502", "503", "504"].contains(&pair[1]))
         .then(|| pair[1].parse().expect("known HTTP status"))
     });
     let loopback_port = message.split_whitespace().find_map(|part| {

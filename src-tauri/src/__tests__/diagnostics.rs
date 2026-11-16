@@ -695,3 +695,35 @@ fn native_transport_backend_is_bounded_and_survives_export() {
     value["transportBackend"] = json!("raw private backend");
     assert!(native_network_context(&format!("[alwith-native-network] {value}")).is_none());
 }
+
+#[test]
+fn request_body_diagnostics_survive_export_and_reject_unsafe_metadata() {
+    let original: Value = serde_json::from_str(proxy_line().strip_prefix("[alwith-model-proxy] ").unwrap()).unwrap();
+    let mut payload = original.clone();
+    payload["stage"] = json!("read_request");
+    payload["errors"] = json!(["REQUEST_BODY_TOO_LARGE"]);
+    payload["errorNames"] = json!(["Error"]);
+    payload["requestBody"] = json!({
+        "declaredBytes":67108865,"readBytes":67108865,"limitBytes":67108864,
+        "encoding":"identity","complete":false,"aborted":false
+    });
+    let context = model_proxy_context(&format!("[alwith-model-proxy] {payload}")).unwrap();
+    let directory = tempfile::tempdir().unwrap();
+    let collector = Collector::new(directory.path().into());
+    collector.record("agent_stderr", "failed", context);
+    let report = collector.report();
+    assert_eq!(report["events"][0]["context"]["proxy"]["requestBody"], payload["requestBody"]);
+    assert_eq!(report["events"][0]["context"]["proxy"]["errors"], payload["errors"]);
+    assert_eq!(report["events"][0]["context"]["proxy"]["errorNames"], payload["errorNames"]);
+    let mut unsafe_names = payload.clone();
+    unsafe_names["errorNames"] = json!(["private-value"]);
+    assert!(model_proxy_context(&format!("[alwith-model-proxy] {unsafe_names}")).is_none());
+    for invalid in [json!(-1), json!(9007199254740992_u64), json!("secret")] {
+        let mut unsafe_payload = payload.clone();
+        unsafe_payload["requestBody"]["readBytes"] = invalid;
+        assert!(model_proxy_context(&format!("[alwith-model-proxy] {unsafe_payload}")).is_none());
+    }
+    payload["requestBody"]["encoding"] = json!("private-value");
+    assert!(model_proxy_context(&format!("[alwith-model-proxy] {payload}")).is_none());
+    assert!(model_proxy_context(&format!("[alwith-model-proxy] {original}")).is_some());
+}
