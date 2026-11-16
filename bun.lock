@@ -1037,7 +1037,7 @@
 
     "audiomotion-analyzer": ["audiomotion-analyzer@4.5.4", "https://registry.npmmirror.com/audiomotion-analyzer/-/audiomotion-analyzer-4.5.4.tgz", {}, "sha512-bBTIFr0VgM764MJN3ATIyKrv2BzGTfQgJugulIHNEIFT0+zbz7lb+2CvFTPvk6n3J06wwWiJBPZFEIt9OSxzfQ=="],
 
-    "axe-core": ["axe-core@4.14.0", "https://registry.npmmirror.com/axe-core/-/axe-core-4.14.0.tgz", {}, "sha512-9WTZxEjsZ7b13TH8JPmbV2z8CHbl80/2hm3XPEG4JgNdQLK81IBRXmSxHfMAOkSqQeRxT/0dwNDz2GOm3zzpcQ=="],
+    "axe-core": ["axe-core@4.14.1", "https://registry.npmmirror.com/axe-core/-/axe-core-4.14.1.tgz", {}, "sha512-FHfa+lmNjQZfJz1q8wKqIDwC6DExcHt/pkjNQb09a3NPjCKg2rhu5qb2S4r76ASyFNNtuFooJpZe37OgudVGtQ=="],
 
     "babel-polyfill": ["babel-polyfill@6.23.0", "https://registry.npmmirror.com/babel-polyfill/-/babel-polyfill-6.23.0.tgz", { "dependencies": { "babel-runtime": "^6.22.0", "core-js": "^2.4.0", "regenerator-runtime": "^0.10.0" } }, "sha512-0l7mVU+LrQ2X/ZTUq63T5i3VyR2aTgcRTFmBcD6djQ/Fek6q1A9t5u0F4jZVYHzp78jwWAzGfLpAY1b4/I3lfg=="],
 
