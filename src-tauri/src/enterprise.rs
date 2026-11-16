@@ -69,6 +69,16 @@ fn main_window(window: &tauri::WebviewWindow) -> Result<(), Value> {
     (window.label() == "main").ok_or_else(|| error("Enterprise account changes belong to the main window"))
 }
 impl Enterprise {
+    fn commit_refresh(&self, generation: u64, result: Result<Option<codex::Connection>, Value>) -> Result<(), Value> {
+        // A failed discovery is not an authoritative empty catalog. Preserve both the
+        // relay and session admissions until a successful refresh confirms a change.
+        let connection = result?;
+        let models = connection.as_ref().map(|connection| connection.models.clone()).unwrap_or_default();
+        let mut gate = self.gate.lock().unwrap();
+        gate.commit(generation, models).map_err(error)?;
+        *self.connection.lock().unwrap() = connection;
+        Ok(())
+    }
     async fn host(&self, app: &AppHandle) -> Result<&Arc<EnterpriseClient>, Value> {
         self.host.get_or_try_init(|| async {
             let sessions = app.path().app_data_dir().map_err(error)?.join("enterprise-gateway-sessions.json");
@@ -225,16 +235,9 @@ pub async fn enterprise_refresh(
         }
         .await;
         check()?;
-        let connection = result.as_ref().ok().cloned().flatten();
-        {
-            let mut gate = state.gate.lock().unwrap();
-            let models = connection.as_ref().map(|connection| connection.models.clone()).unwrap_or_default();
-            gate.commit(generation, models).map_err(error)?;
-            *state.connection.lock().unwrap() = connection;
-        }
+        state.commit_refresh(generation, result)?;
         let notification = state.changed(app);
         runtime::cleanup(app).await?;
-        result?;
         runtime::apply_ready(app).await;
         notification?;
         Ok(Value::Null)

@@ -4,11 +4,37 @@ import {
   gatewayModelId,
   isAccountModel,
   parseCustomModels,
+  presentProviders,
   providerGroups,
   PROVIDERS,
   type ProviderSnapshot,
   resolveSessionModel
 } from "../providers"
+
+test("native account snapshots use ALwith while preserving saved model selections and personal providers", () => {
+  const account = {
+    id: "litellm",
+    name: "LiteLLM",
+    baseUrl: "https://gateway.example.test/v1",
+    models: [{ api_id: "model-a", label: "A" }]
+  }
+  const custom = { ...account, id: "custom_personal" }
+  const snapshot: ProviderSnapshot = {
+    revision: 1,
+    appliedRevision: null,
+    status: "failed",
+    error: "Provider LiteLLM (litellm) could not apply (-32000); retry to apply saved settings",
+    providers: {},
+    customProviders: [custom],
+    managedProviders: [account]
+  }
+  const result = presentProviders(snapshot)
+  expect(result.error).toBe("Provider ALwith could not apply (-32000); retry to apply saved settings")
+  expect(result.managedProviders).toEqual([{ ...account, name: "ALwith" }])
+  expect(result.customProviders).toEqual([custom])
+  expect(resolveSessionModel("gateway:litellm:model-a", result)).toBe("gateway:litellm:model-a")
+  expect(snapshot.managedProviders).toEqual([account])
+})
 
 test("session models stay strict while drafts may inherit configured defaults", () => {
   const snapshot: ProviderSnapshot = {

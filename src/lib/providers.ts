@@ -36,13 +36,30 @@ import { listen } from "@tauri-apps/api/event"
 import { commands } from "@/bindings"
 import { enterpriseCatalog, isEnterpriseModel, projectEnterpriseProviders } from "@/features/auth/enterprise-providers"
 
+import { presentProviderError } from "./provider-errors"
+
 // U does not expose Anthropic key configuration.
 export const PROVIDERS = sharedProviders.filter((provider) => provider.id !== "anthropic")
 
 /** The chat plugin's provider commands; every window shares the native state. */
 const rawProvidersPort = createProvidersPort()
 const project = async (snapshot: ProviderSnapshot): Promise<ProviderSnapshot> =>
-  projectEnterpriseProviders(snapshot, enterpriseCatalog(await commands.enterpriseCatalog()))
+  projectEnterpriseProviders(presentProviders(snapshot), enterpriseCatalog(await commands.enterpriseCatalog()))
+
+/** Normalize account branding from older native libraries and cached provider names. */
+export function presentProviders(snapshot: ProviderSnapshot): ProviderSnapshot {
+  return {
+    ...snapshot,
+    error: snapshot.error === null ? null : presentProviderError(snapshot.error),
+    ...(snapshot.managedProviders === undefined
+      ? {}
+      : {
+          managedProviders: snapshot.managedProviders.map((provider) =>
+            provider.id === "litellm" ? { ...provider, name: "ALwith" } : provider
+          )
+        })
+  }
+}
 export const providersPort: ReturnType<typeof createProvidersPort> = {
   read: async () => project(await rawProvidersPort.read()),
   save: async (...args) => project(await rawProvidersPort.save(...args)),

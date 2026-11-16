@@ -10,6 +10,16 @@ test("native error envelopes preserve nested messages and codes", () => {
   expect(describeProviderError(error)).not.toContain("[object Object]")
 })
 
+test("account gateway application errors use ALwith without exposing the legacy routing ID", () => {
+  for (const name of ["LiteLLM (litellm)", "ALwith (litellm)", "litellm"]) {
+    expect(describeProviderError(`Provider ${name} could not apply (-32000); retry to apply saved settings`)).toBe(
+      "Provider ALwith could not apply (-32000); retry to apply saved settings"
+    )
+  }
+  const custom = "Provider LiteLLM (custom_private) could not apply (-32000)"
+  expect(describeProviderError(custom)).toBe(custom)
+})
+
 test("provider diagnostics omit credentials and request payloads", () => {
   logProviderError("test", {
     message: "Rejected Bearer sk-secret-value",

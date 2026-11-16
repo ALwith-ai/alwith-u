@@ -206,7 +206,7 @@ export function EnterpriseSection() {
           )}
         </div>
       </SettingRow>
-      {authorized && <p className="text-xs text-muted-foreground">{t("enterprise.accountHint")}</p>}
+      {authorized && <p className="mt-3 text-xs leading-5 text-muted-foreground">{t("enterprise.accountHint")}</p>}
       {(error || renewal?.error) && (
         <p role="alert" className="text-sm text-destructive">
           {t("enterprise.error")}

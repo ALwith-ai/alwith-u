@@ -294,3 +294,58 @@ pub(super) async fn apply_ready(app: &AppHandle) {
 pub(crate) fn uses_enterprise(app: &AppHandle, method: &str, params: Option<&Value>) -> bool {
     params.is_some_and(|params| app.state::<Enterprise>().gate.lock().unwrap().uses(method, params))
 }
+
+#[cfg(test)]
+#[path = "__tests__/refresh.rs"]
+mod refresh_tests;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn prompt_metadata_and_raw_execution_cannot_reauthorize_a_revoked_route() {
+        let mut gate = gate::Gate::default();
+        let model = codex::model_id("custom_alwith_enterprise_test", "issued/model");
+        let generation = gate.bind("account".into()).unwrap();
+        gate.commit(generation, BTreeSet::from([model.clone()])).unwrap();
+        gate.observe("session", "codex", &model, Some(generation));
+        gate.invalidate().unwrap();
+        for method in [
+            "prompt",
+            "session/prompt",
+            "_session/steering",
+            "_session/goal",
+            "_codex/session/goal_control",
+            "_codex/session_retry",
+            "_codex/session_prediction_request",
+            "_codex/realtime/start",
+            "_codex/realtime/appendAudio",
+            "_codex/realtime/appendText",
+            "_codex/realtime/appendSpeech",
+        ] {
+            assert!(
+                gate.check_request(
+                    method,
+                    &json!({"sessionId":"session","_meta":{"alwith":{"model":"gpt-6","accountModelSelection":true}}})
+                )
+                .is_err(),
+                "{method}"
+            );
+        }
+        assert!(
+            gate.check_request(
+                "session/set_config_option",
+                &json!({"sessionId":"session","configId":"model","value":"gpt-6"})
+            )
+            .is_ok()
+        );
+        assert!(gate.check_request("sessionResume", &json!({"sessionId":"session"})).is_err());
+        assert!(
+            gate.check_request(
+                "sessionResume",
+                &json!({"sessionId":"session","_meta":{"alwith":{"model":"gpt-6","accountModelSelection":true}}})
+            )
+            .is_ok()
+        );
+    }
+}
