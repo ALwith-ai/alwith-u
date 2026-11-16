@@ -52,3 +52,10 @@ test("cancellation releases only the originating native session and never report
   await expect(result).rejects.toThrow()
   expect(invoke.mock.calls.filter(([command]) => command === "web_automation_execute")).toHaveLength(1)
 })
+
+test("read-only observations need no extra approval while actions retain the application permission boundary", () => {
+  const tools = createWebAutomationTools()
+  expect(tools.find((tool) => tool.name === "browser_read_page")?.autoApprove?.("session")).toBe(true)
+  expect(tools.find((tool) => tool.name === "browser_type")?.autoApprove?.("session")).toBe(false)
+  expect(tools.find((tool) => tool.name === "browser_evaluate")?.autoApprove?.("session")).toBe(false)
+})

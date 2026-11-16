@@ -3,12 +3,17 @@ import { invoke } from "@tauri-apps/api/core"
 
 import { tools } from "./definitions.mjs"
 
+const readOnlyTools = new Set([
+  "browser_list", "browser_read_page", "browser_read_elements", "browser_inspect", "browser_diagnostics", "browser_wait"
+])
+
 /** Model-independent application tools; the native host owns execution and session leases. */
 export function createWebAutomationTools() {
   return tools.map((definition) =>
     defineApplicationTool({
       ...definition,
       revision: "web-automation-v1",
+      autoApprove: () => readOnlyTools.has(definition.name),
       parse(input: unknown) {
         if (input === undefined) return {}
         if (!input || typeof input !== "object" || Array.isArray(input)) throw Error("Expected browser arguments")
