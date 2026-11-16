@@ -24,6 +24,7 @@ import { stageRuntime } from "@alwith/runtime/stage"
 import { $ } from "bun"
 
 import manifest from "../package.json"
+import { verifyCodexArtifacts } from "./lib/codex-signatures"
 import { stageComputer } from "./lib/computer-artifact"
 import { stageDocs } from "./lib/docs-artifact"
 import { runtimeBuildArtifact, runtimeSource, stageTarget } from "./lib/runtime-artifact"
@@ -184,6 +185,8 @@ if (triple === nativeTriple) {
   const codexDestination = join(binaries, `codex-${triple}${target.exe}`)
   assertVersion("staged Codex", (await $`${codexDestination} --version`.text()).trim(), `codex-cli ${codexVersion}`)
 }
+
+verifyCodexArtifacts(root, triple)
 
 const adapterDirectory = join(root, "src-tauri/resources/adapter")
 const adapterPackage = stageChatAdapter(adapterDirectory, licenses)
