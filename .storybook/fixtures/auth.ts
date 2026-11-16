@@ -84,3 +84,4 @@ export function platformApiRequest<T>(): Promise<T> {
 }
 
 export async function requestAccountProviderRefresh(): Promise<void> {}
+export async function requestEnterpriseProviderRefresh(): Promise<void> {}
