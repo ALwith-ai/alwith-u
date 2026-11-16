@@ -41,8 +41,17 @@ function tauriStep(job: Job): Step {
 
 const releaseTargets = [
   { target: "aarch64-apple-darwin", runner: "macos-26", backend: "experimental-cef" },
-  { target: "x86_64-pc-windows-msvc", runner: "windows-2025", backend: "runtime-wry" }
+  { target: "x86_64-pc-windows-msvc", runner: "windows-2025", backend: "experimental-cef" }
 ]
+
+test("release builds pass Cargo feature policy after the Tauri CLI argument separator", () => {
+  const jobs = releaseWorkflow()
+  for (const job of [jobs["test-bundles"], jobs.release]) {
+    const args = String(tauriStep(job).with?.args)
+    expect(args.endsWith("-- --no-default-features")).toBe(true)
+    expect(args.split(" -- ")[0]).not.toContain("--no-default-features")
+  }
+})
 
 test("every CI Bun installation uses the packageManager pin and checks toolchain consistency", () => {
   for (const path of [".github/workflows/ci.yml", ".github/workflows/release.yml"]) {
@@ -206,4 +215,12 @@ test("Windows installers include both sandbox helpers without replacing the shar
   ])
   expect(base.bundle.externalBin).not.toContain("binaries/codex-windows-sandbox-setup")
   expect(base.bundle.externalBin).not.toContain("binaries/codex-command-runner")
+})
+
+test("Windows packages the staged NY CEF payload at the executable root", () => {
+  const windows = JSON.parse(read("src-tauri/tauri.windows.conf.json")) as {
+    bundle: { cef: { embed: boolean }; resources: Record<string, string> }
+  }
+  expect(windows.bundle.cef.embed).toBe(false)
+  expect(windows.bundle.resources["resources/cef/"]).toBe("")
 })

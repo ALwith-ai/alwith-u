@@ -2,7 +2,7 @@
 import { resolve } from "node:path"
 
 if (!["darwin", "win32"].includes(process.platform)) throw new Error("Only macOS and Windows are supported")
-for (const features of (process.platform === "win32" ? ["runtime-wry"] : ["runtime-wry", "experimental-cef", "dev-backends"])) {
+for (const features of ["runtime-wry", "experimental-cef", "dev-backends"]) {
   for (const args of [
     ["clippy", "--all-targets"],
     ["test", "--lib"]

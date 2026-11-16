@@ -410,6 +410,7 @@ dependencies = [
  "atlas-tauri",
  "axum",
  "base64 0.23.1",
+ "dirs 6.0.0",
  "hex",
  "image",
  "keepawake",

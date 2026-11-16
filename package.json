@@ -174,6 +174,7 @@
     "effect": "^4.0.6"
   },
   "patchedDependencies": {
-    "vite@8.3.8": "patches/vite@8.3.8.patch"
+    "vite@8.3.8": "patches/vite@8.3.8.patch",
+    "@nyssance/cef-rs@158.0.25": "patches/@nyssance%2Fcef-rs@158.0.25.patch"
   }
 }

@@ -17,7 +17,7 @@ tauri-build = { version = "3.0.0-alpha.4", features = [] }
 
 [features]
 default = ["experimental-cef"]
-runtime-cef = ["dep:tauri-runtime-cef", "tauri-plugin-hasgard?/cef"]
+runtime-cef = ["dep:tauri-runtime-cef", "dep:dirs", "tauri-plugin-hasgard?/cef"]
 runtime-wry = ["dep:tauri-runtime-wry"]
 dev-backends = ["runtime-wry", "experimental-cef"]
 experimental-cef = ["runtime-cef", "tauri-runtime-cef/surface-embed"]
@@ -84,6 +84,7 @@ base64 = "0.23"
 arboard = { version = "3.7", features = ["wayland-data-control"] }
 semver = "1"
 sys-locale = "0.3"
+dirs = { version = "6", optional = true }
 tokio = { version = "1", features = ["sync", "time", "macros", "net", "process", "io-util"] }
 uuid = { version = "1", features = ["v4"] }
 
@@ -101,7 +102,7 @@ objc2-core-graphics = { version = "0.3", default-features = false, features = ["
 [target.'cfg(target_os = "windows")'.dependencies]
 alwith-chat = { version = "0.6.11", default-features = false, features = ["native-network"] }
 tauri-plugin-decoration = "3"
-windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_UI_Controls", "Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_HiDpi", "Win32_Media_Audio", "Win32_Devices_HumanInterfaceDevice", "Win32_UI_Input", "Win32_UI_Shell"] }
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_UI_Controls", "Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_HiDpi", "Win32_Media_Audio", "Win32_Devices_HumanInterfaceDevice", "Win32_UI_Input", "Win32_UI_Shell", "Win32_Security_Credentials"] }
 window-vibrancy = "0.8"
 raw-window-handle = "0.6"
 

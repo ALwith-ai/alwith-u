@@ -44,6 +44,11 @@ pub fn create() -> tauri_runtime_cef::Cef {
         .root_cache_path(crate::desktop_runtime::development_cache())
         .secret_storage(tauri_runtime_cef::SecretStorage::Mock);
 
+    // Windows uses DPAPI in both development entry points. Keep the default
+    // cache location and encryption mode stable when switching to bundled assets.
+    #[cfg(target_os = "windows")]
+    let runtime = runtime.secret_storage(tauri_runtime_cef::SecretStorage::System);
+
     #[cfg(feature = "experimental-cef")]
     let runtime = runtime
         .cef_api_version(tauri_runtime_cef::cef::sys::CEF_API_VERSION_EXPERIMENTAL)

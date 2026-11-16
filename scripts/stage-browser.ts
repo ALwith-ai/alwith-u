@@ -2,7 +2,7 @@ import { cp, mkdir, rm } from "node:fs/promises"
 import { dirname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
-export async function stageBrowser(root: string) {
+export async function stageBrowser(root: string): Promise<void> {
   const destination = join(root, "src-tauri/resources/browser")
   await mkdir(destination, { recursive: true })
   for (const name of ["definitions.mjs", "engine.mjs", "observation.mjs", "worker.mjs"])
@@ -12,7 +12,7 @@ export async function stageBrowser(root: string) {
     const source = dirname(fileURLToPath(import.meta.resolve(`${name}/package.json`)))
     const installed = join(destination, "node_modules", name)
     await rm(installed, { recursive: true, force: true })
-    if (process.platform === "darwin") await cp(source, installed, { recursive: true })
+    await cp(source, installed, { recursive: true })
   }
 }
 if (import.meta.main) await stageBrowser(resolve(import.meta.dirname, ".."))

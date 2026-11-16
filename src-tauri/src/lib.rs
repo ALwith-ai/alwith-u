@@ -18,6 +18,9 @@ mod browser_extensions;
 mod browser_logins;
 #[cfg(feature = "runtime-cef")]
 mod browser_protocol;
+#[cfg(all(test, feature = "runtime-cef"))]
+#[path = "../../node_modules/@nyssance/cef-rs/rust/sys/runtime_output.rs"]
+mod browser_runtime_output;
 #[cfg(feature = "runtime-cef")]
 mod browser_site;
 mod bundled_extensions;
@@ -51,6 +54,9 @@ use atlas_tauri as trackpad;
 mod tray;
 mod vibemon;
 mod window;
+#[cfg(all(test, target_os = "windows"))]
+#[path = "../windows_cef.rs"]
+mod windows_cef;
 #[cfg(target_os = "windows")]
 mod windows_frame;
 mod workbuddy;
@@ -108,9 +114,12 @@ pub fn run() {
     let voice_credentials = settings::VoiceCredentials::default();
     let builder = tauri::Builder::default()
         .on_web_content_process_terminate(|webview, _| {
+            #[cfg(feature = "runtime-cef")]
             if webview.label().starts_with("browser-") {
                 browser_chrome::guest_crashed(webview.app_handle(), webview.label());
             }
+            #[cfg(not(feature = "runtime-cef"))]
+            let _ = webview;
         })
         .plugin(alwith_desktop_shell::init_with_options(
             None,
@@ -294,7 +303,6 @@ pub fn run() {
                 browser_ai::start(app.handle())?;
                 // The isolated test application keeps no login beyond its run and stays out of the keychain.
                 let identifier = &app.config().identifier;
-                #[cfg(target_os = "macos")]
                 let logins = if identifier.ends_with(".contract-test") {
                     browser_logins::Logins::temporary()
                 } else {
@@ -302,11 +310,6 @@ pub fn run() {
                         app.path().app_data_dir()?.join("browser-logins.json"),
                         identifier,
                     )
-                };
-                #[cfg(not(target_os = "macos"))]
-                let logins = {
-                    let _ = identifier;
-                    browser_logins::Logins::temporary()
                 };
                 app.manage(logins);
             }

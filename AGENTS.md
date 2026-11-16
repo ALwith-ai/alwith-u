@@ -10,7 +10,7 @@ Always answer the user in Chinese.
 - Computer use integrates a shared host module and Cua Driver through application-wide
   tools. Codex retains reasoning and conversation ownership. The application grant applies to all sessions and forks; disabling it must revoke
   every native connection.
-- Production uses CEF for the main UI, embedded live browser, floating windows and pets. Windows uses Wry and does not build CEF. macOS production uses CEF; macOS development builds include both backends and expose an optional restart-to-switch setting. Non-development builds hide and reject backend switching. Wry has no embedded-browser capability. Atlas gestures are deferred. Never substitute screenshots for live browser composition.
+- Production uses CEF for the main UI, embedded live browser, floating windows and pets on macOS ARM64 and Windows x64. Development builds include both backends and expose an optional restart-to-switch setting. Non-development builds hide and reject backend switching. Wry has no embedded-browser capability. Atlas gestures are deferred. Never substitute screenshots for live browser composition.
 - Cloud tasks remain out of scope.
   Git stays at diff review; no commit, PR or worktree features.
 - Skills and plugins come from Codex's own catalogs through the adapter's `_codex/skills_*`,
