@@ -1,10 +1,19 @@
-import { defineApplicationTool } from "@alwith/module-chat/client"
+import { type ApplicationToolResult, defineApplicationTool } from "@alwith/module-chat/client"
 import { invoke } from "@tauri-apps/api/core"
 
 import { tools } from "./definitions.mjs"
 
 const readOnlyTools = new Set([
-  "browser_list", "browser_read_page", "browser_read_elements", "browser_inspect", "browser_diagnostics", "browser_wait"
+  "browser_list",
+  "browser_read_page",
+  "browser_read_elements",
+  "browser_inspect",
+  "browser_diagnostics",
+  "browser_wait",
+  "browser_snapshot",
+  "browser_verify",
+  "browser_screenshot",
+  "browser_resolve"
 ])
 
 /** Model-independent application tools; the native host owns execution and session leases. */
@@ -12,7 +21,7 @@ export function createWebAutomationTools() {
   return tools.map((definition) =>
     defineApplicationTool({
       ...definition,
-      revision: "web-automation-v1",
+      revision: "web-automation-v2",
       autoApprove: () => readOnlyTools.has(definition.name),
       parse(input: unknown) {
         if (input === undefined) return {}
@@ -28,7 +37,24 @@ export function createWebAutomationTools() {
         try {
           const result = await invoke("web_automation_execute", { sessionId, name: definition.name, args })
           signal.throwIfAborted()
-          return { success: true, contentItems: [{ type: "text", text: JSON.stringify(result) }] }
+          if (definition.name === "browser_screenshot") {
+            const capture = result as { image?: { mimeType: string; data: string }; pending?: boolean }
+            if (capture.pending)
+              return { success: true, contentItems: [{ type: "text", text: JSON.stringify(result) }] }
+            if (capture.image?.mimeType !== "image/png" || typeof capture.image.data !== "string")
+              throw Error("Invalid browser screenshot result")
+            const { image, ...metadata } = capture
+            const contentItems: ApplicationToolResult["contentItems"] = [
+              { type: "text", text: JSON.stringify(metadata) },
+              { type: "image", mimeType: image.mimeType, data: image.data }
+            ]
+            return { success: true, contentItems }
+          }
+          const outcome = result as { ok?: boolean; pending?: boolean } | null
+          return {
+            success: outcome?.ok !== false || outcome?.pending === true,
+            contentItems: [{ type: "text", text: JSON.stringify(result) }]
+          }
         } finally {
           signal.removeEventListener("abort", cancel)
         }

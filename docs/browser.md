@@ -131,3 +131,53 @@ the application worker protocol. The chat client registers its tools through `ap
 it does not attach an embedded-browser MCP server. The native host owns the worker, supplies
 per-session CDP credentials and releases connections on cancellation or session revocation.
 Playwright remains outside the UI bundle and continues to use the live CEF pages.
+
+## Structural references and verified outcomes
+
+`browser_snapshot` uses Playwright's public AI snapshot API, including nested frames and
+shadow DOM. It returns bounded text, a unique `snapshotId`, and actionable `ref` values.
+Element tools accept either an observed selector with an optional frame, or a ref and its
+snapshot ID. References are scoped to the attached target and current snapshot. Navigation,
+a replacement snapshot, removed elements, or changed accessible identity require a fresh
+observation. Password values are removed from structural snapshots. A screenshot replaces
+the current structural reference context; take a fresh snapshot before returning to refs.
+
+`browser_verify` uses Playwright's retrying assertions for visible/hidden state, visible text,
+field values, checked state, element counts and exact URL. A successful assertion confirms
+only that condition. Verify a site's saved status or reopen its record before claiming a
+business task is complete. A timeout never automatically replays the mutation.
+
+Known sequences can run through the agent's existing code mode, awaiting each application
+tool call. Concurrent calls on one target are rejected rather than racing page observations
+and edits. Independent targets can progress independently. Stop a sequence when an operation
+fails or returns a pending dialog; the original action continues through `browser_dialog`.
+`browser_resolve` returns upstream semantic locator code for reusable workflow instructions;
+revalidate its preconditions on subsequent runs.
+
+## Visual-only content and downloads
+
+`browser_screenshot` returns an image content item, not base64 text for the model to decode.
+An optional observed element crops the image to its visible viewport region. Images use CSS
+pixel scale, including on high-DPI displays. `browser_visual` uses coordinates relative to that
+image and requires its target-local, single-use `imageId`. Changed navigation, viewport,
+scroll position or accessibility structure invalidates the capture; captures expire after
+30 seconds. Canvas-only changes may not appear in the structural check: inspect a current
+image and verify the action's outcome. Use visual actions only when structural operations
+cannot express the task.
+
+`browser_download` clicks the designated control, waits for its download and saves it to an
+explicit absolute path without overwriting an existing file. The response reports the saved
+path and byte count. CEF completion comes from the authorized guest's native download state;
+the original remains in Downloads and its path is returned as `sourcePath`. Other Chromium
+connections use Playwright's download events and report the suggested filename.
+An uncertain download failure requires inspection, not
+an automatic second click.
+
+Run the generic observation contracts with:
+
+```sh
+bun --bun node_modules/vitest/vitest.mjs run --config vitest.contracts.config.ts tests/contracts/browser-observation.contract.ts
+```
+
+These isolated Chromium checks are separate from the native CEF application-tool contracts.
+They do not establish support for every production website or comparative agent performance.

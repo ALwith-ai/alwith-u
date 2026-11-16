@@ -11,8 +11,6 @@ mod autostart;
 #[cfg(feature = "runtime-cef")]
 mod browser_ai;
 #[cfg(feature = "runtime-cef")]
-mod web_automation;
-#[cfg(feature = "runtime-cef")]
 mod browser_chrome;
 #[cfg(feature = "runtime-cef")]
 mod browser_extensions;
@@ -47,6 +45,8 @@ mod runtime;
 mod secret_store;
 mod settings;
 mod settings_store;
+#[cfg(feature = "runtime-cef")]
+mod web_automation;
 use atlas_tauri as trackpad;
 mod tray;
 mod vibemon;

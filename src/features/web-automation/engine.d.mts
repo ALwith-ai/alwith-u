@@ -7,5 +7,6 @@ export interface BrowserTools {
 }
 export function createBrowserTools(
   call: (request: { target?: string; method: string; params?: Record<string, unknown> }) => Promise<unknown>,
-  attach?: (target: string) => Promise<Browser>
+  attach?: (target: string) => Promise<Browser>,
+  options?: { nativeDownloads?: boolean }
 ): BrowserTools

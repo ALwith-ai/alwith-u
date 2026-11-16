@@ -1,9 +1,14 @@
-import { stat } from "node:fs/promises"
-import { isAbsolute } from "node:path"
+import { constants } from "node:fs"
+import { copyFile, mkdtemp, rm, stat } from "node:fs/promises"
+import { tmpdir } from "node:os"
+import { isAbsolute, join } from "node:path"
+
+import { expect } from "playwright/test"
 
 import { tools } from "./definitions.mjs"
+import { createObservations, verify } from "./observation.mjs"
 
-export function createBrowserTools(call, attach) {
+export function createBrowserTools(call, attach, { nativeDownloads = false } = {}) {
   const connections = new Map()
   let disposed = false
   async function pageFor(target) {
@@ -67,7 +72,7 @@ export function createBrowserTools(call, attach) {
           browser.on("disconnected", () => {
             if (connections.get(target) === promise) connections.delete(target)
           })
-          return { browser, page, messages, frames, listFrames, interaction }
+          return { browser, page, messages, frames, listFrames, interaction, observations: createObservations(page) }
         })
         .catch((error) => {
           connections.delete(target)
@@ -123,11 +128,63 @@ export function createBrowserTools(call, attach) {
       const url = new URL(args.url)
       if (!["http:", "https:"].includes(url.protocol)) throw Error("Navigation requires HTTP(S)")
     }
+    const definition = tools.find((entry) => entry.name === name)
+    const optionalLocator = ["browser_read_page", "browser_snapshot", "browser_screenshot"]
     if (
-      tools.find((entry) => entry.name === name).inputSchema.required.includes("selector") &&
-      (typeof args.selector !== "string" || !args.selector)
+      definition.inputSchema.properties.selector &&
+      !optionalLocator.includes(name) &&
+      !(name === "browser_verify" && args.condition === "url") &&
+      args.selector === undefined &&
+      args.ref === undefined
     )
-      throw Error("A locator is required")
+      throw Error("A locator or snapshot reference is required")
+    if (
+      args.ref !== undefined &&
+      (typeof args.ref !== "string" || !args.ref || typeof args.snapshotId !== "string" || !args.snapshotId)
+    )
+      throw Error("A ref requires its snapshotId")
+    if (args.snapshotId !== undefined && args.ref === undefined) throw Error("snapshotId requires a ref")
+    if (args.ref !== undefined && (args.selector !== undefined || args.frame !== undefined))
+      throw Error("Use a ref or a selector/frame, not both")
+    if (name === "browser_snapshot") {
+      if (args.depth !== undefined && (!Number.isInteger(args.depth) || args.depth < 1 || args.depth > 50))
+        throw Error("Invalid snapshot depth")
+      if (
+        args.maxChars !== undefined &&
+        (!Number.isInteger(args.maxChars) || args.maxChars < 500 || args.maxChars > 32000)
+      )
+        throw Error("Invalid snapshot size")
+    }
+    if (name === "browser_verify") {
+      if (!["visible", "hidden", "text", "contains_text", "value", "checked", "count", "url"].includes(args.condition))
+        throw Error("Invalid verification condition")
+      if (["text", "contains_text", "value", "url"].includes(args.condition) && typeof args.expected !== "string")
+        throw Error("Expected a string")
+      if (args.condition === "checked" && typeof args.expected !== "boolean") throw Error("Expected a boolean")
+      if (args.condition === "count" && (!Number.isSafeInteger(args.expected) || args.expected < 0))
+        throw Error("Expected a nonnegative count")
+      if (
+        args.timeoutMs !== undefined &&
+        (!Number.isInteger(args.timeoutMs) || args.timeoutMs < 1 || args.timeoutMs > 20000)
+      )
+        throw Error("Invalid verification timeout")
+    }
+    if (name === "browser_visual") {
+      if (
+        typeof args.imageId !== "string" ||
+        !["click", "double_click", "hover", "scroll", "drag", "press", "type"].includes(args.action)
+      )
+        throw Error("Invalid visual action")
+      if (args.action === "type" && typeof args.text !== "string") throw Error("Visual input requires text")
+      if (args.action === "press" && (typeof args.key !== "string" || !args.key)) throw Error("Visual key is required")
+      if (
+        args.action === "scroll" &&
+        (!Number.isFinite(args.deltaY) || (args.deltaX !== undefined && !Number.isFinite(args.deltaX)))
+      )
+        throw Error("Invalid scroll distance")
+    }
+    if (name === "browser_download" && (typeof args.path !== "string" || !isAbsolute(args.path)))
+      throw Error("An absolute download path is required")
     if (name === "browser_type" && typeof args.text !== "string") throw Error("Text must be a string")
     if (name === "browser_evaluate" && (typeof args.expression !== "string" || !args.expression.trim()))
       throw Error("An expression is required")
@@ -162,7 +219,7 @@ export function createBrowserTools(call, attach) {
       for (const path of args.paths) if (!(await stat(path)).isFile()) throw Error(`Not a file: ${path}`)
     }
     const state = await pageFor(target)
-    const { page, messages, frames, listFrames, interaction } = state
+    const { page, messages, frames, listFrames, interaction, observations } = state
     if (name === "browser_dialog") {
       if (
         !Number.isInteger(args.id) ||
@@ -187,8 +244,58 @@ export function createBrowserTools(call, attach) {
     const inventory = listFrames()
     const scope = args.frame === undefined ? page.mainFrame() : frames.get(args.frame)
     if (!scope) throw Error("Frame is detached or unknown; read the page again")
+    const locate = (currentScope = scope, input = args) => observations.locate(currentScope, input)
+    if (interaction.operation) throw Error("A page action is pending; finish its dialog or wait before continuing")
+    if (args.ref && !(name === "browser_verify" && args.condition === "hidden"))
+      await observations.validate(scope, args)
+    if (name === "browser_snapshot") return observations.snapshot(scope, args, inventory)
+    if (name === "browser_resolve") return { locator: (await locate().normalize()).toString(), url: page.url() }
+    if (name === "browser_screenshot") return observations.screenshot(scope, args, locate)
+    if (name === "browser_visual") return perform(state, () => observations.visual(args))
+    if (name === "browser_verify")
+      return perform(state, () => verify(page, args.condition === "url" ? null : locate(), args))
+    if (name === "browser_download")
+      return perform(state, async () => {
+        if (nativeDownloads) {
+          const read = async () => (await call({ target: args.target, method: "downloads" })).downloads
+          const before = new Set((await read()).map((item) => item.id))
+          await locate().click()
+          let completed
+          await expect
+            .poll(
+              async () => {
+                if (disposed) throw Error("Browser tools are closed")
+                const downloads = (await read()).filter((item) => !before.has(item.id))
+                if (downloads.length > 1) throw Error("Multiple downloads started; inspect downloads before continuing")
+                completed = downloads[0]
+                if (completed && ["failed", "canceled"].includes(completed.state))
+                  throw Error(`Download ${completed.state}; the action was not repeated`)
+                return completed?.state
+              },
+              { timeout: 20000, intervals: [50, 100, 250] }
+            )
+            .toBe("finished")
+          await copyFile(completed.path, args.path, constants.COPYFILE_EXCL)
+          return { ok: true, path: args.path, sourcePath: completed.path, bytes: (await stat(args.path)).size }
+        }
+        const [download] = await Promise.all([page.waitForEvent("download", { timeout: 20000 }), locate().click()])
+        const directory = await mkdtemp(join(tmpdir(), "alwith-download-"))
+        try {
+          const temporary = join(directory, "download")
+          await download.saveAs(temporary)
+          await copyFile(temporary, args.path, constants.COPYFILE_EXCL)
+          return {
+            ok: true,
+            path: args.path,
+            suggestedFilename: download.suggestedFilename(),
+            bytes: (await stat(args.path)).size
+          }
+        } finally {
+          await rm(directory, { recursive: true, force: true })
+        }
+      })
     if (name === "browser_inspect")
-      return scope.locator(args.selector).evaluate((element) => {
+      return locate().evaluate((element) => {
         const rect = element.getBoundingClientRect()
         const style = getComputedStyle(element)
         return {
@@ -215,15 +322,16 @@ export function createBrowserTools(call, attach) {
       return perform(state, async () => ({ result: await scope.evaluate(args.expression) }))
     if (name === "browser_wait")
       return perform(state, async () => {
-        await scope.locator(args.selector).waitFor({ state: args.state ?? "visible" })
+        await locate().waitFor({ state: args.state ?? "visible" })
         return { ok: true, url: page.url() }
       })
     if (name === "browser_read_page") {
-      const root = scope.locator(args.selector ?? "body")
+      const root = args.ref ? locate() : scope.locator(args.selector ?? "body")
       const offset = args.offset ?? 0
       const limit = args.limit ?? 16000
       const text = await root.innerText()
-      const accessibility = await root.ariaSnapshot()
+      const snapshot = await observations.snapshot(scope, { maxChars: 32000 }, inventory, root)
+      const accessibility = snapshot.text
       return {
         url: page.url(),
         title: await page.title(),
@@ -235,14 +343,15 @@ export function createBrowserTools(call, attach) {
         frames: inventory,
         frameUrl: scope.url(),
         accessibility: accessibility.slice(0, 32000),
-        accessibilityTruncated: accessibility.length > 32000,
+        accessibilityTruncated: snapshot.truncated,
+        snapshotId: snapshot.snapshotId,
         text: text.slice(offset, offset + limit),
         totalLength: text.length,
         nextOffset: offset + limit < text.length ? offset + limit : null
       }
     }
     if (name === "browser_read_elements")
-      return scope.locator(args.selector).evaluateAll(
+      return locate().evaluateAll(
         (elements, { offset, limit }) => ({
           total: elements.length,
           nextOffset: offset + limit < elements.length ? offset + limit : null,
@@ -280,7 +389,7 @@ export function createBrowserTools(call, attach) {
       else if (name === "browser_back") await page.goBack({ waitUntil: "commit" })
       else if (name === "browser_forward") await page.goForward({ waitUntil: "commit" })
       else {
-        const locator = scope.locator(args.selector)
+        const locator = locate()
         if (name === "browser_click") await locator.click()
         else if (name === "browser_hover") await locator.hover()
         else if (name === "browser_double_click") await locator.dblclick()
@@ -335,14 +444,24 @@ export function createBrowserTools(call, attach) {
         } else if (name === "browser_press") await locator.press(args.key)
         else if (name === "browser_select") await locator.selectOption(args.value)
       }
-      return { ok: true, url: page.url() }
+      return { ok: true, url: page.url(), outcome: "action-dispatched", verificationRequired: true }
     })
   }
-  run.close = async () => {
+  const busy = new Set()
+  const guarded = async (name, args = {}) => {
+    const target = args.target
+    if (target && busy.has(target)) throw Error("Target is busy; await its current tool call before continuing")
+    if (target) busy.add(target)
+    try {
+      return await run(name, args)
+    } finally {
+      if (target) busy.delete(target)
+    }
+  }
+  guarded.close = async () => {
     disposed = true
     await Promise.allSettled([...connections.values()].map(async (pending) => (await pending).browser.close()))
     connections.clear()
   }
-  return run
+  return guarded
 }
-

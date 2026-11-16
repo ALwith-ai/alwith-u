@@ -87,12 +87,16 @@ export function conversations(prefix: string) {
         if (!response.ok) throw Error(`${response.status}: ${await response.text()}`)
         return response.json()
       }
-      const run = createBrowserTools(call, (target) => {
-        const url = new URL(env.ALWITH_BROWSER_ENDPOINT)
-        url.protocol = "ws:"
-        url.pathname = `/cdp/${target}`
-        return chromium.connectOverCDP(url.href, { headers, noDefaults: true, timeout: 15000 })
-      })
+      const run = createBrowserTools(
+        call,
+        (target) => {
+          const url = new URL(env.ALWITH_BROWSER_ENDPOINT)
+          url.protocol = "ws:"
+          url.pathname = `/cdp/${target}`
+          return chromium.connectOverCDP(url.href, { headers, noDefaults: true, timeout: 15000 })
+        },
+        { nativeDownloads: true }
+      )
       runs.push(run)
       return run
     },

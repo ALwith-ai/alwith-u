@@ -157,6 +157,11 @@ fn page_method(method: &str, params: &Value) -> Result<(), String> {
 async fn serve(mut socket: WebSocket, app: &tauri::AppHandle, label: &str, token: &str) {
     let Some(agent) = app.state::<BrowserAi>().guests.lock().unwrap().get(label).cloned() else { return };
     let Some(view) = agent.view(app, label) else { return };
+    // The native agent survives WebSocket clients. A fresh Runtime.enable must replay
+    // existing main-world contexts to the new client, not retain the previous client's enable state.
+    if agent.call(&view, "Runtime.disable", json!({})).await.is_err() {
+        return;
+    }
     let mut events = agent.messages.subscribe();
     let Ok(info) = agent.call(&view, "Target.getTargetInfo", json!({})).await else { return };
     let target_info = info["targetInfo"].clone();
@@ -245,6 +250,7 @@ async fn serve(mut socket: WebSocket, app: &tauri::AppHandle, label: &str, token
         for method in [
             "Runtime.runIfWaitingForDebugger",
             "Debugger.disable",
+            "Runtime.disable",
             "Fetch.disable",
             "Target.setAutoAttach",
             "Emulation.setFocusEmulationEnabled",

@@ -1,5 +1,6 @@
 /** Application-owned Playwright executor. This is not an agent or an MCP server. */
 import { createInterface } from "node:readline"
+
 import { chromium } from "playwright-core"
 
 import { createBrowserTools } from "./engine.mjs"
@@ -44,7 +45,8 @@ export function createExecutor(connect = chromium.connectOverCDP.bind(chromium),
             url.protocol = "ws:"
             url.pathname = `/cdp/${encodeURIComponent(target)}`
             return connect(url.href, { headers, noDefaults: true, timeout: 15000 })
-          }
+          },
+          { nativeDownloads: true }
         )
         entry = { token: message.token, endpoint: message.endpoint, run }
         sessions.set(sessionId, entry)

@@ -710,6 +710,17 @@ pub fn guest_status(app: &tauri::AppHandle, label: &str, status: BrowserStatus) 
                 DownloadState::Canceled => "canceled",
                 DownloadState::Interrupted => "failed",
             };
+            let download = json!({
+                "id": progress.id, "url": progress.url, "path": progress.path,
+                "received": progress.received_bytes, "total": progress.total_bytes, "state": state,
+            });
+            {
+                let mut downloads = agent.downloads.lock().unwrap();
+                downloads.insert(progress.id, download);
+                while downloads.len() > 100 {
+                    downloads.pop_first();
+                }
+            }
             let _ = app.emit_to(
                 "main",
                 "browser-download",

@@ -163,6 +163,8 @@ fn own_event(message: &DevToolsProtocol) -> Option<OwnEvent> {
 }
 
 pub struct GuestAgent {
+    /// Recent native downloads, scoped to this guest.
+    pub downloads: Mutex<std::collections::BTreeMap<u32, Value>>,
     pub popup: Option<tauri_runtime_cef::SurfacePopup>,
     pub url: Mutex<String>,
     pub title: Mutex<String>,
@@ -179,6 +181,7 @@ pub struct GuestAgent {
 impl Default for GuestAgent {
     fn default() -> Self {
         Self {
+            downloads: Mutex::default(),
             url: Mutex::default(),
             title: Mutex::default(),
             chrome: Mutex::default(),
@@ -473,7 +476,7 @@ async fn dispatch(
             .collect();
         return Ok(Json(json!({"targets":targets})));
     }
-    if !matches!(request.method.as_str(), "focus" | "close") {
+    if !matches!(request.method.as_str(), "focus" | "close" | "downloads") {
         validate_method(&request.method, &request.params).map_err(|e| (StatusCode::BAD_REQUEST, e))?;
     }
     let label = request.target.ok_or((StatusCode::BAD_REQUEST, "An explicit guest target is required".into()))?;
@@ -490,6 +493,9 @@ async fn dispatch(
         .ok_or((StatusCode::NOT_FOUND, "Unknown browser guest".into()))?;
     state.claim(token, &label).map_err(|e| (StatusCode::FORBIDDEN, e))?;
     let view = agent.view(&app, &label).ok_or((StatusCode::NOT_FOUND, "Browser guest closed".into()))?;
+    if request.method == "downloads" {
+        return Ok(Json(json!({"downloads": agent.downloads.lock().unwrap().values().cloned().collect::<Vec<_>>()})));
+    }
     if request.method == "focus" {
         app.emit_to("main", "browser-tab-focus", json!({"label":label}))
             .map_err(|e| (StatusCode::BAD_GATEWAY, e.to_string()))?;
