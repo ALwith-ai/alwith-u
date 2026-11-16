@@ -94,7 +94,7 @@ pub async fn connect(
     }
     let lease = Lease { app: app.clone(), label: label.clone(), token: token.clone() };
     Ok(upgrade.on_upgrade(move |socket| async move {
-        // The tab is the conversation's from here on: its logins are no longer watched.
+        // Suspend login observation while an AI connection controls the page.
         let agent = app.state::<BrowserAi>().guests.lock().unwrap().get(&label).cloned();
         if let Some(agent) = agent
             && let Some(target) = agent.view(&app, &label)

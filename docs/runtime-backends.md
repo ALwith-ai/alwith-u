@@ -2,7 +2,7 @@
 
 macOS ARM64 production builds use CEF with SurfaceEmbed. Windows x64 builds use Wry; Windows CEF is currently disabled. Linux distributions are not supported. Both backends share chat, pet, lounge, and floating-window business code.
 
-Use `bun run dev:tauri` for development and `bun run build:desktop` for packaging. On macOS the development command includes both backends. Settings exposes a backend selector with an explicit **Restart and apply** action. Selection persists under the same application identity; changing backend does not move or clear application account storage. Debug CEF builds consistently use an isolated `cef-development` cache and the development mock cookie key, whether launched with Vite, embedded assets or a restart. This does not provide production cookie encryption; release builds retain the OS keychain and a separate profile.
+Use `bun run dev:tauri` for development and `bun run build:desktop` for packaging. Add `--debug` to package a development build with the same application identity and API environment as `dev:tauri`. On macOS development builds include both backends. Settings exposes a backend selector with an explicit **Restart and apply** action. Selection persists under the same application identity; changing backend does not move or clear application account storage. Debug CEF builds consistently use an isolated `cef-development` cache and the development mock cookie key, whether launched with Vite, embedded assets or a restart. This does not provide production cookie encryption; release builds retain the OS keychain and a separate profile.
 
 Browser website storage belongs to each engine and is not migrated between engines. Production builds neither display nor permit this setting. Windows always selects Wry.
 

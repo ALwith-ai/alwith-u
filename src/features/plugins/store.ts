@@ -85,7 +85,7 @@ type PluginsState = {
   busyMarketplaces: Record<string, true>
   refresh: (
     cwds?: string[],
-    options?: { forceRefetch?: boolean; background?: boolean; cached?: boolean }
+    options?: { forceRefetch?: boolean; background?: boolean; cached?: boolean; catalog?: boolean }
   ) => Promise<void>
   invalidate: () => void
   skillsChanged: () => Promise<void>
@@ -168,7 +168,7 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
     const pluginsCache = new RequestCache<PluginListResponse>("plugins.marketplace")
     const installedCache = new RequestCache<PluginInstalledResponse>("plugins.installed")
     const details = new RequestCache<PluginDetail>("plugins.detail")
-    const flights = new Map<string, { promise: Promise<void>; force: boolean; epoch: number }>()
+    const flights = new Map<string, { promise: Promise<void>; force: boolean; catalog: boolean; epoch: number }>()
     let skillView = new Set<string>()
     const projectReads = new Map<string, { epoch: number; scope: string; promise: Promise<void> }>()
     let epoch = 0
@@ -181,10 +181,12 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
       get().upgrading
     const detailKey = (entry: PluginEntry) =>
       JSON.stringify([readParams(entry), entry.plugin.version, entry.plugin.localVersion])
-    const invalidate = () => {
+    // The marketplace catalog lists every plugin the stores offer, installed or not, so only
+    // catalog changes (marketplace or plugin mutations, explicit reloads) drop it.
+    const invalidate = (catalog = true) => {
       epoch++
       skillsCache.clear()
-      pluginsCache.clear()
+      if (catalog) pluginsCache.clear()
       installedCache.clear()
       details.clear()
       skillDocuments.clear()
@@ -307,7 +309,7 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
       busySkills: {},
       busyMarketplaces: {},
 
-      invalidate,
+      invalidate: () => invalidate(),
       loadSkillProject: (cwd) => loadProjectBatch([cwd]),
       discoverSkillProjects: async (directories, signal) => {
         if (signal.aborted || get().skillsLoading) return
@@ -333,8 +335,11 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
             await new Promise<void>((resolve) => setTimeout(resolve, 50))
             notificationDirty = false
             if (mutating()) return
-            invalidate()
-            await get().refresh(undefined, { background: true })
+            // A skill change never changes what the marketplaces offer: re-read skills and the
+            // installed set only. Re-reading the whole catalog here pulled every store's plugins
+            // in the middle of chat turns.
+            invalidate(false)
+            await get().refresh(undefined, { background: true, catalog: false })
           } while (notificationDirty)
         })().finally(() => {
           notification = null
@@ -346,8 +351,10 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
         const key = JSON.stringify(cwds)
         const existing = flights.get(key)
         const force = options.forceRefetch === true
-        // Same-scope callers share one read. An explicit forced reload supersedes a cached read.
-        const joining = existing?.epoch === epoch && (!force || existing.force)
+        const catalog = options.catalog !== false || force
+        // Same-scope callers share one read. An explicit forced reload supersedes a cached read,
+        // and a catalog read supersedes one that skipped the catalog.
+        const joining = existing?.epoch === epoch && (!force || existing.force) && (existing.catalog || !catalog)
         if (joining && JSON.stringify(get().cwds) === key) return existing.promise
         if (force && !joining) invalidate()
         const revision = epoch
@@ -371,7 +378,7 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
           pluginsError: null,
           installedError: null,
           skillsLoading: refresh || !haveSkills,
-          pluginsLoading: refresh || !cachedPlugins,
+          ...(catalog ? { pluginsLoading: refresh || !cachedPlugins } : {}),
           installedLoading: refresh || !cachedInstalled,
           ...(haveSkills ? skillProjection() : changedScope ? { skills: [], skillProjects: {}, skillErrors: [] } : {}),
           ...(cachedPlugins
@@ -402,22 +409,23 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
               if (current()) set({ ...skillProjection(), skillsLoading: false })
             })
             .catch((error: unknown) => fail("skillsError", "skillsLoading", error)),
-          pluginsCache
-            .read(
-              key,
-              () => api.listPlugins({ ...(cwds.length ? { cwds } : {}), ...(force ? { forceRefetch: true } : {}) }),
-              refresh
-            )
-            .then((response) => {
-              if (current())
-                set({
-                  marketplaces: response.marketplaces,
-                  marketplaceLoadErrors: response.marketplaceLoadErrors,
-                  featuredPluginIds: response.featuredPluginIds,
-                  pluginsLoading: false
-                })
-            })
-            .catch((error: unknown) => fail("pluginsError", "pluginsLoading", error)),
+          catalog &&
+            pluginsCache
+              .read(
+                key,
+                () => api.listPlugins({ ...(cwds.length ? { cwds } : {}), ...(force ? { forceRefetch: true } : {}) }),
+                refresh
+              )
+              .then((response) => {
+                if (current())
+                  set({
+                    marketplaces: response.marketplaces,
+                    marketplaceLoadErrors: response.marketplaceLoadErrors,
+                    featuredPluginIds: response.featuredPluginIds,
+                    pluginsLoading: false
+                  })
+              })
+              .catch((error: unknown) => fail("pluginsError", "pluginsLoading", error)),
           installedCache
             .read(key, () => api.installedPlugins(cwds), refresh)
             .then((response) => {
@@ -436,7 +444,7 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
           .finally(() => {
             if (flights.get(key)?.promise === promise) flights.delete(key)
           })
-        flights.set(key, { promise, force, epoch: revision })
+        flights.set(key, { promise, force, catalog, epoch: revision })
         return promise
       },
 
@@ -528,7 +536,7 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
         const name = skill.interface?.displayName ?? skill.name
         try {
           const response = await api.setSkillEnabled({ path: skill.path, enabled })
-          invalidate()
+          invalidate(false)
           set((state) => ({
             skills: state.skills.map((item) =>
               item.path === skill.path ? { ...item, enabled: response.effectiveEnabled } : item

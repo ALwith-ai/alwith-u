@@ -369,13 +369,11 @@ impl BrowserAi {
         if self.internal(label) {
             return Err("This tab shows a browser page that only the user operates".into());
         }
-        let mut owners = self.owners.lock().unwrap();
-        match owners.get(label) {
+        // Only explicitly opened conversation tabs have persistent ownership.
+        // User-opened tabs remain available after the active CDP lease ends.
+        match self.owners.lock().unwrap().get(label) {
             Some(owner) if owner != &session => Err("Tab belongs to another AI conversation".into()),
-            _ => {
-                owners.insert(label.into(), session);
-                Ok(())
-            }
+            _ => Ok(()),
         }
     }
 }
@@ -716,6 +714,22 @@ mod tests {
     }
 
     #[test]
+    fn operating_a_user_tab_does_not_hide_it_from_later_conversations() {
+        let state = BrowserAi::default();
+        state
+            .sessions
+            .lock()
+            .unwrap()
+            .extend([("a".into(), Some("conversation-a".into())), ("b".into(), Some("conversation-b".into()))]);
+        state.claim("a", "user-tab").unwrap();
+        assert!(!state.owners.lock().unwrap().contains_key("user-tab"));
+        state.sessions.lock().unwrap().remove("a");
+        assert!(!state.can_access("a", "user-tab"));
+        assert!(state.can_access("b", "user-tab"));
+        state.claim("b", "user-tab").unwrap();
+    }
+
+    #[test]
     fn tab_ownership_survives_reconnection_and_isolates_conversations() {
         let state = BrowserAi::default();
         state.sessions.lock().unwrap().extend([
@@ -725,6 +739,7 @@ mod tests {
             ("unbound".into(), None),
         ]);
         assert!(state.claim("unbound", "tab").is_err());
+        state.owners.lock().unwrap().insert("tab".into(), "conversation-a".into());
         state.claim("a", "tab").unwrap();
         assert!(state.can_access("a-reconnected", "tab"));
         assert!(!state.can_access("b", "tab"));

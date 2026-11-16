@@ -538,6 +538,8 @@ test("returning to an in-flight directory scope restores that scope and ignores 
 test("notification bursts are batched and mutation notifications belong to one post-mutation read", async () => {
   const api = fakeApi()
   const plugins = vi.spyOn(api, "listPlugins")
+  const installed = vi.spyOn(api, "installedPlugins")
+  const skills = vi.spyOn(api, "listSkills")
   const store = createPluginsStore(api)
   await store.getState().refresh()
   await Promise.all([
@@ -545,6 +547,12 @@ test("notification bursts are batched and mutation notifications belong to one p
     store.getState().skillsChanged(),
     store.getState().skillsChanged()
   ])
+  // A skill change re-reads skills and the installed set, never every store's catalog.
+  expect(plugins).toHaveBeenCalledTimes(1)
+  expect(installed).toHaveBeenCalledTimes(2)
+  expect(skills).toHaveBeenCalledTimes(2)
+  expect(store.getState().marketplaces).toHaveLength(1)
+  await store.getState().refresh(undefined, { forceRefetch: true })
   expect(plugins).toHaveBeenCalledTimes(2)
   const install = api.installPlugin
   api.installPlugin = async (params) => {

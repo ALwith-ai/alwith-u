@@ -24,15 +24,21 @@ repository.
 
 ## Building
 
-Frontend commands run from the repository root, Cargo from `src-tauri`:
+Build a bundled development candidate with the same API environment and application identity
+as `bun dev:tauri`:
 
 ```sh
-bun run build
-cargo build --features 'dev-backends,hasgard-testing,tauri/custom-protocol'
+bun run build:desktop --debug
 ```
 
-That, in that order, is the development application; `AGENTS.md` says why no other feature set is
-installed. The isolated test application is the same with the test frontend and its own identity:
+This uses Tauri's existing build lifecycle to stage resources and build the frontend, then builds
+Cargo with `tauri.dev-instance.conf.json` and `dev-backends,hasgard-testing,tauri/custom-protocol`.
+The frontend reads Tauri's debug-build flag and selects the development API environment.
+Account credentials remain scoped to the selected API environment; building does not move
+or copy credentials between environments.
+
+The isolated test application uses the test frontend and its own identity. Frontend commands
+run from the repository root, Cargo from `src-tauri`:
 
 ```sh
 ALWITH_NATIVE_TEST=1 bun run build
@@ -57,6 +63,7 @@ launched test application over its Hasgard socket, named in `TAURI_HASGARD_SOCKE
 | `bun run test:browser-chrome` | history, find, menus, permissions, downloads, failures, chords | browser fixture |
 | `bun run test:browser-everyday` | arranging tabs, private tabs, logins, restore, groups, crashes | browser fixture |
 | `bun run test:browser-mcp` | the bundled MCP server | browser fixture |
+| `bun --bun node_modules/vitest/vitest.mjs run --config vitest.contracts.config.ts tests/contracts/browser-business.contract.ts` | cross-origin editing, attachments, dialogs, and business controls | browser fixture |
 | `bun run test:browser-extensions` | extensions | browser fixture with `ALWITH_U_CEF_TEST_EXTENSION` pointing at `tests/contracts/fixtures/browser-extension` |
 | `bun run test:runtime-panels` | panel windows, on either backend | shell test (`ALWITH_U_CEF_SHELL_TEST=1`) |
 | `bun run test:runtime-geometry` | window geometry, on either backend | shell test |
@@ -84,4 +91,35 @@ What to know when running them:
   worker, remove `Default/Service Worker` from that profile.
 - The last step of `test:browser-mcp` drives a real conversation with the user's Codex login and
   runs only with `BROWSER_AI_LIVE=1`.
+
 - The second step of `test:runtime-geometry` needs two displays of different scale.
+
+## Website tasks through conversations
+
+The browser tools operate the same live website and profile the user sees. They do not need
+desktop screenshots, screen coordinates, or a website-specific API. Read a page before acting;
+its `frames` inventory supplies the frame ids accepted by element tools, including cross-origin
+editors. Detached frames fail instead of silently redirecting input to the main document.
+
+`browser_read_page` supports a scoped selector and paginated text (`nextOffset`). Its accessible
+tree is bounded and reports truncation; narrow the selector when more detail is needed.
+`browser_read_elements` paginates matching controls or rows and returns their current values,
+checked state, and attached files. Virtualized tables still require scrolling and rereading.
+
+Editing activates the control before entering text and returns the observed value. Replacement
+operations also report `matchesRequestedText`; a mismatch is not a successful edit. Password
+values are not returned. `browser_upload` sets an observed file input from existing absolute
+paths, including hidden attachment inputs listed by the page read. The website's own upload or
+submission status must still be checked.
+
+When an action opens a JavaScript dialog, its reply contains `pending: true` and the dialog's
+id, type, and message. `browser_dialog` answers that exact dialog and resumes observation of
+the original action. Do not click Send or Submit again to continue it. Read the resulting page
+status before claiming the business operation completed, and inspect before retrying an
+ambiguous submission.
+
+The business contract submits only to a local fixture server, checks the received reply and
+attachment bytes, and verifies that dismissing confirmation does not submit again. For a
+Chromium-only check, set `BROWSER_BUSINESS_HEADLESS=1` on its command. That check does not
+establish CEF parity or support for any particular production website. Run the same contract
+against the isolated CEF application for the native boundary. Wry has no embedded browser.

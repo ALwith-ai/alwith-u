@@ -31,13 +31,15 @@ export function parseAppEnv(values: Record<string, string | undefined>, environm
   }
 }
 
-export function loadAppEnv(mode: string): AppEnv {
+export function loadAppEnv(mode: string, nativeDebug = process.env.TAURI_ENV_DEBUG === "true"): AppEnv {
   if (mode !== "development" && mode !== "production") throw new Error(`Unsupported application environment: ${mode}`)
+  // Tauri's debug bundles retain the development identity even though Vite optimizes a production build.
+  const environment = nativeDebug ? "development" : mode
   // Bun preloads env files. Build-mode files must win over inherited endpoint values.
   const inherited = keys.map((key) => [key, process.env[key]] as const)
   try {
     for (const key of keys) delete process.env[key]
-    return parseAppEnv(loadEnv(mode, root, "VITE_"), mode)
+    return parseAppEnv(loadEnv(environment, root, "VITE_"), environment)
   } finally {
     for (const [key, value] of inherited) {
       if (value === undefined) delete process.env[key]

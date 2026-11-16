@@ -8,6 +8,12 @@ const development = {
   webSsoBaseUrl: "https://www-dev.alwith.ai"
 }
 
+test("Tauri debug packaging uses the same API and credential namespace as live development", () => {
+  expect(loadAppEnv("production", true)).toEqual(loadAppEnv("development", false))
+  expect(loadAppEnv("production", true)).toEqual(development)
+  expect(loadAppEnv("production", false).environment).toBe("production")
+})
+
 test("development and production load distinct endpoints despite Bun's inherited variables", () => {
   const original = process.env.VITE_API_BASE_URL
   process.env.VITE_API_BASE_URL = development.apiBaseUrl

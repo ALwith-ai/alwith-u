@@ -14,6 +14,9 @@ pub(super) struct IssuedProvider {
     #[serde(default)]
     pub hidden: bool,
     pub models: Vec<Model>,
+    /// The search endpoints the gateway serves; Codex's hosted web search runs on them.
+    #[serde(default)]
+    pub web_search: Option<String>,
 }
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(rename_all(serialize = "camelCase"))]
@@ -170,9 +173,13 @@ fn connection_params(
         serde_json::json!({"features":{"code_mode":false,"code_mode_only":false}})
     };
     config["model_catalog_json"] = serde_json::json!(path);
+    let mut alwith = serde_json::json!({"models":models});
+    if let Some(search) = &provider.web_search {
+        alwith["webSearch"] = serde_json::json!(search);
+    }
     let params = serde_json::json!({"providerId":"openai","apiType":"openai","baseUrl":relay.base_url,"_meta":{
         "codex":{"id":runtime_id(&id),"name":provider.name,"mode":"catalog","bearerToken":relay.api_key,"config":config},
-        "alwith":{"models":models}
+        "alwith":alwith
     }});
     Connection {
         provider: PublicProvider { id, name: provider.name, base_url: provider.base_url, models: provider.models },
@@ -231,5 +238,22 @@ mod connection_tests {
         assert_eq!(connection.params["_meta"]["codex"]["bearerToken"], "memory-only-secret");
         assert_eq!(connection.params["_meta"]["codex"]["id"], runtime_id(&id));
         assert_eq!(connection.params["_meta"]["alwith"]["models"][0]["id"], "issued/model");
+        assert!(connection.params["_meta"]["alwith"].get("webSearch").is_none());
+    }
+
+    #[test]
+    fn issued_search_endpoints_reach_the_adapter() {
+        let provider = parse(json!([{"provider_id":"from-api","auth_type":"enterprise_session","name":"Issued","base_url":"https://issued.test","models":[{"api_id":"issued/model","label":"Issued"}],"web_search":"deepseek"}])).unwrap().unwrap();
+        let connection = connection_params(
+            provider_id("account", &provider.provider_id),
+            provider,
+            alwith_enterprise_client::RelayConnection {
+                base_url: "http://127.0.0.1:8123/v1".into(),
+                api_key: "test-secret".into(),
+            },
+            "test-catalog.json".into(),
+            true,
+        );
+        assert_eq!(connection.params["_meta"]["alwith"]["webSearch"], "deepseek");
     }
 }

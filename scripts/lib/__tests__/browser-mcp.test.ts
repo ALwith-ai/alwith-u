@@ -29,6 +29,16 @@ test("invalid targets and navigation are rejected before connecting", async () =
   await expect(run("browser_wait", { target: "guest", selector: "button", state: "invalid" })).rejects.toThrow(
     "wait state"
   )
+  await expect(run("browser_upload", { target: "guest", selector: "input", paths: ["relative.txt"] })).rejects.toThrow(
+    "absolute paths"
+  )
+  await expect(run("browser_check", { target: "guest", selector: "input", checked: "true" })).rejects.toThrow("boolean")
+  await expect(run("browser_scroll", { target: "guest", selector: "body", y: Infinity })).rejects.toThrow("finite")
+  await expect(run("browser_read_page", { target: "guest", offset: -1 })).rejects.toThrow("offset")
+  await expect(run("browser_read_elements", { target: "guest", selector: "tr", limit: 101 })).rejects.toThrow("limit")
+  await expect(run("browser_type", { target: "guest", selector: "input", text: "x", frame: "" })).rejects.toThrow(
+    "frame"
+  )
   expect(attached).toBe(false)
 })
 
