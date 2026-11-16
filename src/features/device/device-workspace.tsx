@@ -2,7 +2,7 @@ import { DevicePanel } from "@alwith/module-device/preview"
 import { deviceBridge } from "@alwith/module-device/tauri"
 import { isTauri } from "@tauri-apps/api/core"
 import { MoreHorizontalIcon, SmartphoneIcon } from "lucide-react"
-import { useContext, useMemo } from "react"
+import { type ReactNode, useContext, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "@/components/ui/button"
@@ -17,7 +17,7 @@ import { useWorkspace } from "@/features/workspace/context"
 import { PanelControlsContext } from "@/features/workspace/panel-controls-context"
 
 /** Keep device controls behind a compact workspace overflow menu. */
-export function DeviceWorkspaceMenu() {
+export function DeviceWorkspaceMenu({ children }: { children?: ReactNode }) {
   const workspace = useWorkspace()
   const { t } = useTranslation()
   if (workspace?.openPane === undefined || !isTauri()) return null
@@ -44,6 +44,7 @@ export function DeviceWorkspaceMenu() {
             <SmartphoneIcon />
             {t(active ? "device.panel.close" : "device.panel.open")}
           </DropdownMenuItem>
+          {children}
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>

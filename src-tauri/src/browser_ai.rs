@@ -439,29 +439,8 @@ async fn dispatch(
         if !matches!(url.scheme(), "http" | "https") {
             return Err((StatusCode::BAD_REQUEST, "Preview requires HTTP(S)".into()));
         }
-        let _guard = tokio::time::timeout(Duration::from_secs(4), state.preview_gate.lock())
-            .await
-            .map_err(|_| (StatusCode::TOO_MANY_REQUESTS, "Another tab is opening; retry shortly".into()))?;
-        if !state.sessions.lock().unwrap().get(token).is_some_and(Option::is_some) {
-            return Err((StatusCode::UNAUTHORIZED, "Browser session revoked".into()));
-        }
-        let id = uuid::Uuid::new_v4().to_string();
-        let (sender, receiver) = oneshot::channel();
         let session_id = state.session(token).ok_or((StatusCode::UNAUTHORIZED, "Browser session revoked".into()))?;
-        state.previews.lock().unwrap().insert(id.clone(), PreviewReply { sender, session_id: session_id.clone() });
-        let result = match app.emit_to(
-            "main",
-            "browser-preview-open",
-            json!({"id":id,"url":url.as_str(),"sessionId":session_id}),
-        ) {
-            Ok(()) => match tokio::time::timeout(Duration::from_secs(20), receiver).await {
-                Ok(Ok(value)) => value,
-                _ => Err("Preview UI did not acknowledge opening the page".into()),
-            },
-            Err(error) => Err(error.to_string()),
-        };
-        state.previews.lock().unwrap().remove(&id);
-        return result.map(Json).map_err(|error| (StatusCode::BAD_GATEWAY, error));
+        return open_preview(&app, &session_id, url, Some(token)).await.map(Json);
     }
     if request.method == "list" {
         let labels: Vec<_> = state.guests.lock().expect("browser guests").keys().cloned().collect();
@@ -541,6 +520,49 @@ pub struct Context {
 pub(crate) fn main(webview: &tauri::Webview) -> Result<(), String> {
     (webview.label() == "main").ok_or_else(|| "Browser sessions belong to the main application document".into())
 }
+/// Open the same live browser surface for application links and session-bound agent requests.
+async fn open_preview(
+    app: &tauri::AppHandle, session_id: &str, url: tauri::Url, token: Option<&str>,
+) -> Result<Value, (StatusCode, String)> {
+    if !matches!(url.scheme(), "http" | "https") {
+        return Err((StatusCode::BAD_REQUEST, "Preview requires HTTP(S)".into()));
+    }
+    let state = app.state::<BrowserAi>();
+    let _guard = tokio::time::timeout(Duration::from_secs(4), state.preview_gate.lock())
+        .await
+        .map_err(|_| (StatusCode::TOO_MANY_REQUESTS, "Another tab is opening; retry shortly".into()))?;
+    if let Some(token) = token
+        && state.session(token).as_deref() != Some(session_id)
+    {
+        return Err((StatusCode::UNAUTHORIZED, "Browser session revoked".into()));
+    }
+    let id = uuid::Uuid::new_v4().to_string();
+    let (sender, receiver) = oneshot::channel();
+    state.previews.lock().unwrap().insert(id.clone(), PreviewReply { sender, session_id: session_id.to_owned() });
+    let result =
+        match app.emit_to("main", "browser-preview-open", json!({"id":id,"url":url.as_str(),"sessionId":session_id})) {
+            Ok(()) => match tokio::time::timeout(Duration::from_secs(20), receiver).await {
+                Ok(Ok(result)) => result,
+                _ => Err("Preview UI did not acknowledge opening the page".into()),
+            },
+            Err(error) => Err(error.to_string()),
+        };
+    state.previews.lock().unwrap().remove(&id);
+    result.map_err(|error| (StatusCode::BAD_GATEWAY, error))
+}
+#[tauri::command]
+pub async fn cef_browser_open_url(webview: tauri::Webview, session_id: String, url: String) -> Result<Value, String> {
+    if !matches!(webview.label(), "main" | "chat") {
+        return Err("Browser links belong to application chat documents".into());
+    }
+    if session_id.is_empty() {
+        return Err("Missing sessionId".into());
+    }
+    open_preview(webview.app_handle(), &session_id, url.parse().map_err(|_| "Invalid URL")?, None)
+        .await
+        .map_err(|(_, message)| message)
+}
+
 /// Acknowledge only after the main UI has mounted and navigated its live surface.
 #[tauri::command]
 pub fn cef_preview_ready(

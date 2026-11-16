@@ -1,8 +1,8 @@
 // In-process ACP v2 agent with just enough behaviour to exercise the client:
 // async prompts, steering, permissions, cancellation, replay and archive.
 import * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
-
 import type { SessionInputConfig, SessionInputConfigSnapshot } from "@alwith/module-chat/client"
+
 import { projectContext } from "./project-context"
 export const fakeProjectContext = projectContext()
 
@@ -19,6 +19,7 @@ export type FakeAgent = {
   forks: acp.ForkSessionRequest[]
   configDelay: { current: (() => Promise<void>) | null }
   newSessionDelay: { current: ((cwd: string) => Promise<void>) | null }
+  deleteSessionDelay: { current: ((sessionId: string) => Promise<void>) | null }
   sessionOptions: {
     current: ((model: string | null, meta?: acp.NewSessionRequest["_meta"]) => acp.SessionConfigOption[]) | null
   }
@@ -112,6 +113,7 @@ export function createFakeAgent(): FakeAgent {
   const origins = new Map<string, { nativeSessionId: string; forkedFromId: string; forkedAtTurnId: string | null }>()
   const configDelay: FakeAgent["configDelay"] = { current: null }
   const newSessionDelay: FakeAgent["newSessionDelay"] = { current: null }
+  const deleteSessionDelay: FakeAgent["deleteSessionDelay"] = { current: null }
   const sessionOptions: FakeAgent["sessionOptions"] = { current: null }
   const sessionCommands: FakeAgent["sessionCommands"] = { current: undefined }
   const configResponse: FakeAgent["configResponse"] = { current: null }
@@ -489,9 +491,10 @@ export function createFakeAgent(): FakeAgent {
     archived.add(params.sessionId)
     return {}
   })
-  app.onRequest("session/delete", ({ params }) => {
+  app.onRequest("session/delete", async ({ params }) => {
     deleted.add(params.sessionId)
     inputConfig.delete(params.sessionId)
+    await deleteSessionDelay.current?.(params.sessionId)
     return {}
   })
   app.onRequest("session/unarchive", ({ params }) => {
@@ -508,6 +511,7 @@ export function createFakeAgent(): FakeAgent {
     forks,
     configDelay,
     newSessionDelay,
+    deleteSessionDelay,
     sessionOptions,
     sessionCommands,
     configResponse,

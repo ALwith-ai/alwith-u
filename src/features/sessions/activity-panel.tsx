@@ -12,6 +12,7 @@
  */
 
 import type { RunState, SessionRunState, SessionTask } from "@alwith/api"
+import type { SessionSummary } from "@alwith/module-chat/client"
 import {
   HoverInfoAction,
   NavigationGroup,
@@ -27,9 +28,9 @@ import { useEffect, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
-import type { SessionSummary } from "@alwith/module-chat/client"
 import { Pane } from "@/components/alwith-ui/pane"
 import { Kbd } from "@/components/ui/kbd"
+import { mergeListeningPorts, useTerminalPorts } from "@/features/terminal/ports"
 import { useCmdHeld } from "@/hooks/use-cmd-held"
 import { focusChatSession } from "@/lib/chat-window"
 import { useChatWindowSurface } from "@/lib/chat-window-state"
@@ -96,6 +97,8 @@ export function ActivityPanel({
     [order, runStates, sessionRows, draftSessions, search]
   )
 
+  const terminalPorts = useTerminalPorts(rows.map((row) => row.sid))
+
   // Foreground means occupying a visible chat surface, including the separate chat window.
   const groups = useMemo(() => {
     const byKey = new Map<string, typeof rows>()
@@ -161,7 +164,7 @@ export function ActivityPanel({
         interruption={row.record.interruption}
         active={row.sid === selectedId}
         tasks={row.record.tasks}
-        listeningPorts={row.record.listeningPorts}
+        listeningPorts={mergeListeningPorts(row.record.listeningPorts, terminalPorts[row.sid])}
         onOpen={() => openRow(row.sessionRow)}
         windowLabel={sessionWindows[row.sid] === "chat" ? "chat" : row.sid === selectedId ? "main" : null}
         onReturnToMain={() => onSelect(row.sessionRow)}

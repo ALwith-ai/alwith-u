@@ -67,9 +67,12 @@ import { toast } from "sonner"
 import { useTheme } from "@/components/theme-provider"
 import { ChatDirectoryContext } from "@/features/chat/file-actions"
 import { DeviceWorkspaceMenu, DeviceWorkspacePane } from "@/features/device/device-workspace"
+import { BackgroundWorkspacePane } from "@/features/terminal/background-workspace"
+import { TerminalWorkspaceMenuItem, TerminalWorkspacePane } from "@/features/terminal/terminal-workspace"
 
 import {
   type FilePosition,
+  WorkspaceBrowserEntryContext,
   WorkspaceContext,
   type WorkspaceFileReference,
   WorkspaceHeaderContext,
@@ -187,6 +190,7 @@ export function FileWorkspace({
   )
   const panelControls = useRef<PanelControls | null>(null)
   const headerTarget = useContext(WorkspaceHeaderContext)
+  const browserEntry = useContext(WorkspaceBrowserEntryContext)
   const [visible, setVisible] = useState(false),
     [treeVisible, setTreeVisible] = useState(true),
     [viewMode, setViewMode] = useState(false),
@@ -897,18 +901,42 @@ export function FileWorkspace({
               }}
             />
             <WorkspaceButton />
-            <DeviceWorkspaceMenu />
+            <DeviceWorkspaceMenu>
+              {browserEntry}
+              <TerminalWorkspaceMenuItem />
+            </DeviceWorkspaceMenu>
           </div>,
           headerTarget
         )}
       <WorkspacePanels
         controlsRef={panelControls}
-        visible={visible && (pane === "simulator" ? paneSessionId !== null : workspace !== null)}
-        maximized={visible && (pane === "simulator" ? paneSessionId !== null : workspace !== null) && viewMode}
+        visible={visible && (pane !== "files" ? paneSessionId !== null : workspace !== null)}
+        maximized={visible && (pane !== "files" ? paneSessionId !== null : workspace !== null) && viewMode}
         onMaximizedChange={setViewMode}
         chat={children}
         preview={
-          pane === "simulator" && paneSessionId !== null ? (
+          pane === "background" && paneSessionId !== null ? (
+            <BackgroundWorkspacePane
+              key={paneSessionId}
+              sessionId={paneSessionId}
+              onClose={() => {
+                setVisible(false)
+                setViewMode(false)
+                setPane("files")
+              }}
+            />
+          ) : pane === "terminal" && paneSessionId !== null ? (
+            <TerminalWorkspacePane
+              key={paneSessionId}
+              sessionId={paneSessionId}
+              cwd={cwd}
+              onClose={() => {
+                setVisible(false)
+                setViewMode(false)
+                setPane("files")
+              }}
+            />
+          ) : pane === "simulator" && paneSessionId !== null ? (
             <DeviceWorkspacePane
               sessionId={paneSessionId}
               maximized={viewMode}

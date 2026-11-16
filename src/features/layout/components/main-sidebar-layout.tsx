@@ -9,9 +9,10 @@ import {
 import { MIN_PREVIEW_WIDTH } from "@nyssance/atlas/layout"
 import { Globe } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { BrowserWorkspace } from "@/features/browser/browser-workspace"
 import { usePreviewRequest } from "@/features/browser/preview-request"
+import { WorkspaceBrowserEntryContext } from "@/features/workspace/context"
 import { useRuntimeCapabilities } from "@/lib/runtime-capabilities"
 import "@nyssance/atlas/styles.css"
 import { type ReactNode, useCallback, useContext, useMemo, useState } from "react"
@@ -106,73 +107,83 @@ export function MainSidebarLayout({
   )
   return (
     <PreviewPaneContext.Provider value={previewPane}>
-      <DesktopWorkspace
-        navigation={<NavigationOverlayBridge>{sidebar}</NavigationOverlayBridge>}
-        leading={leading}
-        panes={[
-          { id: "chat", title: t("chat.timeline"), children: main, min: 420 },
-          {
-            id: "preview",
-            title: t("workspace.preview"),
-            children: <div ref={setPreviewSlot} className="flex min-h-0 flex-1 flex-col" />,
-            min: MIN_PREVIEW_WIDTH,
-            hidden: preview.hidden,
-            maximized: preview.maximized,
-            resizable: true
-          },
-          ...(capabilities?.embeddedBrowser
-            ? [
-                {
-                  id: "browser",
-                  title: t("browser.title"),
-                  min: 420,
-                  hidden: browser.hidden,
-                  maximized: browser.maximized,
-                  resizable: true,
-                  children: browser.visited ? (
-                    <BrowserWorkspace
-                      request={previewRequest}
-                      active={!browser.hidden}
-                      maximized={browser.maximized}
-                      onMaximize={() => setBrowser((state) => ({ ...state, maximized: !state.maximized }))}
-                      onClose={() => setBrowser((state) => ({ ...state, hidden: true }))}
-                    />
-                  ) : null
-                }
-              ]
-            : [])
-        ]}
-        trailing={trailing}
-        toolbar={
-          <div className="main-workspace-toolbar flex flex-nowrap items-center gap-2">
-            {toolbar}
-            {capabilities?.embeddedBrowser && (
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label={t("browser.open")}
-                aria-pressed={!browser.hidden}
-                onClick={() => setBrowser((state) => ({ ...state, visited: true, hidden: !state.hidden }))}
-              >
-                <Globe />
-              </Button>
-            )}
-          </div>
+      <WorkspaceBrowserEntryContext.Provider
+        value={
+          capabilities?.embeddedBrowser ? (
+            <DropdownMenuItem
+              aria-label={t("browser.open")}
+              onClick={() =>
+                setBrowser((state) => ({
+                  ...state,
+                  visited: true,
+                  hidden: !state.hidden
+                }))
+              }
+            >
+              <Globe />
+              {t("browser.title")}
+            </DropdownMenuItem>
+          ) : null
         }
-        statusBar={statusBar}
-        overlays={children}
-        screen={screen}
-        onScreenChange={onScreenChange}
-        onRegionChange={regionChanged}
-        initialNavigationPinned={initialPinned}
-        onNavigationPinnedChange={persistPinned}
-        labels={labels}
-        direction={i18n.dir()}
-        trackpad={trackpad}
-        zoom={zoom}
-        openLink={openLink}
-        onError={report}
-      />
+      >
+        <DesktopWorkspace
+          navigation={<NavigationOverlayBridge>{sidebar}</NavigationOverlayBridge>}
+          leading={leading}
+          panes={[
+            { id: "chat", title: t("chat.timeline"), children: main, min: 420 },
+            {
+              id: "preview",
+              title: t("workspace.preview"),
+              children: <div ref={setPreviewSlot} className="flex min-h-0 flex-1 flex-col" />,
+              min: MIN_PREVIEW_WIDTH,
+              hidden: preview.hidden,
+              maximized: preview.maximized,
+              resizable: true
+            },
+            ...(capabilities?.embeddedBrowser
+              ? [
+                  {
+                    id: "browser",
+                    title: t("browser.title"),
+                    min: 420,
+                    hidden: browser.hidden,
+                    maximized: browser.maximized,
+                    resizable: true,
+                    children: browser.visited ? (
+                      <BrowserWorkspace
+                        request={previewRequest}
+                        active={!browser.hidden}
+                        maximized={browser.maximized}
+                        onMaximize={() =>
+                          setBrowser((state) => ({
+                            ...state,
+                            maximized: !state.maximized
+                          }))
+                        }
+                        onClose={() => setBrowser((state) => ({ ...state, hidden: true }))}
+                      />
+                    ) : null
+                  }
+                ]
+              : [])
+          ]}
+          trailing={trailing}
+          toolbar={<div className="main-workspace-toolbar flex flex-nowrap items-center gap-2">{toolbar}</div>}
+          statusBar={statusBar}
+          overlays={children}
+          screen={screen}
+          onScreenChange={onScreenChange}
+          onRegionChange={regionChanged}
+          initialNavigationPinned={initialPinned}
+          onNavigationPinnedChange={persistPinned}
+          labels={labels}
+          direction={i18n.dir()}
+          trackpad={trackpad}
+          zoom={zoom}
+          openLink={openLink}
+          onError={report}
+        />
+      </WorkspaceBrowserEntryContext.Provider>
     </PreviewPaneContext.Provider>
   )
 }

@@ -1,9 +1,9 @@
 import { type SessionRunState } from "@alwith/api"
 import { createSession, type MessageItem } from "@alwith/module-chat/client"
+import type { SessionSummary } from "@alwith/module-chat/client"
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 
-import type { SessionSummary } from "@alwith/module-chat/client"
 import { useChatWindowSurface } from "@/lib/chat-window-state"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
@@ -13,6 +13,11 @@ import { ActivityPanel } from "../activity-panel"
 import { SessionListHostProvider } from "../session-list-host"
 import { useSessionsUiStore } from "../store"
 
+const terminalMetadata = vi.hoisted((): { ports: Record<string, number[]> } => ({ ports: {} }))
+vi.mock("@/features/terminal/ports", async (original) => ({
+  ...(await original<object>()),
+  useTerminalPorts: () => terminalMetadata.ports
+}))
 await initI18n("en")
 vi.mock("@/lib/platform", () => ({ isMac: vi.fn(() => false) }))
 vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl: vi.fn(async () => {}), openPath: vi.fn(async () => {}) }))
@@ -25,6 +30,7 @@ afterEach(async () => {
   await act(() => {
     return Promise.try(() => {
       cleanup()
+      terminalMetadata.ports = {}
       client.store.setState(originalState, true)
       useSessionsUiStore.setState(originalUi, true)
       useChatWindowSurface.setState({ sessionId: null, visible: false })
@@ -394,4 +400,30 @@ test("an unread completion renders a blue dot until Runtime confirms it was read
   await act(() => Promise.try(() => client.applyRunStates([record("unread", false, "idle")])))
   expect(row().querySelector(".bg-blue-500")).toBeNull()
   expect(row().querySelector(".bg-green-500")).not.toBeNull()
+})
+
+test("application terminal ports merge beneath their owning activity and disappear after stop", async () => {
+  const runtime = [{ ...record("headless", false), listeningPorts: [44001] }, record("visible", false)]
+  client.applyRunStates(runtime)
+  terminalMetadata.ports = { headless: [44001, 44002], visible: [44003] }
+  const select = vi.fn()
+  const view = render(<ActivityPanel selectedId={null} onSelect={select} />, { wrapper: SessionListHostProvider })
+  expect(view.getAllByRole("button", { name: ":44001" })).toHaveLength(1)
+  for (const [port, owner] of [
+    [44002, "headless"],
+    [44003, "visible"]
+  ] as const) {
+    expect(view.getByRole("button", { name: `:${port}` }).closest("[data-session-id]")).toHaveAttribute(
+      "data-session-id",
+      owner
+    )
+  }
+  await act(() => Promise.resolve(fireEvent.click(view.getByRole("button", { name: ":44003" }))))
+  expect(openUrl).toHaveBeenCalledExactlyOnceWith("http://localhost:44003")
+  expect(select).not.toHaveBeenCalled()
+  terminalMetadata.ports = { headless: [], visible: [44003] }
+  view.rerender(<ActivityPanel selectedId={null} onSelect={select} />)
+  expect(view.queryByRole("button", { name: ":44002" })).not.toBeInTheDocument()
+  expect(view.getByRole("button", { name: ":44001" })).toBeInTheDocument()
+  expect(client.state.runStates.headless).toEqual(runtime[0])
 })

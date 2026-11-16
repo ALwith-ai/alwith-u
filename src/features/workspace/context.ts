@@ -1,11 +1,11 @@
-import { createContext, useContext } from "react"
+import { createContext, type ReactNode, useContext } from "react"
 export interface FilePosition {
   lineNumber: number
   column: number
 }
 
 /** What the preview region shows: the file workspace or a device simulator. */
-export type WorkspacePane = "files" | "simulator"
+export type WorkspacePane = "files" | "simulator" | "terminal" | "background"
 export interface WorkspaceActions {
   registerFileReference?: (target: WorkspaceFileReference) => () => void
   visible: boolean
@@ -30,5 +30,7 @@ export function useWorkspace(): WorkspaceActions | null {
 }
 
 export const WorkspaceHeaderContext = createContext<HTMLElement | null>(null)
+/** The layout supplies the browser entry below the simulator in the workspace overflow menu. */
+export const WorkspaceBrowserEntryContext = createContext<ReactNode>(null)
 /** The conversation the preview region belongs to; device panes attach on its behalf. */
 export const WorkspaceSessionContext = createContext<string | null>(null)

@@ -6,6 +6,7 @@ import { createManagedProvidersPort } from "@alwith/module-chat/settings"
 import { commands as computer } from "@alwith/module-computer/commands"
 import { commands as device } from "@alwith/module-device/commands"
 import { generateImage } from "@alwith/module-media"
+import { terminalClient } from "@alwith/module-terminal/tauri"
 import { invoke, isTauri } from "@tauri-apps/api/core"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { useStore } from "zustand"
@@ -13,10 +14,12 @@ import { useStore } from "zustand"
 import { createDocsTools } from "@/agent/docs-tools"
 import { configureSessionInputConfig, readSessionInputMode } from "@/features/chat/composer/input-mode-config"
 import { computerRuntimeEnv } from "@/features/computer/runtime-config"
-import { createWebAutomationTools } from "@/features/web-automation/application-tools"
 import { hostSessionContext } from "@/features/computer/session-context"
 import { guideChapters, guideVersion } from "@/features/guide/content"
 import { useImagePreferences } from "@/features/images/preferences"
+import { createTerminalTools } from "@/features/terminal/tools"
+import { closeConversationTerminals } from "@/features/terminal/view-preferences"
+import { createWebAutomationTools } from "@/features/web-automation/application-tools"
 import { RemoteChatClient } from "@/lib/chat-window-client"
 import { DesktopCodexClient } from "@/lib/desktop-client"
 import { isMac } from "@/lib/platform"
@@ -27,36 +30,41 @@ import { runtimeCapabilities } from "@/lib/runtime-capabilities"
 export const client =
   isTauri() && getCurrentWebviewWindow().label === "chat"
     ? new RemoteChatClient()
-    : new DesktopCodexClient(runtimeClient, {
-        agentId: CODEX_AGENT_ID,
-        launch: { engine: "codex", env: computerRuntimeEnv },
-        applicationTools: async () => [
-          ...createDocsTools({ chapters: guideChapters, version: guideVersion }),
-          ...(isTauri() && (await runtimeCapabilities()).embeddedBrowser ? createWebAutomationTools() : [])
-        ],
-        imageService: {
-          inputMode: readSessionInputMode,
-          selection: () => useImagePreferences.getState().selection,
-          generateExternal: generateImage
+    : new DesktopCodexClient(
+        runtimeClient,
+        {
+          agentId: CODEX_AGENT_ID,
+          launch: { engine: "codex", env: computerRuntimeEnv },
+          applicationTools: async (selection) => [
+            ...createDocsTools({ chapters: guideChapters, version: guideVersion }),
+            ...createTerminalTools(terminalClient, selection.cwd),
+            ...(isTauri() && (await runtimeCapabilities()).embeddedBrowser ? createWebAutomationTools() : [])
+          ],
+          imageService: {
+            inputMode: readSessionInputMode,
+            selection: () => useImagePreferences.getState().selection,
+            generateExternal: generateImage
+          },
+          projectPaths: isMac() ? macProjectPaths : undefined,
+          resolveModel: async (model, purpose) => {
+            const providers = await applyProvidersWhenIdle()
+            // Create a reusable draft on the currently applied catalog. Prompt admission retries
+            // the saved provider revision after active turns have finished.
+            return providers.status === "pending" && purpose === "draft" && !isAccountModel(model)
+              ? null
+              : resolveSessionModel(model, providers, purpose)
+          },
+          sessionContext: hostSessionContext,
+          revokeSessionAccess: async (sessionId) => {
+            void computer.stopSession({ sessionId }).catch((error: unknown) => {
+              console.error("Cannot release computer access", error)
+            })
+            await device.stopSession({ sessionId }).catch(() => undefined)
+            if ((await runtimeCapabilities()).embeddedBrowser) await invoke("cef_browser_revoke", { sessionId })
+          }
         },
-        projectPaths: isMac() ? macProjectPaths : undefined,
-        resolveModel: async (model, purpose) => {
-          const providers = await applyProvidersWhenIdle()
-          // Create a reusable draft on the currently applied catalog. Prompt admission retries
-          // the saved provider revision after active turns have finished.
-          return providers.status === "pending" && purpose === "draft" && !isAccountModel(model)
-            ? null
-            : resolveSessionModel(model, providers, purpose)
-        },
-        sessionContext: hostSessionContext,
-        revokeSessionAccess: async (sessionId) => {
-          void computer.stopSession({ sessionId }).catch((error: unknown) => {
-            console.error("Cannot release computer access", error)
-          })
-          await device.stopSession({ sessionId }).catch(() => undefined)
-          if ((await runtimeCapabilities()).embeddedBrowser) await invoke("cef_browser_revoke", { sessionId })
-        }
-      })
+        { closeSession: closeConversationTerminals }
+      )
 
 configureSessionInputConfig({
   read: (id) => client.readInputConfig(id),

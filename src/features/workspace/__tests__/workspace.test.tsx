@@ -13,12 +13,13 @@ import { toast } from "sonner"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
 import { projectContext } from "@/agent/__tests__/project-context"
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { ChatHeader } from "@/features/chat/chat-header"
 import { openGuideWindow } from "@/features/guide/guide-window"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
 
-import { useWorkspace, WorkspaceHeaderContext } from "../context"
+import { useWorkspace, WorkspaceBrowserEntryContext, WorkspaceHeaderContext } from "../context"
 import { FileWorkspace } from "../file-workspace"
 import { PreviewPaneContext } from "../preview-pane-context"
 
@@ -243,6 +244,21 @@ test("workspace actions use the shell toolbar target without bypassing it for Wi
     target.remove()
   }
 })
+test("the browser entry is in More immediately below the simulator", () => {
+  native.nativeMode = true
+  render(
+    <WorkspaceBrowserEntryContext.Provider value={<DropdownMenuItem>Browser</DropdownMenuItem>}>
+      <Surface cwd="/a" />
+    </WorkspaceBrowserEntryContext.Provider>
+  )
+  const toolbar = screen.getByTestId("window-titlebar")
+  expect(within(toolbar).queryByRole("button", { name: "Browser" })).toBeNull()
+  expect(screen.queryByRole("menuitem", { name: "Browser" })).toBeNull()
+  fireEvent.click(within(toolbar).getByRole("button", { name: "More actions" }))
+  const simulator = screen.getByRole("menuitem", { name: "Show simulator" })
+  expect(simulator.nextElementSibling).toBe(screen.getByRole("menuitem", { name: "Browser" }))
+})
+
 function Surface({
   cwd,
   chatRevealRequest = 0,

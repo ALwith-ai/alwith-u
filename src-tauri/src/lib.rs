@@ -191,6 +191,10 @@ pub fn run() {
         }))
         .plugin(drive::plugin())
         .plugin(appearance::wallpaper::plugin())
+        .plugin(alwith_terminal::init(alwith_terminal::Config {
+            interactive_views: cfg!(debug_assertions),
+            development_directory: native::development_directory(),
+        }))
         .plugin(alwith_editor::init(alwith_editor::Config { development_directory: native::development_directory() }))
         .plugin(alwith_computer::init(alwith_computer::Config {
             development_directory: native::development_directory(),
@@ -397,6 +401,7 @@ pub fn run() {
                 browser_chrome::cef_cancel_download,
                 web_automation::web_automation_execute,
                 web_automation::web_automation_cancel,
+                browser_ai::cef_browser_open_url,
                 browser_ai::cef_browser_context,
                 browser_ai::cef_preview_ready,
                 browser_ai::cef_browser_bind,
@@ -443,6 +448,7 @@ pub fn run() {
                             | "cef_cancel_download"
                             | "web_automation_execute"
                             | "web_automation_cancel"
+                            | "cef_browser_open_url"
                             | "cef_browser_context"
                             | "cef_preview_ready"
                             | "cef_browser_bind"

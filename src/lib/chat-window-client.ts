@@ -2,10 +2,9 @@
 // a fixed set of actions; it never attaches an agent or persists another conversation.
 
 import type { RateLimitSnapshot, RealtimeEvent, Session } from "@alwith/module-chat/client"
+import { type AppState, CodexClient, macProjectPaths } from "@alwith/module-chat/client"
 import { emitTo, listen } from "@tauri-apps/api/event"
 
-import { type AppState, CodexClient } from "@alwith/module-chat/client"
-import { macProjectPaths } from "@alwith/module-chat/client"
 import { isMac } from "@/lib/platform"
 import { asError } from "@/lib/text"
 
@@ -41,6 +40,8 @@ const METHODS = [
   "loadHistoryTurn",
   "prompt",
   "executeShell",
+  "listBackgroundTerminals",
+  "stopBackgroundTerminals",
   "retrySession",
   "cancel",
   "close",
@@ -432,6 +433,16 @@ export class RemoteChatClient extends CodexClient {
   }
   override prompt(...args: Parameters<CodexClient["prompt"]>): Promise<string> {
     return this.request("prompt", args)
+  }
+  override listBackgroundTerminals(
+    ...args: Parameters<CodexClient["listBackgroundTerminals"]>
+  ): ReturnType<CodexClient["listBackgroundTerminals"]> {
+    return this.request("listBackgroundTerminals", args)
+  }
+  override stopBackgroundTerminals(
+    ...args: Parameters<CodexClient["stopBackgroundTerminals"]>
+  ): ReturnType<CodexClient["stopBackgroundTerminals"]> {
+    return this.request("stopBackgroundTerminals", args)
   }
   override executeShell(...args: Parameters<CodexClient["executeShell"]>): ReturnType<CodexClient["executeShell"]> {
     return this.request("executeShell", args)

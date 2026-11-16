@@ -1,12 +1,24 @@
 import type { AppsInstalledParams, FuzzyFileSearchParams, FuzzyFileSearchResponse } from "@alwith/module-chat/client"
-
 import { CodexClient } from "@alwith/module-chat/client"
+import type { TerminalClient } from "@alwith/module-terminal"
+
 import { deleteSessionInputMode } from "@/features/chat/composer/input-mode-config"
 
 import { initialFileResults } from "./initial-file-results"
 
 /** Main owns native filesystem access; floating clients forward this method to it. */
 export class DesktopCodexClient extends CodexClient {
+  private readonly terminals: Pick<TerminalClient, "closeSession"> | undefined
+  private readonly terminalReads = new Map<string, Set<ReturnType<CodexClient["listBackgroundTerminals"]>>>()
+  private readonly deleting = new Map<string, Promise<void>>()
+  constructor(
+    openPort: ConstructorParameters<typeof CodexClient>[0],
+    options: ConstructorParameters<typeof CodexClient>[1],
+    terminals?: Pick<TerminalClient, "closeSession">
+  ) {
+    super(openPort, options)
+    this.terminals = terminals
+  }
   override async installedApps(params?: AppsInstalledParams): ReturnType<CodexClient["installedApps"]> {
     const response = await super.installedApps(params)
     return {
@@ -19,9 +31,43 @@ export class DesktopCodexClient extends CodexClient {
     }
   }
 
-  override async delete(sessionId: string): Promise<void> {
-    await super.delete(sessionId)
-    await deleteSessionInputMode(sessionId)
+  override async archive(sessionId: string): Promise<void> {
+    await this.terminals?.closeSession(sessionId)
+    await super.archive(sessionId)
+  }
+
+  override async listBackgroundTerminals(sessionId: string): ReturnType<CodexClient["listBackgroundTerminals"]> {
+    // A mounted workspace can outlive its draft while the replacement is prepared.
+    if (this.deleting.has(sessionId) || !this.holds(sessionId)) return []
+    const session = this.session(sessionId)
+    if (!session.attached || session.restoring) return []
+    const request = super.listBackgroundTerminals(sessionId)
+    const reads = this.terminalReads.get(sessionId) ?? new Set()
+    this.terminalReads.set(sessionId, reads)
+    reads.add(request)
+    try {
+      return await request
+    } finally {
+      reads.delete(request)
+      if (reads.size === 0) this.terminalReads.delete(sessionId)
+    }
+  }
+
+  override delete(sessionId: string): Promise<void> {
+    const pending = this.deleting.get(sessionId)
+    if (pending) return pending
+    // Stop admitting reads before any asynchronous cleanup, and drain admitted reads
+    // before removing the remote session. Other sessions remain independent.
+    const operation = Promise.resolve()
+      .then(async () => {
+        await Promise.allSettled(this.terminalReads.get(sessionId) ?? [])
+        await this.terminals?.closeSession(sessionId)
+        await super.delete(sessionId)
+        await deleteSessionInputMode(sessionId)
+      })
+      .finally(() => this.deleting.delete(sessionId))
+    this.deleting.set(sessionId, operation)
+    return operation
   }
 
   override async fuzzyFileSearch(params: FuzzyFileSearchParams): Promise<FuzzyFileSearchResponse> {

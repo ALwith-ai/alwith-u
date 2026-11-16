@@ -4,11 +4,13 @@ import {
   DesktopWorkspaceControlsContext as WindowsWorkspaceControlsContext
 } from "@alwith/module-desktop-shell/react"
 import { act, cleanup, fireEvent, render } from "@testing-library/react"
-import { useState } from "react"
+import { useContext, useState } from "react"
 import { createPortal } from "react-dom"
 import { afterEach, beforeEach, expect, type MockInstance, test, vi } from "vitest"
 
 import { Button } from "@/components/ui/button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { WorkspaceBrowserEntryContext } from "@/features/workspace/context"
 import { must } from "@/lib/__tests__/must"
 import { initI18n } from "@/lib/i18n"
 import * as preferences from "@/lib/preferences"
@@ -55,8 +57,13 @@ function SidebarContent() {
 
 function ChatContent() {
   const [draft, setDraft] = useState("")
+  const browserEntry = useContext(WorkspaceBrowserEntryContext)
   return (
     <main data-testid="chat">
+      <DropdownMenu>
+        <DropdownMenuTrigger render={<Button>More</Button>} />
+        <DropdownMenuContent>{browserEntry}</DropdownMenuContent>
+      </DropdownMenu>
       <textarea aria-label="Draft" value={draft} onInput={(event) => setDraft(event.currentTarget.value)} />
       <div data-testid="chat-scroll" style={{ overflow: "auto", height: 100 }}>
         <div style={{ height: 1000 }}>History</div>
@@ -458,17 +465,20 @@ test("Windows hosts workspace actions in the title bar instead of the body", () 
 
 test("the shared layout exposes browser entry only when the host supports it", () => {
   const view = setup()
-  expect(view.queryByRole("button", { name: "Open the embedded browser" })).toBeNull()
+  fireEvent.click(view.getByRole("button", { name: "More" }))
+  expect(view.queryByRole("menuitem", { name: "Open the embedded browser" })).toBeNull()
   cleanup()
   capabilities.embeddedBrowser = true
   const pro = setup()
-  expect(pro.getByRole("button", { name: "Open the embedded browser" })).toBeInTheDocument()
+  fireEvent.click(pro.getByRole("button", { name: "More" }))
+  expect(pro.getByRole("menuitem", { name: "Open the embedded browser" })).toBeInTheDocument()
 })
 
 test("every pane, the browser included, sits on the shell's plate without drawing its own", async () => {
   capabilities.embeddedBrowser = true
   const view = setup()
-  fireEvent.click(view.getByRole("button", { name: "Open the embedded browser" }))
+  fireEvent.click(view.getByRole("button", { name: "More" }))
+  fireEvent.click(view.getByRole("menuitem", { name: "Open the embedded browser" }))
   const workspace = await view.findByRole("region", { name: "Browser workspace" })
   // The plate is the pane's body: an Atlas surface the shell paints.
   expect(workspace.parentElement).toHaveClass("main-screen-pane-body")

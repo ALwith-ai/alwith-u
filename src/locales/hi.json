@@ -612,5 +612,22 @@
     "mutedTab": "म्यूट है",
     "pinnedTab": "पिन किया गया",
     "translatePage": "इस पेज का अनुवाद करें"
+  },
+  "terminal": {
+    "title": "Terminal",
+    "open": "Open terminal",
+    "new": "New terminal",
+    "stop": "Stop terminal",
+    "close": "Close terminal",
+    "hide": "Hide terminal",
+    "background": "Background processes",
+    "stopAllBackground": "Stop all background processes",
+    "output": "Output log",
+    "noBackground": "No background processes are running",
+    "restart": "Restart terminal",
+    "reopen": "Reopen closed terminal",
+    "search": "Search terminal output",
+    "rename": "Terminal name",
+    "moveHere": "Move terminal to this window"
   }
 }

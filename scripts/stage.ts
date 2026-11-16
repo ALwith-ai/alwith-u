@@ -15,10 +15,10 @@
 import { chmodSync, copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs"
 import { join, resolve } from "node:path"
 
-import { stageBrowser } from "./stage-browser"
 import { stageChromeBridge } from "@alwith/module-browser/stage"
 import { stageChatAdapter } from "@alwith/module-chat/stage"
 import { stageNativeModule } from "@alwith/module-desktop-shell/stage"
+import { stageTerminal } from "@alwith/module-terminal/stage"
 import { stageNative as stageNativeEnterprise } from "@alwith/native-enterprise/stage"
 import { stageRuntime } from "@alwith/runtime/stage"
 import { $ } from "bun"
@@ -30,6 +30,7 @@ import { stageDocs } from "./lib/docs-artifact"
 import { runtimeBuildArtifact, runtimeSource, stageTarget } from "./lib/runtime-artifact"
 import { assertVersion, BUN_PACKAGES, CODEX_WINDOWS_HELPERS, codexSidecars, toolchainVersions } from "./lib/toolchain"
 import { stageWorkBuddy } from "./lib/workbuddy-artifact"
+import { stageBrowser } from "./stage-browser"
 
 const root = resolve(import.meta.dirname, "..")
 await stageDocs(root)
@@ -133,6 +134,7 @@ const MODULES = [
   "drive"
 ]
 const nativeDirectory = join(root, "src-tauri/resources/native")
+stageTerminal(triple, nativeDirectory)
 const staged = [
   ...MODULES.flatMap((module) => stageNativeModule(import.meta.url, module, triple, nativeDirectory, licenses)),
   { path: stageNativeEnterprise(triple, nativeDirectory, licenses), signing: "resign" as const }
@@ -185,7 +187,6 @@ if (triple === nativeTriple) {
   const codexDestination = join(binaries, `codex-${triple}${target.exe}`)
   assertVersion("staged Codex", (await $`${codexDestination} --version`.text()).trim(), `codex-cli ${codexVersion}`)
 }
-
 verifyCodexArtifacts(root, triple)
 
 const adapterDirectory = join(root, "src-tauri/resources/adapter")
