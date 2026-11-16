@@ -345,7 +345,8 @@
     "newTab": "Neuer Tab",
     "emptyNewTab": "Neuer Tab",
     "more": "Weitere Aktionen",
-    "ignored": "Von Git ignorierte Dateien anzeigen"
+    "ignored": "Von Git ignorierte Dateien anzeigen",
+    "previewTooLarge": "Diese Datei ist zu groß für die Vorschau. PDF-Dateien werden bis 40 MiB unterstützt."
   },
   "vibemon": {
     "retry": "Wiederholen",

@@ -123,9 +123,34 @@ test("large local files retain the external application size limit", async () =>
     }
   }))
   mocks.stat.mockResolvedValue({ kind: "file", size: 16 * 1024 * 1024 + 1, version: "1" })
-  expect(await prepareWorkspaceFile("/drive/large.pdf")).toBeNull()
-  expect(mocks.external).toHaveBeenCalledWith("/drive/large.pdf")
+  expect(await prepareWorkspaceFile("/drive/large.txt")).toBeNull()
+  expect(mocks.external).toHaveBeenCalledWith("/drive/large.txt")
   expect(mocks.prepare).not.toHaveBeenCalled()
+})
+
+test.each([20, 40, 41])("a local %s MiB PDF stays in the shared preview instead of opening externally", async (mib) => {
+  mocks.snapshot.mockImplementation(() => ({
+    snapshot: {
+      generation: 1,
+      webBaseUrl: "https://drive.example.test",
+      configured: true,
+      localRoot: "/drive",
+      files: []
+    }
+  }))
+  mocks.stat.mockResolvedValue({ kind: "file", size: mib * 1024 * 1024, version: "1" })
+  expect(await prepareWorkspaceFile("/drive/large.pdf")).toBe("/drive/large.pdf")
+  expect(mocks.external).not.toHaveBeenCalled()
+  expect(mocks.prepare).not.toHaveBeenCalled()
+})
+
+test("cloud PDFs delegate oversized behavior to the shared preview", async () => {
+  await prepareWorkspaceFile("/drive/large.pdf.yupcloud")
+  expect(mocks.prepare).toHaveBeenCalledWith(
+    expect.anything(),
+    "/drive/large.pdf.yupcloud",
+    expect.objectContaining({ openLargeFilesExternally: false })
+  )
 })
 
 test.each(["forbidden", "cloudOnly"])("local files retain the indexed %s restriction", async (state) => {

@@ -364,7 +364,8 @@
     "newTab": "Nuova scheda",
     "emptyNewTab": "Nuova scheda",
     "more": "Altre azioni",
-    "ignored": "Mostra file ignorati da Git"
+    "ignored": "Mostra file ignorati da Git",
+    "previewTooLarge": "Il file è troppo grande per l’anteprima. Sono supportati PDF fino a 40 MiB."
   },
   "vibemon": {
     "retry": "Riprova",

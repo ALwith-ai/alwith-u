@@ -354,7 +354,8 @@
     "newTab": "Nouvel onglet",
     "emptyNewTab": "Nouvel onglet",
     "more": "Plus d’actions",
-    "ignored": "Afficher les fichiers ignorés par Git"
+    "ignored": "Afficher les fichiers ignorés par Git",
+    "previewTooLarge": "Ce fichier est trop volumineux pour un aperçu. Les PDF sont pris en charge jusqu’à 40 Mio."
   },
   "vibemon": {
     "retry": "Réessayer",

@@ -1036,6 +1036,7 @@
     "closeAll": "关闭全部",
     "retry": "重试",
     "loadFailed": "文件加载失败",
+    "previewTooLarge": "此文件过大，无法预览。PDF 预览支持不超过 40 MiB 的文件。",
     "iconTheme": "文件图标主题",
     "editorSettings": "编辑器设置",
     "fontSize": "字号",

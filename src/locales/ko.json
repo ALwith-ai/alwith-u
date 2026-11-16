@@ -377,7 +377,8 @@
     "newTab": "새 탭",
     "emptyNewTab": "새 탭",
     "more": "추가 작업",
-    "ignored": "Git에서 무시한 파일 표시"
+    "ignored": "Git에서 무시한 파일 표시",
+    "previewTooLarge": "파일이 너무 커서 미리 볼 수 없습니다. PDF 미리 보기는 40 MiB까지 지원합니다."
   },
   "vibemon": {
     "retry": "다시 시도",

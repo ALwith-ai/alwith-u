@@ -359,7 +359,8 @@
     "newTab": "Nueva pestaña",
     "emptyNewTab": "Nueva pestaña",
     "more": "Más acciones",
-    "ignored": "Mostrar archivos ignorados por Git"
+    "ignored": "Mostrar archivos ignorados por Git",
+    "previewTooLarge": "Este archivo es demasiado grande para la vista previa. Se admiten PDF de hasta 40 MiB."
   },
   "vibemon": {
     "retry": "Reintentar",

@@ -10,6 +10,7 @@ import { drive } from "./controller"
 import { driveFileSystem } from "./filesystem"
 
 export const maxEditorBytes = 16 * 1024 * 1024
+export const isPdfPreview = (path: string): boolean => /\.pdf(?:\.yupcloud)?$/i.test(path)
 
 export interface WorkspaceFileHost {
   readFile: (path: string) => Promise<Uint8Array>
@@ -52,7 +53,7 @@ export async function prepareWorkspaceFile(path: string, host?: WorkspaceFileHos
       const stat = await fs.stat(path)
       checkProfile()
       if (stat?.kind === "file") {
-        if (stat.size > maxEditorBytes) {
+        if (stat.size > maxEditorBytes && !isPdfPreview(path)) {
           await openExternal(path)
           return null
         }
@@ -63,9 +64,10 @@ export async function prepareWorkspaceFile(path: string, host?: WorkspaceFileHos
       ? path
       : await prepareDriveFile(drive, path, {
           maxEditorBytes,
+          openLargeFilesExternally: !isPdfPreview(path),
           confirmDownload: async (name, bytes) => {
             const accepted = await confirm(
-              `Download ${name} (${bytes} bytes)? Files larger than 16 MiB open in the system application.`,
+              `Download ${name} (${bytes} bytes)?${isPdfPreview(path) ? "" : " Files larger than 16 MiB open in the system application."}`,
               {
                 title: "Drive"
               }

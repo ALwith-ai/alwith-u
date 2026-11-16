@@ -34,7 +34,7 @@ import { DriveDocumentSurface, useDriveContentHost } from "@/features/drive/cont
 import { driveControls, driveDialogClassName } from "@/features/drive/controls"
 import { useDriveDeepLinks } from "@/features/drive/deep-links"
 import { drive, DriveSharingDialog } from "@/features/drive/drive"
-import { maxEditorBytes, prepareWorkspaceFile } from "@/features/drive/files"
+import { isPdfPreview, maxEditorBytes, prepareWorkspaceFile } from "@/features/drive/files"
 import { driveFileSystem } from "@/features/drive/filesystem"
 import { rebaseDrivePins } from "@/features/drive/pinned"
 import { DriveTreeActions } from "@/features/drive/tree-actions"
@@ -523,7 +523,7 @@ export function FileWorkspace({
         await openHtmlInBrowser(path)
         return
       }
-      if (stat.size > maxEditorBytes) {
+      if (stat.size > maxEditorBytes && !isPdfPreview(path)) {
         await target.tree.reveal(path)
         if (generation !== requestGeneration.current || owner !== currentCwd.current) return
         target.tree.select(path)
@@ -876,6 +876,7 @@ export function FileWorkspace({
     openExternal: t("workspace.openExternal"),
     loading: t("workspace.loading"),
     loadFailed: t("workspace.loadFailed"),
+    tooLarge: t("workspace.previewTooLarge"),
     retry: t("workspace.retry")
   }
   return (

@@ -354,7 +354,8 @@
     "newTab": "Nova aba",
     "emptyNewTab": "Nova aba",
     "more": "Mais ações",
-    "ignored": "Mostrar arquivos ignorados pelo Git"
+    "ignored": "Mostrar arquivos ignorados pelo Git",
+    "previewTooLarge": "Este arquivo é grande demais para visualizar. PDFs de até 40 MiB são compatíveis."
   },
   "vibemon": {
     "retry": "Tentar novamente",
