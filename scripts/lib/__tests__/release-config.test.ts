@@ -50,7 +50,8 @@ test("every CI Bun installation uses the packageManager pin and checks toolchain
     for (const job of Object.values(workflow.jobs!)) {
       const steps = job.steps!
       const setup = steps.find((step) => step.uses === "oven-sh/setup-bun@v2")
-      if (!setup && steps.some((step) => step.uses === "actions/setup-python@v5")) continue
+      // A job that never runs Bun (the path filter, a Python job) needs no Bun installation.
+      if (!setup && !steps.some((step) => /\bbunx?\b/.test(step.run ?? ""))) continue
       expect(setup?.with?.["bun-version-file"]).toBe("package.json")
       expect(steps.some((step) => step.run === "bun scripts/check-toolchain.ts")).toBe(true)
     }

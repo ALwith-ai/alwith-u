@@ -8,18 +8,91 @@ on:
 permissions:
   contents: read
 
+# A newer push supersedes the run of the one before it.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  # Each job below runs only when something it checks changed, and the unit tests only for the
+  # files affected since the previous push. A dependency change runs everything it can reach.
+  changes:
+    runs-on: ubuntu-24.04
+    outputs:
+      web: ${{ steps.filter.outputs.web }}
+      stories: ${{ steps.filter.outputs.stories }}
+      desktop: ${{ steps.filter.outputs.desktop }}
+      staging: ${{ steps.filter.outputs.staging }}
+      dependencies: ${{ steps.filter.outputs.dependencies }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            dependencies:
+              - package.json
+              - bun.lock
+              - bunfig.toml
+              - .github/workflows/ci.yml
+            web:
+              - package.json
+              - bun.lock
+              - bunfig.toml
+              - .github/workflows/ci.yml
+              - "src/**"
+              - "scripts/**"
+              - "tests/**"
+              - ".storybook/**"
+              - "*.ts"
+              - "*.json"
+              - "*.html"
+            stories:
+              - package.json
+              - bun.lock
+              - .github/workflows/ci.yml
+              - "src/**"
+              - ".storybook/**"
+              - scripts/test-storybook.ts
+              - "scripts/lib/storybook-*"
+            desktop:
+              - package.json
+              - bun.lock
+              - .github/workflows/ci.yml
+              - "src-tauri/**"
+              - "scripts/**"
+            staging:
+              - package.json
+              - bun.lock
+              - .github/workflows/ci.yml
+              - "scripts/**"
+              - "src-tauri/tauri*.json"
+
   web:
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version-file: package.json
       - run: bun scripts/check-toolchain.ts
       - run: bun install --frozen-lockfile
       - run: bun check --no-script -b
-      - run: bun run test -- --reporter=junit --outputFile=test-results.xml
+      - name: Unit tests
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          ALL: ${{ needs.changes.outputs.dependencies }}
+        run: |
+          # Only the tests affected since the base; all of them when dependencies moved or there is no base.
+          if [ "$ALL" = "true" ] || [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            bun run test -- --reporter=junit --outputFile=test-results.xml
+          else
+            bun run test -- --changed "$BASE" --passWithNoTests --reporter=junit --outputFile=test-results.xml
+          fi
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -27,11 +100,16 @@ jobs:
           path: test-results.xml
           if-no-files-found: ignore
       - run: bun run build
-      - run: bun run storybook:check
-      - run: bunx --bun playwright install --with-deps chromium
-      - run: bun run storybook:test
+      - if: needs.changes.outputs.stories == 'true'
+        run: bun run storybook:check
+      - if: needs.changes.outputs.stories == 'true'
+        run: bunx --bun playwright install --with-deps chromium-headless-shell
+      - if: needs.changes.outputs.stories == 'true'
+        run: bun run storybook:test
 
   desktop-public-dependencies:
+    needs: changes
+    if: needs.changes.outputs.desktop == 'true'
     # Expand when additional Runtime targets are actually published. Native npm
     # libraries already cover six targets; don't pretend Runtime does yet.
     runs-on: macos-15
@@ -54,6 +132,8 @@ jobs:
       - run: bun tauri build --no-bundle
 
   windows-staging:
+    needs: changes
+    if: needs.changes.outputs.staging == 'true'
     runs-on: windows-2025
     steps:
       - uses: actions/checkout@v4
