@@ -98,7 +98,7 @@
       "devDependencies": {
         "@babel/parser": "^8.1.2",
         "@nyssance/cef-rs": "158.0.25",
-        "@nyssance/tauri-runtime-cef": "158.0.25",
+        "@nyssance/tauri-runtime-cef": "158.1.0",
         "@nyssance/ts7-lint": "^0.1.3",
         "@nyssance/tsconfig": "^0.1.2",
         "@openai/codex": "0.169.0",
@@ -473,7 +473,7 @@
 
     "@nyssance/shadcn": ["@nyssance/shadcn@4.23.4", "", { "dependencies": { "@base-ui/react": "^1.9.0", "@shadcn/react": "^0.3.1", "class-variance-authority": "^0.7.1", "cmdk": "^1.1.1", "cn": "^0.5.1", "embla-carousel-react": "^8.6.0", "input-otp": "^1.5.0", "lucide-react": "^1.66.0", "next-themes": "^0.4.6", "react-day-picker": "^10.0.2", "react-resizable-panels": "^4.16.0", "recharts": "3.8.0", "shiki": "^4.5.0", "sonner": "^2.0.8" }, "peerDependencies": { "react": "^19.0.0", "react-dom": "^19.0.0", "vite": ">=8" }, "optionalPeers": ["vite"] }, "sha512-pdqPvm9SkSD6tmbyFPsnaYo+9dj/9AkabQtGnCam5b0tmABMLnAqP5jBducAV5T/iItflMFPcgrA7DE0/69yqg=="],
 
-    "@nyssance/tauri-runtime-cef": ["@nyssance/tauri-runtime-cef@158.0.25", "", {}, "sha512-9v2uxVs5sCBZA0hrzH0lg5op9VgprshHBmvw7Y4o2SCcoCfLq0MRUycqbUkZ0IA3cuOpryfi1p6EOClYbGrYLQ=="],
+    "@nyssance/tauri-runtime-cef": ["@nyssance/tauri-runtime-cef@158.1.0", "", {}, "sha512-JQyZ4mJkf5vMGUevyKDGlY6MqxtPYsHN7T/nDOxuunNVsnQ9Kcf69CcvctyEhD2f7bjZts8VCMgKyeU7CeNDow=="],
 
     "@nyssance/ts7-lint": ["@nyssance/ts7-lint@0.1.3", "", { "bin": { "ts7-lint": "src/index.ts" } }, "sha512-i6lTThgMw6JoCgDB1clmlNMMgOJSj2nU62qZjZn6KhG55YYmNwkkZw889Am9YuXAnXNcJDi8qZKC23HpV+lx8Q=="],
 

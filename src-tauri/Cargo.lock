@@ -7329,7 +7329,7 @@ dependencies = [
 
 [[package]]
 name = "tauri-runtime-cef"
-version = "3.0.0-alpha.7"
+version = "3.0.0-alpha.7+ny.158.1.0"
 dependencies = [
  "base64 0.22.1",
  "cef",

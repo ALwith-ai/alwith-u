@@ -132,7 +132,7 @@
   "devDependencies": {
     "@babel/parser": "^8.1.2",
     "@nyssance/cef-rs": "158.0.25",
-    "@nyssance/tauri-runtime-cef": "158.0.25",
+    "@nyssance/tauri-runtime-cef": "158.1.0",
     "@nyssance/ts7-lint": "^0.1.3",
     "@nyssance/tsconfig": "^0.1.2",
     "@openai/codex": "0.169.0",
