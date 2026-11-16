@@ -29,6 +29,7 @@ import { logBackgroundError } from "@/lib/background-errors"
 import { focusChatSession, openChatWindow, requestChatSurface, syncChatWindowSurface } from "@/lib/chat-window"
 import { client, markRead } from "@/lib/client"
 import { CODEX_AGENT_ID, runtimeClient } from "@/lib/runtime"
+import { observeWindowMinimized } from "@/lib/window-minimized"
 
 import { collapseToVibemon } from "./collapse"
 import { reportVibemonError } from "./display-error"
@@ -96,17 +97,7 @@ async function start() {
   })
   setMainSurface = (value) => owner.surface("main", value)
   const mainWindow = getCurrentWebviewWindow()
-  let minimizedRevision = 0
-  const refreshMinimized = async () => {
-    const revision = ++minimizedRevision
-    const minimized = await mainWindow.isMinimized()
-    if (revision === minimizedRevision) await owner.minimized(minimized)
-  }
-  await Promise.all([
-    mainWindow.onResized(() => void refreshMinimized().catch(report)),
-    mainWindow.onFocusChanged(() => void refreshMinimized().catch(report))
-  ])
-  await refreshMinimized()
+  const windowState = await observeWindowMinimized(mainWindow, (minimized) => owner.minimized(minimized), report)
   let queue: Promise<unknown> = Promise.resolve()
   const serialize = <T>(work: () => Promise<T>): Promise<T> => {
     const result = queue.then(work)
@@ -348,7 +339,7 @@ async function start() {
       case "send":
         return owner.send(payload.binding, payload.requestId, payload.text)
       case "answer":
-        await refreshMinimized()
+        await windowState.refresh()
         return owner.answer(payload.binding, payload.requestId, payload.token, payload.optionId)
       case "open-chat":
         return owner.openChat(payload.binding)

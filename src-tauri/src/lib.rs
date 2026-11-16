@@ -54,6 +54,7 @@ use atlas_tauri as trackpad;
 mod tray;
 mod vibemon;
 mod window;
+mod window_state;
 #[cfg(all(test, target_os = "windows"))]
 #[path = "../windows_cef.rs"]
 mod windows_cef;
@@ -327,6 +328,7 @@ pub fn run() {
             }
             settings::initialize(app.handle())?;
             window::initialize_main_window(app.handle())?;
+            window_state::install(app.handle())?;
             log::info!("ALwith U {} starting", env!("CARGO_PKG_VERSION"));
             #[cfg(target_os = "windows")]
             app.get_webview_window("main").expect("main window exists at setup").hide()?;

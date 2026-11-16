@@ -143,7 +143,7 @@ test.each(["request", "result"])(
     )
     const pull = await view.findByRole("button", { name: "Pull once" }, { timeout: 5000 })
     fireEvent.click(pull)
-    expect(await view.findByRole("alert")).toHaveTextContent("Draw failed")
+    expect(await view.findByRole("alert")).toHaveTextContent(failure === "request" ? "Draw failed" : "Draw succeeded")
     expect(view.getByRole("button", { name: "Chat" })).toBeInTheDocument()
     expect(view.queryByText("Whole app crashed")).not.toBeInTheDocument()
     expect(assets.drawGachaPool).toHaveBeenCalledExactlyOnceWith("pool", "SINGLE")
@@ -152,3 +152,104 @@ test.each(["request", "result"])(
     expect(toast.error).not.toHaveBeenCalled()
   }
 )
+
+test.each(["resource", "decode"])("successful draws recover from %s failure without drawing again", async (failure) => {
+  requestVibemonView("pull")
+  const view = render(<VibemonCenter />)
+  const pull = await view.findByRole("button", { name: "Pull once" })
+  assets.drawGachaPool.mockResolvedValue({
+    results: [
+      {
+        reward_type: "VIBEMON",
+        vibemon_uuid: "won",
+        vibemon_name: "Won",
+        draw_index: 0,
+        rarity_code: "SSR",
+        is_duplicate: false,
+        gacha_url: `/won-${failure}.png`,
+        multi_draw_url: `/won-${failure}-multi.png`
+      }
+    ]
+  })
+  let failResult = true
+  assets.resolveImages.mockImplementation((id: string) =>
+    id === "won" && failure === "resource" && failResult
+      ? Promise.reject(new Error("Result image unavailable"))
+      : Promise.resolve({})
+  )
+  if (failure === "decode")
+    Object.defineProperty(HTMLImageElement.prototype, "decode", {
+      configurable: true,
+      value: function (this: HTMLImageElement) {
+        return failResult && this.src.endsWith("/won-decode.png")
+          ? Promise.reject(new Error("Broken image"))
+          : Promise.resolve()
+      }
+    })
+  const pointsBefore = assets.getPointAccount.mock.calls.length
+  const ownedBefore = assets.getMyVibemons.mock.calls.length
+  const poolsBefore = assets.getActiveGachaPools.mock.calls.length
+  fireEvent.click(pull)
+  expect(await view.findByRole("alert")).toHaveTextContent("Draw succeeded")
+  expect(assets.getPointAccount.mock.calls.length).toBeGreaterThan(pointsBefore)
+  expect(assets.getMyVibemons.mock.calls.length).toBeGreaterThan(ownedBefore)
+  expect(assets.getActiveGachaPools.mock.calls.length).toBeGreaterThan(poolsBefore)
+  expect(view.getByRole("button", { name: "Pull once" })).toBeDisabled()
+  failResult = false
+  fireEvent.click(view.getByRole("button", { name: "Reload result" }))
+  await waitFor(() => expect(view.queryByRole("alert")).not.toBeInTheDocument())
+  expect(assets.drawGachaPool).toHaveBeenCalledTimes(1)
+  expect(view.container.querySelector('[data-presentation-state="video-waiting"]')).toBeInTheDocument()
+})
+
+test("the last pool expiring shows an empty state and can refresh an empty server catalog", async () => {
+  const end = new Date(Date.now() + 60_000).toISOString()
+  assets.getActiveGachaPools.mockResolvedValue([
+    { uuid: "pool", sort_order: 0, start_time: null, end_time: end, is_default: 1, single_cost: 1, multi_cost: 10 }
+  ])
+  requestVibemonView("pull")
+  const view = render(<VibemonCenter />)
+  await view.findByRole("button", { name: "Pull once" })
+  vi.spyOn(Date, "now").mockReturnValue(Date.parse(end) + 1)
+  expect(await view.findByRole("status", {}, { timeout: 2500 })).toHaveTextContent("No card pools")
+  expect(view.queryByRole("button", { name: "Pull once" })).not.toBeInTheDocument()
+  expect(view.getByRole("button", { name: "Back" })).toBeEnabled()
+  await waitFor(() => expect(assets.getActiveGachaPools).toHaveBeenCalledTimes(2))
+  const calls = assets.getActiveGachaPools.mock.calls.length
+  assets.getActiveGachaPools.mockResolvedValue([])
+  fireEvent.click(view.getByRole("button", { name: "Refresh card pools" }))
+  await waitFor(() => expect(assets.getActiveGachaPools).toHaveBeenCalledTimes(calls + 1))
+  expect(view.getByRole("status")).toHaveTextContent("No card pools")
+  expect(view.queryByRole("alert")).not.toBeInTheDocument()
+})
+
+test("failed catalog refresh preserves a successful draw and its result recovery", async () => {
+  requestVibemonView("pull")
+  const view = render(<VibemonCenter />)
+  const pull = await view.findByRole("button", { name: "Pull once" })
+  assets.getActiveGachaPools.mockRejectedValueOnce(new Error("Catalog offline"))
+  assets.drawGachaPool.mockResolvedValue({ results: [] })
+  fireEvent.click(pull)
+  expect(await view.findByRole("alert")).toHaveTextContent("Draw succeeded")
+  expect(view.getByRole("button", { name: "Reload result" })).toBeEnabled()
+  expect(view.getByRole("button", { name: "Refresh card pools" })).toBeEnabled()
+  expect(view.getByRole("button", { name: "Pull once" })).toBeDisabled()
+  fireEvent.click(view.getByRole("button", { name: "Refresh card pools" }))
+  await waitFor(() => expect(view.queryByRole("button", { name: "Refresh card pools" })).not.toBeInTheDocument())
+  expect(view.getByRole("button", { name: "Reload result" })).toBeEnabled()
+  expect(assets.drawGachaPool).toHaveBeenCalledTimes(1)
+})
+
+test("failed inventory refresh keeps a successful draw available for result recovery", async () => {
+  requestVibemonView("pull")
+  const view = render(<VibemonCenter />)
+  const pull = await view.findByRole("button", { name: "Pull once" })
+  assets.getMyVibemons.mockRejectedValueOnce(new Error("Inventory offline"))
+  assets.drawGachaPool.mockResolvedValue({ results: [] })
+  fireEvent.click(pull)
+  expect(await view.findByRole("alert")).toHaveTextContent("Draw succeeded")
+  expect(view.getByRole("button", { name: "Reload result" })).toBeEnabled()
+  expect(view.getByRole("button", { name: "Pull once" })).toBeDisabled()
+  expect(view.queryByText("Vibémon assets are unavailable")).not.toBeInTheDocument()
+  expect(assets.drawGachaPool).toHaveBeenCalledTimes(1)
+})
