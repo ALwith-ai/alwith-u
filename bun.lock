@@ -7,7 +7,7 @@
       "dependencies": {
         "@agentclientprotocol/sdk": "^2.7.0",
         "@alwith/api": "^0.6.1",
-        "@alwith/enterprise-client": "^0.6.3",
+        "@alwith/enterprise-client": "^0.6.4",
         "@alwith/module-auth": "^0.6.4",
         "@alwith/module-browser": "^0.6.0",
         "@alwith/module-chat": "^0.6.18",
@@ -27,9 +27,9 @@
         "@alwith/module-store": "^0.6.0",
         "@alwith/module-tabs": "^0.6.1",
         "@alwith/module-voice": "^0.6.2",
-        "@alwith/native-enterprise": "^0.6.3",
+        "@alwith/native-enterprise": "^0.6.4",
         "@alwith/native-kit": "^0.5.2",
-        "@alwith/runtime": "^0.6.0",
+        "@alwith/runtime": "^0.6.1",
         "@base-ui/react": "^1.9.0",
         "@dnd-kit/core": "^6.3.1",
         "@dnd-kit/sortable": "^10.0.0",
@@ -151,7 +151,7 @@
 
     "@alwith/api": ["@alwith/api@0.6.1", "", { "peerDependencies": { "@tauri-apps/api": ">=2" }, "optionalPeers": ["@tauri-apps/api"] }, "sha512-DbMwpXU1YyQm2GSEY2JL/ASlIVjORzz+NQZ7hG++/yrilB6B7jFmTyy8DzZ+oTc8kLQ4tiApnUArqQgtoVfIPw=="],
 
-    "@alwith/enterprise-client": ["@alwith/enterprise-client@0.6.3", "", { "peerDependencies": { "@alwith/native-kit": "0.5.2" } }, "sha512-6vvzfPNDA8ZJsA5Rn8aAmyjP8iDUa601RRF4zW7TuxAWRsDRBOCwtpz72uYeeBxQkRpTkxvY7jTQ45hcjzRolw=="],
+    "@alwith/enterprise-client": ["@alwith/enterprise-client@0.6.4", "", { "peerDependencies": { "@alwith/native-kit": "^0.5.2" } }, "sha512-TXgwkwdgo0H+sCmDzDSjNJX/ZgB3rBupc/1XaRTmsQz0dDw92ga7oY8mbHWMnpk4jHfzjIZRT/B9DTb2MtlOXw=="],
 
     "@alwith/module-auth": ["@alwith/module-auth@0.6.4", "", { "dependencies": { "@base-ui/react": "^1.9.0", "@nyssance/atlas": "^0.1.11", "class-variance-authority": "^0.7.1", "cn": "^0.5.2", "fflate": "0.8.3", "ldrs": "^1.1.9", "lucide-react": "^1.70.0", "motion": "^14.10.1", "sonner": "^2.0.8", "tyme4ts": "^1.5.5", "zustand": "^5.1.0" }, "peerDependencies": { "@agentclientprotocol/sdk": "^2.4.0", "@alwith/api": "^0.6.1", "@alwith/module-chat": "^0.6.0", "@tauri-apps/api": "^3.0.0-alpha.3", "@tauri-apps/plugin-os": "^3.0.0-alpha.3", "i18next": "^27.0.0", "react": "^19.3.1", "react-dom": "^19.3.1", "react-i18next": "^18.0.0" }, "optionalPeers": ["@agentclientprotocol/sdk", "@alwith/api", "@alwith/module-chat", "@tauri-apps/api", "@tauri-apps/plugin-os", "react", "react-dom"] }, "sha512-f7t3V5nZviw1NB4T4qVg19yuaJKViXzrnd1ZmqvSznYhy6gkbCVws/m/EG2m79u7RGmkD+kHKEv515Y6ZRrwOg=="],
 
@@ -191,19 +191,19 @@
 
     "@alwith/module-voice": ["@alwith/module-voice@0.6.2", "", { "dependencies": { "effect": "^4.1.2" }, "peerDependencies": { "@tauri-apps/api": "^3.0.0-alpha.3", "react": "^19.3.1", "react-dom": "^19.3.1" }, "optionalPeers": ["react", "react-dom"] }, "sha512-uRMsgqcWQpvoyio9UzHuhn8oeMhrhqGx3uGxrGA1y+CSCP+fxybpXHFsNKcYw7Xl8jk42sjW62dcLRdkJs9fnA=="],
 
-    "@alwith/native-enterprise": ["@alwith/native-enterprise@0.6.3", "", { "dependencies": { "@alwith/native-kit": "0.5.2" }, "optionalDependencies": { "@alwith/native-enterprise-darwin-arm64": "0.6.3", "@alwith/native-enterprise-win32-x64": "0.6.3" } }, "sha512-FgD4u+y2IV0mQ4C8+2j1L6xKW4IlFqSZUfmKjEEwNeWAGBg4l54vTmUsuFaGC5Km8oEVZPq3rSFJs7aseUu2Ww=="],
+    "@alwith/native-enterprise": ["@alwith/native-enterprise@0.6.4", "", { "dependencies": { "@alwith/native-kit": "^0.5.2" }, "optionalDependencies": { "@alwith/native-enterprise-darwin-arm64": "0.6.4", "@alwith/native-enterprise-win32-x64": "0.6.4" } }, "sha512-UXwnovmgMJAuFYSSvNFOC4psN/xPckwMDIJqkVfYOOOz+dJTIxmHmfzKp++kmmA/69SxXaHdJBNkbUBjpjZcYg=="],
 
-    "@alwith/native-enterprise-darwin-arm64": ["@alwith/native-enterprise-darwin-arm64@0.6.3", "", { "os": "darwin", "cpu": "arm64" }, "sha512-mj6w1CPGX+0iXoJwq0ziga2Ohtk+kPQWIwybmnkzx2eRj4HEgyCCvZeBCSaPajgO0j66FwFIab2TGHME7Rbxrg=="],
+    "@alwith/native-enterprise-darwin-arm64": ["@alwith/native-enterprise-darwin-arm64@0.6.4", "", { "os": "darwin", "cpu": "arm64" }, "sha512-Je/qruH8i9ba1Ny35yQK1Eq3Q9d64rsu4NuZEB8uSL/Ud+t/TOvd9sMBoDK8K2wfpilpCuQEcacak3KUSkFOEg=="],
 
-    "@alwith/native-enterprise-win32-x64": ["@alwith/native-enterprise-win32-x64@0.6.3", "", { "os": "win32", "cpu": "x64" }, "sha512-N/ySpK/5rNSjAFWhALwkg1ALbivS+TJtIGMuS/RDMjlQZ0ZgxUL2QIoKmdk6XkZTdgDPsWJugCfFBdrIe9geFw=="],
+    "@alwith/native-enterprise-win32-x64": ["@alwith/native-enterprise-win32-x64@0.6.4", "", { "os": "win32", "cpu": "x64" }, "sha512-t/+nAQX4rsUMjIIpJeRdw4f1YB9l2mfI9gfrparP/Zq9Vxe1VRuYgss9nOP8Of407DIzs/ZZfhKXsmBG9Amhhw=="],
 
     "@alwith/native-kit": ["@alwith/native-kit@0.5.2", "", {}, "sha512-3rEpldU/pdyeFoKH8LvYj83lsCmLI9lFZWEhBUPNMPOwQY+88IFcaB/fxctR87m1zryBA6l1DKHcbBpJ+MOIZg=="],
 
-    "@alwith/runtime": ["@alwith/runtime@0.6.0", "", { "optionalDependencies": { "@alwith/runtime-darwin-arm64": "0.6.0", "@alwith/runtime-win32-x64": "0.6.0" } }, "sha512-06RxbDyMUx0bF2CiZQw8sgAvVDEisceBxqFbgzArq5Y5H9uv1VKNJS5zndvkTL4USM9+XvrNISln87RmdxOmKw=="],
+    "@alwith/runtime": ["@alwith/runtime@0.6.1", "", { "optionalDependencies": { "@alwith/runtime-darwin-arm64": "0.6.1", "@alwith/runtime-win32-x64": "0.6.1" } }, "sha512-7jyFG/dbIF0G3aUnNy1e9eWEpgw6FFh4S3lUCeQYCmaM6hah/WTtuUfe5I8+6bwFTcAt7xQrARM1SbHLWsiQew=="],
 
-    "@alwith/runtime-darwin-arm64": ["@alwith/runtime-darwin-arm64@0.6.0", "", { "os": "darwin", "cpu": "arm64" }, "sha512-1UNDLSoR0HNisAXYSdLETQyWQ//lYdlWqMRO9vInzRupxyeX4PTeeOCT1uxWeo9wGzFeWgJKMP+a33A9bVq7Gw=="],
+    "@alwith/runtime-darwin-arm64": ["@alwith/runtime-darwin-arm64@0.6.1", "", { "os": "darwin", "cpu": "arm64" }, "sha512-YJrT3jD6gPJQ6DxKltB1Oc8glbd4JA8aOUCoJ3XYnDJbeDQgE8xb5CCbUAuMKtTzVJ8QJud2lDmq2SmqWX4r/g=="],
 
-    "@alwith/runtime-win32-x64": ["@alwith/runtime-win32-x64@0.6.0", "", { "os": "win32", "cpu": "x64" }, "sha512-RbBSQ2UvvrtNyf+CHT7wYuDrs9fjLJgjS1rAjJ6cVDLYMe3/GwzGnIFBpEx4/31GURWVcRniD0GiqWNqOiZg9w=="],
+    "@alwith/runtime-win32-x64": ["@alwith/runtime-win32-x64@0.6.1", "", { "os": "win32", "cpu": "x64" }, "sha512-63VnCOtmOeNivMQKdCH77+ArDkPl3+zIVtYJbxyVyo2mzDhxcMbeUgRbry+BJeoIgmeRcFWkayaUbF7q28D4xg=="],
 
     "@antfu/install-pkg": ["@antfu/install-pkg@2.1.0", "https://registry.npmmirror.com/@antfu/install-pkg/-/install-pkg-2.1.0.tgz", { "dependencies": { "package-manager-detector": "^1.8.0", "tinyexec": "^1.3.1" } }, "sha512-sdg9NxU3zR4Mnawfbc/x6GB5Wf17WYud5qOuEuxXjaKpYpMkISSJEjItGebXJ2bQ4DIcly4NYH23mtkGJjvKUw=="],
 
