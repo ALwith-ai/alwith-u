@@ -49,12 +49,12 @@ const verifyScrolling: NonNullable<Story["play"]> = async ({ canvasElement, user
   const composer = content.querySelector<HTMLTextAreaElement>("textarea")!.closest("form")!
   const cards = [...requests.querySelectorAll<HTMLElement>('[data-overlay="permission-request"]')]
   const lastRequestId = client.state.actions.at(-1)!.id
-  await waitFor(() => {
-    expect(requests.getBoundingClientRect().height).toBeLessThanOrEqual(content.clientHeight / 2 + 1)
-    expect(composer.getBoundingClientRect().top).toBeGreaterThanOrEqual(requests.getBoundingClientRect().bottom)
-    expect(composer.getBoundingClientRect().bottom).toBeLessThanOrEqual(content.getBoundingClientRect().bottom)
+  await waitFor(async () => {
+    await expect(requests.getBoundingClientRect().height).toBeLessThanOrEqual(content.clientHeight / 2 + 1)
+    await expect(composer.getBoundingClientRect().top).toBeGreaterThanOrEqual(requests.getBoundingClientRect().bottom)
+    await expect(composer.getBoundingClientRect().bottom).toBeLessThanOrEqual(content.getBoundingClientRect().bottom)
   })
-  if (cards.length === 1) expect(requests.scrollHeight).toBeLessThanOrEqual(requests.clientHeight + 1)
+  if (cards.length === 1) await expect(requests.scrollHeight).toBeLessThanOrEqual(requests.clientHeight + 1)
 
   for (const card of cards) {
     const body = card.querySelector<HTMLElement>("[data-permission-content]")
@@ -62,23 +62,23 @@ const verifyScrolling: NonNullable<Story["play"]> = async ({ canvasElement, user
     const header = card.querySelector<HTMLElement>("[data-permission-header]")!
     const options = card.querySelector<HTMLElement>('[role="listbox"]')!
     card.scrollIntoView({ block: "end" })
-    await waitFor(() => {
-      expect(body!.clientHeight).toBeGreaterThan(0)
-      expect(body!.scrollHeight).toBeGreaterThan(body!.clientHeight)
-      expect(header.getBoundingClientRect().top).toBeGreaterThanOrEqual(requests.getBoundingClientRect().top)
-      expect(header.getBoundingClientRect().bottom).toBeLessThanOrEqual(body!.getBoundingClientRect().top + 1)
-      expect(options.getBoundingClientRect().top).toBeGreaterThanOrEqual(body!.getBoundingClientRect().bottom - 1)
-      expect(options.getBoundingClientRect().bottom).toBeLessThanOrEqual(requests.getBoundingClientRect().bottom)
+    await waitFor(async () => {
+      await expect(body!.clientHeight).toBeGreaterThan(0)
+      await expect(body!.scrollHeight).toBeGreaterThan(body!.clientHeight)
+      await expect(header.getBoundingClientRect().top).toBeGreaterThanOrEqual(requests.getBoundingClientRect().top)
+      await expect(header.getBoundingClientRect().bottom).toBeLessThanOrEqual(body!.getBoundingClientRect().top + 1)
+      await expect(options.getBoundingClientRect().top).toBeGreaterThanOrEqual(body!.getBoundingClientRect().bottom - 1)
+      await expect(options.getBoundingClientRect().bottom).toBeLessThanOrEqual(requests.getBoundingClientRect().bottom)
     })
     const headerTop = header.getBoundingClientRect().top
     const optionsTop = options.getBoundingClientRect().top
     const outerScroll = requests.scrollTop
     body!.scrollTop = body!.scrollHeight
-    await waitFor(() => {
-      expect(body!.scrollTop).toBeGreaterThan(0)
-      expect(header.getBoundingClientRect().top).toBe(headerTop)
-      expect(options.getBoundingClientRect().top).toBe(optionsTop)
-      expect(requests.scrollTop).toBe(outerScroll)
+    await waitFor(async () => {
+      await expect(body!.scrollTop).toBeGreaterThan(0)
+      await expect(header.getBoundingClientRect().top).toBe(headerTop)
+      await expect(options.getBoundingClientRect().top).toBe(optionsTop)
+      await expect(requests.scrollTop).toBe(outerScroll)
     })
   }
   const reject = cards.at(-1)!.querySelectorAll<HTMLElement>('[role="option"]')
