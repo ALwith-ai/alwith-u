@@ -227,7 +227,7 @@ pub fn build_app_menu(app: &AppHandle) -> tauri::Result<tauri::menu::Menu<tauri:
         .build()?;
 
     let maximize_key = if cfg!(target_os = "macos") { "window.zoom" } else { "window.maximize" };
-    let window_submenu = SubmenuBuilder::new(app, t("menu.window", lang))
+    let window_submenu = SubmenuBuilder::with_id(app, tauri::menu::WINDOW_SUBMENU_ID, t("menu.window", lang))
         .minimize_with_text(t("window.minimize", lang))
         .maximize_with_text(t(maximize_key, lang))
         .fullscreen_with_text(t("window.toggleFullScreen", lang))
