@@ -58,6 +58,32 @@ fn ordinary_updates_reject_secrets_unknown_keys_and_stale_forms() {
 }
 
 #[test]
+fn chat_window_transparency_survives_restart_and_rejects_non_boolean_values() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut store = SettingsStore::load(dir.path().into()).unwrap();
+    for transparent in [false, true] {
+        store.update(changes(json!({"chat.windowTransparent": transparent})), None).unwrap();
+        store = SettingsStore::load(dir.path().into()).unwrap();
+        assert_eq!(store.snapshot().unwrap().1["chat.windowTransparent"], transparent);
+    }
+    let revision = store.snapshot().unwrap().0;
+    assert!(store.update(changes(json!({"chat.windowTransparent": "false"})), None).is_err());
+    assert_eq!(store.snapshot().unwrap().0, revision);
+    assert_eq!(store.values["chat.windowTransparent"], true);
+    store.update(changes(json!({"chat.windowTransparent": null})), None).unwrap();
+    assert!(!SettingsStore::load(dir.path().into()).unwrap().values.contains_key("chat.windowTransparent"));
+}
+
+#[test]
+fn migrates_legacy_chat_window_transparency() {
+    let dir = tempfile::tempdir().unwrap();
+    write_json(&dir.path().join("preferences.json"), &json!({"chatWindowTransparent": false})).unwrap();
+    let store = SettingsStore::load(dir.path().into()).unwrap();
+    assert_eq!(store.snapshot().unwrap().1["chat.windowTransparent"], false);
+    assert_eq!(SettingsStore::load(dir.path().into()).unwrap().values["chat.windowTransparent"], false);
+}
+
+#[test]
 fn explorer_visibility_survives_restart_and_rejects_invalid_values() {
     let dir = tempfile::tempdir().unwrap();
     let mut store = SettingsStore::load(dir.path().into()).unwrap();
