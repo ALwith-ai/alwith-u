@@ -13,7 +13,7 @@
         "@alwith/module-chat": "^0.6.27",
         "@alwith/module-collection": "^0.5.0",
         "@alwith/module-computer": "^0.6.6",
-        "@alwith/module-desktop-shell": "^0.6.7",
+        "@alwith/module-desktop-shell": "^0.6.8",
         "@alwith/module-device": "^0.6.1",
         "@alwith/module-drive": "^0.6.6",
         "@alwith/module-editor": "^0.6.4",
@@ -165,7 +165,7 @@
 
     "@alwith/module-computer": ["@alwith/module-computer@0.6.6", "", { "peerDependencies": { "@tauri-apps/api": "^3.0.0-alpha.3" } }, "sha512-J1k9Alz11gGfBc7Q4YAGuR4nRSNRWFddyePSLLaP6c7TwdLag9gcxkIa//1HTRNUKC/a8b7+fPC2uR43C/o1OQ=="],
 
-    "@alwith/module-desktop-shell": ["@alwith/module-desktop-shell@0.6.7", "", { "dependencies": { "@base-ui/react": "^1.9.0", "@nyssance/reui": "^2.8.1", "@nyssance/shadcn": "^4.23.4", "class-variance-authority": "^0.7.1", "cn": "^0.5.2", "lucide-react": "^1.70.0" }, "peerDependencies": { "@nyssance/atlas": "^0.1.11", "@tauri-apps/api": "^3.0.0-alpha.3", "react": "^19.3.1", "react-dom": "^19.3.1" }, "optionalPeers": ["@nyssance/atlas"] }, "sha512-rg/2sooIQI7KZknen6a99QsAuoMQWUM3XzcblcUyxPo15jEm3qgma7wssx14YGos3xQs7cZWSG0eIW1axZ+5Mg=="],
+    "@alwith/module-desktop-shell": ["@alwith/module-desktop-shell@0.6.8", "", { "dependencies": { "@base-ui/react": "^1.9.0", "@nyssance/reui": "^2.8.3", "@nyssance/shadcn": "^4.23.4", "class-variance-authority": "^0.7.1", "cn": "^0.5.2", "lucide-react": "^1.73.0" }, "peerDependencies": { "@nyssance/atlas": "^0.1.11", "@tauri-apps/api": "^3.0.0-alpha.3", "react": "^19.3.1", "react-dom": "^19.3.1" }, "optionalPeers": ["@nyssance/atlas"] }, "sha512-UIVw5AQ35bgKM2xpXsLP3v18b6Mtv7xfgDUDE3MndF8ICTIPfOakRePRtJ6grhhsqFPoNtxSBdlIEi5jHl6HnQ=="],
 
     "@alwith/module-device": ["@alwith/module-device@0.6.1", "", { "dependencies": { "@nyssance/shadcn": "^4.23.4", "lucide-react": "^1.70.0", "sonner": "^2.0.8" }, "peerDependencies": { "@tauri-apps/api": "^3.0.0-alpha.3", "react": "^19.3.1", "react-dom": "^19.3.1" } }, "sha512-yLOTZGQkchY9fidtvQwUh4AaLSFs2Ds908gfME36Ni+wl+63kNgAx3iqyqcvwD81lqW8t9wF3Fkb6eWjcElraQ=="],
 
