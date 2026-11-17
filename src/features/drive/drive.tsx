@@ -1,10 +1,10 @@
 import { logBackgroundError } from "@/lib/background-errors"
 
-import { drive } from "./controller"
+import { drive, driveTransport } from "./controller"
 
 export { drive } from "./controller"
 
-import type { FailedUpload, RootInfo } from "@alwith/module-drive"
+import { CONTRACT_VERSION, type FailedUpload, type RootInfo } from "@alwith/module-drive"
 import {
   type DriveHost,
   DriveMassDeleteDialog,
@@ -16,6 +16,7 @@ import {
   useDriveSelector
 } from "@alwith/module-drive/react"
 import "@alwith/module-drive/styles.css"
+import type { SessionSummary } from "@alwith/module-chat/client"
 import { type CondenseScope, DriveCondense } from "@alwith/module-drive/content"
 import { containsPath } from "@alwith/module-fs"
 import { isTauri } from "@tauri-apps/api/core"
@@ -25,7 +26,6 @@ import { type ReactNode, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
-import type { SessionSummary } from "@alwith/module-chat/client"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -45,17 +45,28 @@ export function useDriveConnection(start = true): void {
   useEffect(() => {
     if (!isTauri()) return
     let disposed = false
-    void drive
-      .attach()
-      .then(async () => {
-        if (start && !disposed && drive.getSnapshot().snapshot?.configured) {
-          await drive.request({ type: "start" })
-          await drive.request({ type: "refreshClientConfig" })
+    void (async () => {
+      if (start) {
+        try {
+          const response = await driveTransport.request({ type: "snapshot" })
+          if (disposed) return
+          if (response.type !== "snapshot" || response.data.version !== CONTRACT_VERSION)
+            throw new Error("Incompatible Drive contract")
+          if (response.data.configured) {
+            // Starting and refreshing can change generation. Attach consumers to the settled snapshot.
+            await driveTransport.request({ type: "start" })
+            if (disposed) return
+            await driveTransport.request({ type: "refreshClientConfig" })
+          }
+        } catch (error) {
+          if (!disposed) logBackgroundError("drive-startup", error)
         }
-      })
-      .catch((error: unknown) => {
-        if (!disposed) logBackgroundError("drive-startup", error)
-      })
+      }
+      // Failed startup still attaches so the service's error remains visible in Drive status.
+      if (!disposed) await drive.attach()
+    })().catch((error: unknown) => {
+      if (!disposed) logBackgroundError("drive-startup", error)
+    })
     return () => {
       disposed = true
       drive.dispose()

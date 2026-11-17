@@ -101,11 +101,78 @@ test("content identity waits for attachment and loads when only connected change
   expect(mock.error).not.toHaveBeenCalled()
 })
 
+test("startup finishes engine initialization before exposing configuration reads", async () => {
+  vi.stubGlobal("isTauri", true)
+  const started = Promise.withResolvers<void>()
+  const finish = Promise.withResolvers<void>()
+  const previousConfiguration = Promise.withResolvers<DriveResponse>()
+  const handle = mock.request.getMockImplementation()!
+  let generation = 1
+  let starting = true
+  mock.request.mockImplementation(async (request): Promise<DriveResponse> => {
+    if (request.type === "snapshot") return { type: "snapshot", data: { ...snapshot, generation, running: !starting } }
+    if (request.type === "start") {
+      generation = 2
+      started.resolve()
+      await finish.promise
+      starting = false
+      return { type: "snapshot", data: { ...snapshot, generation, running: true } }
+    }
+    if (request.type === "refreshClientConfig") {
+      generation = 3
+      return { type: "done" }
+    }
+    if (request.type === "configuration") {
+      if (starting) return previousConfiguration.promise
+      return {
+        type: "configuration",
+        data: { deviceId: "test", userId: "1", userName: "Current User", clientConfig: null }
+      }
+    }
+    return handle(request)
+  })
+  try {
+    const view = renderHook(() => {
+      useDriveConnection()
+      return useDriveContentHost(save)
+    })
+    await act(() => started.promise)
+    await act(async () => {
+      previousConfiguration.resolve({
+        type: "configuration",
+        data: { deviceId: "test", userId: "1", userName: "Previous User", clientConfig: null }
+      })
+    })
+    const initializingUserName = view.result.current.userName
+    await act(async () => finish.resolve())
+    await waitFor(() => expect(view.result.current.userName).toBe("Current User"))
+    expect(initializingUserName).toBe("")
+    expect(mock.error).not.toHaveBeenCalled()
+  } finally {
+    finish.resolve()
+    vi.unstubAllGlobals()
+  }
+})
+
 test("configuration failures after attachment remain visible", async () => {
   await drive.attach()
   mock.request.mockRejectedValue(new Error("Configuration unavailable"))
   renderHook(() => useDriveContentHost(save))
   await waitFor(() => expect(mock.error).toHaveBeenCalledWith("Error: Configuration unavailable"))
+})
+
+test("an incompatible service never starts the engine", async () => {
+  vi.stubGlobal("isTauri", true)
+  mock.request.mockResolvedValue({ type: "snapshot", data: { ...snapshot, version: CONTRACT_VERSION + 1 } })
+  try {
+    renderHook(() => useDriveConnection())
+    await waitFor(() => expect(drive.getSnapshot().error).toBe("Incompatible Drive contract"))
+    expect(drive.getSnapshot().connected).toBe(false)
+    expect(mock.request).not.toHaveBeenCalledWith({ type: "start" })
+    expect(mock.request).not.toHaveBeenCalledWith({ type: "refreshClientConfig" })
+  } finally {
+    vi.unstubAllGlobals()
+  }
 })
 
 test("integration settings stay pending until attachment and then enable controls", async () => {
@@ -188,12 +255,19 @@ test("failed transfer list refresh is logged without a toast", async () => {
 test("background startup failure is logged without a toast", async () => {
   vi.stubGlobal("isTauri", true)
   const handle = mock.request.getMockImplementation()!
-  mock.request.mockImplementation((request) =>
-    request.type === "start" ? Promise.reject(new Error("Drive startup unavailable")) : handle(request)
-  )
+  mock.request.mockImplementation((request) => {
+    if (request.type === "start") {
+      snapshot.error = "Drive startup unavailable"
+      return Promise.reject(new Error(snapshot.error))
+    }
+    return handle(request)
+  })
   try {
     renderHook(() => useDriveConnection())
+    render(<DriveStatus />)
     await waitFor(() => expect(logError).toHaveBeenCalledWith(expect.stringContaining("Drive startup unavailable")))
+    await waitFor(() => expect(drive.getSnapshot().connected).toBe(true))
+    expect(screen.getByRole("button", { name: "YUP Drive" })).toHaveTextContent("Sync error")
     expect(mock.error).not.toHaveBeenCalled()
   } finally {
     vi.unstubAllGlobals()
