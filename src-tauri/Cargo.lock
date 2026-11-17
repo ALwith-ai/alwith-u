@@ -174,9 +174,9 @@ dependencies = [
 
 [[package]]
 name = "alwith-device"
-version = "0.6.4"
+version = "0.6.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2cdfe4264a096d4d2a78e8a8c2330afe98c25e2696841f811e81739b25772d2"
+checksum = "5a1dd6872c566ddb57fbf9116732e4dd302f733a1eff546b37ab0e68db0553cc"
 dependencies = [
  "alwith-native-client 0.6.2",
  "base64 0.23.1",
@@ -7098,9 +7098,9 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-hasgard"
-version = "0.6.8"
+version = "0.6.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0cdb4a17e0b52ff5a7c0c09853c78a1743306e2c3d2bf7e1d5ae95ba8df721fd"
+checksum = "71784b9681c498dad3093cf06e80c0479168b2fb385630584a8f09292e49877a"
 dependencies = [
  "base64 0.23.1",
  "block2",
