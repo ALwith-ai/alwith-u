@@ -15,7 +15,7 @@ function fixture(): string {
   return directory
 }
 
-test("sends a draft notification containing only actual installer URLs", async () => {
+test("sends a production upload notification containing only actual installer URLs", async () => {
   const directory = fixture()
   try {
     let body: { msg_type: string } | undefined
@@ -28,7 +28,11 @@ test("sends a draft notification containing only actual installer URLs", async (
     )
     await notifyRelease(directory, "v1.2.3", "https://example.com/webhook", request)
     expect(body?.msg_type).toBe("interactive")
-    expect(JSON.stringify(body)).toContain("待发布")
+    expect(body).toHaveProperty(
+      "card.elements.0.text.content",
+      "**版本：** 1.2.3\n**环境：** prod\n**状态：** 后台发布记录已创建，生产安装包已镜像到 TOS"
+    )
+    expect(body).toHaveProperty("card.elements.2.text.content", "**TOS 下载地址**")
     expect(JSON.stringify(body)).toContain("alwith-u_1.2.3_darwin_aarch64.dmg")
     expect(JSON.stringify(body)).toContain("alwith-u_1.2.3_windows_x64-setup.exe")
     expect(JSON.stringify(body)).not.toContain("app.tar.gz")

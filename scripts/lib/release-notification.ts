@@ -30,10 +30,13 @@ export async function notifyRelease(
       elements: [
         {
           tag: "div",
-          text: { tag: "lark_md", content: `**版本：** ${version}\n**状态：** 产物已上传并登记后台，待发布` }
+          text: {
+            tag: "lark_md",
+            content: `**版本：** ${version}\n**环境：** prod\n**状态：** 后台发布记录已创建，生产安装包已镜像到 TOS`
+          }
         },
         { tag: "hr" },
-        { tag: "div", text: { tag: "lark_md", content: "**下载地址**" } },
+        { tag: "div", text: { tag: "lark_md", content: "**TOS 下载地址**" } },
         { tag: "action", actions }
       ]
     }
