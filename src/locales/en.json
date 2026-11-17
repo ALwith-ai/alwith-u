@@ -1037,7 +1037,7 @@
     "closeAll": "Close all",
     "retry": "Retry",
     "loadFailed": "Failed to load file",
-    "previewTooLarge": "This file is too large to preview. PDF previews support files up to 40 MiB.",
+    "previewTooLarge": "This file is too large to preview. You can still show it in the file manager or open it in a system application.",
     "iconTheme": "File icon theme",
     "editorSettings": "Editor settings",
     "fontSize": "Font size",
