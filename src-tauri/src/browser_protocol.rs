@@ -11,7 +11,7 @@ use axum::{
 };
 use serde_json::{Value, json};
 use std::collections::{HashMap, HashSet};
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 use tauri_runtime_cef::{WebviewCefExt, allocate_devtools_message_id};
 
 // SurfaceEmbed guests share the trusted host's compositor. Keep it producing
@@ -61,11 +61,20 @@ impl Drop for Lease {
         let mut leases = state.leases.lock().unwrap();
         if leases.get(&self.label) == Some(&self.token) {
             leases.remove(&self.label);
+            state.detached.notify_waiters();
+            if !state.executor.is_transport(&self.token) {
+                let mut controls = state.controls.lock().unwrap();
+                if controls.get(&self.label).is_some_and(|c| c.token == self.token) {
+                    controls.remove(&self.label);
+                    let _ = self.app.emit_to("main", "browser-control-changed", ());
+                }
+            }
         }
     }
 }
 fn authorized(app: &tauri::AppHandle, token: &str) -> bool {
-    app.state::<BrowserAi>().sessions.lock().unwrap().get(token).is_some_and(Option::is_some)
+    let state = app.state::<BrowserAi>();
+    state.executor.is_transport(token) || state.sessions.lock().unwrap().get(token).is_some_and(Option::is_some)
 }
 pub async fn connect(
     State(app): State<tauri::AppHandle>, Path(label): Path<String>, headers: HeaderMap, upgrade: WebSocketUpgrade,
@@ -168,17 +177,25 @@ async fn serve(mut socket: WebSocket, app: &tauri::AppHandle, label: &str, token
     if !target_info["targetId"].is_string() {
         return;
     }
-    let Ok(_activity) = CompositorActivity::acquire(app) else { return };
-    // AI must operate retained background tabs without stealing native window focus.
-    // Chromium's scoped focus emulation keeps their lifecycle and animation frames active.
-    if agent.call(&view, "Emulation.setFocusEmulationEnabled", json!({"enabled":true})).await.is_err() {
-        return;
-    }
+    let managed = app.state::<BrowserAi>().executor.is_transport(token);
+    let mut activity = None;
     let mut pending: HashMap<i32, (Value, Option<Value>)> = HashMap::new();
     let mut children = HashSet::<String>::new();
     let mut attached = false;
     let mut tick = tokio::time::interval(std::time::Duration::from_millis(250));
     loop {
+        let active = !managed || app.state::<BrowserAi>().controls.lock().unwrap().contains_key(label);
+        if active != activity.is_some() {
+            if active {
+                let Ok(value) = CompositorActivity::acquire(app) else { break };
+                activity = Some(value);
+            } else {
+                activity = None;
+            }
+            if agent.call(&view, "Emulation.setFocusEmulationEnabled", json!({"enabled":active})).await.is_err() {
+                break;
+            }
+        }
         tokio::select! {
             _ = tick.tick() => { if !app.state::<BrowserAi>().can_access(token, label) { break } }
             incoming = socket.recv() => {

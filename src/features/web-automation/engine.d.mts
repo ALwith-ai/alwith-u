@@ -3,6 +3,7 @@ import type { Browser } from "playwright-core"
 export interface BrowserTools {
   // Website evaluations and CDP replies have caller-defined result shapes.
   (name: string, args?: Record<string, unknown>): Promise<any>
+  release(target: string): Promise<{ disconnected: boolean }>
   close(): Promise<void>
 }
 export function createBrowserTools(

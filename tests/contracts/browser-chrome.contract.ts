@@ -74,12 +74,10 @@ const origin = `http://127.0.0.1:${server.port}`
 const talks = conversations("chrome-contract")
 const toolbar = (name: string) =>
   ui(
-    `(() => { const panel = document.querySelector('[role=tabpanel]:not([hidden])'); const button = [...panel.querySelectorAll('button')].find(b => b.getAttribute('aria-label') === ${JSON.stringify(name)}); return button ? (button.disabled ? 'disabled' : 'enabled') : 'absent' })()`
+    `(() => { const panel = document.querySelector('[role=tabpanel]:not([inert])'); const button = [...panel.querySelectorAll('button')].find(b => b.getAttribute('aria-label') === ${JSON.stringify(name)}); return button ? (button.disabled ? 'disabled' : 'enabled') : 'absent' })()`
   )
 const progress = () =>
-  ui(
-    `document.querySelector('[role=tabpanel]:not([hidden]) [role=progressbar]')?.getAttribute('aria-valuenow') ?? null`
-  )
+  ui(`document.querySelector('[role=tabpanel]:not([inert]) [role=progressbar]')?.getAttribute('aria-valuenow') ?? null`)
 const tabCount = async () => Number(await ui(`document.querySelectorAll('[role=tab]').length`))
 describe("browser chrome", () => {
   let a: BrowserTools
@@ -93,7 +91,7 @@ describe("browser chrome", () => {
     JSON.parse(String((await ui(`localStorage.getItem('alwith.browser.library.v1')`)) ?? "null"))
   const typeAddress = (text: string) =>
     ui(
-      `(() => { const panel = document.querySelector('[role=tabpanel]:not([hidden])'); const input = panel.querySelector('input[aria-label="网页地址"]'); input.focus(); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, ${JSON.stringify(text)}); input.dispatchEvent(new Event('input', { bubbles: true })); return true })()`
+      `(() => { const panel = document.querySelector('[role=tabpanel]:not([inert])'); const input = panel.querySelector('input[aria-label="网页地址"]'); input.focus(); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, ${JSON.stringify(text)}); input.dispatchEvent(new Event('input', { bubbles: true })); return true })()`
     )
   // A raw key-down carrying its macOS key code is what a physical key press delivers.
   const chord = (windowsVirtualKeyCode: number, code: string, nativeVirtualKeyCode: number) =>
@@ -112,7 +110,7 @@ describe("browser chrome", () => {
   const evaluate = async (expression: string) =>
     (await a("browser_evaluate", { target: one.target, expression })).result
   const panel = (script: string) =>
-    ui(`(() => { const panel = document.querySelector('[role=tabpanel]:not([hidden])'); ${script} })()`)
+    ui(`(() => { const panel = document.querySelector('[role=tabpanel]:not([inert])'); ${script} })()`)
   const press = (name: string) =>
     panel(
       `[...panel.querySelectorAll('button')].find((b) => b.getAttribute('aria-label') === ${JSON.stringify(name)} || b.textContent.trim() === ${JSON.stringify(name)}).click(); return true`
@@ -141,7 +139,7 @@ describe("browser chrome", () => {
       `[...document.querySelectorAll('[data-page-menu] [data-entry]')].find((item) => item.dataset.entry === ${JSON.stringify(entry)}).click(), true`
     )
   const shownAddress = () =>
-    ui("document.querySelector('[role=tabpanel]:not([hidden]) input[aria-label=\"网页地址\"]')?.value ?? ''")
+    ui("document.querySelector('[role=tabpanel]:not([inert]) input[aria-label=\"网页地址\"]')?.value ?? ''")
   // A website asks the user; nothing is granted until they answer.
   const request = () =>
     evaluate(
@@ -216,17 +214,17 @@ describe("browser chrome", () => {
     await typeAddress(`127.0.0.1:${server.port}/b`)
     const offered = String(
       await waitFor(
-        () => ui(`document.querySelector('[role=tabpanel]:not([hidden]) [role=listbox]')?.textContent ?? ''`),
+        () => ui(`document.querySelector('[role=tabpanel]:not([inert]) [role=listbox]')?.textContent ?? ''`),
         "No address suggestions"
       )
     )
     assert.ok(offered.includes("Page b"), `Suggestions did not offer the visited page: ${offered}`)
-    await ui(`document.querySelector('[role=tabpanel]:not([hidden]) input[aria-label="网页地址"]').blur(); true`)
+    await ui(`document.querySelector('[role=tabpanel]:not([inert]) input[aria-label="网页地址"]').blur(); true`)
   })
 
   test("a bookmark is kept and offered on a blank tab's start page", async () => {
     await ui(
-      `[...document.querySelector('[role=tabpanel]:not([hidden])').querySelectorAll('button')].find((b) => b.getAttribute('aria-label') === '添加书签').click(); true`
+      `[...document.querySelector('[role=tabpanel]:not([inert])').querySelectorAll('button')].find((b) => b.getAttribute('aria-label') === '添加书签').click(); true`
     )
     await waitFor(
       async () => (await saved()).bookmarks.some((bookmark: any) => bookmark.url === `${origin}/a`),
@@ -236,18 +234,18 @@ describe("browser chrome", () => {
     await ui(`document.querySelector('button[aria-label="新建网页标签"]').click(); true`)
     const start = String(
       await waitFor(
-        () => ui(`document.querySelector('[role=tabpanel]:not([hidden]) nav[aria-label="起始页"]')?.textContent ?? ''`),
+        () => ui(`document.querySelector('[role=tabpanel]:not([inert]) nav[aria-label="起始页"]')?.textContent ?? ''`),
         "A blank tab did not show the start page"
       )
     )
     assert.ok(start.includes("书签") && start.includes("Page a"), `Start page did not offer the bookmark: ${start}`)
     await ui(
-      `[...document.querySelectorAll('[role=tabpanel]:not([hidden]) nav button')].find((b) => b.textContent.includes('Page a')).click(); true`
+      `[...document.querySelectorAll('[role=tabpanel]:not([inert]) nav button')].find((b) => b.textContent.includes('Page a')).click(); true`
     )
     await waitFor(
       async () =>
         (await ui(
-          `document.querySelector('[role=tabpanel]:not([hidden]) nav[aria-label="起始页"]') === null && document.querySelector('[role=tab][aria-selected=true]').textContent.includes('Page a')`
+          `document.querySelector('[role=tabpanel]:not([inert]) nav[aria-label="起始页"]') === null && document.querySelector('[role=tab][aria-selected=true]').textContent.includes('Page a')`
         )) === true,
       "The start page did not open the bookmark in its tab"
     )
@@ -261,7 +259,7 @@ describe("browser chrome", () => {
     await a("browser_focus", { target: one.target })
     await waitFor(async () => (await toolbar("移除书签")) === "enabled", "Bookmark state not shown")
     await ui(
-      `[...document.querySelector('[role=tabpanel]:not([hidden])').querySelectorAll('button')].find((b) => b.getAttribute('aria-label') === '移除书签').click(); true`
+      `[...document.querySelector('[role=tabpanel]:not([inert])').querySelectorAll('button')].find((b) => b.getAttribute('aria-label') === '移除书签').click(); true`
     )
   })
 
@@ -330,7 +328,7 @@ describe("browser chrome", () => {
     await waitFor(async () => (await tabCount()) === tabsBeforeMenu + 1, "The link did not open in a new tab")
     assert.equal(await menuItems(), "[]")
     assert.equal(
-      await ui("document.querySelector('[role=tabpanel]:not([hidden]) input[aria-label=\"网页地址\"]')?.value"),
+      await ui("document.querySelector('[role=tabpanel]:not([inert]) input[aria-label=\"网页地址\"]')?.value"),
       `${origin}/b`
     )
     await ui(
@@ -641,7 +639,7 @@ describe("browser chrome", () => {
     await ipc("cef_navigate_guest", { label: one.target, url: dead }).catch(() => {})
     const failure = String(
       await waitFor(
-        () => ui(`document.querySelector('[role=tabpanel]:not([hidden]) [role=alert]')?.textContent ?? ''`),
+        () => ui(`document.querySelector('[role=tabpanel]:not([inert]) [role=alert]')?.textContent ?? ''`),
         "Load failure not shown"
       )
     )
@@ -650,7 +648,7 @@ describe("browser chrome", () => {
     await ipc("cef_navigate_guest", { label: one.target, url: `${origin}/a` })
     await a("browser_wait", { target: one.target, selector: 'body[data-route="/a"]' })
     await waitFor(
-      async () => (await ui(`document.querySelector('[role=tabpanel]:not([hidden]) [role=alert]') === null`)) === true,
+      async () => (await ui(`document.querySelector('[role=tabpanel]:not([inert]) [role=alert]') === null`)) === true,
       "Failure outlived the next navigation"
     )
   })

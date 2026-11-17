@@ -1,62 +1,104 @@
 /** Application-owned Playwright executor. This is not an agent or an MCP server. */
+import { AsyncLocalStorage } from "node:async_hooks"
 import { createInterface } from "node:readline"
 
 import { chromium } from "playwright-core"
 
 import { createBrowserTools } from "./engine.mjs"
 
+/** @param {(url: string, options: import("playwright-core").ConnectOverCDPOptions) => Promise<import("playwright-core").Browser>} connect */
 export function createExecutor(connect = chromium.connectOverCDP.bind(chromium), request = fetch) {
+  const context = new AsyncLocalStorage()
   const sessions = new Map()
+  const revoked = new Set()
+  const generations = new Map()
+  const active = new Map()
+  let transport
+  const call = async (body) => {
+    const message = context.getStore()
+    if (!message) throw Error("Missing browser call context")
+    const response = await request(message.endpoint, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${message.token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(25000)
+    })
+    if (!response.ok) throw Error(`${response.status}: ${await response.text()}`)
+    return response.json()
+  }
+  const run = createBrowserTools(
+    call,
+    (target) => {
+      const url = new URL(transport.endpoint)
+      url.protocol = "ws:"
+      url.pathname = `/cdp/${encodeURIComponent(target)}`
+      return connect(url.href, {
+        headers: { Authorization: `Bearer ${transport.token}` },
+        noDefaults: true,
+        timeout: 15000
+      })
+    },
+    { nativeDownloads: true }
+  )
   return {
     async dispatch(message) {
       if (message.version !== 1 || typeof message.sessionId !== "string" || !message.sessionId)
         throw Error("Invalid web automation protocol request")
       const { sessionId } = message
-      if (message.kind === "release") {
-        const entry = sessions.get(sessionId)
-        if (entry && message.token !== entry.token) throw Error("Stale web automation release")
-        sessions.delete(sessionId)
-        await entry?.run.close()
-        return { released: true }
+      const token = sessions.get(sessionId)
+      if (message.kind === "release" || message.kind === "releaseTarget") {
+        if (token && message.token !== token) throw Error("Stale web automation release")
+        if (message.kind === "release") {
+          revoked.add(message.token)
+          sessions.delete(sessionId)
+        }
+        const results = await Promise.all(
+          message.targets.map(async (target) => {
+            generations.set(target, (generations.get(target) ?? 0) + 1)
+            const pending = active.get(target)
+            const result = await run.release(target)
+            if (pending) await Promise.allSettled([pending])
+            return { target, ...result }
+          })
+        )
+        return { released: true, targets: results }
       }
       if (message.kind !== "call" || typeof message.token !== "string" || !message.token)
         throw Error("Invalid web automation call")
-      let entry = sessions.get(sessionId)
-      if (entry && (entry.token !== message.token || entry.endpoint !== message.endpoint))
-        throw Error("Web automation session binding changed")
-      if (!entry) {
-        const endpoint = new URL(message.endpoint)
-        if (endpoint.protocol !== "http:" || endpoint.hostname !== "127.0.0.1")
-          throw Error("Web automation requires the local browser host")
-        const headers = { Authorization: `Bearer ${message.token}` }
-        const run = createBrowserTools(
-          async (body) => {
-            const response = await request(endpoint, {
-              method: "POST",
-              headers: { ...headers, "Content-Type": "application/json" },
-              body: JSON.stringify(body),
-              signal: AbortSignal.timeout(25000)
-            })
-            if (!response.ok) throw Error(`${response.status}: ${await response.text()}`)
-            return response.json()
-          },
-          (target) => {
-            const url = new URL(endpoint)
-            url.protocol = "ws:"
-            url.pathname = `/cdp/${encodeURIComponent(target)}`
-            return connect(url.href, { headers, noDefaults: true, timeout: 15000 })
-          },
-          { nativeDownloads: true }
-        )
-        entry = { token: message.token, endpoint: message.endpoint, run }
-        sessions.set(sessionId, entry)
+      if (revoked.has(message.token)) throw Error("Browser turn revoked")
+      if (token && token !== message.token) throw Error("Web automation session binding changed")
+      const endpoint = new URL(message.endpoint)
+      if (endpoint.protocol !== "http:" || endpoint.hostname !== "127.0.0.1")
+        throw Error("Web automation requires the local browser host")
+      if (!transport)
+        transport = {
+          endpoint: message.endpoint,
+          token: message.transportToken
+        }
+      if (transport.endpoint !== message.endpoint || transport.token !== message.transportToken)
+        throw Error("Web automation transport binding changed")
+      sessions.set(sessionId, message.token)
+      const target = message.args?.target
+      if (target && active.has(target)) throw Error("Target is busy; await its current tool call before continuing")
+      const generation = generations.get(target) ?? 0
+      const operation = context.run(message, async () => {
+        if (target) await call({ method: "claim", target })
+        if (revoked.has(message.token) || generation !== (generations.get(target) ?? 0))
+          throw Error("Browser operation canceled before execution")
+        return run(message.name, message.args)
+      })
+      if (target) active.set(target, operation)
+      try {
+        return await operation
+      } finally {
+        if (target && active.get(target) === operation) active.delete(target)
       }
-      return entry.run(message.name, message.args)
     },
     async close() {
-      const entries = [...sessions.values()]
-      sessions.clear()
-      await Promise.allSettled(entries.map(({ run }) => run.close()))
+      await run.close()
     }
   }
 }

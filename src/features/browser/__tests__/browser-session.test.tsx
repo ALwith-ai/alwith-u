@@ -30,7 +30,10 @@ const nativeWindow = vi.hoisted(() => ({
   })
 }))
 vi.mock("@tauri-apps/api/window", () => ({ getCurrentWindow: () => nativeWindow }))
-vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn(async () => undefined), isTauri: () => false }))
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: vi.fn(async (command: string) => (command === "web_automation_controls" ? {} : undefined)),
+  isTauri: () => false
+}))
 vi.mock("@tauri-apps/api/event", () => ({
   listen: async (name: string, handler: (event: { payload: unknown }) => void) => {
     listeners.set(name, handler)
@@ -107,6 +110,18 @@ beforeEach(() => {
   localStorage.clear()
   listeners.clear()
   commands.length = 0
+})
+
+test("released AI pages retain their mounted pane and provenance group", async () => {
+  render(
+    <BrowserWorkspace {...props} request={{ id: "ai-release", url: "https://release.example/", sessionId: "a" }} />
+  )
+  expect(screen.getByRole("button", { name: "标签组 AI 1" })).toBeInTheDocument()
+  const pane = screen.getByTestId("pane")
+  await act(async () => listeners.get("browser-control-changed")!({ payload: {} }))
+  expect(screen.getByRole("button", { name: "标签组 AI 1" })).toBeInTheDocument()
+  expect(screen.getByTestId("pane")).toBe(pane)
+  expect(screen.queryByLabelText("AI 会话标签")).toBeNull()
 })
 
 test("a closed page reopens where it was and an AI tab does not", () => {
@@ -245,7 +260,11 @@ test("a page the browser opens for an extension becomes the selected tab, unless
     [page("https://behind.example/", true)]
   ]
   vi.mocked(invoke).mockImplementation(async (command) =>
-    command === "cef_take_tab_requests" ? (waiting.shift() ?? []) : undefined
+    command === "cef_take_tab_requests"
+      ? (waiting.shift() ?? [])
+      : command === "web_automation_controls"
+        ? {}
+        : undefined
   )
   render(<BrowserWorkspace {...props} request={{ id: "a", url: "https://a.example/" }} />)
   await act(async () => {})
@@ -258,7 +277,7 @@ test("a page the browser opens for an extension becomes the selected tab, unless
   expect(screen.getAllByRole("tab")).toHaveLength(4)
   expect(screen.getByRole("tab", { selected: true })).toHaveTextContent("extension.example")
   expect(panes()).toContain("https://behind.example/")
-  vi.mocked(invoke).mockImplementation(async () => undefined)
+  vi.mocked(invoke).mockImplementation(async (command) => (command === "web_automation_controls" ? {} : undefined))
 })
 
 test("a chord claimed inside a page acts on the tab it came from", async () => {

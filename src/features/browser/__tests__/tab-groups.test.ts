@@ -1,8 +1,19 @@
 import { expect, test } from "vitest"
 
-import { joinGroup, leaveGroup, settleGroup, usedGroups } from "../tab-groups"
+import { addSessionTab, joinGroup, leaveGroup, settleGroup, usedGroups } from "../tab-groups"
 
 const strip = (tabs: { id: string; group?: string }[]) => tabs.map((tab) => `${tab.id}${tab.group ?? ""}`).join(" ")
+
+test("conversation tabs reuse their group and stay together across interleaved sessions", () => {
+  const first = addSessionTab([{ id: "user" }], [], { id: "a1" }, "a")
+  const other = addSessionTab(first.tabs, first.groups, { id: "b1" }, "b")
+  const again = addSessionTab(other.tabs, other.groups, { id: "a2" }, "a")
+  expect(again.tabs.map((tab) => tab.id)).toEqual(["user", "a1", "a2", "b1"])
+  expect(again.groups.map((group) => group.sessionId)).toEqual(["a", "b"])
+  expect(again.groups[0]?.color).not.toBe(again.groups[1]?.color)
+  const manual = addSessionTab(again.tabs, again.groups, { id: "manual" })
+  expect(manual.tabs.at(-1)).toEqual({ id: "manual" })
+})
 
 test("a tab joins a group beside its tabs and leaves it past them", () => {
   const tabs = [{ id: "a", group: "1" }, { id: "b" }, { id: "c", group: "1" }, { id: "d" }]

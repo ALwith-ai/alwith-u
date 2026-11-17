@@ -1,0 +1,3851 @@
+{
+  "date": "2026-11-17",
+  "environment": {
+    "platform": "macOS ARM64",
+    "agentBrowser": "0.43.0 published native package",
+    "playwright": "1.65.1",
+    "chromium": "159.0.8154.6 headless shell"
+  },
+  "baseline": [
+    {
+      "kind": "playwright",
+      "name": "input-replace",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 53,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "entry": "你好 browser"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "input-append",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 17,
+      "calls": 2,
+      "outputBytes": 8,
+      "state": {
+        "ready": true,
+        "entry": "First第二段"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "textarea-multiline",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 14,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "multi": "Line one\n第二行"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "richtext-replace",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 14,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "rich": "New draft"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "richtext-multiline",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 16,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "rich": "Hello\n第二行"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "checkbox-idempotent",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 41,
+      "calls": 2,
+      "outputBytes": 8,
+      "state": {
+        "ready": true,
+        "check": true
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "select-option",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 13,
+      "calls": 1,
+      "outputBytes": 5,
+      "state": {
+        "ready": true,
+        "select": "b"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "upload-content",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 40,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "file": "isolated attachment evidence"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "download-content",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 40,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "covered-button",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 873,
+      "calls": 2,
+      "outputBytes": 8,
+      "state": {
+        "ready": true,
+        "writes": 1,
+        "saved": ""
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "delayed-element",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 1334,
+      "calls": 2,
+      "outputBytes": 8,
+      "state": {
+        "ready": true,
+        "late": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "disabled-to-enabled",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 867,
+      "calls": 2,
+      "outputBytes": 8,
+      "state": {
+        "ready": true,
+        "enabledClick": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "offscreen-click",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 49,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "bottom": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "same-origin-frame",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 61,
+      "calls": 2,
+      "outputBytes": 8,
+      "state": {
+        "ready": true,
+        "frame": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "cross-origin-frame",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 59,
+      "calls": 2,
+      "outputBytes": 8,
+      "state": {
+        "ready": true,
+        "frame": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "shadow-dom",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 32,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "shadow": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "save-and-wait",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 210,
+      "calls": 3,
+      "outputBytes": 12,
+      "state": {
+        "ready": true,
+        "entry": "Saved value",
+        "writes": 1,
+        "saved": "Saved value"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "confirm-dialog",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 52,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "confirmed": true
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "ambiguous-selector",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 168,
+      "calls": 1,
+      "outputBytes": 0,
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "stale-row-reference",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 3201,
+      "calls": 3,
+      "outputBytes": 1004,
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "covered-explicit-wait",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 847,
+      "calls": 3,
+      "outputBytes": 12,
+      "state": {
+        "ready": true,
+        "writes": 1,
+        "saved": ""
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "delayed-explicit-wait",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 1335,
+      "calls": 3,
+      "outputBytes": 12,
+      "state": {
+        "ready": true,
+        "late": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "enabled-explicit-wait",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 848,
+      "calls": 3,
+      "outputBytes": 12,
+      "state": {
+        "ready": true,
+        "enabledClick": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "shadow-observed-reference",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 48,
+      "calls": 2,
+      "outputBytes": 1004,
+      "state": {
+        "ready": true,
+        "shadow": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "richtext-native-keyboard",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 44,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "rich": "New draft"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "input-replace",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 6,
+      "calls": 1,
+      "outputBytes": 312,
+      "state": {
+        "ready": true,
+        "entry": "你好 browser"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "input-append",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 10,
+      "calls": 2,
+      "outputBytes": 626,
+      "state": {
+        "ready": true,
+        "entry": "First第二段"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "textarea-multiline",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 6,
+      "calls": 1,
+      "outputBytes": 312,
+      "state": {
+        "ready": true,
+        "multi": "Line one\n第二行"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "richtext-replace",
+      "iteration": 1,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 3531,
+      "calls": 1,
+      "outputBytes": 311,
+      "failure": "Error: Independent fixture oracle timed out",
+      "state": {
+        "ready": true,
+        "rich": "New draftOriginal draft"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "richtext-multiline",
+      "iteration": 1,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 3513,
+      "calls": 1,
+      "outputBytes": 311,
+      "failure": "Error: Independent fixture oracle timed out",
+      "state": {
+        "ready": true,
+        "rich": "Hello\n第二行Original draft"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "checkbox-idempotent",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 19,
+      "calls": 2,
+      "outputBytes": 626,
+      "state": {
+        "ready": true,
+        "check": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "select-option",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 5,
+      "calls": 1,
+      "outputBytes": 311,
+      "state": {
+        "ready": true,
+        "select": "b"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "upload-content",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 35,
+      "calls": 1,
+      "outputBytes": 328,
+      "state": {
+        "ready": true,
+        "file": "isolated attachment evidence"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "download-content",
+      "iteration": 1,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 4,
+      "calls": 1,
+      "outputBytes": 217,
+      "failure": "Error: download: {\"success\":false,\"data\":null,\"error\":\"download is not supported over --cdp, --auto-connect, or a provider: the remote endpoint names the saved file, so only a browser agent-browser launched can save to a local path\"}\n",
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "covered-button",
+      "iteration": 1,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 8,
+      "calls": 2,
+      "outputBytes": 666,
+      "failure": "Error: click: {\"success\":false,\"data\":null,\"error\":\"Element '#save' is covered by <div#cover> at its click point, so the input would land on that element instead. Dismiss or interact with the covering element first (it is often a dialog, banner, or sticky header).\"}\n",
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "delayed-element",
+      "iteration": 1,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 8,
+      "calls": 2,
+      "outputBytes": 560,
+      "failure": "Error: click: {\"success\":false,\"data\":null,\"error\":\"Element not found: #late. Verify the selector, role, or name is correct and the element exists in the DOM.\"}\n",
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "disabled-to-enabled",
+      "iteration": 1,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 8,
+      "calls": 2,
+      "outputBytes": 518,
+      "failure": "Error: click: {\"success\":false,\"data\":null,\"error\":\"Element '#disabled' is disabled, so the click would not reach it\"}\n",
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "offscreen-click",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 15,
+      "calls": 1,
+      "outputBytes": 314,
+      "state": {
+        "ready": true,
+        "bottom": 1
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "same-origin-frame",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 14,
+      "calls": 2,
+      "outputBytes": 624,
+      "state": {
+        "ready": true,
+        "frame": 1
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "cross-origin-frame",
+      "iteration": 1,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 8,
+      "calls": 2,
+      "outputBytes": 481,
+      "failure": "Error: click: {\"success\":false,\"data\":null,\"error\":\"Element not found in the selected frame: #inside. Verify the selector, role, or name is correct and the element exists in the DOM.\"}\n",
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "shadow-dom",
+      "iteration": 1,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 4,
+      "calls": 1,
+      "outputBytes": 155,
+      "failure": "Error: click: {\"success\":false,\"data\":null,\"error\":\"Element not found: #shadowButton. Verify the selector, role, or name is correct and the element exists in the DOM.\"}\n",
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "save-and-wait",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 222,
+      "calls": 3,
+      "outputBytes": 949,
+      "state": {
+        "ready": true,
+        "entry": "Saved value",
+        "writes": 1,
+        "saved": "Saved value"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "confirm-dialog",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 18,
+      "calls": 2,
+      "outputBytes": 791,
+      "state": {
+        "ready": true,
+        "confirmed": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "ambiguous-selector",
+      "iteration": 1,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 15,
+      "calls": 1,
+      "outputBytes": 317,
+      "failure": "AssertionError [ERR_ASSERTION]: Ambiguous selector was accepted",
+      "state": {
+        "ready": true,
+        "ambiguousClick": 1
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "stale-row-reference",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 189,
+      "calls": 3,
+      "outputBytes": 2644,
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "covered-explicit-wait",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 846,
+      "calls": 3,
+      "outputBytes": 1033,
+      "state": {
+        "ready": true,
+        "writes": 1,
+        "saved": ""
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "delayed-explicit-wait",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 848,
+      "calls": 3,
+      "outputBytes": 1058,
+      "state": {
+        "ready": true,
+        "late": 1
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "enabled-explicit-wait",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 847,
+      "calls": 3,
+      "outputBytes": 1037,
+      "state": {
+        "ready": true,
+        "enabledClick": 1
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "shadow-observed-reference",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 30,
+      "calls": 2,
+      "outputBytes": 2563,
+      "state": {
+        "ready": true,
+        "shadow": 1
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "richtext-native-keyboard",
+      "iteration": 1,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 3518,
+      "calls": 1,
+      "outputBytes": 314,
+      "failure": "Error: Independent fixture oracle timed out",
+      "state": {
+        "ready": true,
+        "rich": "New draftOriginal draft"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "input-replace",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 7,
+      "calls": 1,
+      "outputBytes": 312,
+      "state": {
+        "ready": true,
+        "entry": "你好 browser"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "input-append",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 11,
+      "calls": 2,
+      "outputBytes": 626,
+      "state": {
+        "ready": true,
+        "entry": "First第二段"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "textarea-multiline",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 6,
+      "calls": 1,
+      "outputBytes": 312,
+      "state": {
+        "ready": true,
+        "multi": "Line one\n第二行"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "richtext-replace",
+      "iteration": 2,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 3510,
+      "calls": 1,
+      "outputBytes": 311,
+      "failure": "Error: Independent fixture oracle timed out",
+      "state": {
+        "ready": true,
+        "rich": "New draftOriginal draft"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "richtext-multiline",
+      "iteration": 2,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 3507,
+      "calls": 1,
+      "outputBytes": 311,
+      "failure": "Error: Independent fixture oracle timed out",
+      "state": {
+        "ready": true,
+        "rich": "Hello\n第二行Original draft"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "checkbox-idempotent",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 18,
+      "calls": 2,
+      "outputBytes": 626,
+      "state": {
+        "ready": true,
+        "check": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "select-option",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 5,
+      "calls": 1,
+      "outputBytes": 311,
+      "state": {
+        "ready": true,
+        "select": "b"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "upload-content",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 31,
+      "calls": 1,
+      "outputBytes": 328,
+      "state": {
+        "ready": true,
+        "file": "isolated attachment evidence"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "download-content",
+      "iteration": 2,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 4,
+      "calls": 1,
+      "outputBytes": 217,
+      "failure": "Error: download: {\"success\":false,\"data\":null,\"error\":\"download is not supported over --cdp, --auto-connect, or a provider: the remote endpoint names the saved file, so only a browser agent-browser launched can save to a local path\"}\n",
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "covered-button",
+      "iteration": 2,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 8,
+      "calls": 2,
+      "outputBytes": 666,
+      "failure": "Error: click: {\"success\":false,\"data\":null,\"error\":\"Element '#save' is covered by <div#cover> at its click point, so the input would land on that element instead. Dismiss or interact with the covering element first (it is often a dialog, banner, or sticky header).\"}\n",
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "delayed-element",
+      "iteration": 2,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 8,
+      "calls": 2,
+      "outputBytes": 560,
+      "failure": "Error: click: {\"success\":false,\"data\":null,\"error\":\"Element not found: #late. Verify the selector, role, or name is correct and the element exists in the DOM.\"}\n",
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "disabled-to-enabled",
+      "iteration": 2,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 9,
+      "calls": 2,
+      "outputBytes": 518,
+      "failure": "Error: click: {\"success\":false,\"data\":null,\"error\":\"Element '#disabled' is disabled, so the click would not reach it\"}\n",
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "offscreen-click",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 14,
+      "calls": 1,
+      "outputBytes": 314,
+      "state": {
+        "ready": true,
+        "bottom": 1
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "same-origin-frame",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 14,
+      "calls": 2,
+      "outputBytes": 624,
+      "state": {
+        "ready": true,
+        "frame": 1
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "cross-origin-frame",
+      "iteration": 2,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 8,
+      "calls": 2,
+      "outputBytes": 481,
+      "failure": "Error: click: {\"success\":false,\"data\":null,\"error\":\"Element not found in the selected frame: #inside. Verify the selector, role, or name is correct and the element exists in the DOM.\"}\n",
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "shadow-dom",
+      "iteration": 2,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 4,
+      "calls": 1,
+      "outputBytes": 155,
+      "failure": "Error: click: {\"success\":false,\"data\":null,\"error\":\"Element not found: #shadowButton. Verify the selector, role, or name is correct and the element exists in the DOM.\"}\n",
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "save-and-wait",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 225,
+      "calls": 3,
+      "outputBytes": 949,
+      "state": {
+        "ready": true,
+        "entry": "Saved value",
+        "writes": 1,
+        "saved": "Saved value"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "confirm-dialog",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 19,
+      "calls": 2,
+      "outputBytes": 791,
+      "state": {
+        "ready": true,
+        "confirmed": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "ambiguous-selector",
+      "iteration": 2,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 14,
+      "calls": 1,
+      "outputBytes": 317,
+      "failure": "AssertionError [ERR_ASSERTION]: Ambiguous selector was accepted",
+      "state": {
+        "ready": true,
+        "ambiguousClick": 1
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "stale-row-reference",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 187,
+      "calls": 3,
+      "outputBytes": 2644,
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "covered-explicit-wait",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 847,
+      "calls": 3,
+      "outputBytes": 1033,
+      "state": {
+        "ready": true,
+        "writes": 1,
+        "saved": ""
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "delayed-explicit-wait",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 849,
+      "calls": 3,
+      "outputBytes": 1058,
+      "state": {
+        "ready": true,
+        "late": 1
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "enabled-explicit-wait",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 848,
+      "calls": 3,
+      "outputBytes": 1037,
+      "state": {
+        "ready": true,
+        "enabledClick": 1
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "shadow-observed-reference",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 30,
+      "calls": 2,
+      "outputBytes": 2563,
+      "state": {
+        "ready": true,
+        "shadow": 1
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "richtext-native-keyboard",
+      "iteration": 2,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 3508,
+      "calls": 1,
+      "outputBytes": 314,
+      "failure": "Error: Independent fixture oracle timed out",
+      "state": {
+        "ready": true,
+        "rich": "New draftOriginal draft"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "input-replace",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 35,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "entry": "你好 browser"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "input-append",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 12,
+      "calls": 2,
+      "outputBytes": 8,
+      "state": {
+        "ready": true,
+        "entry": "First第二段"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "textarea-multiline",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 9,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "multi": "Line one\n第二行"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "richtext-replace",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 9,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "rich": "New draft"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "richtext-multiline",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 11,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "rich": "Hello\n第二行"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "checkbox-idempotent",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 34,
+      "calls": 2,
+      "outputBytes": 8,
+      "state": {
+        "ready": true,
+        "check": true
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "select-option",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 10,
+      "calls": 1,
+      "outputBytes": 5,
+      "state": {
+        "ready": true,
+        "select": "b"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "upload-content",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 35,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "file": "isolated attachment evidence"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "download-content",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 38,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "covered-button",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 865,
+      "calls": 2,
+      "outputBytes": 8,
+      "state": {
+        "ready": true,
+        "writes": 1,
+        "saved": ""
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "delayed-element",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 1300,
+      "calls": 2,
+      "outputBytes": 8,
+      "state": {
+        "ready": true,
+        "late": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "disabled-to-enabled",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 866,
+      "calls": 2,
+      "outputBytes": 8,
+      "state": {
+        "ready": true,
+        "enabledClick": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "offscreen-click",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 35,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "bottom": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "same-origin-frame",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 51,
+      "calls": 2,
+      "outputBytes": 8,
+      "state": {
+        "ready": true,
+        "frame": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "cross-origin-frame",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 58,
+      "calls": 2,
+      "outputBytes": 8,
+      "state": {
+        "ready": true,
+        "frame": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "shadow-dom",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 33,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "shadow": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "save-and-wait",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 216,
+      "calls": 3,
+      "outputBytes": 12,
+      "state": {
+        "ready": true,
+        "entry": "Saved value",
+        "writes": 1,
+        "saved": "Saved value"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "confirm-dialog",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 34,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "confirmed": true
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "ambiguous-selector",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 163,
+      "calls": 1,
+      "outputBytes": 0,
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "stale-row-reference",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 3199,
+      "calls": 3,
+      "outputBytes": 1004,
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "covered-explicit-wait",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 844,
+      "calls": 3,
+      "outputBytes": 12,
+      "state": {
+        "ready": true,
+        "writes": 1,
+        "saved": ""
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "delayed-explicit-wait",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 1310,
+      "calls": 3,
+      "outputBytes": 12,
+      "state": {
+        "ready": true,
+        "late": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "enabled-explicit-wait",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 847,
+      "calls": 3,
+      "outputBytes": 12,
+      "state": {
+        "ready": true,
+        "enabledClick": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "shadow-observed-reference",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 45,
+      "calls": 2,
+      "outputBytes": 1004,
+      "state": {
+        "ready": true,
+        "shadow": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "richtext-native-keyboard",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 66,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "rich": "New draft"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "input-replace",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 9,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "entry": "你好 browser"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "input-append",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 18,
+      "calls": 2,
+      "outputBytes": 8,
+      "state": {
+        "ready": true,
+        "entry": "First第二段"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "textarea-multiline",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 8,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "multi": "Line one\n第二行"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "richtext-replace",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 9,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "rich": "New draft"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "richtext-multiline",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 8,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "rich": "Hello\n第二行"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "checkbox-idempotent",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 35,
+      "calls": 2,
+      "outputBytes": 8,
+      "state": {
+        "ready": true,
+        "check": true
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "select-option",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 9,
+      "calls": 1,
+      "outputBytes": 5,
+      "state": {
+        "ready": true,
+        "select": "b"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "upload-content",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 33,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "file": "isolated attachment evidence"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "download-content",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 34,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "covered-button",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 866,
+      "calls": 2,
+      "outputBytes": 8,
+      "state": {
+        "ready": true,
+        "writes": 1,
+        "saved": ""
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "delayed-element",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 1298,
+      "calls": 2,
+      "outputBytes": 8,
+      "state": {
+        "ready": true,
+        "late": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "disabled-to-enabled",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 864,
+      "calls": 2,
+      "outputBytes": 8,
+      "state": {
+        "ready": true,
+        "enabledClick": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "offscreen-click",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 45,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "bottom": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "same-origin-frame",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 52,
+      "calls": 2,
+      "outputBytes": 8,
+      "state": {
+        "ready": true,
+        "frame": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "cross-origin-frame",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 51,
+      "calls": 2,
+      "outputBytes": 8,
+      "state": {
+        "ready": true,
+        "frame": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "shadow-dom",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 32,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "shadow": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "save-and-wait",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 227,
+      "calls": 3,
+      "outputBytes": 12,
+      "state": {
+        "ready": true,
+        "entry": "Saved value",
+        "writes": 1,
+        "saved": "Saved value"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "confirm-dialog",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 43,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "confirmed": true
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "ambiguous-selector",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 159,
+      "calls": 1,
+      "outputBytes": 0,
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "stale-row-reference",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 3199,
+      "calls": 3,
+      "outputBytes": 1004,
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "covered-explicit-wait",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 845,
+      "calls": 3,
+      "outputBytes": 12,
+      "state": {
+        "ready": true,
+        "writes": 1,
+        "saved": ""
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "delayed-explicit-wait",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 1306,
+      "calls": 3,
+      "outputBytes": 12,
+      "state": {
+        "ready": true,
+        "late": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "enabled-explicit-wait",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 847,
+      "calls": 3,
+      "outputBytes": 12,
+      "state": {
+        "ready": true,
+        "enabledClick": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "shadow-observed-reference",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 77,
+      "calls": 2,
+      "outputBytes": 1004,
+      "state": {
+        "ready": true,
+        "shadow": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "richtext-native-keyboard",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 56,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "rich": "New draft"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "input-replace",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 7,
+      "calls": 1,
+      "outputBytes": 312,
+      "state": {
+        "ready": true,
+        "entry": "你好 browser"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "input-append",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 15,
+      "calls": 2,
+      "outputBytes": 626,
+      "state": {
+        "ready": true,
+        "entry": "First第二段"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "textarea-multiline",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 8,
+      "calls": 1,
+      "outputBytes": 312,
+      "state": {
+        "ready": true,
+        "multi": "Line one\n第二行"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "richtext-replace",
+      "iteration": 3,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 3527,
+      "calls": 1,
+      "outputBytes": 311,
+      "failure": "Error: Independent fixture oracle timed out",
+      "state": {
+        "ready": true,
+        "rich": "New draftOriginal draft"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "richtext-multiline",
+      "iteration": 3,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 3516,
+      "calls": 1,
+      "outputBytes": 311,
+      "failure": "Error: Independent fixture oracle timed out",
+      "state": {
+        "ready": true,
+        "rich": "Hello\n第二行Original draft"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "checkbox-idempotent",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 18,
+      "calls": 2,
+      "outputBytes": 626,
+      "state": {
+        "ready": true,
+        "check": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "select-option",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 7,
+      "calls": 1,
+      "outputBytes": 311,
+      "state": {
+        "ready": true,
+        "select": "b"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "upload-content",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 7,
+      "calls": 1,
+      "outputBytes": 328,
+      "state": {
+        "ready": true,
+        "file": "isolated attachment evidence"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "download-content",
+      "iteration": 3,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 11,
+      "calls": 1,
+      "outputBytes": 217,
+      "failure": "Error: download: {\"success\":false,\"data\":null,\"error\":\"download is not supported over --cdp, --auto-connect, or a provider: the remote endpoint names the saved file, so only a browser agent-browser launched can save to a local path\"}\n",
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "covered-button",
+      "iteration": 3,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 14,
+      "calls": 2,
+      "outputBytes": 666,
+      "failure": "Error: click: {\"success\":false,\"data\":null,\"error\":\"Element '#save' is covered by <div#cover> at its click point, so the input would land on that element instead. Dismiss or interact with the covering element first (it is often a dialog, banner, or sticky header).\"}\n",
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "delayed-element",
+      "iteration": 3,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 10,
+      "calls": 2,
+      "outputBytes": 560,
+      "failure": "Error: click: {\"success\":false,\"data\":null,\"error\":\"Element not found: #late. Verify the selector, role, or name is correct and the element exists in the DOM.\"}\n",
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "disabled-to-enabled",
+      "iteration": 3,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 10,
+      "calls": 2,
+      "outputBytes": 518,
+      "failure": "Error: click: {\"success\":false,\"data\":null,\"error\":\"Element '#disabled' is disabled, so the click would not reach it\"}\n",
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "offscreen-click",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 14,
+      "calls": 1,
+      "outputBytes": 314,
+      "state": {
+        "ready": true,
+        "bottom": 1
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "same-origin-frame",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 30,
+      "calls": 2,
+      "outputBytes": 624,
+      "state": {
+        "ready": true,
+        "frame": 1
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "cross-origin-frame",
+      "iteration": 3,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 11,
+      "calls": 2,
+      "outputBytes": 481,
+      "failure": "Error: click: {\"success\":false,\"data\":null,\"error\":\"Element not found in the selected frame: #inside. Verify the selector, role, or name is correct and the element exists in the DOM.\"}\n",
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "shadow-dom",
+      "iteration": 3,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 5,
+      "calls": 1,
+      "outputBytes": 155,
+      "failure": "Error: click: {\"success\":false,\"data\":null,\"error\":\"Element not found: #shadowButton. Verify the selector, role, or name is correct and the element exists in the DOM.\"}\n",
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "save-and-wait",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 241,
+      "calls": 3,
+      "outputBytes": 949,
+      "state": {
+        "ready": true,
+        "entry": "Saved value",
+        "writes": 1,
+        "saved": "Saved value"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "confirm-dialog",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 45,
+      "calls": 2,
+      "outputBytes": 791,
+      "state": {
+        "ready": true,
+        "confirmed": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "ambiguous-selector",
+      "iteration": 3,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 14,
+      "calls": 1,
+      "outputBytes": 317,
+      "failure": "AssertionError [ERR_ASSERTION]: Ambiguous selector was accepted",
+      "state": {
+        "ready": true,
+        "ambiguousClick": 1
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "stale-row-reference",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 189,
+      "calls": 3,
+      "outputBytes": 2644,
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "covered-explicit-wait",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 847,
+      "calls": 3,
+      "outputBytes": 1033,
+      "state": {
+        "ready": true,
+        "writes": 1,
+        "saved": ""
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "delayed-explicit-wait",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 847,
+      "calls": 3,
+      "outputBytes": 1058,
+      "state": {
+        "ready": true,
+        "late": 1
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "enabled-explicit-wait",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 846,
+      "calls": 3,
+      "outputBytes": 1037,
+      "state": {
+        "ready": true,
+        "enabledClick": 1
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "shadow-observed-reference",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 30,
+      "calls": 2,
+      "outputBytes": 2563,
+      "state": {
+        "ready": true,
+        "shadow": 1
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "richtext-native-keyboard",
+      "iteration": 3,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 3520,
+      "calls": 1,
+      "outputBytes": 314,
+      "failure": "Error: Independent fixture oracle timed out",
+      "state": {
+        "ready": true,
+        "rich": "New draftOriginal draft"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "input-replace",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 7,
+      "calls": 1,
+      "outputBytes": 312,
+      "state": {
+        "ready": true,
+        "entry": "你好 browser"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "input-append",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 11,
+      "calls": 2,
+      "outputBytes": 626,
+      "state": {
+        "ready": true,
+        "entry": "First第二段"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "textarea-multiline",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 5,
+      "calls": 1,
+      "outputBytes": 312,
+      "state": {
+        "ready": true,
+        "multi": "Line one\n第二行"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "richtext-replace",
+      "iteration": 4,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 3514,
+      "calls": 1,
+      "outputBytes": 311,
+      "failure": "Error: Independent fixture oracle timed out",
+      "state": {
+        "ready": true,
+        "rich": "New draftOriginal draft"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "richtext-multiline",
+      "iteration": 4,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 3517,
+      "calls": 1,
+      "outputBytes": 311,
+      "failure": "Error: Independent fixture oracle timed out",
+      "state": {
+        "ready": true,
+        "rich": "Hello\n第二行Original draft"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "checkbox-idempotent",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 17,
+      "calls": 2,
+      "outputBytes": 626,
+      "state": {
+        "ready": true,
+        "check": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "select-option",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 5,
+      "calls": 1,
+      "outputBytes": 311,
+      "state": {
+        "ready": true,
+        "select": "b"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "upload-content",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 5,
+      "calls": 1,
+      "outputBytes": 328,
+      "state": {
+        "ready": true,
+        "file": "isolated attachment evidence"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "download-content",
+      "iteration": 4,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 4,
+      "calls": 1,
+      "outputBytes": 217,
+      "failure": "Error: download: {\"success\":false,\"data\":null,\"error\":\"download is not supported over --cdp, --auto-connect, or a provider: the remote endpoint names the saved file, so only a browser agent-browser launched can save to a local path\"}\n",
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "covered-button",
+      "iteration": 4,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 8,
+      "calls": 2,
+      "outputBytes": 666,
+      "failure": "Error: click: {\"success\":false,\"data\":null,\"error\":\"Element '#save' is covered by <div#cover> at its click point, so the input would land on that element instead. Dismiss or interact with the covering element first (it is often a dialog, banner, or sticky header).\"}\n",
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "delayed-element",
+      "iteration": 4,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 8,
+      "calls": 2,
+      "outputBytes": 560,
+      "failure": "Error: click: {\"success\":false,\"data\":null,\"error\":\"Element not found: #late. Verify the selector, role, or name is correct and the element exists in the DOM.\"}\n",
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "disabled-to-enabled",
+      "iteration": 4,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 8,
+      "calls": 2,
+      "outputBytes": 518,
+      "failure": "Error: click: {\"success\":false,\"data\":null,\"error\":\"Element '#disabled' is disabled, so the click would not reach it\"}\n",
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "offscreen-click",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 14,
+      "calls": 1,
+      "outputBytes": 314,
+      "state": {
+        "ready": true,
+        "bottom": 1
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "same-origin-frame",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 14,
+      "calls": 2,
+      "outputBytes": 624,
+      "state": {
+        "ready": true,
+        "frame": 1
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "cross-origin-frame",
+      "iteration": 4,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 9,
+      "calls": 2,
+      "outputBytes": 481,
+      "failure": "Error: click: {\"success\":false,\"data\":null,\"error\":\"Element not found in the selected frame: #inside. Verify the selector, role, or name is correct and the element exists in the DOM.\"}\n",
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "shadow-dom",
+      "iteration": 4,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 4,
+      "calls": 1,
+      "outputBytes": 155,
+      "failure": "Error: click: {\"success\":false,\"data\":null,\"error\":\"Element not found: #shadowButton. Verify the selector, role, or name is correct and the element exists in the DOM.\"}\n",
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "save-and-wait",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 224,
+      "calls": 3,
+      "outputBytes": 949,
+      "state": {
+        "ready": true,
+        "entry": "Saved value",
+        "writes": 1,
+        "saved": "Saved value"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "confirm-dialog",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 17,
+      "calls": 2,
+      "outputBytes": 791,
+      "state": {
+        "ready": true,
+        "confirmed": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "ambiguous-selector",
+      "iteration": 4,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 14,
+      "calls": 1,
+      "outputBytes": 317,
+      "failure": "AssertionError [ERR_ASSERTION]: Ambiguous selector was accepted",
+      "state": {
+        "ready": true,
+        "ambiguousClick": 1
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "stale-row-reference",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 171,
+      "calls": 3,
+      "outputBytes": 2644,
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "covered-explicit-wait",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 863,
+      "calls": 3,
+      "outputBytes": 1033,
+      "state": {
+        "ready": true,
+        "writes": 1,
+        "saved": ""
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "delayed-explicit-wait",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 864,
+      "calls": 3,
+      "outputBytes": 1058,
+      "state": {
+        "ready": true,
+        "late": 1
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "enabled-explicit-wait",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 847,
+      "calls": 3,
+      "outputBytes": 1037,
+      "state": {
+        "ready": true,
+        "enabledClick": 1
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "shadow-observed-reference",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 29,
+      "calls": 2,
+      "outputBytes": 2563,
+      "state": {
+        "ready": true,
+        "shadow": 1
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "richtext-native-keyboard",
+      "iteration": 4,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 3516,
+      "calls": 1,
+      "outputBytes": 314,
+      "failure": "Error: Independent fixture oracle timed out",
+      "state": {
+        "ready": true,
+        "rich": "New draftOriginal draft"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "input-replace",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 33,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "entry": "你好 browser"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "input-append",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 10,
+      "calls": 2,
+      "outputBytes": 8,
+      "state": {
+        "ready": true,
+        "entry": "First第二段"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "textarea-multiline",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 8,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "multi": "Line one\n第二行"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "richtext-replace",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 33,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "rich": "New draft"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "richtext-multiline",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 33,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "rich": "Hello\n第二行"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "checkbox-idempotent",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 34,
+      "calls": 2,
+      "outputBytes": 8,
+      "state": {
+        "ready": true,
+        "check": true
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "select-option",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 8,
+      "calls": 1,
+      "outputBytes": 5,
+      "state": {
+        "ready": true,
+        "select": "b"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "upload-content",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 33,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "file": "isolated attachment evidence"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "download-content",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 35,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "covered-button",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 866,
+      "calls": 2,
+      "outputBytes": 8,
+      "state": {
+        "ready": true,
+        "writes": 1,
+        "saved": ""
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "delayed-element",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 1319,
+      "calls": 2,
+      "outputBytes": 8,
+      "state": {
+        "ready": true,
+        "late": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "disabled-to-enabled",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 866,
+      "calls": 2,
+      "outputBytes": 8,
+      "state": {
+        "ready": true,
+        "enabledClick": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "offscreen-click",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 47,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "bottom": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "same-origin-frame",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 56,
+      "calls": 2,
+      "outputBytes": 8,
+      "state": {
+        "ready": true,
+        "frame": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "cross-origin-frame",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 57,
+      "calls": 2,
+      "outputBytes": 8,
+      "state": {
+        "ready": true,
+        "frame": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "shadow-dom",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 31,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "shadow": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "save-and-wait",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 210,
+      "calls": 3,
+      "outputBytes": 12,
+      "state": {
+        "ready": true,
+        "entry": "Saved value",
+        "writes": 1,
+        "saved": "Saved value"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "confirm-dialog",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 48,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "confirmed": true
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "ambiguous-selector",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 161,
+      "calls": 1,
+      "outputBytes": 0,
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "stale-row-reference",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 3198,
+      "calls": 3,
+      "outputBytes": 1004,
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "covered-explicit-wait",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 849,
+      "calls": 3,
+      "outputBytes": 12,
+      "state": {
+        "ready": true,
+        "writes": 1,
+        "saved": ""
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "delayed-explicit-wait",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 1315,
+      "calls": 3,
+      "outputBytes": 12,
+      "state": {
+        "ready": true,
+        "late": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "enabled-explicit-wait",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 847,
+      "calls": 3,
+      "outputBytes": 12,
+      "state": {
+        "ready": true,
+        "enabledClick": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "shadow-observed-reference",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 48,
+      "calls": 2,
+      "outputBytes": 1004,
+      "state": {
+        "ready": true,
+        "shadow": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "richtext-native-keyboard",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 41,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "rich": "New draft"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "input-replace",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 33,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "entry": "你好 browser"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "input-append",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 10,
+      "calls": 2,
+      "outputBytes": 8,
+      "state": {
+        "ready": true,
+        "entry": "First第二段"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "textarea-multiline",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 32,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "multi": "Line one\n第二行"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "richtext-replace",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 33,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "rich": "New draft"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "richtext-multiline",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 34,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "rich": "Hello\n第二行"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "checkbox-idempotent",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 34,
+      "calls": 2,
+      "outputBytes": 8,
+      "state": {
+        "ready": true,
+        "check": true
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "select-option",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 8,
+      "calls": 1,
+      "outputBytes": 5,
+      "state": {
+        "ready": true,
+        "select": "b"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "upload-content",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 33,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "file": "isolated attachment evidence"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "download-content",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 35,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "covered-button",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 870,
+      "calls": 2,
+      "outputBytes": 8,
+      "state": {
+        "ready": true,
+        "writes": 1,
+        "saved": ""
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "delayed-element",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 1315,
+      "calls": 2,
+      "outputBytes": 8,
+      "state": {
+        "ready": true,
+        "late": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "disabled-to-enabled",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 867,
+      "calls": 2,
+      "outputBytes": 8,
+      "state": {
+        "ready": true,
+        "enabledClick": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "offscreen-click",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 31,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "bottom": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "same-origin-frame",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 55,
+      "calls": 2,
+      "outputBytes": 8,
+      "state": {
+        "ready": true,
+        "frame": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "cross-origin-frame",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 56,
+      "calls": 2,
+      "outputBytes": 8,
+      "state": {
+        "ready": true,
+        "frame": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "shadow-dom",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 32,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "shadow": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "save-and-wait",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 207,
+      "calls": 3,
+      "outputBytes": 12,
+      "state": {
+        "ready": true,
+        "entry": "Saved value",
+        "writes": 1,
+        "saved": "Saved value"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "confirm-dialog",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 32,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "confirmed": true
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "ambiguous-selector",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 159,
+      "calls": 1,
+      "outputBytes": 0,
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "stale-row-reference",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 3200,
+      "calls": 3,
+      "outputBytes": 1004,
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "covered-explicit-wait",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 849,
+      "calls": 3,
+      "outputBytes": 12,
+      "state": {
+        "ready": true,
+        "writes": 1,
+        "saved": ""
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "delayed-explicit-wait",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 1314,
+      "calls": 3,
+      "outputBytes": 12,
+      "state": {
+        "ready": true,
+        "late": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "enabled-explicit-wait",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 847,
+      "calls": 3,
+      "outputBytes": 12,
+      "state": {
+        "ready": true,
+        "enabledClick": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "shadow-observed-reference",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 47,
+      "calls": 2,
+      "outputBytes": 1004,
+      "state": {
+        "ready": true,
+        "shadow": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "richtext-native-keyboard",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 48,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "rich": "New draft"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "input-replace",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 8,
+      "calls": 1,
+      "outputBytes": 312,
+      "state": {
+        "ready": true,
+        "entry": "你好 browser"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "input-append",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 11,
+      "calls": 2,
+      "outputBytes": 626,
+      "state": {
+        "ready": true,
+        "entry": "First第二段"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "textarea-multiline",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 6,
+      "calls": 1,
+      "outputBytes": 312,
+      "state": {
+        "ready": true,
+        "multi": "Line one\n第二行"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "richtext-replace",
+      "iteration": 5,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 3514,
+      "calls": 1,
+      "outputBytes": 311,
+      "failure": "Error: Independent fixture oracle timed out",
+      "state": {
+        "ready": true,
+        "rich": "New draftOriginal draft"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "richtext-multiline",
+      "iteration": 5,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 3521,
+      "calls": 1,
+      "outputBytes": 311,
+      "failure": "Error: Independent fixture oracle timed out",
+      "state": {
+        "ready": true,
+        "rich": "Hello\n第二行Original draft"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "checkbox-idempotent",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 18,
+      "calls": 2,
+      "outputBytes": 626,
+      "state": {
+        "ready": true,
+        "check": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "select-option",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 6,
+      "calls": 1,
+      "outputBytes": 311,
+      "state": {
+        "ready": true,
+        "select": "b"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "upload-content",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 5,
+      "calls": 1,
+      "outputBytes": 328,
+      "state": {
+        "ready": true,
+        "file": "isolated attachment evidence"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "download-content",
+      "iteration": 5,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 4,
+      "calls": 1,
+      "outputBytes": 217,
+      "failure": "Error: download: {\"success\":false,\"data\":null,\"error\":\"download is not supported over --cdp, --auto-connect, or a provider: the remote endpoint names the saved file, so only a browser agent-browser launched can save to a local path\"}\n",
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "covered-button",
+      "iteration": 5,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 9,
+      "calls": 2,
+      "outputBytes": 666,
+      "failure": "Error: click: {\"success\":false,\"data\":null,\"error\":\"Element '#save' is covered by <div#cover> at its click point, so the input would land on that element instead. Dismiss or interact with the covering element first (it is often a dialog, banner, or sticky header).\"}\n",
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "delayed-element",
+      "iteration": 5,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 8,
+      "calls": 2,
+      "outputBytes": 560,
+      "failure": "Error: click: {\"success\":false,\"data\":null,\"error\":\"Element not found: #late. Verify the selector, role, or name is correct and the element exists in the DOM.\"}\n",
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "disabled-to-enabled",
+      "iteration": 5,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 9,
+      "calls": 2,
+      "outputBytes": 518,
+      "failure": "Error: click: {\"success\":false,\"data\":null,\"error\":\"Element '#disabled' is disabled, so the click would not reach it\"}\n",
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "offscreen-click",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 14,
+      "calls": 1,
+      "outputBytes": 314,
+      "state": {
+        "ready": true,
+        "bottom": 1
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "same-origin-frame",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 14,
+      "calls": 2,
+      "outputBytes": 624,
+      "state": {
+        "ready": true,
+        "frame": 1
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "cross-origin-frame",
+      "iteration": 5,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 9,
+      "calls": 2,
+      "outputBytes": 481,
+      "failure": "Error: click: {\"success\":false,\"data\":null,\"error\":\"Element not found in the selected frame: #inside. Verify the selector, role, or name is correct and the element exists in the DOM.\"}\n",
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "shadow-dom",
+      "iteration": 5,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 4,
+      "calls": 1,
+      "outputBytes": 155,
+      "failure": "Error: click: {\"success\":false,\"data\":null,\"error\":\"Element not found: #shadowButton. Verify the selector, role, or name is correct and the element exists in the DOM.\"}\n",
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "save-and-wait",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 223,
+      "calls": 3,
+      "outputBytes": 949,
+      "state": {
+        "ready": true,
+        "entry": "Saved value",
+        "writes": 1,
+        "saved": "Saved value"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "confirm-dialog",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 17,
+      "calls": 2,
+      "outputBytes": 791,
+      "state": {
+        "ready": true,
+        "confirmed": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "ambiguous-selector",
+      "iteration": 5,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 13,
+      "calls": 1,
+      "outputBytes": 317,
+      "failure": "AssertionError [ERR_ASSERTION]: Ambiguous selector was accepted",
+      "state": {
+        "ready": true,
+        "ambiguousClick": 1
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "stale-row-reference",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 169,
+      "calls": 3,
+      "outputBytes": 2644,
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "covered-explicit-wait",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 845,
+      "calls": 3,
+      "outputBytes": 1033,
+      "state": {
+        "ready": true,
+        "writes": 1,
+        "saved": ""
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "delayed-explicit-wait",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 848,
+      "calls": 3,
+      "outputBytes": 1058,
+      "state": {
+        "ready": true,
+        "late": 1
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "enabled-explicit-wait",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 847,
+      "calls": 3,
+      "outputBytes": 1037,
+      "state": {
+        "ready": true,
+        "enabledClick": 1
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "shadow-observed-reference",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 29,
+      "calls": 2,
+      "outputBytes": 2563,
+      "state": {
+        "ready": true,
+        "shadow": 1
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "richtext-native-keyboard",
+      "iteration": 5,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 3522,
+      "calls": 1,
+      "outputBytes": 314,
+      "failure": "Error: Independent fixture oracle timed out",
+      "state": {
+        "ready": true,
+        "rich": "New draftOriginal draft"
+      }
+    }
+  ],
+  "supplemental": [
+    {
+      "kind": "playwright",
+      "name": "richtext-select-all-insert",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 74,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "rich": "New draft"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "cross-frame-observed-reference",
+      "iteration": 1,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 59,
+      "calls": 2,
+      "outputBytes": 986,
+      "state": {
+        "ready": true,
+        "frame": 1
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "richtext-select-all-insert",
+      "iteration": 1,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 3543,
+      "calls": 3,
+      "outputBytes": 935,
+      "failure": "Error: Independent fixture oracle timed out",
+      "state": {
+        "ready": true,
+        "rich": "Original draftNew draft"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "cross-frame-observed-reference",
+      "iteration": 1,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 23,
+      "calls": 2,
+      "outputBytes": 2358,
+      "failure": "Error: click: {\"success\":false,\"data\":null,\"error\":\"Element '@e22' is outside the viewport, so the click would not reach it\"}\n",
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "richtext-select-all-insert",
+      "iteration": 2,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 3525,
+      "calls": 3,
+      "outputBytes": 935,
+      "failure": "Error: Independent fixture oracle timed out",
+      "state": {
+        "ready": true,
+        "rich": "Original draftNew draft"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "cross-frame-observed-reference",
+      "iteration": 2,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 18,
+      "calls": 2,
+      "outputBytes": 2358,
+      "failure": "Error: click: {\"success\":false,\"data\":null,\"error\":\"Element '@e22' is outside the viewport, so the click would not reach it\"}\n",
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "richtext-select-all-insert",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 35,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "rich": "New draft"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "cross-frame-observed-reference",
+      "iteration": 2,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 59,
+      "calls": 2,
+      "outputBytes": 986,
+      "state": {
+        "ready": true,
+        "frame": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "richtext-select-all-insert",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 60,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "rich": "New draft"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "cross-frame-observed-reference",
+      "iteration": 3,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 57,
+      "calls": 2,
+      "outputBytes": 986,
+      "state": {
+        "ready": true,
+        "frame": 1
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "richtext-select-all-insert",
+      "iteration": 3,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 3523,
+      "calls": 3,
+      "outputBytes": 935,
+      "failure": "Error: Independent fixture oracle timed out",
+      "state": {
+        "ready": true,
+        "rich": "Original draftNew draft"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "cross-frame-observed-reference",
+      "iteration": 3,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 18,
+      "calls": 2,
+      "outputBytes": 2358,
+      "failure": "Error: click: {\"success\":false,\"data\":null,\"error\":\"Element '@e22' is outside the viewport, so the click would not reach it\"}\n",
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "richtext-select-all-insert",
+      "iteration": 4,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 3526,
+      "calls": 3,
+      "outputBytes": 935,
+      "failure": "Error: Independent fixture oracle timed out",
+      "state": {
+        "ready": true,
+        "rich": "Original draftNew draft"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "cross-frame-observed-reference",
+      "iteration": 4,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 17,
+      "calls": 2,
+      "outputBytes": 2358,
+      "failure": "Error: click: {\"success\":false,\"data\":null,\"error\":\"Element '@e22' is outside the viewport, so the click would not reach it\"}\n",
+      "state": {
+        "ready": true
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "richtext-select-all-insert",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 60,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "rich": "New draft"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "cross-frame-observed-reference",
+      "iteration": 4,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 57,
+      "calls": 2,
+      "outputBytes": 986,
+      "state": {
+        "ready": true,
+        "frame": 1
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "richtext-select-all-insert",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 59,
+      "calls": 1,
+      "outputBytes": 4,
+      "state": {
+        "ready": true,
+        "rich": "New draft"
+      }
+    },
+    {
+      "kind": "playwright",
+      "name": "cross-frame-observed-reference",
+      "iteration": 5,
+      "passed": true,
+      "phase": "action",
+      "elapsedMs": 55,
+      "calls": 2,
+      "outputBytes": 986,
+      "state": {
+        "ready": true,
+        "frame": 1
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "richtext-select-all-insert",
+      "iteration": 5,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 3527,
+      "calls": 3,
+      "outputBytes": 935,
+      "failure": "Error: Independent fixture oracle timed out",
+      "state": {
+        "ready": true,
+        "rich": "Original draftNew draft"
+      }
+    },
+    {
+      "kind": "agent-browser",
+      "name": "cross-frame-observed-reference",
+      "iteration": 5,
+      "passed": false,
+      "phase": "action",
+      "elapsedMs": 18,
+      "calls": 2,
+      "outputBytes": 2358,
+      "failure": "Error: click: {\"success\":false,\"data\":null,\"error\":\"Element '@e22' is outside the viewport, so the click would not reach it\"}\n",
+      "state": {
+        "ready": true
+      }
+    }
+  ],
+  "cef": {
+    "scope": "Existing isolated CEF candidate connection gate, not task success comparison",
+    "results": [
+      {
+        "kind": "playwright",
+        "connected": true,
+        "observed": true
+      },
+      {
+        "kind": "agent-browser",
+        "connected": false,
+        "observed": false,
+        "stdout": "{\"success\":false,\"data\":{\"lifecycle\":{\"settings\":{\"changes\":[{\"applied\":false,\"effect\":\"relaunch\",\"option\":\"cdp\",\"requested\":\"ws://127.0.0.1:56252/cdp/browser-1719d658-9d9e-44db-b9ce-84479da7b9f8\",\"running\":null},{\"applied\":false,\"effect\":\"relaunch\",\"option\":\"cdp-headers\",\"requested\":\"<redacted>\",\"running\":null}],\"forcedRelaunch\":false}}},\"error\":\"CDP connection failed: CDP error (Target.setDiscoverTargets): Browser-wide operation is unavailable on an embedded guest\"}\n",
+        "stderr": "",
+        "code": 1
+      }
+    ]
+  }
+}

@@ -1,3 +1,4 @@
+import { invoke } from "@tauri-apps/api/core"
 import { useCallback, useState } from "react"
 /** Isolated native test entry: the actual browser pane, without auth or an agent runtime. */
 import { createRoot } from "react-dom/client"
@@ -7,6 +8,41 @@ import { initI18n } from "@/lib/i18n"
 import { BrowserWorkspace } from "./browser-workspace"
 import { usePreviewRequest } from "./preview-request"
 import "@/index.css"
+
+// Native tool calls can outlive an inspector's evaluation timeout. Keep their result
+// in the fixture DOM so contracts observe completion without replaying a mutation.
+document.addEventListener("browser-contract-call", (event) => {
+  const element = event.target
+  if (!(element instanceof HTMLElement) || element.dataset.state !== "pending") return
+  element.dataset.state = "running"
+  const request: unknown = JSON.parse(element.textContent ?? "")
+  if (
+    !request ||
+    typeof request !== "object" ||
+    !("sessionId" in request) ||
+    !("name" in request) ||
+    typeof request.sessionId !== "string" ||
+    typeof request.name !== "string" ||
+    !request.name.startsWith("browser_")
+  ) {
+    element.textContent = JSON.stringify({ error: "Invalid browser contract request" })
+    element.dataset.state = "done"
+    return
+  }
+  void invoke("web_automation_execute", request as Record<string, unknown>)
+    .then(
+      (result) => {
+        element.textContent = JSON.stringify({ result })
+      },
+      (error: unknown) => {
+        element.textContent = JSON.stringify({ error: String(error) })
+      }
+    )
+    .finally(() => {
+      element.dataset.state = "done"
+    })
+})
+
 function Fixture() {
   const [active, setActive] = useState(true)
   const show = useCallback(() => setActive(true), [])

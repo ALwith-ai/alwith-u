@@ -30,7 +30,7 @@ import { clearDownloads, downloadStore, recordDownload } from "./downloads"
 import { retitle, visit } from "./library"
 import type { PreviewRequest } from "./preview-request"
 import { groupEdge, TabGroupChip } from "./tab-group-chip"
-import { groupColors, joinGroup, leaveGroup, settleGroup, type TabGroup, usedGroups } from "./tab-groups"
+import { addSessionTab, groupColors, joinGroup, leaveGroup, settleGroup, type TabGroup, usedGroups } from "./tab-groups"
 import { insertAfter, moveTab, moveTo, pinTab } from "./tab-order"
 import { TabSearch } from "./tab-search"
 import { loadTabs, saveTabs, type TabHistory } from "./tab-store"
@@ -92,7 +92,10 @@ function initialState(request?: PreviewRequest): State {
     request
   }
   const stored = loadTabs()
-  const groups = (stored?.groups ?? []).map((group): TabGroup => ({ ...group, id: crypto.randomUUID() }))
+  const groups = (stored?.groups ?? []).map((group): TabGroup => ({
+    ...group,
+    id: crypto.randomUUID()
+  }))
   const saved = (stored?.tabs ?? []).map((tab): Tab => ({
     id: crypto.randomUUID(),
     // A tab with no page yet has no title of its own; one saved under the old wording is such a tab.
@@ -105,7 +108,8 @@ function initialState(request?: PreviewRequest): State {
     group: tab.group === undefined ? undefined : groups[tab.group]?.id
   }))
   const restoredSelection = saved[stored?.selected ?? 0]
-  const tabs = [...saved, ...(first ? [first] : [])]
+  const grouped = first ? addSessionTab(saved, groups, first, request?.sessionId) : { tabs: saved, groups }
+  const tabs = grouped.tabs
   if (tabs.length === 0) tabs.push({ id: crypto.randomUUID(), title: "" })
   const selected = (first ?? restoredSelection ?? tabs[0]!).id
   const shown = tabs.find((tab) => tab.id === selected)?.group
@@ -115,18 +119,20 @@ function initialState(request?: PreviewRequest): State {
     opened: [selected],
     closed: [],
     // The tab in front is never put away.
-    groups: groups.map((group) => (group.id === shown ? { ...group, collapsed: false } : group))
+    groups: grouped.groups.map((group) => (group.id === shown ? { ...group, collapsed: false } : group))
   }
 }
 /** Each tab keeps its real CEF surface mounted; selection changes only visibility. */
 export function BrowserWorkspace({
   request,
+  sessionTitles,
   active,
   maximized,
   onMaximize,
   onClose
 }: {
   request?: PreviewRequest
+  sessionTitles?: Readonly<Record<string, string | null | undefined>>
   active: boolean
   maximized: boolean
   onMaximize: () => void
@@ -137,7 +143,10 @@ export function BrowserWorkspace({
   // The one interface zoom, kept by the desktop shell; pages follow it.
   const desktopZoom = useDesktopZoom()
   const { tabs, selected, opened, closed } = state
-  const groups = usedGroups(state.groups, tabs)
+  const groups = usedGroups(state.groups, tabs).map((group) => ({
+    ...group,
+    title: group.sessionId ? sessionTitles?.[group.sessionId] || group.title : group.title
+  }))
   const [searching, setSearching] = useState(false)
   // Commands arrive from native events; they act on the tabs as they are now.
   const current = useRef(state)
@@ -175,7 +184,21 @@ export function BrowserWorkspace({
       return outside ? { ...select(state, outside.id), groups } : state
     })
   const setSelected = (id: string) => setState((state) => select(state, id))
-  const add = (tab: Tab) => setState((state) => select({ ...state, tabs: [...state.tabs, tab] }, tab.id))
+  const add = (tab: Tab) =>
+    setState((state) =>
+      select(
+        {
+          ...state,
+          ...addSessionTab(state.tabs, state.groups, tab, tab.request?.sessionId ?? tab.adopted?.sessionId)
+        },
+        tab.id
+      )
+    )
+  const [controls, setControls] = useState<Record<string, { sessionId: string; stopping: boolean }>>({})
+  const release = (tab: Tab) => {
+    if (!tab.label) return
+    void invoke("web_automation_takeover", { target: tab.label }).catch((error: unknown) => toast.error(String(error)))
+  }
   const panes = useRef(new Map<string, BrowserPaneHandle>())
   // The browser is told where each tab is in the strip and whether it is pinned: extensions ask it, and only
   // this strip knows. The tab that was moved is named apart from those that made room for it.
@@ -233,10 +256,23 @@ export function BrowserWorkspace({
       // Only an ordinary page can come back: a conversation's tab is reopened by its conversation.
       const closed =
         !bound(removed) && !removed.private && removed.url && /^https?:\/\//i.test(removed.url)
-          ? [...state.closed, { url: removed.url, title: removed.title, history: removed.history }].slice(-closedLimit)
+          ? [
+              ...state.closed,
+              {
+                url: removed.url,
+                title: removed.title,
+                history: removed.history
+              }
+            ].slice(-closedLimit)
           : state.closed
       return select(
-        { ...state, tabs, closed, selected: next, opened: state.opened.filter((id) => id !== removed.id) },
+        {
+          ...state,
+          tabs,
+          closed,
+          selected: next,
+          opened: state.opened.filter((id) => id !== removed.id)
+        },
         next
       )
     })
@@ -266,7 +302,11 @@ export function BrowserWorkspace({
       switch (command) {
         case "new-tab":
         case "new-private-tab": {
-          const created: Tab = { id: crypto.randomUUID(), title: "", private: command === "new-private-tab" }
+          const created: Tab = {
+            id: crypto.randomUUID(),
+            title: "",
+            private: command === "new-private-tab"
+          }
           return select({ ...state, tabs: [...state.tabs, created] }, created.id)
         }
         case "reopen-tab": {
@@ -280,7 +320,14 @@ export function BrowserWorkspace({
             url: last.url,
             history: last.history
           }
-          return select({ ...state, tabs: [...state.tabs, reopened], closed: state.closed.slice(0, -1) }, reopened.id)
+          return select(
+            {
+              ...state,
+              tabs: [...state.tabs, reopened],
+              closed: state.closed.slice(0, -1)
+            },
+            reopened.id
+          )
         }
         case "previous-tab":
         case "next-tab": {
@@ -349,7 +396,12 @@ export function BrowserWorkspace({
       movedLabel.current = payload.label
       setState((state) => {
         const tab = state.tabs.find((tab) => tab.label === payload.label)
-        return tab ? { ...state, tabs: settleGroup(moveTo(state.tabs, tab.id, payload.index), tab.id) } : state
+        return tab
+          ? {
+              ...state,
+              tabs: settleGroup(moveTo(state.tabs, tab.id, payload.index), tab.id)
+            }
+          : state
       })
     })
     const pin = listen<{ label: string; pinned: boolean }>("browser-tab-pin", ({ payload }) => {
@@ -369,6 +421,19 @@ export function BrowserWorkspace({
     const closed = listen<{ label: string }>("browser-tab-closed", ({ payload }) => {
       if (!disposed) close({ label: payload.label })
     })
+    const refreshControls = () => {
+      void invoke<Record<string, { sessionId: string; stopping: boolean }>>("web_automation_controls")
+        .then((value) => {
+          if (!disposed) setControls(value)
+        })
+        .catch((error: unknown) => {
+          if (!disposed) toast.error(String(error))
+        })
+    }
+    const released = listen("browser-control-changed", refreshControls)
+    void released.then(refreshControls).catch((error: unknown) => {
+      if (!disposed) toast.error(String(error))
+    })
     const popup = listen<Guest>("browser-popup-created", ({ payload }) => {
       if (!disposed)
         setState((state) =>
@@ -377,7 +442,17 @@ export function BrowserWorkspace({
             : select(
                 {
                   ...state,
-                  tabs: [...state.tabs, { id: payload.label, label: payload.label, title: "", adopted: payload }]
+                  ...addSessionTab(
+                    state.tabs,
+                    state.groups,
+                    {
+                      id: payload.label,
+                      label: payload.label,
+                      title: "",
+                      adopted: payload
+                    },
+                    payload.sessionId
+                  )
                 },
                 payload.label
               )
@@ -430,7 +505,12 @@ export function BrowserWorkspace({
       )
       // The end of a download is recorded and announced once, however many updates repeat it.
       if (previous === payload.state || payload.state === "progress") return
-      recordDownload({ url: payload.url, path: payload.path, state: payload.state, at: Date.now() })
+      recordDownload({
+        url: payload.url,
+        path: payload.path,
+        state: payload.state,
+        at: Date.now()
+      })
       if (payload.state === "canceled") return
       const name = fileName(payload)
       if (payload.state === "failed") toast.error(i18n.t("browser.downloadFailed", { name }))
@@ -445,7 +525,7 @@ export function BrowserWorkspace({
             : undefined
         })
     })
-    const subscriptions = [focus, move, pin, muted, audible, closed, popup, requested, shortcut, download]
+    const subscriptions = [focus, move, pin, muted, audible, closed, released, popup, requested, shortcut, download]
     for (const pending of subscriptions) void pending.catch((error) => toast.error(String(error)))
     return () => {
       disposed = true
@@ -488,11 +568,14 @@ export function BrowserWorkspace({
                       group={group}
                       onChange={(change) => setGroup(group.id, change)}
                       onToggle={() => toggleGroup(group.id)}
-                      onUngroup={() =>
-                        setTabs((tabs) =>
-                          tabs.map((value) => (value.group === group.id ? { ...value, group: undefined } : value))
-                        )
-                      }
+                      onUngroup={() => {
+                        if (group.sessionId) {
+                          for (const member of tabs) if (member.group === group.id && member.label) release(member)
+                        } else
+                          setTabs((tabs) =>
+                            tabs.map((value) => (value.group === group.id ? { ...value, group: undefined } : value))
+                          )
+                      }}
                       onClose={() => {
                         for (const member of tabs) if (member.group === group.id) close({ id: member.id })
                       }}
@@ -512,7 +595,7 @@ export function BrowserWorkspace({
                               // A grouped tab wears its group's colour along its top.
                               group && cn("border-t-2", groupEdge[group.color])
                             )}
-                            draggable
+                            draggable={!bound(tab)}
                             // The middle button closes a tab, as in every browser; a pinned one stays.
                             onAuxClick={(event) => {
                               if (event.button === 1 && !tab.pinned) close({ id: tab.id })
@@ -522,10 +605,11 @@ export function BrowserWorkspace({
                               event.dataTransfer.effectAllowed = "move"
                             }}
                             onDragOver={(event) => {
-                              if (dragged.current && dragged.current !== tab.id) event.preventDefault()
+                              if (!bound(tab) && dragged.current && dragged.current !== tab.id) event.preventDefault()
                             }}
                             onDrop={(event) => {
                               event.preventDefault()
+                              if (bound(tab)) return
                               const moved = dragged.current
                               dragged.current = undefined
                               if (moved) {
@@ -571,7 +655,14 @@ export function BrowserWorkspace({
                           ) : (
                             tab.audible && <Volume2 aria-label={t("browser.audibleTab")} />
                           )}
-                          {bound(tab) && <span aria-label={t("browser.aiTab")}> · AI</span>}
+                          {tab.label && controls[tab.label] ? (
+                            <span
+                              aria-label={t("browser.aiTab")}
+                              title={sessionTitles?.[controls[tab.label]!.sessionId] || controls[tab.label]!.sessionId}
+                            >
+                              {controls[tab.label]!.stopping ? " · …" : " · AI"}
+                            </span>
+                          ) : null}
                           {tab.private && <span aria-label={t("browser.privateTab")}> · {t("browser.private")}</span>}
                         </TabsTrigger>
                         {!tab.pinned && (
@@ -583,7 +674,9 @@ export function BrowserWorkspace({
                               "size-5 rounded-full",
                               tab.id !== selected && "opacity-0 group-hover/tab:opacity-100 focus-visible:opacity-100"
                             )}
-                            aria-label={t("browser.closeTab", { title: tab.title || t("browser.newTab") })}
+                            aria-label={t("browser.closeTab", {
+                              title: tab.title || t("browser.newTab")
+                            })}
                             onClick={() => close({ id: tab.id })}
                           >
                             <X />
@@ -600,11 +693,20 @@ export function BrowserWorkspace({
                                 title: tab.title,
                                 initialUrl: tab.url,
                                 // A private tab's history ends with it.
-                                ...(!tab.private && { initialHistory: tab.history, history: tab.history }),
+                                ...(!tab.private && {
+                                  initialHistory: tab.history,
+                                  history: tab.history
+                                }),
                                 url: tab.url,
                                 private: tab.private
                               }
-                              return select({ ...state, tabs: insertAfter(state.tabs, tab.id, created) }, created.id)
+                              return select(
+                                {
+                                  ...state,
+                                  tabs: insertAfter(state.tabs, tab.id, created)
+                                },
+                                created.id
+                              )
                             })
                           }
                         >
@@ -631,7 +733,10 @@ export function BrowserWorkspace({
                           onClick={() => {
                             const muted = !tab.muted
                             if (!tab.label) return
-                            void invoke("cef_guest_mute", { label: tab.label, muted })
+                            void invoke("cef_guest_mute", {
+                              label: tab.label,
+                              muted
+                            })
                               .then(() =>
                                 setTabs((tabs) =>
                                   tabs.map((value) => (value.id === tab.id ? { ...value, muted } : value))
@@ -644,7 +749,7 @@ export function BrowserWorkspace({
                         </ContextMenuItem>
                         <ContextMenuSeparator />
                         <ContextMenuItem
-                          disabled={Boolean(tab.pinned)}
+                          disabled={Boolean(tab.pinned) || bound(tab)}
                           onClick={() =>
                             setState((state) => {
                               const created: TabGroup = {
@@ -668,17 +773,24 @@ export function BrowserWorkspace({
                           {t("browser.addToNewGroup")}
                         </ContextMenuItem>
                         {groups
-                          .filter((entry) => entry.id !== tab.group)
+                          .filter((entry) => entry.id !== tab.group && !entry.sessionId)
                           .map((entry) => (
                             <ContextMenuItem
                               key={entry.id}
-                              disabled={Boolean(tab.pinned)}
+                              disabled={Boolean(tab.pinned) || bound(tab)}
                               onClick={() => setTabs((tabs) => joinGroup(tabs, tab.id, entry.id))}
                             >
-                              {t("browser.addToGroup", { title: entry.title || t("browser.unnamedGroup") })}
+                              {t("browser.addToGroup", {
+                                title: entry.title || t("browser.unnamedGroup")
+                              })}
                             </ContextMenuItem>
                           ))}
-                        {tab.group && (
+                        {tab.label && controls[tab.label] && (
+                          <ContextMenuItem disabled={controls[tab.label]!.stopping} onClick={() => release(tab)}>
+                            {t("browser.releaseControl")}
+                          </ContextMenuItem>
+                        )}
+                        {tab.group && !bound(tab) && (
                           <ContextMenuItem onClick={() => setTabs((tabs) => leaveGroup(tabs, tab.id))}>
                             {t("browser.removeFromGroup")}
                           </ContextMenuItem>
@@ -708,7 +820,11 @@ export function BrowserWorkspace({
           open={searching}
           onOpenChange={setSearching}
           // A private tab is found among the open ones like any other; closed, it left nothing to find.
-          tabs={tabs.map((tab) => ({ id: tab.id, title: tab.title, url: tab.url }))}
+          tabs={tabs.map((tab) => ({
+            id: tab.id,
+            title: tab.title,
+            url: tab.url
+          }))}
           closed={closed}
           onSelect={setSelected}
           onReopen={(index) =>
@@ -724,7 +840,11 @@ export function BrowserWorkspace({
                 history: entry.history
               }
               return select(
-                { ...state, tabs: [...state.tabs, reopened], closed: state.closed.filter((_, at) => at !== index) },
+                {
+                  ...state,
+                  tabs: [...state.tabs, reopened],
+                  closed: state.closed.filter((_, at) => at !== index)
+                },
                 reopened.id
               )
             })
@@ -738,7 +858,9 @@ export function BrowserWorkspace({
                   variant="ghost"
                   size="icon-sm"
                   className="mb-1 ml-auto size-7 shrink-0 rounded-full"
-                  aria-label={t("browser.downloadsRunning", { count: downloads.length })}
+                  aria-label={t("browser.downloadsRunning", {
+                    count: downloads.length
+                  })}
                 />
               }
             >
@@ -756,9 +878,10 @@ export function BrowserWorkspace({
                         variant="ghost"
                         size="sm"
                         onClick={() =>
-                          void invoke("cef_cancel_download", { label: item.label, id: item.id }).catch(
-                            (error: unknown) => toast.error(String(error))
-                          )
+                          void invoke("cef_cancel_download", {
+                            label: item.label,
+                            id: item.id
+                          }).catch((error: unknown) => toast.error(String(error)))
                         }
                       >
                         {t("browser.cancel")}
@@ -766,12 +889,16 @@ export function BrowserWorkspace({
                     </div>
                     {item.total > 0 ? (
                       <Progress
-                        aria-label={t("browser.downloadProgress", { name: fileName(item) })}
+                        aria-label={t("browser.downloadProgress", {
+                          name: fileName(item)
+                        })}
                         value={Math.round((item.received / item.total) * 100)}
                       />
                     ) : (
                       <span className="text-xs text-muted-foreground">
-                        {t("browser.received", { size: megabytes(item.received) })}
+                        {t("browser.received", {
+                          size: megabytes(item.received)
+                        })}
                       </span>
                     )}
                   </li>
@@ -808,70 +935,73 @@ export function BrowserWorkspace({
           </Popover>
         )}
       </div>
-      {tabs.map((tab) => (
-        <div
-          key={tab.id}
-          role="tabpanel"
-          aria-label={tab.title}
-          hidden={tab.id !== selected}
-          className={tab.id === selected ? "flex min-h-0 flex-1 flex-col" : "hidden"}
-        >
-          {opened.includes(tab.id) && (
-            <BrowserPane
-              ref={(handle) => {
-                if (handle) panes.current.set(tab.id, handle)
-                else panes.current.delete(tab.id)
-              }}
-              onGuest={(label) =>
-                setTabs((tabs) => tabs.map((value) => (value.id === tab.id ? { ...value, label } : value)))
-              }
-              onMeta={(meta) => {
-                // A committed location the tab was not already on is a visit.
-                if (meta.url && meta.url !== tab.url && !tab.private) visit(meta.url, "")
-                setTabs((tabs) => tabs.map((value) => (value.id === tab.id ? { ...value, ...meta } : value)))
-              }}
-              private={tab.private}
-              onCommand={(command) => run(command)}
-              onOpenTab={(url) => {
-                // What a private tab opens is private too.
-                const created: Tab = {
-                  id: crypto.randomUUID(),
-                  title: new URL(url).hostname || url,
-                  initialUrl: url,
-                  url,
-                  private: tab.private
+      <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-1">
+        {tabs.map((tab) => (
+          <div
+            key={tab.id}
+            role="tabpanel"
+            aria-label={tab.title}
+            aria-hidden={tab.id !== selected}
+            inert={tab.id !== selected}
+            className={`col-start-1 row-start-1 flex min-h-0 min-w-0 flex-col${tab.id !== selected ? " invisible" : ""}`}
+          >
+            {opened.includes(tab.id) && (
+              <BrowserPane
+                ref={(handle) => {
+                  if (handle) panes.current.set(tab.id, handle)
+                  else panes.current.delete(tab.id)
+                }}
+                onGuest={(label) =>
+                  setTabs((tabs) => tabs.map((value) => (value.id === tab.id ? { ...value, label } : value)))
                 }
-                setState((state) => select({ ...state, tabs: [...state.tabs, created] }, created.id))
-              }}
-              initialUrl={tab.initialUrl}
-              initialHistory={tab.initialHistory}
-              openPages={tabs.flatMap((other) =>
-                other.id !== tab.id && !other.private && other.url && /^https?:\/\//i.test(other.url)
-                  ? [{ url: other.url, title: other.title }]
-                  : []
-              )}
-              onSwitchTab={(url) =>
-                setState((state) => {
-                  const shown = state.tabs.find((other) => other.id !== tab.id && !other.private && other.url === url)
-                  return shown ? select(state, shown.id) : state
-                })
-              }
-              request={tab.request}
-              adopted={tab.adopted}
-              active={active && tab.id === selected}
-              maximized={maximized}
-              onMaximize={onMaximize}
-              onClose={onClose}
-              onTitle={(title) => {
-                if (tab.url && title && !tab.private) retitle(tab.url, title)
-                setTabs((tabs) =>
-                  tabs.map((value) => (value.id === tab.id && value.title !== title ? { ...value, title } : value))
-                )
-              }}
-            />
-          )}
-        </div>
-      ))}
+                onMeta={(meta) => {
+                  // A committed location the tab was not already on is a visit.
+                  if (meta.url && meta.url !== tab.url && !tab.private) visit(meta.url, "")
+                  setTabs((tabs) => tabs.map((value) => (value.id === tab.id ? { ...value, ...meta } : value)))
+                }}
+                private={tab.private}
+                onCommand={(command) => run(command)}
+                onOpenTab={(url) => {
+                  // What a private tab opens is private too.
+                  const created: Tab = {
+                    id: crypto.randomUUID(),
+                    title: new URL(url).hostname || url,
+                    initialUrl: url,
+                    url,
+                    private: tab.private
+                  }
+                  setState((state) => select({ ...state, tabs: [...state.tabs, created] }, created.id))
+                }}
+                initialUrl={tab.initialUrl}
+                initialHistory={tab.initialHistory}
+                openPages={tabs.flatMap((other) =>
+                  other.id !== tab.id && !other.private && other.url && /^https?:\/\//i.test(other.url)
+                    ? [{ url: other.url, title: other.title }]
+                    : []
+                )}
+                onSwitchTab={(url) =>
+                  setState((state) => {
+                    const shown = state.tabs.find((other) => other.id !== tab.id && !other.private && other.url === url)
+                    return shown ? select(state, shown.id) : state
+                  })
+                }
+                request={tab.request}
+                adopted={tab.adopted}
+                active={active && tab.id === selected}
+                maximized={maximized}
+                onMaximize={onMaximize}
+                onClose={onClose}
+                onTitle={(title) => {
+                  if (tab.url && title && !tab.private) retitle(tab.url, title)
+                  setTabs((tabs) =>
+                    tabs.map((value) => (value.id === tab.id && value.title !== title ? { ...value, title } : value))
+                  )
+                }}
+              />
+            )}
+          </div>
+        ))}
+      </div>
     </section>
   )
 }

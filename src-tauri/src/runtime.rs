@@ -265,6 +265,11 @@ pub async fn runtime_start(
     #[cfg(not(windows))]
     let native_network_endpoint = None;
     let mut command = tokio::process::Command::new(sidecar_path("alwith-runtime")?);
+    #[cfg(feature = "dev-backends")]
+    if let Some(home) = crate::development_instance::codex_home(&app.config().identifier, &data) {
+        std::fs::create_dir_all(&home).map_err(|error| error.to_string())?;
+        command.env("CODEX_HOME", home);
+    }
     configure_runtime_storage(&mut command, &cache, &data);
     command
         .args(["--listen", "stdio://"])
@@ -311,6 +316,7 @@ pub async fn runtime_start(
                     ClientEvent::Closed { reason } => {
                         crate::diagnostics::runtime_closed(&reason);
                         crate::power::sync(&app, false);
+                        app.state::<crate::browser_ai::BrowserAi>().executor.release_all(&app).await;
                         if let Err(error) = app.state::<alwith_computer::Computer>().release().await {
                             log::error!("Computer cleanup after Runtime exit failed: {error}");
                         }
@@ -336,10 +342,11 @@ pub async fn runtime_start(
                         alwith_chat::observe_event(&app, &event);
                         crate::enterprise::observe_event(&app, &event);
                         crate::mobile::publish(&app, &event);
-                        if matches!(&event, alwith_api::RuntimeEvent::Exit { agent_id } if agent_id == "codex")
-                            && let Err(error) = app.state::<alwith_computer::Computer>().release().await
-                        {
-                            log::error!("Computer cleanup after Codex exit failed: {error}");
+                        if matches!(&event, alwith_api::RuntimeEvent::Exit { agent_id } if agent_id == "codex") {
+                            app.state::<crate::browser_ai::BrowserAi>().executor.release_all(&app).await;
+                            if let Err(error) = app.state::<alwith_computer::Computer>().release().await {
+                                log::error!("Computer cleanup after Codex exit failed: {error}");
+                            }
                         }
                         if let alwith_api::RuntimeEvent::RunStates { sessions } = &event {
                             crate::power::sync(
@@ -359,6 +366,7 @@ pub async fn runtime_start(
                             if let Err(error) = app.state::<alwith_computer::Computer>().sync_running(&running) {
                                 log::error!("Computer lease update failed: {error}");
                             }
+                            app.state::<crate::browser_ai::BrowserAi>().executor.sync_states(&app, sessions).await;
                         }
                         let retry = matches!(&event, alwith_api::RuntimeEvent::RunStates { .. });
                         if resets_provider_catalog(&event) {
@@ -374,10 +382,13 @@ pub async fn runtime_start(
                     // gaps to its consumers. Prompt it to reconcile its journal cursor now.
                     ClientEvent::Gap { .. } => {
                         match client.run_states().await {
-                            Ok(states) => crate::power::sync(
-                                &app,
-                                crate::power::has_active_tasks(states.iter().map(|session| &session.state)),
-                            ),
+                            Ok(states) => {
+                                crate::power::sync(
+                                    &app,
+                                    crate::power::has_active_tasks(states.iter().map(|session| &session.state)),
+                                );
+                                app.state::<crate::browser_ai::BrowserAi>().executor.sync_states(&app, &states).await;
+                            }
                             Err(error) => log::error!("Cannot reconcile sleep inhibition after Runtime gap: {error}"),
                         }
                         lines.push(json!({"type":"lagged"}).to_string());

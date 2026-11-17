@@ -7,11 +7,38 @@ export interface TabGroup {
   color: GroupColor
   /** Its tabs are put away behind its name. */
   collapsed?: boolean
+  /** The conversation whose pages this managed group contains. */
+  sessionId?: string
 }
 interface Grouped {
   id: string
   pinned?: boolean
   group?: string
+}
+
+/** Reuse one visible group per conversation, independent of the window hosting its chat. */
+export function addSessionTab<T extends Grouped>(
+  tabs: readonly T[],
+  groups: readonly TabGroup[],
+  tab: T,
+  sessionId?: string
+) {
+  if (!sessionId) return { tabs: [...tabs, tab], groups: [...groups] }
+  const id = `ai:${sessionId}`
+  const existing = groups.find((group) => group.id === id)
+  const index = groups.filter((group) => group.sessionId).length
+  const group: TabGroup = existing ?? {
+    id,
+    sessionId,
+    title: `AI ${index + 1}`,
+    color: groupColors[index % groupColors.length]!
+  }
+  return {
+    tabs: joinGroup([...tabs, tab], tab.id, id),
+    groups: existing
+      ? groups.map((entry) => (entry.id === id ? { ...entry, collapsed: false } : entry))
+      : [...groups, group]
+  }
 }
 
 /** Put a tab in a group, after the tabs the group already has. A pinned tab stays out. */

@@ -15,16 +15,19 @@ const props = { active: true, maximized: false, onMaximize: vi.fn(), onClose: vi
 test("different AI requests create independent retained tabs", async () => {
   const a = { id: "a", url: "https://first.example/", sessionId: "ai-a" }
   const b = { id: "b", url: "https://second.example/", sessionId: "ai-b" }
-  const view = render(<BrowserWorkspace {...props} request={a} />)
+  const sessionTitles = { "ai-a": "检查项目", "ai-b": "整理邮件" }
+  const view = render(<BrowserWorkspace {...props} request={a} sessionTitles={sessionTitles} />)
   const input = screen.getByLabelText(a.url)
   fireEvent.change(input, { target: { value: "retained" } })
-  view.rerender(<BrowserWorkspace {...props} request={b} />)
+  view.rerender(<BrowserWorkspace {...props} request={b} sessionTitles={sessionTitles} />)
   await screen.findByRole("tab", { name: /second.example/ })
+  expect(screen.getByRole("button", { name: "标签组 检查项目" })).toBeInTheDocument()
+  expect(screen.getByRole("button", { name: "标签组 整理邮件" })).toBeInTheDocument()
   expect(input).toHaveValue("retained")
-  expect(input.closest("[hidden]")).not.toBeNull()
+  expect(input.closest('[aria-hidden="true"]')).not.toBeNull()
   fireEvent.mouseDown(screen.getByRole("tab", { name: /first.example/ }))
   fireEvent.click(screen.getByRole("tab", { name: /first.example/ }))
-  await waitFor(() => expect(input.closest("[hidden]")).toBeNull())
+  await waitFor(() => expect(input.closest('[aria-hidden="true"]')).toBeNull())
   fireEvent.click(screen.getByRole("button", { name: "关闭标签 second.example" }))
   expect(screen.queryByLabelText(b.url)).toBeNull()
   expect(input).toHaveValue("retained")

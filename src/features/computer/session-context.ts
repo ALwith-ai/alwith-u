@@ -1,11 +1,11 @@
+import type { ClientOptions } from "@alwith/module-chat/client"
 import { computerContext } from "@alwith/module-computer"
 import { commands } from "@alwith/module-computer/commands"
 import { isTauri } from "@tauri-apps/api/core"
 
-import type { ClientOptions } from "@alwith/module-chat/client"
-import { browserSessionContext } from "@/features/web-automation/session-context"
 import { deviceSessionContext } from "@/features/device/session-context"
 import { driveSessionContext } from "@/features/drive/session-context"
+import { browserSessionContext } from "@/features/web-automation/session-context"
 
 /** Computer attachment failures belong to the optional tool channel, not the conversation. */
 async function computerSessionContext() {
@@ -45,7 +45,7 @@ export const hostSessionContext: NonNullable<ClientOptions["sessionContext"]> = 
   ]
     .filter(Boolean)
     .join("\n\n")
-  const binders = [computer.bind, device.bind, browser.bind].filter((bind) => bind !== undefined)
+  const binders = [computer.bind, browser.bind].filter((bind) => bind !== undefined)
   return {
     bind:
       binders.length > 0

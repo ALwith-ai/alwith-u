@@ -326,6 +326,15 @@ struct PreviewReply {
     session_id: String,
 }
 
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Control {
+    pub session_id: String,
+    #[serde(skip)]
+    pub token: String,
+    pub stopping: bool,
+}
+
 #[derive(Default)]
 pub struct BrowserAi {
     pub compositor_users: Mutex<usize>,
@@ -335,6 +344,9 @@ pub struct BrowserAi {
     previews: Mutex<HashMap<String, PreviewReply>>,
     pub sessions: Mutex<HashMap<String, Option<String>>>,
     pub leases: Mutex<HashMap<String, String>>,
+    pub detached: tokio::sync::Notify,
+    pub controls: Mutex<HashMap<String, Control>>,
+    pub blocked: Mutex<std::collections::HashSet<(String, String)>>,
     pub owners: Mutex<HashMap<String, String>>,
     pub guests: Mutex<HashMap<String, Arc<GuestAgent>>>,
     /// Titles of guests that were titled before they were registered, by label.
@@ -362,23 +374,46 @@ impl BrowserAi {
         })
     }
     pub fn can_access(&self, token: &str, label: &str) -> bool {
-        let Some(session) = self.session(token) else { return false };
         if self.internal(label) {
             return false;
         }
-        self.owners.lock().unwrap().get(label).is_none_or(|owner| owner == &session)
+        if self.executor.is_transport(token) {
+            return true;
+        }
+        if self.session(token).is_none() {
+            return false;
+        }
+        if self.blocked.lock().unwrap().contains(&(token.into(), label.into())) {
+            return false;
+        }
+        self.controls.lock().unwrap().get(label).is_none_or(|control| control.token == token && !control.stopping)
     }
     pub fn claim(&self, token: &str, label: &str) -> Result<(), String> {
-        let session = self.session(token).ok_or("Browser session revoked")?;
         if self.internal(label) {
             return Err("This tab shows a browser page that only the user operates".into());
         }
-        // Only explicitly opened conversation tabs have persistent ownership.
-        // User-opened tabs remain available after the active CDP lease ends.
-        match self.owners.lock().unwrap().get(label) {
-            Some(owner) if owner != &session => Err("Tab belongs to another AI conversation".into()),
-            _ => Ok(()),
+        if self.executor.is_transport(token) {
+            return Ok(());
         }
+        // Keep credential validation and claiming atomic with turn revocation.
+        let sessions = self.sessions.lock().unwrap();
+        let session = sessions.get(token).and_then(Option::as_ref).ok_or("Browser session revoked")?;
+        if self.blocked.lock().unwrap().contains(&(token.into(), label.into())) {
+            return Err("The user took over this tab; this turn cannot reclaim it".into());
+        }
+        let mut controls = self.controls.lock().unwrap();
+        if let Some(control) = controls.get(label) {
+            if control.token != token || control.stopping {
+                return Err(format!(
+                    "Tab is controlled by {}; observe browser_list before retrying",
+                    control.session_id
+                ));
+            }
+        } else {
+            controls
+                .insert(label.into(), Control { session_id: session.clone(), token: token.into(), stopping: false });
+        }
+        Ok(())
     }
 }
 #[derive(Deserialize)]
@@ -440,27 +475,43 @@ async fn dispatch(
             return Err((StatusCode::BAD_REQUEST, "Preview requires HTTP(S)".into()));
         }
         let session_id = state.session(token).ok_or((StatusCode::UNAUTHORIZED, "Browser session revoked".into()))?;
-        return open_preview(&app, &session_id, url, Some(token)).await.map(Json);
+        let result = open_preview(&app, &session_id, url, Some(token)).await?;
+        if let Some(label) = result["target"].as_str() {
+            state.claim(token, label).map_err(|e| (StatusCode::CONFLICT, e))?;
+            let _ = app.emit_to("main", "browser-control-changed", ());
+        }
+        return Ok(Json(result));
     }
     if request.method == "list" {
         let labels: Vec<_> = state.guests.lock().expect("browser guests").keys().cloned().collect();
         let targets: Vec<_> = labels
             .into_iter()
-            .filter(|label| state.can_access(token, label))
+            .filter(|label| !state.internal(label))
             .filter_map(|label| {
                 let agent = state.guests.lock().unwrap().get(&label).cloned()?;
                 let url = agent.url.lock().unwrap().clone();
-                Some(json!({"id":label,"url":url}))
+                let owner = state.owners.lock().unwrap().get(&label).cloned();
+                let control = state.controls.lock().unwrap().get(&label).cloned();
+                let controller = control.as_ref().map(|c| &c.session_id);
+                let control_state = if control.as_ref().is_some_and(|c| c.stopping) { "stopping" } else if control.is_some() { "controlled" } else { "idle" };
+                let available = state.can_access(token, &label);
+                Some(json!({"id":label,"url":url,"ownerSessionId":owner,"controllerSessionId":controller,"controlState":control_state,"available":available}))
             })
             .collect();
         return Ok(Json(json!({"targets":targets})));
     }
-    if !matches!(request.method.as_str(), "focus" | "close" | "downloads") {
+    if !matches!(request.method.as_str(), "focus" | "close" | "downloads" | "release" | "claim") {
         validate_method(&request.method, &request.params).map_err(|e| (StatusCode::BAD_REQUEST, e))?;
     }
     let label = request.target.ok_or((StatusCode::BAD_REQUEST, "An explicit guest target is required".into()))?;
-    if state.leases.lock().unwrap().get(&label).is_some_and(|owner| owner != token) {
-        return Err((StatusCode::CONFLICT, "This page is controlled by another conversation".into()));
+    if state
+        .leases
+        .lock()
+        .unwrap()
+        .get(&label)
+        .is_some_and(|owner| owner != token && !state.executor.is_transport(owner))
+    {
+        return Err((StatusCode::CONFLICT, "This tab is in use by another conversation. Use browser_list to find its owner, open your own tab, or have that conversation call browser_release.".into()));
     }
 
     let agent = state
@@ -470,7 +521,19 @@ async fn dispatch(
         .get(&label)
         .cloned()
         .ok_or((StatusCode::NOT_FOUND, "Unknown browser guest".into()))?;
-    state.claim(token, &label).map_err(|e| (StatusCode::FORBIDDEN, e))?;
+    state.claim(token, &label).map_err(|e| (StatusCode::CONFLICT, e))?;
+    let _ = app.emit_to("main", "browser-control-changed", ());
+    if request.method == "claim" {
+        return Ok(Json(json!({"ok":true})));
+    }
+    if request.method == "release" {
+        if state.leases.lock().unwrap().contains_key(&label) {
+            return Err((StatusCode::CONFLICT, "Disconnect the diagnostic transport before releasing control".into()));
+        }
+        state.controls.lock().unwrap().remove(&label);
+        let _ = app.emit_to("main", "browser-control-changed", ());
+        return Ok(Json(json!({"ok":true,"target":label,"released":true})));
+    }
     let view = agent.view(&app, &label).ok_or((StatusCode::NOT_FOUND, "Browser guest closed".into()))?;
     if request.method == "downloads" {
         return Ok(Json(json!({"downloads": agent.downloads.lock().unwrap().values().cloned().collect::<Vec<_>>()})));
@@ -737,13 +800,14 @@ mod tests {
         state.claim("a", "user-tab").unwrap();
         assert!(!state.owners.lock().unwrap().contains_key("user-tab"));
         state.sessions.lock().unwrap().remove("a");
+        state.controls.lock().unwrap().remove("user-tab");
         assert!(!state.can_access("a", "user-tab"));
         assert!(state.can_access("b", "user-tab"));
         state.claim("b", "user-tab").unwrap();
     }
 
     #[test]
-    fn tab_ownership_survives_reconnection_and_isolates_conversations() {
+    fn provenance_survives_control_handoff_without_locking_the_page() {
         let state = BrowserAi::default();
         state.sessions.lock().unwrap().extend([
             ("a".into(), Some("conversation-a".into())),
@@ -754,12 +818,16 @@ mod tests {
         assert!(state.claim("unbound", "tab").is_err());
         state.owners.lock().unwrap().insert("tab".into(), "conversation-a".into());
         state.claim("a", "tab").unwrap();
-        assert!(state.can_access("a-reconnected", "tab"));
+        assert!(!state.can_access("a-reconnected", "tab"));
         assert!(!state.can_access("b", "tab"));
         assert!(state.claim("b", "tab").is_err());
         state.sessions.lock().unwrap().remove("a");
         assert!(!state.can_access("a", "tab"));
-        assert!(state.can_access("a-reconnected", "tab"));
+        assert!(!state.can_access("a-reconnected", "tab"));
+        state.controls.lock().unwrap().remove("tab");
+        state.claim("b", "tab").unwrap();
+        assert_eq!(state.owners.lock().unwrap().get("tab").unwrap(), "conversation-a");
+        assert!(!state.can_access("a-reconnected", "tab"));
     }
     #[test]
     fn protocol_cannot_escape_to_other_browser_targets() {

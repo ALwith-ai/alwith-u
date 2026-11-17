@@ -51,6 +51,7 @@ export function TabGroupChip({
           <button
             type="button"
             aria-label={t("browser.tabGroup", { title: name })}
+            title={name}
             aria-expanded={!group.collapsed}
             className={cn(
               "mb-1.5 max-w-32 shrink-0 truncate rounded-md px-2 py-0.5 text-xs font-medium text-background",
@@ -67,6 +68,7 @@ export function TabGroupChip({
           aria-label={t("browser.groupName")}
           placeholder={t("browser.groupName")}
           value={group.title}
+          readOnly={Boolean(group.sessionId)}
           onChange={(event) => onChange({ title: event.target.value })}
           // Typing a name is not choosing from the menu.
           onKeyDown={(event) => event.stopPropagation()}
@@ -89,7 +91,9 @@ export function TabGroupChip({
           ))}
         </div>
         <ContextMenuSeparator />
-        <ContextMenuItem onClick={onUngroup}>{t("browser.ungroup")}</ContextMenuItem>
+        <ContextMenuItem onClick={onUngroup}>
+          {t(group.sessionId ? "browser.releaseControl" : "browser.ungroup")}
+        </ContextMenuItem>
         <ContextMenuItem onClick={onClose}>{t("browser.closeGroup")}</ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>

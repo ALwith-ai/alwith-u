@@ -55,8 +55,10 @@ describe("browser tabs", () => {
     assert.equal(await draft(b, two.target), "AI B draft")
   })
 
-  test("a conversation neither sees nor reaches another conversation's tab", async () => {
-    assert.ok(!(await a("browser_list")).targets.some((target: any) => target.id === two.target))
+  test("a conversation sees ownership metadata but cannot reach another conversation's tab", async () => {
+    const target = (await a("browser_list")).targets.find((target: any) => target.id === two.target)
+    assert.equal(target?.available, false)
+    assert.ok(target.ownerSessionId)
     await assert.rejects(a("browser_read_page", { target: two.target }), /403/)
     await assert.rejects(
       b("browser_cdp", { target: one.target, method: "Runtime.evaluate", params: { expression: "document.title" } }),
@@ -86,7 +88,11 @@ describe("browser tabs", () => {
       ""
     )
     assert.equal(
-      Number(await ui("[...document.querySelectorAll('embed')].filter(e=>e.getBoundingClientRect().width>0).length")),
+      Number(
+        await ui(
+          "[...document.querySelectorAll('embed')].filter(e=>e.checkVisibility({visibilityProperty:true})).length"
+        )
+      ),
       1
     )
   })

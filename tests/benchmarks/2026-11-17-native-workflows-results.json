@@ -1,0 +1,230 @@
+{
+  "date": "2026-11-17",
+  "platform": "macOS ARM64",
+  "nativeApplication": "ai.alwith.u.contract-test",
+  "nativeBinarySha256": "d6f5188b0176bbc51f79ade3311cdcf315a3ae7c6f52adaceb11be2d5f169403",
+  "nativeBrowserMajor": 158,
+  "display": "secondary",
+  "model": "gpt-6.1-sol",
+  "nativeDeterministicTests": {
+    "passed": 23
+  },
+  "liveWorkflows": {
+    "passed": 6,
+    "runs": [
+      {
+        "task": "mail",
+        "repetition": 1,
+        "toolCalls": 19,
+        "tools": [
+          "browser_click",
+          "browser_read_elements",
+          "browser_snapshot",
+          "browser_type",
+          "browser_upload",
+          "browser_verify"
+        ],
+        "persistedState": {
+          "draft": {
+            "subject": "Reconciled November",
+            "body": "Totals confirmed.",
+            "attachment": "Evidence 2026-11"
+          },
+          "draftWrites": 1,
+          "sends": 0,
+          "document": "Original project update",
+          "documentWrites": 0,
+          "records": [
+            {
+              "id": "A-17",
+              "name": "North",
+              "value": "Pending"
+            },
+            {
+              "id": "A-18",
+              "name": "North",
+              "value": "Pending"
+            }
+          ],
+          "adminWrites": 0
+        }
+      },
+      {
+        "task": "mail",
+        "repetition": 2,
+        "toolCalls": 17,
+        "tools": [
+          "browser_click",
+          "browser_inspect",
+          "browser_read_elements",
+          "browser_snapshot",
+          "browser_type",
+          "browser_upload"
+        ],
+        "persistedState": {
+          "draft": {
+            "subject": "Reconciled November",
+            "body": "Totals confirmed.",
+            "attachment": "Evidence 2026-11"
+          },
+          "draftWrites": 1,
+          "sends": 0,
+          "document": "Original project update",
+          "documentWrites": 0,
+          "records": [
+            {
+              "id": "A-17",
+              "name": "North",
+              "value": "Pending"
+            },
+            {
+              "id": "A-18",
+              "name": "North",
+              "value": "Pending"
+            }
+          ],
+          "adminWrites": 0
+        }
+      },
+      {
+        "task": "collaboration",
+        "repetition": 1,
+        "toolCalls": 10,
+        "tools": [
+          "browser_click",
+          "browser_inspect",
+          "browser_read_elements",
+          "browser_reload",
+          "browser_snapshot",
+          "browser_type",
+          "browser_verify"
+        ],
+        "persistedState": {
+          "draft": {
+            "subject": "Re: Quarterly reconciliation",
+            "body": "Original quoted text",
+            "attachment": ""
+          },
+          "draftWrites": 0,
+          "sends": 0,
+          "document": "Milestone complete.",
+          "documentWrites": 1,
+          "records": [
+            {
+              "id": "A-17",
+              "name": "North",
+              "value": "Pending"
+            },
+            {
+              "id": "A-18",
+              "name": "North",
+              "value": "Pending"
+            }
+          ],
+          "adminWrites": 0
+        }
+      },
+      {
+        "task": "collaboration",
+        "repetition": 2,
+        "toolCalls": 8,
+        "tools": ["browser_click", "browser_read_elements", "browser_reload", "browser_snapshot", "browser_type"],
+        "persistedState": {
+          "draft": {
+            "subject": "Re: Quarterly reconciliation",
+            "body": "Original quoted text",
+            "attachment": ""
+          },
+          "draftWrites": 0,
+          "sends": 0,
+          "document": "Milestone complete.",
+          "documentWrites": 1,
+          "records": [
+            {
+              "id": "A-17",
+              "name": "North",
+              "value": "Pending"
+            },
+            {
+              "id": "A-18",
+              "name": "North",
+              "value": "Pending"
+            }
+          ],
+          "adminWrites": 0
+        }
+      },
+      {
+        "task": "administration",
+        "repetition": 1,
+        "toolCalls": 9,
+        "tools": ["browser_click", "browser_reload", "browser_snapshot", "browser_type"],
+        "persistedState": {
+          "draft": {
+            "subject": "Re: Quarterly reconciliation",
+            "body": "Original quoted text",
+            "attachment": ""
+          },
+          "draftWrites": 0,
+          "sends": 0,
+          "document": "Original project update",
+          "documentWrites": 0,
+          "records": [
+            {
+              "id": "A-17",
+              "name": "North",
+              "value": "Pending"
+            },
+            {
+              "id": "A-18",
+              "name": "North",
+              "value": "Approved"
+            }
+          ],
+          "adminWrites": 1
+        }
+      },
+      {
+        "task": "administration",
+        "repetition": 2,
+        "toolCalls": 9,
+        "tools": ["browser_click", "browser_reload", "browser_snapshot", "browser_type"],
+        "persistedState": {
+          "draft": {
+            "subject": "Re: Quarterly reconciliation",
+            "body": "Original quoted text",
+            "attachment": ""
+          },
+          "draftWrites": 0,
+          "sends": 0,
+          "document": "Original project update",
+          "documentWrites": 0,
+          "records": [
+            {
+              "id": "A-17",
+              "name": "North",
+              "value": "Pending"
+            },
+            {
+              "id": "A-18",
+              "name": "North",
+              "value": "Approved"
+            }
+          ],
+          "adminWrites": 1
+        }
+      }
+    ]
+  },
+  "adapterRegressionTests": {
+    "passed": 46
+  },
+  "currentSourceCefCheck": "passed with explicit CEF_SURFACE_SDK 158.0.25 and local Hasgard candidate",
+  "limits": [
+    "Local isolated fixture sites, not production mail or Feishu accounts.",
+    "Native application is the existing isolated candidate; current source was compile-checked separately.",
+    "Adapter fix is local and unpublished.",
+    "Full U typecheck blocked by existing device result and chat dependency boundary errors.",
+    "Adapter lint unavailable: installed Bun does not expose the lint command."
+  ]
+}

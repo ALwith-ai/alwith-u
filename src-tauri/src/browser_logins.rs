@@ -184,6 +184,23 @@ fn now() -> u64 {
     std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |elapsed| elapsed.as_secs())
 }
 
+#[cfg(feature = "dev-backends")]
+pub fn migrate_service(path: &std::path::Path, old: &str, new: &str) -> Result<(), String> {
+    let bytes = match std::fs::read(path) {
+        Ok(bytes) => bytes,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(error) => return Err(error.to_string()),
+    };
+    let index: Index = serde_json::from_slice(&bytes).map_err(|_| "Invalid saved-login index")?;
+    let old = Logins::persistent(path.to_owned(), old);
+    let new = Logins::persistent(path.to_owned(), new);
+    for login in index.logins {
+        let password = old.secrets.get(&login.origin, &login.username)?;
+        new.secrets.set(&login.origin, &login.username, &password)?;
+    }
+    Ok(())
+}
+
 impl Logins {
     /// Logins kept for good: the list in the application's data, passwords in the keychain.
     #[cfg(any(target_os = "macos", target_os = "windows"))]

@@ -23,7 +23,7 @@ const talks = conversations("extension-contract")
 const targets: string[] = []
 
 describe("browser extensions", () => {
-  const visible = "document.querySelector('[role=tabpanel]:not([hidden])')"
+  const visible = "document.querySelector('[role=tabpanel]:not([inert])')"
   const button = `${visible}.querySelector('button[aria-label="ALwith browser contract"]')`
   let a: BrowserTools
   let b: BrowserTools
@@ -172,7 +172,7 @@ describe("browser extensions", () => {
     )
     assert.equal(
       await settled(
-        () => ui("document.querySelector('[role=tabpanel]:not([hidden]) input[aria-label=\"网页地址\"]')?.value"),
+        () => ui("document.querySelector('[role=tabpanel]:not([inert]) input[aria-label=\"网页地址\"]')?.value"),
         "The new tab has no address"
       ),
       `${site}/welcome`

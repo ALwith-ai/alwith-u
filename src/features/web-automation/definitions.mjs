@@ -28,7 +28,16 @@ export const tools = [
   ),
   tool("browser_focus", "Show this conversation's existing tab in the browser pane.", { target }),
   tool("browser_close", "Close this conversation's tab. Unsaved webpage input will be lost.", { target }),
-  tool("browser_list", "List live embedded pages. Always use an explicit guest id; never operate the app shell.", {}),
+  tool(
+    "browser_release",
+    "Give a tab back to the user without closing or reloading it. Release this turn's control so another conversation can use it. Idle connections, page input and the originating conversation group are preserved. Do this when browser work is complete or before handing the page to another conversation.",
+    { target }
+  ),
+  tool(
+    "browser_list",
+    "List live embedded pages with their owning and controlling conversation IDs and availability. Use your own or available tabs; never take another conversation's occupied tab. Always use an explicit guest id.",
+    {}
+  ),
   tool(
     "browser_dialog",
     "Answer the exact pending JavaScript alert, confirm or prompt returned by a tool. Then verify the business result. Never repeat the action that opened the dialog.",
@@ -64,8 +73,14 @@ export const tools = [
   ),
   tool(
     "browser_type",
-    "Activate an observed editable control and enter text. replace=true fills the field; otherwise append using keyboard input. Returns the observed value; check matchesRequestedText for replacements before submitting.",
-    { target, selector, text: { type: "string" }, replace: { type: "boolean" } },
+    "Enter text into an observed control. Default mode=fill uses Playwright on an input, textarea or contenteditable; replace=true replaces its value. For complex editors with hidden input proxies (CodeMirror, Monaco), use mode=keyboard and target the visible editor: clicks it, checks editable focus inside it, then sends native text input. replace=true selects all within that editor first. Keyboard mode requires reading the rendered editor to verify the result; it never treats a hidden proxy value as the saved content.",
+    {
+      target,
+      selector,
+      text: { type: "string" },
+      replace: { type: "boolean" },
+      mode: { type: "string", enum: ["fill", "keyboard"] }
+    },
     ["target", "selector", "text"]
   ),
   tool("browser_press", "Press a key or shortcut on an observed locator, e.g. Enter or ControlOrMeta+A.", {

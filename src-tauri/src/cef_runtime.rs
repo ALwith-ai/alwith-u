@@ -1,11 +1,5 @@
 //! CEF configuration shared by the desktop entry point and native UI tests.
 
-/// Where the application's own interface is served: the bundled assets and,
-/// in development, the dev server of `tauri.conf.json`.
-#[cfg(feature = "experimental-cef")]
-const APPLICATION_HOSTS: &str =
-    if cfg!(debug_assertions) { "tauri.localhost,127.0.0.1:1430" } else { "tauri.localhost" };
-
 /// The Chromium locale for a language tag: the interface language the user chose, else the
 /// system's. Chromium names a locale by language and region and knows no script subtag, and it
 /// ships a regional variant only for some languages; a bare language it has no pack for by that
@@ -58,7 +52,7 @@ pub fn create() -> tauri_runtime_cef::Cef {
         // Browser extensions serve the websites in tabs. The application's own
         // documents are closed to them: no script, no host access, no sight of
         // their requests.
-        .command_line_arg("--cef-extension-blocked-hosts", Some(APPLICATION_HOSTS))
+        .command_line_arg("--cef-extension-blocked-hosts", Some(crate::desktop_runtime::application_hosts()))
         // A page an extension opens is a tab like any other, never a Chromium window.
         .on_tab_request(crate::browser_chrome::tab_requested);
 
@@ -293,6 +287,7 @@ pub async fn cef_close_guest(webview: tauri::Webview, label: String) -> Result<(
         }
         guest.close().map_err(|error| error.to_string())?;
         webview.state::<crate::browser_ai::BrowserAi>().owners.lock().unwrap().remove(&label);
+        webview.state::<crate::browser_ai::BrowserAi>().controls.lock().unwrap().remove(&label);
         let _ = webview.emit_to("main", "browser-tab-closed", serde_json::json!({"label":label}));
         if let Some(agent) =
             webview.state::<crate::browser_ai::BrowserAi>().guests.lock().expect("browser guests").remove(&label)
@@ -426,6 +421,7 @@ fn surface_popup(app: &tauri::AppHandle, root: &str, event: tauri_runtime_cef::S
         SurfacePopupEvent::Closed { browser_id } => {
             let label = format!("browser-popup-{browser_id}");
             state.owners.lock().unwrap().remove(&label);
+            state.controls.lock().unwrap().remove(&label);
             if let Some(agent) = state.guests.lock().unwrap().remove(&label) {
                 agent.cancel();
             }

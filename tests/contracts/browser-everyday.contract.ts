@@ -77,7 +77,7 @@ setInterval(() => { document.title = "tall " + Math.round(scrollY) + "|" + field
 })
 const origin = `http://127.0.0.1:${server.port}`
 const talks = conversations("everyday-contract")
-const visible = `document.querySelector('[role=tabpanel]:not([hidden])')`
+const visible = `document.querySelector('[role=tabpanel]:not([inert])')`
 const strip = `[...document.querySelectorAll('[role=tablist] [role=tab]')]`
 /** Close every tab; a pinned one has no close button until it is unpinned. */
 const closeTabs = async () => {

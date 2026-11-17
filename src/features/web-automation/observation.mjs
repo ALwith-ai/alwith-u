@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto"
+import { createHash, randomUUID } from "node:crypto"
 
 import { expect } from "playwright/test"
 
@@ -81,18 +81,19 @@ export function createObservations(page) {
             output.push(`${"  ".repeat(depth)}- text: ${JSON.stringify(node)}`)
             continue
           }
-          const flags = ["checked", "disabled", "expanded", "selected", "pressed", "level"]
+          const flags = ["checked", "disabled", "expanded", "selected", "pressed", "level", "active", "invalid"]
             .filter((key) => node[key] !== undefined)
             .map((key) => ` [${key}=${node[key]}]`)
             .join("")
           output.push(
-            `${"  ".repeat(depth)}- ${node.role}${node.name ? ` ${JSON.stringify(node.name)}` : ""}${node.ref ? ` [ref=${node.ref}]` : ""}${flags}${node.text ? `: ${JSON.stringify(node.text)}` : ""}${node.url ? ` url=${JSON.stringify(node.url)}` : ""}`
+            `${"  ".repeat(depth)}- ${node.role}${node.name ? ` ${JSON.stringify(node.name)}` : ""}${node.ref ? ` [ref=${node.ref}]` : ""}${flags}${node.text ? `: ${JSON.stringify(node.text)}` : ""}${node.url ? ` url=${JSON.stringify(node.url)}` : ""}${node.placeholder ? ` placeholder=${JSON.stringify(node.placeholder)}` : ""}`
           )
           if (node.children) render(node.children, depth + 1)
         }
       }
       render(tree)
       const raw = output.join("\n")
+      const title = await page.title()
       if (revision !== generation) throw Error("Page navigated during observation; take a new snapshot")
       const max = args.maxChars ?? 16000
       const lines = raw.split("\n")
@@ -114,7 +115,7 @@ export function createObservations(page) {
       return {
         snapshotId: id,
         url: page.url(),
-        title: await page.title(),
+        title,
         frames,
         text,
         truncated: selected.length < lines.length,
@@ -125,6 +126,7 @@ export function createObservations(page) {
     },
     async screenshot(scope, args, locate) {
       image = null
+      const revision = generation
       let clip
       if (args.selector || args.ref) {
         const locator = locate(scope, args)
@@ -145,11 +147,21 @@ export function createObservations(page) {
       snapshot = null
       const before = await geometry()
       const structure = await page.ariaSnapshot()
-      const bytes = await page.screenshot({ type: "png", scale: "css", ...(clip ? { clip } : {}) })
-      if (JSON.stringify(before) !== JSON.stringify(await geometry()))
+      const options = { type: "png", scale: "css", caret: "hide", ...(clip ? { clip } : {}) }
+      const bytes = await page.screenshot(options)
+      if (revision !== generation || JSON.stringify(before) !== JSON.stringify(await geometry()))
         throw Error("Page moved during screenshot; capture again")
       const region = clip ?? { x: 0, y: 0, width: before.width, height: before.height }
-      image = { id: randomUUID(), region, geometry: before, structure, at: Date.now() }
+      image = {
+        id: randomUUID(),
+        region,
+        geometry: before,
+        structure,
+        at: Date.now(),
+        revision,
+        options,
+        digest: createHash("sha256").update(bytes).digest("hex")
+      }
       return {
         imageId: image.id,
         url: page.url(),
@@ -163,11 +175,19 @@ export function createObservations(page) {
       if (!capture || args.imageId !== capture.id || Date.now() - capture.at > 30000)
         throw Error("Unknown or expired image; take a new browser_screenshot")
       if (
+        capture.revision !== generation ||
         JSON.stringify(capture.geometry) !== JSON.stringify(await geometry()) ||
         capture.structure !== (await page.ariaSnapshot())
       ) {
         image = null
         throw Error("Page changed since screenshot; capture again before acting")
+      }
+      // Canvas, images, and CSS-only changes are invisible to the accessibility tree.
+      // Compare only the captured region, and only on the explicitly visual action path.
+      const current = await page.screenshot(capture.options)
+      if (capture.revision !== generation || createHash("sha256").update(current).digest("hex") !== capture.digest) {
+        image = null
+        throw Error("Page pixels changed since screenshot; capture again before acting")
       }
       const point = (x, y) => {
         if (

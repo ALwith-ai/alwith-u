@@ -38,8 +38,7 @@ export function createWebAutomationTools() {
           signal.throwIfAborted()
           if (definition.name === "browser_screenshot") {
             const capture = result as { image?: { mimeType: string; data: string }; pending?: boolean }
-            if (capture.pending)
-              return { content: [{ type: "text", text: JSON.stringify(result) }] }
+            if (capture.pending) return { content: [{ type: "text", text: JSON.stringify(result) }] }
             if (capture.image?.mimeType !== "image/png" || typeof capture.image.data !== "string")
               throw Error("Invalid browser screenshot result")
             const { image, ...metadata } = capture

@@ -217,6 +217,26 @@ describe("structural and visual browser execution", () => {
       "changed"
     )
   })
+  test("canvas pixel changes invalidate coordinates even when the accessibility tree is unchanged", async () => {
+    const capture = await call("browser_screenshot", { selector: "canvas" })
+    await page.locator("canvas").evaluate((canvas: HTMLCanvasElement) => {
+      const context = canvas.getContext("2d")!
+      context.fillStyle = "red"
+      context.fillRect(20, 20, 60, 30)
+    })
+    await expect(call("browser_visual", { imageId: capture.imageId, action: "click", x: 40, y: 30 })).rejects.toThrow(
+      "pixels changed"
+    )
+    expect(await page.evaluate(() => (window as any).canvasClicks)).toBe(0)
+  })
+  test("a cropped visual action survives unrelated pixels changing outside its captured region", async () => {
+    const capture = await call("browser_screenshot", { selector: "canvas" })
+    await page.locator("#save").evaluate((button: HTMLElement) => {
+      button.style.background = "red"
+    })
+    await call("browser_visual", { imageId: capture.imageId, action: "click", x: 40, y: 30 })
+    expect(await page.evaluate(() => (window as any).canvasClicks)).toBe(1)
+  })
   test("out of image coordinates cannot click", async () => {
     const capture = await call("browser_screenshot", { selector: "canvas" })
     await expect(call("browser_visual", { imageId: capture.imageId, action: "click", x: -1, y: 20 })).rejects.toThrow(
@@ -230,7 +250,15 @@ describe("structural and visual browser execution", () => {
     const input = { ...reference(snapshot, 'link "Download evidence"'), path }
     expect(await call("browser_download", input)).toMatchObject({ ok: true, bytes: 17 })
     expect(await readFile(path, "utf8")).toBe("download evidence")
+    let clicks = 0
+    await page.exposeFunction("recordDownloadClick", () => {
+      clicks++
+    })
+    await page
+      .locator("a[download]")
+      .evaluate((link) => link.addEventListener("click", () => (window as any).recordDownloadClick()))
     await expect(call("browser_download", input)).rejects.toThrow("EEXIST")
+    expect(clicks).toBe(0)
     expect(await readFile(path, "utf8")).toBe("download evidence")
   })
   test("concurrent operations on one target fail explicitly", async () => {

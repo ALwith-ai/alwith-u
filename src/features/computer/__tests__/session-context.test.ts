@@ -73,21 +73,11 @@ test("browser previews never invoke native commands", async () => {
   expect(native.context).not.toHaveBeenCalled()
 })
 
-test("device binding still completes before session context binding resolves", async () => {
-  let complete!: () => void
-  const bind = vi.fn(() => new Promise<void>((resolve) => (complete = resolve)))
-  native.deviceContext.mockResolvedValue({ mcpServers: [], bind })
+test("device instructions do not register an MCP server or bind a second transport", async () => {
+  native.deviceContext.mockResolvedValue({ mcpServers: [], appendSystemPrompt: "Use device_control" })
   const context = await hostSessionContext("/project", { kind: "new" })
-  let finished = false
-  const binding = context.bind?.("destination").then(() => {
-    finished = true
-  })
-  await Promise.resolve()
-  expect(bind).toHaveBeenCalledWith("destination")
-  expect(finished).toBe(false)
-  complete()
-  await binding
-  expect(finished).toBe(true)
+  expect(context.mcpServers).toEqual([])
+  expect(context.appendSystemPrompt).toContain("device_control")
 })
 
 test("computer binding can fail without rejecting history replay or checking Driver readiness", async () => {

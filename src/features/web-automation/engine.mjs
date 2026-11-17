@@ -1,5 +1,5 @@
-import { constants } from "node:fs"
-import { copyFile, mkdtemp, rm, stat } from "node:fs/promises"
+import { createReadStream } from "node:fs"
+import { mkdtemp, open, rm, stat } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { isAbsolute, join } from "node:path"
 
@@ -30,7 +30,12 @@ export function createBrowserTools(call, attach, { nativeDownloads = false } = {
           page.setDefaultTimeout(10000)
           page.setDefaultNavigationTimeout(20000)
           const messages = []
-          const interaction = { dialog: null, nextDialog: 0, operation: null, listeners: new Set() }
+          const interaction = {
+            dialog: null,
+            nextDialog: 0,
+            operation: null,
+            listeners: new Set()
+          }
           page.on("dialog", (dialog) => {
             interaction.dialog = { dialog, id: ++interaction.nextDialog }
             for (const notify of interaction.listeners) notify()
@@ -59,20 +64,46 @@ export function createBrowserTools(call, attach, { nativeDownloads = false } = {
             messages.push(value)
             if (messages.length > 100) messages.shift()
           }
-          page.on("console", (message) => record({ type: message.type(), text: message.text().slice(0, 4000) }))
+          page.on("console", (message) =>
+            record({
+              type: message.type(),
+              text: message.text().slice(0, 4000)
+            })
+          )
           page.on("pageerror", (error) =>
-            record({ type: "pageerror", text: error.message.slice(0, 4000), stack: error.stack?.slice(0, 12000) })
+            record({
+              type: "pageerror",
+              text: error.message.slice(0, 4000),
+              stack: error.stack?.slice(0, 12000)
+            })
           )
           page.on("requestfailed", (request) =>
-            record({ type: "requestfailed", url: request.url(), error: request.failure()?.errorText })
+            record({
+              type: "requestfailed",
+              url: request.url(),
+              error: request.failure()?.errorText
+            })
           )
           page.on("response", (response) => {
-            if (response.status() >= 400) record({ type: "http", url: response.url(), status: response.status() })
+            if (response.status() >= 400)
+              record({
+                type: "http",
+                url: response.url(),
+                status: response.status()
+              })
           })
           browser.on("disconnected", () => {
             if (connections.get(target) === promise) connections.delete(target)
           })
-          return { browser, page, messages, frames, listFrames, interaction, observations: createObservations(page) }
+          return {
+            browser,
+            page,
+            messages,
+            frames,
+            listFrames,
+            interaction,
+            observations: createObservations(page)
+          }
         })
         .catch((error) => {
           connections.delete(target)
@@ -84,13 +115,23 @@ export function createBrowserTools(call, attach, { nativeDownloads = false } = {
   }
   const pendingDialog = (interaction) => {
     const { dialog, id } = interaction.dialog
-    return { id, type: dialog.type(), message: dialog.message(), defaultValue: dialog.defaultValue() }
+    return {
+      id,
+      type: dialog.type(),
+      message: dialog.message(),
+      defaultValue: dialog.defaultValue()
+    }
   }
   async function waitForInteraction(state, operation) {
     let notify
     const interrupted = new Promise((resolve) => {
       notify = () =>
-        resolve({ ok: false, pending: true, dialog: pendingDialog(state.interaction), url: state.page.url() })
+        resolve({
+          ok: false,
+          pending: true,
+          dialog: pendingDialog(state.interaction),
+          url: state.page.url()
+        })
     })
     state.interaction.listeners.add(notify)
     try {
@@ -122,8 +163,20 @@ export function createBrowserTools(call, attach, { nativeDownloads = false } = {
     if (!tools.some((tool) => tool.name === name)) throw Error("Unknown browser tool")
     if (typeof args.target !== "string" || !args.target) throw Error("An explicit guest target is required")
     const target = args.target
+    if (name === "browser_release") {
+      const pending = connections.get(target)
+      if (pending) {
+        const { browser } = await pending
+        await browser.close()
+        connections.delete(target)
+      }
+      return call({ target, method: "release" })
+    }
     if (name === "browser_focus" || name === "browser_close")
-      return call({ target, method: name === "browser_focus" ? "focus" : "close" })
+      return call({
+        target,
+        method: name === "browser_focus" ? "focus" : "close"
+      })
     if (name === "browser_navigate") {
       const url = new URL(args.url)
       if (!["http:", "https:"].includes(url.protocol)) throw Error("Navigation requires HTTP(S)")
@@ -186,6 +239,8 @@ export function createBrowserTools(call, attach, { nativeDownloads = false } = {
     if (name === "browser_download" && (typeof args.path !== "string" || !isAbsolute(args.path)))
       throw Error("An absolute download path is required")
     if (name === "browser_type" && typeof args.text !== "string") throw Error("Text must be a string")
+    if (name === "browser_type" && args.mode !== undefined && !["fill", "keyboard"].includes(args.mode))
+      throw Error("Invalid text input mode")
     if (name === "browser_evaluate" && (typeof args.expression !== "string" || !args.expression.trim()))
       throw Error("An expression is required")
     if (
@@ -240,7 +295,13 @@ export function createBrowserTools(call, attach, { nativeDownloads = false } = {
       }
       return waitForInteraction(state, operation ?? Promise.resolve({ ok: true, url: page.url() }))
     }
-    if (interaction.dialog) return { ok: false, pending: true, dialog: pendingDialog(interaction), url: page.url() }
+    if (interaction.dialog)
+      return {
+        ok: false,
+        pending: true,
+        dialog: pendingDialog(interaction),
+        url: page.url()
+      }
     const inventory = listFrames()
     const scope = args.frame === undefined ? page.mainFrame() : frames.get(args.frame)
     if (!scope) throw Error("Frame is detached or unknown; read the page again")
@@ -249,49 +310,69 @@ export function createBrowserTools(call, attach, { nativeDownloads = false } = {
     if (args.ref && !(name === "browser_verify" && args.condition === "hidden"))
       await observations.validate(scope, args)
     if (name === "browser_snapshot") return observations.snapshot(scope, args, inventory)
-    if (name === "browser_resolve") return { locator: (await locate().normalize()).toString(), url: page.url() }
+    if (name === "browser_resolve")
+      return {
+        locator: (await locate().normalize()).toString(),
+        url: page.url()
+      }
     if (name === "browser_screenshot") return observations.screenshot(scope, args, locate)
     if (name === "browser_visual") return perform(state, () => observations.visual(args))
     if (name === "browser_verify")
       return perform(state, () => verify(page, args.condition === "url" ? null : locate(), args))
     if (name === "browser_download")
       return perform(state, async () => {
-        if (nativeDownloads) {
-          const read = async () => (await call({ target: args.target, method: "downloads" })).downloads
-          const before = new Set((await read()).map((item) => item.id))
-          await locate().click()
-          let completed
-          await expect
-            .poll(
-              async () => {
-                if (disposed) throw Error("Browser tools are closed")
-                const downloads = (await read()).filter((item) => !before.has(item.id))
-                if (downloads.length > 1) throw Error("Multiple downloads started; inspect downloads before continuing")
-                completed = downloads[0]
-                if (completed && ["failed", "canceled"].includes(completed.state))
-                  throw Error(`Download ${completed.state}; the action was not repeated`)
-                return completed?.state
-              },
-              { timeout: 20000, intervals: [50, 100, 250] }
-            )
-            .toBe("finished")
-          await copyFile(completed.path, args.path, constants.COPYFILE_EXCL)
-          return { ok: true, path: args.path, sourcePath: completed.path, bytes: (await stat(args.path)).size }
-        }
-        const [download] = await Promise.all([page.waitForEvent("download", { timeout: 20000 }), locate().click()])
-        const directory = await mkdtemp(join(tmpdir(), "alwith-download-"))
+        // Reserve the destination before clicking: a local conflict must never trigger a second download.
+        const destination = await open(args.path, "wx")
+        let saved = false
         try {
-          const temporary = join(directory, "download")
-          await download.saveAs(temporary)
-          await copyFile(temporary, args.path, constants.COPYFILE_EXCL)
-          return {
-            ok: true,
-            path: args.path,
-            suggestedFilename: download.suggestedFilename(),
-            bytes: (await stat(args.path)).size
+          if (nativeDownloads) {
+            const read = async () => (await call({ target: args.target, method: "downloads" })).downloads
+            const before = new Set((await read()).map((item) => item.id))
+            await locate().click()
+            let completed
+            await expect
+              .poll(
+                async () => {
+                  if (disposed) throw Error("Browser tools are closed")
+                  const downloads = (await read()).filter((item) => !before.has(item.id))
+                  if (downloads.length > 1)
+                    throw Error("Multiple downloads started; inspect downloads before continuing")
+                  completed = downloads[0]
+                  if (completed && ["failed", "canceled"].includes(completed.state))
+                    throw Error(`Download ${completed.state}; the action was not repeated`)
+                  return completed?.state
+                },
+                { timeout: 20000, intervals: [50, 100, 250] }
+              )
+              .toBe("finished")
+            await destination.writeFile(createReadStream(completed.path))
+            saved = true
+            return {
+              ok: true,
+              path: args.path,
+              sourcePath: completed.path,
+              bytes: (await stat(args.path)).size
+            }
+          }
+          const [download] = await Promise.all([page.waitForEvent("download", { timeout: 20000 }), locate().click()])
+          const directory = await mkdtemp(join(tmpdir(), "alwith-download-"))
+          try {
+            const temporary = join(directory, "download")
+            await download.saveAs(temporary)
+            await destination.writeFile(createReadStream(temporary))
+            saved = true
+            return {
+              ok: true,
+              path: args.path,
+              suggestedFilename: download.suggestedFilename(),
+              bytes: (await stat(args.path)).size
+            }
+          } finally {
+            await rm(directory, { recursive: true, force: true })
           }
         } finally {
-          await rm(directory, { recursive: true, force: true })
+          await destination.close()
+          if (!saved) await rm(args.path, { force: true })
         }
       })
     if (name === "browser_inspect")
@@ -319,7 +400,9 @@ export function createBrowserTools(call, attach, { nativeDownloads = false } = {
         }
       })
     if (name === "browser_evaluate")
-      return perform(state, async () => ({ result: await scope.evaluate(args.expression) }))
+      return perform(state, async () => ({
+        result: await scope.evaluate(args.expression)
+      }))
     if (name === "browser_wait")
       return perform(state, async () => {
         await locate().waitFor({ state: args.state ?? "visible" })
@@ -335,11 +418,14 @@ export function createBrowserTools(call, attach, { nativeDownloads = false } = {
       return {
         url: page.url(),
         title: await page.title(),
-        fileInputs: await scope
-          .locator('input[type="file"]')
-          .evaluateAll((inputs) =>
-            inputs.map((input) => ({ id: input.id, name: input.name, accept: input.accept, multiple: input.multiple }))
-          ),
+        fileInputs: await scope.locator('input[type="file"]').evaluateAll((inputs) =>
+          inputs.map((input) => ({
+            id: input.id,
+            name: input.name,
+            accept: input.accept,
+            multiple: input.multiple
+          }))
+        ),
         frames: inventory,
         frameUrl: scope.url(),
         accessibility: accessibility.slice(0, 32000),
@@ -367,7 +453,11 @@ export function createBrowserTools(call, attach, { nativeDownloads = false } = {
             href: element.getAttribute("href"),
             type: element.getAttribute("type"),
             files: element.files
-              ? [...element.files].map((file) => ({ name: file.name, size: file.size, type: file.type }))
+              ? [...element.files].map((file) => ({
+                  name: file.name,
+                  size: file.size,
+                  type: file.type
+                }))
               : undefined
           }))
         }),
@@ -419,8 +509,27 @@ export function createBrowserTools(call, attach, { nativeDownloads = false } = {
             { x: args.x ?? 0, y: args.y }
           )
         else if (name === "browser_type") {
-          // Activate the editor through its normal interaction path before entering text.
-          // Rich editors can initialize editing on pointer activation rather than DOM focus.
+          if (args.mode === "keyboard") {
+            await locator.click()
+            const editableFocus = await locator.evaluate((element) => {
+              const focused = element.ownerDocument.activeElement
+              return (
+                focused &&
+                element.contains(focused) &&
+                (focused.isContentEditable ||
+                  focused.matches("textarea:not([readonly]):not(:disabled), input:not([readonly]):not(:disabled)"))
+              )
+            })
+            if (!editableFocus) throw Error("Editor did not receive editable focus; inspect the page before typing")
+            await page.keyboard.press(args.replace ? "ControlOrMeta+A" : "ControlOrMeta+End")
+            await page.keyboard.insertText(args.text)
+            return {
+              ok: true,
+              url: page.url(),
+              outcome: "action-dispatched",
+              verificationRequired: true
+            }
+          }
           await locator.click()
           if (args.replace) await locator.fill(args.text)
           else {
@@ -444,18 +553,46 @@ export function createBrowserTools(call, attach, { nativeDownloads = false } = {
         } else if (name === "browser_press") await locator.press(args.key)
         else if (name === "browser_select") await locator.selectOption(args.value)
       }
-      return { ok: true, url: page.url(), outcome: "action-dispatched", verificationRequired: true }
+      return {
+        ok: true,
+        url: page.url(),
+        outcome: "action-dispatched",
+        verificationRequired: true
+      }
     })
   }
-  const busy = new Set()
+  const busy = new Map()
+  const stopping = new Set()
   const guarded = async (name, args = {}) => {
     const target = args.target
-    if (target && busy.has(target)) throw Error("Target is busy; await its current tool call before continuing")
-    if (target) busy.add(target)
+    if (target && (busy.has(target) || stopping.has(target)))
+      throw Error("Target is busy; await its current tool call before continuing")
+    const operation = Promise.resolve().then(() => run(name, args))
+    if (target) busy.set(target, operation)
     try {
-      return await run(name, args)
+      return await operation
     } finally {
       if (target) busy.delete(target)
+    }
+  }
+  // Disconnect only active operations. Idle transport and page state survive handoff.
+  guarded.release = async (target) => {
+    stopping.add(target)
+    try {
+      const pending = connections.get(target)
+      const state = pending ? await pending.catch(() => null) : null
+      const operation = busy.get(target)
+      const interaction = state?.interaction.operation
+      if (state && (operation || interaction || state.interaction.dialog)) {
+        await state.browser.close()
+        connections.delete(target)
+      }
+      await Promise.allSettled([operation, interaction])
+      state?.observations.invalidate()
+      if (state) state.messages.length = 0
+      return { disconnected: !!state && !connections.has(target) }
+    } finally {
+      stopping.delete(target)
     }
   }
   guarded.close = async () => {
