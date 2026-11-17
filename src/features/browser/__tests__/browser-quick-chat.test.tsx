@@ -1,3 +1,4 @@
+import { mockOf } from "@/test/mock-of"
 import "./language"
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
@@ -111,7 +112,9 @@ test.each([
   expect(view.container.querySelector<HTMLElement>("[data-quick-chat-panel]")!.style.opacity).toBe("0")
   expect(surface.style.width).toBe("40px")
   expect(surface.style.height).toBe("40px")
-  act(() => vi.advanceTimersByTime(260))
+  act(() => {
+    vi.advanceTimersByTime(260)
+  })
   const button = view.getByRole("button", { name: "展开浏览器聊天" })
   expect(button).toHaveClass("size-10")
   expect(button).not.toBeDisabled()
@@ -202,5 +205,5 @@ test("header controls never start a drag", async () => {
   for (const button of header.querySelectorAll("button")) {
     fireEvent.pointerDown(button, { pointerId: 3, button: 0, clientX: 600, clientY: 60 })
   }
-  expect(header.setPointerCapture).not.toHaveBeenCalled()
+  expect(mockOf(header, "setPointerCapture")).not.toHaveBeenCalled()
 })
