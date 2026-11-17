@@ -93,12 +93,24 @@ pub fn initialize_main_window(app: &tauri::AppHandle) -> tauri::Result<()> {
     let outer = window.outer_size()?;
     let available_width = area.size.width.saturating_sub(outer.width.saturating_sub(inner.width)).max(1);
     let available_height = area.size.height.saturating_sub(outer.height.saturating_sub(inner.height)).max(1);
-    window.set_min_size(Some(tauri::LogicalSize::new(
-        960.0_f64.min(available_width as f64 / scale),
-        640.0_f64.min(available_height as f64 / scale),
-    )))?;
+    let config = app
+        .config()
+        .app
+        .windows
+        .iter()
+        .find(|config| config.label == "main")
+        .expect("main window configuration exists");
+    let minimum = tauri::LogicalSize::new(
+        config.min_width.expect("main window has a minimum width").min(available_width as f64 / scale),
+        config.min_height.expect("main window has a minimum height").min(available_height as f64 / scale),
+    );
+    window.set_min_size(Some(minimum))?;
+    let minimum = minimum.to_physical::<u32>(scale);
     if !window.is_maximized()? && !window.is_fullscreen()? {
-        let fitted = tauri::PhysicalSize::new(inner.width.min(available_width), inner.height.min(available_height));
+        let fitted = tauri::PhysicalSize::new(
+            inner.width.max(minimum.width).min(available_width),
+            inner.height.max(minimum.height).min(available_height),
+        );
         if fitted != inner {
             window.set_size(fitted)?;
         }
