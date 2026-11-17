@@ -38,7 +38,7 @@ export type PluginsApi = {
   listPlugins: (params?: PluginListParams) => Promise<PluginListResponse>
   installedPlugins: (cwds?: string[]) => Promise<PluginInstalledResponse>
   installPlugin: (params: PluginInstallParams) => Promise<PluginInstallResponse>
-  setPluginEnabled: (pluginId: string, enabled: boolean, remotePluginId?: string) => Promise<{ enabled: boolean }>
+  setPluginEnabled: (pluginId: string, enabled: boolean) => Promise<{ enabled: boolean }>
   uninstallPlugin: (pluginId: string) => Promise<void>
   readPlugin: (params: PluginReadParams) => Promise<PluginReadResponse>
   addMarketplace: (params: MarketplaceAddParams) => Promise<MarketplaceAddResponse>
@@ -478,9 +478,7 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
         update(enabled)
         let effectiveEnabled = plugin.enabled
         try {
-          const remotePluginId = plugin.source.type === "remote" ? plugin.remotePluginId : undefined
-          if (remotePluginId === null) throw new Error("Remote plugin ID is missing")
-          const response = await api.setPluginEnabled(plugin.id, enabled, remotePluginId)
+          const response = await api.setPluginEnabled(plugin.id, enabled)
           effectiveEnabled = response.enabled
           update(response.enabled)
           await refreshAfterChange()

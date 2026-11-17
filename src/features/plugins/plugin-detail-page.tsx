@@ -94,14 +94,16 @@ export function PluginDetailPage({ entry, onBack }: { entry: PluginEntry; onBack
             <div className="flex shrink-0 items-center gap-3">
               {installed ? (
                 <>
-                  <Switch
-                    checked={current.enabled}
-                    disabled={!!busy || unavailable}
-                    aria-label={t(current.enabled ? "plugins.card.disable" : "plugins.card.enable", {
-                      pluginName: title
-                    })}
-                    onCheckedChange={(enabled) => void toggle(current, enabled)}
-                  />
+                  {current.source.type === "remote" ? null : (
+                    <Switch
+                      checked={current.enabled}
+                      disabled={!!busy || unavailable}
+                      aria-label={t(current.enabled ? "plugins.card.disable" : "plugins.card.enable", {
+                        pluginName: title
+                      })}
+                      onCheckedChange={(enabled) => void toggle(current, enabled)}
+                    />
+                  )}
                   <Button variant="outline" size="sm" disabled={!!busy} onClick={() => void uninstall(current)}>
                     {busy ? <Spinner /> : t("plugins.detail.uninstall")}
                   </Button>

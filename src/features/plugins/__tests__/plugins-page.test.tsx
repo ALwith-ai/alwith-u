@@ -279,7 +279,7 @@ test("the upgrade spinner belongs only to an upgrade, not plugin mutations or ca
 })
 
 test("installed plugins have functional switches disabled while the plugin is busy", async () => {
-  const target = plugin("Example", true)
+  const target: PluginSummary = { ...plugin("Example", true), source: { type: "local", path: "/local/Example" } }
   const marketplace: PluginMarketplaceEntry = { name: "local", path: "/local", interface: null, plugins: [target] }
   const toggle = vi.fn().mockResolvedValue(undefined)
   pluginsStore.setState({ installed: [{ plugin: target, marketplace }], setPluginEnabled: toggle })
@@ -291,6 +291,17 @@ test("installed plugins have functional switches disabled while the plugin is bu
   expect(toggle).toHaveBeenCalledWith(target, false)
   await act(() => Promise.try(() => pluginsStore.setState({ busyIds: { Example: "toggling" } })))
   expect(control).toHaveAttribute("aria-disabled", "true")
+})
+
+test("installed remote plugins can be uninstalled but have no switch, because ChatGPT enables them", async () => {
+  const target = plugin("Remote", true)
+  const marketplace: PluginMarketplaceEntry = { name: "remote", path: null, interface: null, plugins: [target] }
+  pluginsStore.setState({ installed: [{ plugin: target, marketplace }] })
+  const view = render(<PluginsPage cwd={null} active />)
+  fireEvent.click(within(view.getByRole("navigation", { name: "Installed" })).getByRole("button", { name: "Remote" }))
+  await view.findByRole("heading", { name: "Remote" })
+  expect(view.queryByRole("switch")).toBeNull()
+  expect(document.body).toContainOneByRole("button", { name: "Uninstall" })
 })
 
 test("details read the selected source, retry failures, and preserve the catalog search on return", async () => {
@@ -339,7 +350,7 @@ test("details read the selected source, retry failures, and preserve the catalog
 })
 
 test("install controls do not open details, and detail actions follow refreshed installation state", async () => {
-  const target = plugin("Installable")
+  const target: PluginSummary = { ...plugin("Installable"), source: { type: "local", path: "/local/Installable" } }
   const marketplace: PluginMarketplaceEntry = { name: "source", path: "/source", interface: null, plugins: [target] }
   const read = vi.fn().mockResolvedValue({
     summary: target,

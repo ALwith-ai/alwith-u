@@ -319,12 +319,10 @@ test("plugin toggles settle on the refreshed state and failures roll back withou
   const api = fakeApi()
   const store = createPluginsStore(api)
   await store.getState().refresh()
-  store.getState().installed[0].plugin.remotePluginId = "plugin_supabase"
   const toggle = vi.spyOn(api, "setPluginEnabled")
   await store.getState().setPluginEnabled(store.getState().installed[0].plugin, false)
   expect(store.getState().installed[0].plugin.enabled).toBe(false)
-  expect(toggle).toHaveBeenCalledWith("alpha", false, "plugin_supabase")
-  store.getState().installed[0].plugin.remotePluginId = "plugin_supabase"
+  expect(toggle).toHaveBeenCalledWith("alpha", false)
   const request = deferred<{ enabled: boolean }>()
   api.setPluginEnabled = vi.fn(() => request.promise)
   const target = store.getState().installed[0].plugin
