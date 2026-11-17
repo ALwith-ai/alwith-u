@@ -76,7 +76,7 @@ export function useDriveDeepLinks(openTarget: (path: string) => Promise<void>): 
       for (const raw of urls) {
         try {
           const url = new URL(raw)
-          if (url.protocol !== "alwith-u:" || url.hostname !== "yup-drive") continue
+          if (url.protocol !== "alwith:" || url.hostname !== "yup-drive") continue
           const fileId = parseDriveFileDeepLinkPath(url.pathname)
           if (fileId === null || url.username || url.password || url.port || url.search || url.hash) {
             throw new Error("Invalid ALwith U Drive link")

@@ -42,7 +42,7 @@ afterEach(() => {
 
 for (const [label, url] of [
   ["Copy web link", "https://web.test/file/42"],
-  ["Copy desktop link", "alwith-u://file/42"]
+  ["Copy desktop link", "alwith://file/42"]
 ]) {
   test(`${label} uses the system clipboard after awaiting a remote id`, async () => {
     boundary.request.mockImplementation(async () => {

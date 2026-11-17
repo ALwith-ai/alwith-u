@@ -60,7 +60,7 @@ export function DriveTreeActions({
     if (response.type !== "id" || response.data === null)
       throw new Error(label("Upload this file before sharing a link", "请先上传文件再复制链接"))
     if (desktop) {
-      await writeText(driveFileDeepLink(response.data).replace(/^alwith:/, "alwith-u:"))
+      await writeText(driveFileDeepLink(response.data))
       return
     }
     if (!snapshot.webBaseUrl) throw new Error("Drive web address is unavailable")

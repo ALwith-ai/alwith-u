@@ -6,7 +6,7 @@
   "identifier": "ai.alwith.u",
   "build": {
     "frontendDist": "../dist",
-    "devUrl": "http://127.0.0.1:1430",
+    "devUrl": "http://127.0.0.1:1401",
     "beforeDevCommand": "bun run stage && bun dev",
     "beforeBuildCommand": "bun run stage && bun run build"
   },
@@ -42,7 +42,7 @@
     "deep-link": {
       "desktop": {
         "schemes": [
-          "alwith-u"
+          "alwith"
         ]
       }
     },

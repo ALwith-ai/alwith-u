@@ -52,7 +52,7 @@ beforeEach(() => {
 
 test("cold startup links wait until Drive is configured and running", async () => {
   mock.snapshot.running = false
-  mock.current.mockResolvedValue(["alwith-u://yup-drive/file/7"])
+  mock.current.mockResolvedValue(["alwith://yup-drive/file/7"])
   const open = vi.fn(async (_path: string) => {})
   const hook = renderHook(() => useDriveDeepLinks(open))
   await waitFor(() => expect(mock.current).toHaveBeenCalled())
@@ -71,27 +71,27 @@ test("cold startup links wait until Drive is configured and running", async () =
 })
 
 test("hot links and duplicate cold delivery open a file once", async () => {
-  mock.current.mockResolvedValue(["alwith-u://yup-drive/file/7"])
+  mock.current.mockResolvedValue(["alwith://yup-drive/file/7"])
   const open = vi.fn(async (_path: string) => {})
   renderHook(() => useDriveDeepLinks(open))
   await waitFor(() => expect(open).toHaveBeenCalledOnce())
-  await act(() => Promise.try(() => mock.receive?.(["alwith-u://yup-drive/file/7", "alwith-u://yup-drive/file/7"])))
+  await act(() => Promise.try(() => mock.receive?.(["alwith://yup-drive/file/7", "alwith://yup-drive/file/7"])))
   expect(open).toHaveBeenCalledOnce()
 })
 
 test("missing files use the configured safe web destination", async () => {
   mock.request.mockResolvedValue({ type: "path", data: null })
-  mock.current.mockResolvedValue(["alwith-u://yup-drive/file/text-id"])
+  mock.current.mockResolvedValue(["alwith://yup-drive/file/text-id"])
   const open = vi.fn(async (_path: string) => {})
   renderHook(() => useDriveDeepLinks(open))
   await waitFor(() => expect(mock.external).toHaveBeenCalledWith("https://drive.example.test/file/text-id"))
   expect(open).not.toHaveBeenCalled()
 })
 
-test("Desktop schemes and malformed U routes cannot open files", async () => {
+test("retired schemes and malformed routes cannot open files", async () => {
   mock.current.mockResolvedValue([
-    "alwith://yup-drive/file/7",
-    "alwith-u://yup-drive/file/7?redirect=file:///etc/passwd"
+    "alwith-u://yup-drive/file/7",
+    "alwith://yup-drive/file/7?redirect=file:///etc/passwd"
   ])
   const open = vi.fn(async (_path: string) => {})
   renderHook(() => useDriveDeepLinks(open))
@@ -108,7 +108,7 @@ test("an account change while resolving discards the previous account's local pa
         finish = resolve
       })
   )
-  mock.current.mockResolvedValue(["alwith-u://yup-drive/file/7"])
+  mock.current.mockResolvedValue(["alwith://yup-drive/file/7"])
   const open = vi.fn(async (_path: string) => {})
   renderHook(() => useDriveDeepLinks(open))
   await waitFor(() => expect(mock.request).toHaveBeenCalledOnce())
@@ -139,7 +139,7 @@ test("ordinary browser renders never call native deep-link APIs", () => {
 
 test("cold links remain queued until the controller attaches", async () => {
   mock.connected = false
-  mock.current.mockResolvedValue(["alwith-u://yup-drive/file/7"])
+  mock.current.mockResolvedValue(["alwith://yup-drive/file/7"])
   const open = vi.fn(async (_path: string) => {})
   renderHook(() => useDriveDeepLinks(open))
   await act(async () => {})
