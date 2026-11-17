@@ -371,16 +371,25 @@ test("Codex loading resolves to real usage without presenting a signed-out actio
   expect(view.getByText("Unable to read account status")).toBeTruthy()
   expect(view.queryByText("Not signed in")).toBeNull()
   expect(view.queryByRole("progressbar")).toBeNull()
-  expect(view.queryByRole("button")).toBeNull()
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Sign out" }))))
+  expect(signOut).toHaveBeenCalledTimes(2)
+  view.rerender(<CodexAccountSummary account={null} disabled={true} onSignOut={signOut} />)
+  expect(view.getByRole("button", { name: "Sign out" })).toBeDisabled()
+  fireEvent.click(view.getByRole("button", { name: "Sign out" }))
+  expect(signOut).toHaveBeenCalledTimes(2)
   view.rerender(
     <CodexAccountSummary
-      account={{ account: { account: null, requiresOpenaiAuth: true, workspaceRouting: null, userId: null }, rateLimits: null }}
+      account={{
+        account: { account: null, requiresOpenaiAuth: true, workspaceRouting: null, userId: null },
+        rateLimits: null
+      }}
       disabled={false}
       onSignOut={signOut}
     />
   )
   expect(view.getByText("Not signed in")).toBeTruthy()
   expect(view.queryByText("Unable to read account status")).toBeNull()
+  expect(view.queryByRole("button", { name: "Sign out" })).toBeNull()
 })
 
 test("saving an existing custom provider clears its saved draft and enables connection testing", async () => {

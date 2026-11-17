@@ -113,7 +113,7 @@ export function CodexAccountSummary({
         {loading ? (
           <Skeleton className="h-8 w-16 shrink-0 motion-reduce:animate-none" />
         ) : (
-          signedIn !== null && (
+          (account === null || signedIn !== null) && (
             <Button variant="outline" size="sm" className="shrink-0" disabled={disabled} onClick={onSignOut}>
               {t("connection.signOut")}
             </Button>
