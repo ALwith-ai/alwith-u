@@ -2,12 +2,11 @@
 
 import { type SessionRunState } from "@alwith/api"
 import type { VibemonObservation } from "@alwith/module-auth/vibemon/core"
-import { createSession, isText, runStateSource } from "@alwith/module-chat/client"
+import { CodexClient, createSession, isText, runStateSource } from "@alwith/module-chat/client"
 import { afterEach, expect, test, vi } from "vitest"
 
 import { createFakeAgent } from "@/agent/__tests__/fake-agent"
 import { FakeHubPort } from "@/agent/__tests__/fake-runtime-client"
-import { CodexClient } from "@alwith/module-chat/client"
 import { must } from "@/lib/__tests__/must"
 
 import { createVibemonSessionOwner } from "../session-host"
@@ -484,4 +483,17 @@ test("a child permission is shown and answered through its parent's vibemon bind
   await f.host.answer(observation.binding, "child-answer", "child-permission", "allow")
   expect(f.respond).toHaveBeenCalledWith("child-permission", { outcome: { outcome: "selected", optionId: "allow" } })
   await expect(f.host.send(observation.binding, "busy-child", "continue")).rejects.toThrow("requires an answer")
+})
+
+test("automatic animation binding follows the current conversation instead of the first background run", async () => {
+  const f = await fixture()
+  f.client.applyRunStates([
+    { ...f.run(f.a.id), state: "running" },
+    { ...f.run(f.b.id), state: "done" }
+  ])
+  await f.host.surface("main", { sessionId: f.b.id, visible: true })
+  expect(f.host.snapshot()).toMatchObject({ binding: { sessionId: f.b.id }, state: "done" })
+  expect(
+    f.host.snapshot()?.taskFeed?.tasks.some((task) => task.binding.sessionId === f.a.id && task.state === "running")
+  ).toBe(true)
 })

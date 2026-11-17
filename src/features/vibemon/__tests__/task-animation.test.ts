@@ -122,3 +122,46 @@ test("hidden vibemon do not celebrate or resume a historical completion when pre
   vi.advanceTimersByTime(60_000)
   expect(frames.at(-1)).toBe("sleep")
 })
+
+test("Pong without hover frames never alternates working and idle under repeated enter/leave", () => {
+  vi.useFakeTimers()
+  const frames: string[] = []
+  const config = createSpriteConfig("Pong", "sheet.webp", {
+    frameWidth: 280,
+    frameHeight: 280,
+    states: ["done", "drag", "empty", "error", "wait", "working"].map((id, row) => ({ id, row, frames: 14 }))
+  })
+  engine = new VibemonEngine(
+    config,
+    (state) => frames.push(state),
+    () => {}
+  )
+  engine.setSessionState("pong", "running", false)
+  frames.length = 0
+  for (let i = 0; i < 32; i++) {
+    engine.hover(true)
+    engine.hover(false)
+  }
+  expect(frames).toEqual([])
+  engine.setSessionState("pong", "done", false)
+  vi.advanceTimersByTime(2000)
+  expect(frames.at(-1)).toBe("empty")
+  const count = frames.length
+  for (let i = 0; i < 32; i++) {
+    engine.hover(true)
+    engine.hover(false)
+  }
+  expect(frames).toHaveLength(count)
+})
+
+test("re-presenting a supported hover cannot replace it with the running pose", async () => {
+  const { engine, frames } = fixture()
+  engine.setSessionState("tasks", "running", false)
+  engine.hover(true)
+  engine.resume()
+  expect(frames.at(-1)).toBe("hover")
+  await engine.presentAt(async () => ({ x: 0, y: 0 }))
+  expect(frames.at(-1)).toBe("hover")
+  engine.hover(false)
+  expect(frames.at(-1)).toBe("working")
+})
