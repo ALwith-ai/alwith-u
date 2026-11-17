@@ -41,6 +41,23 @@ for (const provider of providers) {
   })
 }
 
+test("Qwen4-Max is selectable with its documented Responses capabilities", () => {
+  const provider = providers.find((entry) => entry.id === "qwen")
+  expect(provider?.models).toContainEqual({ id: "qwen4-max", label: "4 Max" })
+  const catalog = JSON.parse(
+    readFileSync(resolve(import.meta.dir, "../../../src-tauri/resources/qwen/models.json"), "utf8")
+  ) as {
+    models: Array<CatalogModel & { max_context_window: number; supports_reasoning_summary_parameter: boolean }>
+  }
+  const model = catalog.models.find((entry) => entry.slug === "qwen4-max")
+  expect(model?.default_reasoning_level).toBe("high")
+  expect(model?.supported_reasoning_levels.map((entry) => entry.effort)).toEqual(["none", "low", "high", "xhigh"])
+  expect(model?.context_window).toBe(1_000_000)
+  expect(model?.max_context_window).toBe(1_000_000)
+  expect(model?.input_modalities).toEqual(["text", "image"])
+  expect(model?.supports_reasoning_summary_parameter).toBe(true)
+})
+
 test("Qwen 3.8 exposes its documented levels without compatibility aliases", () => {
   const provider = providers.find((entry) => entry.id === "qwen")
   expect(provider?.catalog).toBe("qwen/models.json")
