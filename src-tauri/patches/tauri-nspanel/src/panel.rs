@@ -389,10 +389,12 @@ macro_rules! panel {
                                 $crate::objc2_app_kit::NSWindow::class()
                             };
 
+                            let effects = $crate::window_effects::DetachedWindowEffects::new(self.as_panel());
                             object_setClass(
                                 &*self.panel as *const [<Raw $class_name>] as *mut $crate::objc2_foundation::NSObject,
                                 target_class,
                             );
+                            drop(effects);
                         }
 
                         self.app_handle.get_webview_window(&self.label)
@@ -708,6 +710,10 @@ macro_rules! panel {
                             ) -> *const $crate::objc2::runtime::AnyClass;
                         }
 
+                        let effects = $crate::window_effects::DetachedWindowEffects::new(
+                            &*(ns_window as *const $crate::objc2_app_kit::NSWindow),
+                        );
+                        // Capture the class after effect views have unregistered their KVO.
                         let original_class = object_getClass(ns_window as *mut $crate::objc2_foundation::NSObject);
 
                         // Change the window class to our custom panel class
@@ -715,6 +721,7 @@ macro_rules! panel {
                             ns_window as *mut $crate::objc2_foundation::NSObject,
                             [<Raw $class_name>]::class(),
                         );
+                        drop(effects);
 
                         // Now cast to our panel type
                         let panel_ptr = ns_window as *mut [<Raw $class_name>];

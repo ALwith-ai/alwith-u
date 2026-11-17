@@ -886,6 +886,7 @@
       "newChat": "新聊天",
       "commandPalette": "命令面板",
       "projectTree": "打开项目树",
+      "toggleTerminal": "切换终端面板",
       "findInChat": "在聊天中查找",
       "openSettings": "打开设置",
       "openHotkeys": "键盘快捷键",
@@ -1036,7 +1037,7 @@
     "closeAll": "关闭全部",
     "retry": "重试",
     "loadFailed": "文件加载失败",
-    "previewTooLarge": "此文件过大，无法预览。PDF 预览支持不超过 40 MiB 的文件。",
+    "previewTooLarge": "此文件过大，无法预览。你仍可在文件管理器中显示，或用系统应用打开。",
     "iconTheme": "文件图标主题",
     "editorSettings": "编辑器设置",
     "fontSize": "字号",
@@ -1603,7 +1604,21 @@
     "passwordSuggested": "已填入新密码，提交表单后会询问是否保存",
     "mutedTab": "已静音",
     "pinnedTab": "已固定",
-    "translatePage": "翻译此网页"
+    "translatePage": "翻译此网页",
+    "quickChat": {
+      "title": "浏览器聊天",
+      "open": "展开浏览器聊天",
+      "minimize": "收起浏览器聊天",
+      "newChat": "新聊天",
+      "retry": "重试",
+      "resizeWidth": "调整聊天宽度",
+      "resizeHeight": "调整聊天高度",
+      "activity": "浏览器会话",
+      "running": "正在运行",
+      "requires_action": "需要处理",
+      "done": "未读回复",
+      "welcome": "在这里提问，或让 AI 帮你操作浏览器。"
+    }
   },
   "images": {
     "discover": "从一个灵感开始",

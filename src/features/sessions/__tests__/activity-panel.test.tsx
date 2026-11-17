@@ -427,3 +427,27 @@ test("application terminal ports merge beneath their owning activity and disappe
   expect(view.getByRole("button", { name: ":44001" })).toBeInTheDocument()
   expect(client.state.runStates.headless).toEqual(runtime[0])
 })
+
+test("browser activity opens its browser surface without changing main selection", async () => {
+  const { useBrowserQuickChat } = await import("@/features/browser/quick-chat-state")
+  const original = useBrowserQuickChat.getState()
+  try {
+    useBrowserQuickChat.setState({ sessionId: "browser", cwd: "/tmp", visible: true })
+    client.applyRunStates([record("browser", false, "running"), record("main", false)])
+    const onSelect = vi.fn()
+    const view = render(<ActivityPanel selectedId="main" onSelect={onSelect} />, { wrapper: SessionListHostProvider })
+    const row = view.container.querySelector('[data-session-id="browser"]')!
+    expect(row.querySelector('[aria-label="Browser conversation"]')).not.toBeNull()
+    await act(() => Promise.try(() => fireEvent.click(row)))
+    expect(onSelect).not.toHaveBeenCalled()
+    expect(useBrowserQuickChat.getState().revealSessionId).toBe("browser")
+    expect(useBrowserQuickChat.getState().sessionId).toBe("browser")
+    await act(() => Promise.try(() => useBrowserQuickChat.setState({ visible: false })))
+    view.rerender(<ActivityPanel selectedId="another" onSelect={onSelect} />)
+    expect(
+      view.container.querySelector('[data-session-id="browser"] [aria-label="Browser conversation"]')
+    ).not.toBeNull()
+  } finally {
+    useBrowserQuickChat.setState(original, true)
+  }
+})

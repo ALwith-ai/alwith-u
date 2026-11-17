@@ -1,5 +1,5 @@
 import { appendComposerDraft, updateDraftAttachments } from "@alwith/module-chat/conversation"
-import { DetachedPaneGrip } from "@alwith/module-desktop-shell/react"
+import { DetachedPaneGrip, useDesktopCanvas } from "@alwith/module-desktop-shell/react"
 import { DevicePanel } from "@alwith/module-device/preview"
 import { deviceBridge, openCaptureWindow } from "@alwith/module-device/tauri"
 import { invoke, isTauri } from "@tauri-apps/api/core"
@@ -31,10 +31,14 @@ import { deviceSelections } from "./window-routing"
 /** Keep device controls behind a compact workspace overflow menu. */
 export function DeviceWorkspaceMenu({ children }: { children?: ReactNode }) {
   const workspace = useWorkspace()
+  const canvas = useDesktopCanvas()
   const { t } = useTranslation()
   if (workspace?.openPane === undefined || !isTauri()) return null
   const openPane = workspace.openPane
-  const active = workspace.visible && workspace.pane === "simulator"
+  const active =
+    workspace.visible &&
+    workspace.pane === "simulator" &&
+    (!canvas || canvas.region === "chat" || canvas.region === "preview")
   return (
     <DropdownMenu>
       <DropdownMenuTrigger

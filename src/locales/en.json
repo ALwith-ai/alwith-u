@@ -886,6 +886,7 @@
       "newChat": "New chat",
       "commandPalette": "Command palette",
       "projectTree": "Open project tree",
+      "toggleTerminal": "Toggle terminal panel",
       "findInChat": "Find in chat",
       "openSettings": "Open settings",
       "openHotkeys": "Keyboard shortcuts",
@@ -1036,7 +1037,7 @@
     "closeAll": "Close all",
     "retry": "Retry",
     "loadFailed": "Failed to load file",
-    "previewTooLarge": "This file is too large to preview. PDF previews support files up to 40 MiB.",
+    "previewTooLarge": "This file is too large to preview. You can still show it in the file manager or open it in a system application.",
     "iconTheme": "File icon theme",
     "editorSettings": "Editor settings",
     "fontSize": "Font size",
@@ -1603,7 +1604,21 @@
     "passwordSuggested": "A new password was filled in; you will be asked to save it when the form is sent",
     "mutedTab": "Muted",
     "pinnedTab": "Pinned",
-    "translatePage": "Translate this page"
+    "translatePage": "Translate this page",
+    "quickChat": {
+      "title": "Browser chat",
+      "open": "Expand browser chat",
+      "minimize": "Minimize browser chat",
+      "newChat": "New chat",
+      "retry": "Retry",
+      "resizeWidth": "Resize chat width",
+      "resizeHeight": "Resize chat height",
+      "activity": "Browser conversation",
+      "running": "Running",
+      "requires_action": "Action required",
+      "done": "Unread response",
+      "welcome": "Ask a question or let AI help you use the browser."
+    }
   },
   "images": {
     "discover": "Start with an idea",

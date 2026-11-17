@@ -5,10 +5,10 @@ import {
   type VibemonObservation,
   type VibemonPanelLevel,
   type VibemonSessionChoice,
+  VibemonSessionContext,
   type VibemonSurface
 } from "@alwith/module-auth/vibemon/core"
 import { inSessionTree, isText, isToolCallSubject } from "@alwith/module-chat/client"
-
 import type { AppState } from "@alwith/module-chat/client"
 
 import { vibemonAnswer, vibemonPrompt } from "./vibemon-prompt"
@@ -48,14 +48,12 @@ export function createVibemonSessionOwner(owner: VibemonSessionOwner) {
   const previousStates = new Map<string, string>()
   const attachments = new Map<string, boolean>()
   const incarnations = new Map<string, string>()
-  const surfaces: Record<"main" | "chat", VibemonSurface> = {
-    main: { sessionId: null, visible: false },
-    chat: { sessionId: null, visible: false }
-  }
+  const context = new VibemonSessionContext()
+  const surfaces = context.surfaces
+  let selected: string | null = null
   let panel: VibemonPanelLevel = "hidden"
   let focusedSessionId: string | undefined
   let mainMinimized = false
-  let selected: string | null = null
   let snapshot: VibemonObservation | null = null
   let sequence = 0
   let order = 0
@@ -235,7 +233,7 @@ export function createVibemonSessionOwner(owner: VibemonSessionOwner) {
     const publishAll = () => {
       const tasks = choices.map(make)
       observations = tasks
-      const primary = tasks.find((task) => task.binding.sessionId === selected) ?? tasks[0]
+      const primary = tasks.find((task) => task.binding.sessionId === (selected ?? context.target())) ?? tasks[0]
       if (primary === undefined) {
         publish(null)
         return
@@ -301,7 +299,7 @@ export function createVibemonSessionOwner(owner: VibemonSessionOwner) {
       }
     },
     surface(label: "main" | "chat", value: VibemonSurface) {
-      surfaces[label] = value
+      context.surface(label, value)
       return refresh()
     },
     collapse(sessionId: string | null) {
@@ -340,6 +338,7 @@ export function createVibemonSessionOwner(owner: VibemonSessionOwner) {
       incarnations.clear()
       attachments.clear()
       userMessages.clear()
+      context.reset()
       selected = null
       focusedSessionId = undefined
       panel = "hidden"

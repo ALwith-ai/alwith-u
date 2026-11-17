@@ -2,6 +2,7 @@ import type { AppsInstalledParams, FuzzyFileSearchParams, FuzzyFileSearchRespons
 import { CodexClient } from "@alwith/module-chat/client"
 import type { TerminalClient } from "@alwith/module-terminal"
 
+import { useBrowserQuickChat } from "@/features/browser/quick-chat-state"
 import { deleteSessionInputMode } from "@/features/chat/composer/input-mode-config"
 
 import { initialFileResults } from "./initial-file-results"
@@ -34,6 +35,8 @@ export class DesktopCodexClient extends CodexClient {
   override async archive(sessionId: string): Promise<void> {
     await this.terminals?.closeSession(sessionId)
     await super.archive(sessionId)
+    if (useBrowserQuickChat.getState().sessionId === sessionId)
+      useBrowserQuickChat.setState({ sessionId: null, cwd: null })
   }
 
   override async listBackgroundTerminals(sessionId: string): ReturnType<CodexClient["listBackgroundTerminals"]> {
@@ -63,6 +66,8 @@ export class DesktopCodexClient extends CodexClient {
         await Promise.allSettled(this.terminalReads.get(sessionId) ?? [])
         await this.terminals?.closeSession(sessionId)
         await super.delete(sessionId)
+        if (useBrowserQuickChat.getState().sessionId === sessionId)
+          useBrowserQuickChat.setState({ sessionId: null, cwd: null })
         await deleteSessionInputMode(sessionId)
       })
       .finally(() => this.deleting.delete(sessionId))

@@ -1,11 +1,11 @@
-import { useDesktopZoom } from "@alwith/module-desktop-shell/react"
+import { useDesktopCanvas, useDesktopZoom } from "@alwith/module-desktop-shell/react"
 import { invoke } from "@tauri-apps/api/core"
 import { listen } from "@tauri-apps/api/event"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import { revealItemsInDir } from "@tauri-apps/plugin-opener"
 import i18n from "i18next"
 import { Download, Globe, Plus, Volume2, VolumeX, X } from "lucide-react"
-import { Fragment, useEffect, useRef, useState } from "react"
+import { Fragment, lazy, Suspense, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useStore } from "zustand"
@@ -34,6 +34,8 @@ import { addSessionTab, groupColors, joinGroup, leaveGroup, settleGroup, type Ta
 import { insertAfter, moveTab, moveTo, pinTab } from "./tab-order"
 import { TabSearch } from "./tab-search"
 import { loadTabs, saveTabs, type TabHistory } from "./tab-store"
+
+const BrowserQuickChat = lazy(async () => ({ default: (await import("./browser-quick-chat")).BrowserQuickChat }))
 
 interface Tab {
   id: string
@@ -126,6 +128,7 @@ function initialState(request?: PreviewRequest): State {
 export function BrowserWorkspace({
   request,
   sessionTitles,
+  revealRequest = 0,
   active,
   maximized,
   onMaximize,
@@ -133,6 +136,7 @@ export function BrowserWorkspace({
 }: {
   request?: PreviewRequest
   sessionTitles?: Readonly<Record<string, string | null | undefined>>
+  revealRequest?: number
   active: boolean
   maximized: boolean
   onMaximize: () => void
@@ -140,6 +144,11 @@ export function BrowserWorkspace({
 }) {
   const { t } = useTranslation()
   const [state, setState] = useState(() => initialState(request))
+  const navigate = useDesktopCanvas()?.navigate
+  // Retained panes can be open on another screen; every explicit reveal must navigate to this one.
+  useEffect(() => {
+    if (active) navigate?.("browser")
+  }, [active, maximized, revealRequest, navigate])
   // The one interface zoom, kept by the desktop shell; pages follow it.
   const desktopZoom = useDesktopZoom()
   const { tabs, selected, opened, closed } = state
@@ -240,6 +249,31 @@ export function BrowserWorkspace({
       state.groups
     )
   }, [tabs, selected, state.groups])
+  // Restore suspended pages only when the browser chat explicitly asks to discover tabs.
+  const tabRequests = useRef(new Set<string>())
+  useEffect(() => {
+    const stop = listen<{ id: string }>("browser-prepare-tabs", ({ payload }) => {
+      tabRequests.current.add(payload.id)
+      setState((state) => ({
+        ...state,
+        opened: state.tabs.map((tab) => tab.id)
+      }))
+    })
+    void stop.catch((error: unknown) => toast.error(String(error)))
+    return () => {
+      void stop.then((unlisten) => unlisten()).catch(() => {})
+    }
+  }, [])
+  useEffect(() => {
+    if (tabs.some((tab) => !tab.label)) return
+    for (const id of tabRequests.current) {
+      tabRequests.current.delete(id)
+      void invoke("cef_browser_tabs_ready", {
+        id,
+        tabs: tabs.map((tab) => ({ id: tab.label, title: tab.title, active: tab.id === selected }))
+      }).catch((error: unknown) => toast.error(String(error)))
+    }
+  }, [tabs, opened, selected])
   const lastRequest = useRef(request?.id)
   useEffect(() => {
     if (!request || lastRequest.current === request.id) return
@@ -538,6 +572,7 @@ export function BrowserWorkspace({
       className="flex min-h-0 flex-1 flex-col overflow-hidden"
       onKeyDown={(event) => {
         // The same chords while focus is in the browser's own chrome rather than a page.
+        if ((event.target as Element).closest("[data-browser-quick-chat]")) return
         const command = keyCommand(event.nativeEvent)
         if (!command) return
         event.preventDefault()
@@ -585,10 +620,14 @@ export function BrowserWorkspace({
                     <ContextMenu>
                       <ContextMenuTrigger
                         render={
-                          <div
+                          <TabsTrigger
+                            value={tab.id}
+                            render={<div />}
+                            nativeButton={false}
+                            title={bound(tab) ? t("browser.boundTab") : tab.title || t("browser.newTab")}
                             // A tab as a browser draws it: the one in front is a sheet joined to the toolbar below.
                             className={cn(
-                              "group/tab flex h-[34px] min-w-0 shrink items-center rounded-t-lg pr-1.5 transition-colors",
+                              "group/tab flex h-[34px] min-w-0 flex-none shrink items-center justify-start gap-2 rounded-t-lg rounded-b-none border-0 px-2.5 pr-1.5 text-xs font-normal text-muted-foreground shadow-none after:hidden hover:text-foreground data-active:text-foreground group-data-[variant=default]/tabs-list:data-active:shadow-none dark:data-active:border-transparent dark:data-active:bg-background",
                               // Tabs share the strip evenly and narrow together; a pinned one is its icon.
                               tab.pinned ? "w-auto shrink-0" : "w-52",
                               tab.id === selected ? "bg-background" : "hover:bg-background/50",
@@ -621,68 +660,64 @@ export function BrowserWorkspace({
                               }
                             }}
                             onDragEnd={() => (dragged.current = undefined)}
-                          />
-                        }
-                      >
-                        <TabsTrigger
-                          value={tab.id}
-                          className="h-[34px] min-w-0 flex-1 justify-start gap-2 rounded-t-lg rounded-b-none border-0 bg-transparent px-2.5 text-xs font-normal text-muted-foreground shadow-none after:hidden hover:text-foreground dark:text-muted-foreground data-active:bg-transparent data-active:text-foreground data-active:shadow-none dark:data-active:border-transparent dark:data-active:bg-transparent dark:data-active:text-foreground"
-                          title={
-                            (tab.request?.sessionId ?? tab.adopted?.sessionId)
-                              ? t("browser.boundTab")
-                              : tab.title || t("browser.newTab")
-                          }
-                        >
-                          {tab.loading ? (
-                            <Spinner aria-hidden="true" aria-label={undefined} role="presentation" />
-                          ) : tab.favicon ? (
-                            <img src={tab.favicon} alt="" className="size-4 shrink-0" />
-                          ) : (
-                            <Globe aria-hidden="true" />
-                          )}
-                          {!tab.pinned && (
-                            <span className="min-w-0 flex-1 truncate text-left">
-                              {tab.title || t("browser.newTab")}
-                            </span>
-                          )}
-                          {tab.pinned && (
-                            <span className="sr-only">
-                              {tab.title || t("browser.newTab")} · {t("browser.pinnedTab")}
-                            </span>
-                          )}
-                          {tab.muted ? (
-                            <VolumeX aria-label={t("browser.mutedTab")} />
-                          ) : (
-                            tab.audible && <Volume2 aria-label={t("browser.audibleTab")} />
-                          )}
-                          {tab.label && controls[tab.label] ? (
-                            <span
-                              aria-label={t("browser.aiTab")}
-                              title={sessionTitles?.[controls[tab.label]!.sessionId] || controls[tab.label]!.sessionId}
-                            >
-                              {controls[tab.label]!.stopping ? " · …" : " · AI"}
-                            </span>
-                          ) : null}
-                          {tab.private && <span aria-label={t("browser.privateTab")}> · {t("browser.private")}</span>}
-                        </TabsTrigger>
-                        {!tab.pinned && (
-                          <Button
-                            variant="ghost"
-                            size="icon-xs"
-                            // Always there on the tab in front; on the others when the pointer or the keyboard reaches them.
-                            className={cn(
-                              "size-5 rounded-full",
-                              tab.id !== selected && "opacity-0 group-hover/tab:opacity-100 focus-visible:opacity-100"
-                            )}
-                            aria-label={t("browser.closeTab", {
-                              title: tab.title || t("browser.newTab")
-                            })}
-                            onClick={() => close({ id: tab.id })}
                           >
-                            <X />
-                          </Button>
-                        )}
-                      </ContextMenuTrigger>
+                            {tab.loading ? (
+                              <Spinner aria-hidden="true" aria-label={undefined} role="presentation" />
+                            ) : tab.favicon ? (
+                              <img src={tab.favicon} alt="" className="size-4 shrink-0" />
+                            ) : (
+                              <Globe aria-hidden="true" />
+                            )}
+                            {!tab.pinned && (
+                              <span className="min-w-0 flex-1 truncate text-left">
+                                {tab.title || t("browser.newTab")}
+                              </span>
+                            )}
+                            {tab.pinned && (
+                              <span className="sr-only">
+                                {tab.title || t("browser.newTab")} · {t("browser.pinnedTab")}
+                              </span>
+                            )}
+                            {tab.muted ? (
+                              <VolumeX aria-label={t("browser.mutedTab")} />
+                            ) : (
+                              tab.audible && <Volume2 aria-label={t("browser.audibleTab")} />
+                            )}
+                            {tab.label && controls[tab.label] ? (
+                              <span
+                                aria-label={t("browser.aiTab")}
+                                title={
+                                  sessionTitles?.[controls[tab.label]!.sessionId] || controls[tab.label]!.sessionId
+                                }
+                              >
+                                {controls[tab.label]!.stopping ? " · …" : " · AI"}
+                              </span>
+                            ) : null}
+                            {tab.private && <span aria-label={t("browser.privateTab")}> · {t("browser.private")}</span>}
+                            {!tab.pinned && (
+                              <Button
+                                variant="ghost"
+                                size="icon-xs"
+                                // Always there on the tab in front; on the others when the pointer or the keyboard reaches them.
+                                className={cn(
+                                  "size-5 rounded-full",
+                                  tab.id !== selected &&
+                                    "opacity-0 group-hover/tab:opacity-100 focus-visible:opacity-100"
+                                )}
+                                aria-label={t("browser.closeTab", {
+                                  title: tab.title || t("browser.newTab")
+                                })}
+                                onClick={(event) => {
+                                  event.stopPropagation()
+                                  close({ id: tab.id })
+                                }}
+                              >
+                                <X />
+                              </Button>
+                            )}
+                          </TabsTrigger>
+                        }
+                      />
                       <ContextMenuContent>
                         <ContextMenuItem
                           disabled={!tab.url || bound(tab)}
@@ -935,7 +970,7 @@ export function BrowserWorkspace({
           </Popover>
         )}
       </div>
-      <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-1">
+      <div className="relative grid min-h-0 flex-1 grid-cols-1 grid-rows-1">
         {tabs.map((tab) => (
           <div
             key={tab.id}
@@ -1001,6 +1036,9 @@ export function BrowserWorkspace({
             )}
           </div>
         ))}
+        <Suspense fallback={null}>
+          <BrowserQuickChat active={active && !pageFullscreen} />
+        </Suspense>
       </div>
     </section>
   )

@@ -6,7 +6,7 @@ import type { LoaderFunction } from "storybook/internal/types"
 import { wallpaperController } from "../../src/features/appearance/wallpaper/controller"
 import { navigationSoundStore } from "../../src/features/chat/codex/navigation-sound-store"
 import { predictionPreference } from "../../src/features/chat/composer/prediction-preference"
-import { pluginsStore } from "../../src/features/plugins/instance"
+import { pluginMarketplace, pluginsStore } from "../../src/features/plugins/instance"
 import { createPluginsStore } from "../../src/features/plugins/store"
 import { useSessionsUiStore } from "../../src/features/sessions/store"
 import { useChatWindowSurface } from "../../src/lib/chat-window-state"
@@ -86,7 +86,9 @@ export const preparePreview: LoaderFunction = async ({ args, globals }) => {
   toast.dismiss()
   disposePlaybackClock()
   const state = args as PreviewState
-  setForkScenario(state.chatCase === "messageForkPending" ? "pending" : state.chatCase === "messageForkError" ? "error" : "ready")
+  setForkScenario(
+    state.chatCase === "messageForkPending" ? "pending" : state.chatCase === "messageForkError" ? "error" : "ready"
+  )
   resetNative(state.providerCase, state.voiceCase, globals.theme === "dark" ? "dark" : "light")
   resetGamepad(state.gamepadCase)
   installNativeMock(state.platform)
@@ -109,7 +111,12 @@ export const preparePreview: LoaderFunction = async ({ args, globals }) => {
     state.page === "floating" ? state.connection : undefined
   )
   useChatWindowSurface.setState({ sessionId: null, visible: false })
-  resetClient({ connection: state.connection, response: state.response, draftFailure: state.draftFailure, draftFailureCode: state.draftFailureCode })
+  resetClient({
+    connection: state.connection,
+    response: state.response,
+    draftFailure: state.draftFailure,
+    draftFailureCode: state.draftFailureCode
+  })
   resetAuth(state.authenticated ?? state.page !== "login", state.authError, state.authCase)
   await resetVibemon(state.vibemonCase, state.bubbleCase)
   if (state.companyAccount === false)
@@ -118,9 +125,10 @@ export const preparePreview: LoaderFunction = async ({ args, globals }) => {
   await resetFiles(state.emptyFiles, state.binaryFiles, state.fileCase)
   if (state.chatCase?.startsWith("files")) {
     const conflict = state.chatCase === "filesFailed" || state.chatCase === "filesPartial"
-    virtualFiles.set(`${PROJECT_DIRECTORY}/docs/checklist.md`, new TextEncoder().encode(
-      `# 交付清单\n- 页面梳理：${conflict ? "用户后续修改" : "已完成"}\n`
-    ))
+    virtualFiles.set(
+      `${PROJECT_DIRECTORY}/docs/checklist.md`,
+      new TextEncoder().encode(`# 交付清单\n- 页面梳理：${conflict ? "用户后续修改" : "已完成"}\n`)
+    )
     virtualFiles.set(`${PROJECT_DIRECTORY}/docs/interaction.md`, new TextEncoder().encode("交互检查：已完成\n"))
   }
   resetComposer(state.composerCase)
@@ -128,7 +136,7 @@ export const preparePreview: LoaderFunction = async ({ args, globals }) => {
   resetDrive(state.driveCase)
   resetPlugins(state.pluginCase, state.pluginOperation)
   stopPlugins()
-  const previewPlugins = createPluginsStore(client)
+  const previewPlugins = createPluginsStore(client, pluginMarketplace)
   pluginsStore.setState(previewPlugins.getState(), true)
   stopPlugins = previewPlugins.subscribe((next) => pluginsStore.setState(next, true))
   if (state.pluginCase !== "loading") await pluginsStore.getState().refresh()

@@ -9,6 +9,10 @@ import { VibemonWindow } from "@alwith/module-auth/vibemon/react"
 import { act, cleanup, fireEvent, render } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 
+import { initI18n } from "@/lib/i18n"
+
+await initI18n("en")
+
 let disposeHost: (() => void) | undefined
 let disposeSettings: (() => void) | undefined
 afterEach(() => {
@@ -67,6 +71,7 @@ test("the packaged vibemon preserves drag animation and resumes its renderer aft
             frameHeight: 64,
             states: [
               { id: "empty", row: 0, frames: 4 },
+              { id: "working", row: 1, frames: 4 },
               { id: "drag", row: 3, frames: 8 }
             ]
           }
@@ -174,7 +179,7 @@ test("the packaged vibemon preserves drag animation and resumes its renderer aft
   const sprite = canvas.parentElement
   if (sprite === null) throw new Error("The vibemon sprite container is missing")
   const initialTransform = sprite.style.transform
-  expect(initialTransform).toBe("translateY(-36px)")
+  expect(initialTransform).toBe("")
   drawImage.mockClear()
   fireEvent.pointerDown(canvas, { button: 0, screenX: 100, screenY: 100 })
   await act(async () => {
@@ -200,15 +205,26 @@ test("the packaged vibemon preserves drag animation and resumes its renderer aft
   if (onCommand === undefined) throw new Error("Vibemon command listener missing")
   const command = onCommand
   let closed!: Promise<void>
+  const hidesBeforeReturn = nativeActions.filter((action) => action === "hide").length
   await act(async () => {
     closed = command({ type: "close", vibemonId: "vibemon", requestId: "close" })
-    await vi.advanceTimersByTimeAsync(500)
+    await vi.advanceTimersByTimeAsync(469)
+  })
+  expect(sprite).toHaveStyle({ visibility: "hidden" })
+  expect(view.container.querySelector(".alwith-vibemon-burst")).toBeInTheDocument()
+  expect(nativeActions).toContain("sound")
+  expect(nativeActions.filter((action) => action === "hide")).toHaveLength(hidesBeforeReturn)
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1)
     await closed
   })
   expect(nativeActions).toContain("hide")
+  // Keep the retained native renderer masked until an explicit presentation prepares a fresh frame.
+  expect(sprite).toHaveStyle({ visibility: "hidden" })
   const framesWhileHidden = drawImage.mock.calls.length
   await act(() => Promise.try(() => vi.advanceTimersByTime(500)))
   expect(drawImage).toHaveBeenCalledTimes(framesWhileHidden)
+  expect(sprite).toHaveStyle({ visibility: "hidden" })
   let presented!: Promise<void>
   await act(async () => {
     presented = command({ type: "present", vibemonId: "vibemon", requestId: "present" })
@@ -219,6 +235,7 @@ test("the packaged vibemon preserves drag animation and resumes its renderer aft
     await presented
   })
   expect(nativeActions).toContain("present")
+  expect(sprite).toHaveStyle({ visibility: "visible" })
   expect(images).toHaveLength(1)
   expect(drawImage.mock.calls.length).toBeGreaterThan(framesWhileHidden)
   expect(errors).not.toHaveBeenCalled()
@@ -252,10 +269,14 @@ test("the packaged vibemon preserves drag animation and resumes its renderer aft
   }
   await publish("expanded")
   expect(bubbleVisibility.at(-1)).toBe(true)
+  const collapse = view.getByRole("button", { name: "Collapse tasks" })
+  expect(collapse.querySelector(".lucide-chevron-down")).not.toBeNull()
+  expect(collapse).not.toHaveTextContent("↑")
   expect(bubbleFocus.at(-1)).toBe(false)
   await publish("expanded")
   expect(bubbleFocus.at(-1)).toBe(false)
   await publish("hidden")
+  expect(view.getByRole("button", { name: "Expand tasks" })).toHaveTextContent("1")
   expect(bubbleVisibility.at(-1)).toBe(true)
   await act(async () => {
     await vi.advanceTimersByTimeAsync(120)
@@ -271,6 +292,15 @@ test("the packaged vibemon preserves drag animation and resumes its renderer aft
     await vi.advanceTimersByTimeAsync(240)
   })
   expect(bubbleVisibility.at(-1)).toBe(false)
+  const background = {
+    ...task,
+    binding: { ...task.binding, sessionId: "background" },
+    state: "running" as const,
+    hidden: true
+  }
+  observation = { ...task, taskFeed: { tasks: [task, background], panel: "hidden", mainMinimized: false } }
+  await act(() => Promise.resolve(observe?.(observation)))
+  expect(drawImage.mock.calls.at(-1)?.[2]).toBe(0)
   for (const value of [
     { ...task, taskFeed: { tasks: [{ ...task, hidden: true }], panel: "expanded" as const, mainMinimized: false } },
     { ...task, taskFeed: { tasks: [], panel: "hidden" as const, mainMinimized: false } },

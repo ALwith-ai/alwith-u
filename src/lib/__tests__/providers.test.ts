@@ -11,6 +11,27 @@ import {
   resolveSessionModel
 } from "../providers"
 
+test("configured Qwen regions expose Qwen4-Max as a per-session gateway", () => {
+  for (const region of ["cn", "intl"]) {
+    const snapshot: ProviderSnapshot = {
+      revision: 1,
+      appliedRevision: 1,
+      status: "applied",
+      error: null,
+      providers: { qwen: { configured: true, region, base_url: null } },
+      customProviders: []
+    }
+    expect(providerGroups(snapshot).find((group) => group.id === "qwen")?.models).toContainEqual({
+      id: "qwen4-max",
+      label: "4 Max"
+    })
+    const model = gatewayModelId("qwen", "qwen4-max")
+    expect(model).toBe("gateway:qwen:qwen4-max")
+    expect(resolveSessionModel(model, snapshot)).toBe(model)
+    expect(resolveSessionModel("gpt-6-sol", snapshot)).toBe("gpt-6-sol")
+  }
+})
+
 test("native account snapshots use ALwith while preserving saved model selections and personal providers", () => {
   const account = {
     id: "litellm",

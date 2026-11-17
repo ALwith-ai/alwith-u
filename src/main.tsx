@@ -26,11 +26,14 @@ import { initializeMobile } from "@/features/mobile/bridge"
 import { initializeVibemonMain } from "@/features/vibemon/main-host"
 import { initializeZoom } from "@/lib/desktop-zoom"
 import { initI18n } from "@/lib/i18n"
+import { installNativeFileDropGuard } from "@/lib/native-file-drop"
 import { startPreferenceSync } from "@/lib/preference-sync"
 import { loadPreferences } from "@/lib/preferences"
 import { bootstrapSettings } from "@/lib/settings-store"
 import { showStartupFailure, startupStep } from "@/lib/startup-step"
 import "./index.css"
+
+if (isTauri()) installNativeFileDropGuard(window)
 
 const driveNotices = {
   error(message: string): void {

@@ -15,6 +15,7 @@ const { toast, reveal } = vi.hoisted(() => ({
   toast: { success: vi.fn(), error: vi.fn() },
   reveal: vi.fn(async () => {})
 }))
+vi.mock("../browser-quick-chat", () => ({ BrowserQuickChat: () => null }))
 vi.mock("sonner", () => ({ toast }))
 vi.mock("@tauri-apps/plugin-opener", () => ({ revealItemsInDir: reveal }))
 const nativeWindow = vi.hoisted(() => ({
@@ -59,6 +60,7 @@ const shellZoom = vi.hoisted(() => {
 vi.mock("@alwith/module-desktop-shell/react", async () => {
   const { useSyncExternalStore } = await import("react")
   return {
+    useDesktopCanvas: () => null,
     useDesktopZoom: () => ({
       level: useSyncExternalStore(
         (listener) => {

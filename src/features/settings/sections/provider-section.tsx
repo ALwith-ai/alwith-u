@@ -110,13 +110,19 @@ export function ManagedProviderSection() {
         </div>
         <p className="text-xs text-muted-foreground">{t("provider.managed.description")}</p>
         {error !== null && (
-          <div className="space-y-2">
-            <p role="alert" className="text-xs text-destructive">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+            <p role="alert" className="text-xs [overflow-wrap:anywhere] text-destructive">
               {error}
             </p>
-            <Button variant="outline" size="sm" disabled={pending} onClick={() => setAttempt((value) => value + 1)}>
-              {pending && <Spinner aria-hidden="true" />}
-              {t("actions.retry")}
+            <Button
+              variant="outline"
+              size="sm"
+              className="relative shrink-0"
+              disabled={pending}
+              onClick={() => setAttempt((value) => value + 1)}
+            >
+              <span className={pending ? "opacity-0" : undefined}>{t("actions.retry")}</span>
+              {pending && <Spinner className="absolute inset-0 m-auto" aria-hidden="true" />}
             </Button>
           </div>
         )}

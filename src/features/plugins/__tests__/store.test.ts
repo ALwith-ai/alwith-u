@@ -5,9 +5,13 @@ import { beforeEach, describe, expect, test, vi } from "vitest"
 import { must } from "@/lib/__tests__/must"
 import i18n from "@/lib/i18n"
 
-import { createPluginsStore, installParams, type PluginsApi } from "../store"
+import { createPluginsStore as createStore, installParams, type PluginsApi } from "../store"
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), message: vi.fn() } }))
+
+function createPluginsStore(api: ReturnType<typeof fakeApi>) {
+  return createStore(api, api)
+}
 
 function plugin(id: string, installed: boolean): PluginSummary {
   return {
@@ -37,7 +41,8 @@ function skill(path: string, enabled: boolean): SkillMetadata {
   return { name: path, description: "", path, scope: "user", enabled, pluginId: null }
 }
 
-function fakeApi(): PluginsApi & { calls: string[]; installed: Set<string> } {
+function fakeApi(): PluginsApi &
+  import("../marketplace").PluginCatalogApi & { calls: string[]; installed: Set<string> } {
   const installed = new Set<string>(["alpha"])
   const calls: string[] = []
   const catalog: PluginMarketplaceEntry = {
@@ -47,6 +52,9 @@ function fakeApi(): PluginsApi & { calls: string[]; installed: Set<string> } {
     plugins: [plugin("alpha", true), plugin("beta", false)]
   }
   return {
+    identity: async () => "account",
+    catalogPlugins: async () => ({ data: [], nextCursor: null }),
+    searchPlugins: async () => ({ data: [], nextCursor: null }),
     calls,
     installed,
     listSkills(cwds) {
@@ -391,7 +399,7 @@ test("refresh coalesces notifications and does not expose an obsolete scope", as
   first.resolve({ ...snapshot, marketplaces: [] })
   await Promise.all([a, b])
   expect(api.listPlugins).toHaveBeenCalledTimes(2)
-  expect(api.listPlugins).toHaveBeenLastCalledWith({ cwds: ["/b"], forceRefetch: true })
+  expect(api.listPlugins).toHaveBeenLastCalledWith({ cwds: ["/b"], forceRefetch: true, marketplaceKinds: ["local"] })
   expect(store.getState().cwds).toEqual(["/b"])
   expect(store.getState().marketplaces).toEqual(snapshot.marketplaces)
 })
@@ -687,4 +695,19 @@ test("leaving the skills page stops discovery from scheduling more directory rea
   pending.resolve({ data: directories.slice(0, 4).map((cwd) => ({ cwd, skills: [], errors: [] })) })
   await discovery
   expect(api.listSkills).toHaveBeenCalledOnce()
+})
+
+test("local directory reads exclude remote catalogs and skill notifications retain remote pages", async () => {
+  const api = fakeApi()
+  const list = vi.spyOn(api, "listPlugins")
+  const browse = vi.spyOn(api, "catalogPlugins").mockResolvedValue({ data: [], nextCursor: "next" })
+  const store = createPluginsStore(api)
+  await store.getState().refresh(["/work"])
+  expect(list).toHaveBeenCalledWith({ cwds: ["/work"], marketplaceKinds: ["local"] })
+  await store.getState().catalog.getState().load("", ["/work"])
+  await store.getState().skillsChanged()
+  expect(store.getState().catalog.getState().nextCursor).toBe("next")
+  expect(browse).toHaveBeenCalledOnce()
+  store.getState().invalidate()
+  expect(store.getState().catalog.getState().query).toBeNull()
 })

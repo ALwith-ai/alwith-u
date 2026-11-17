@@ -1,7 +1,9 @@
 import { createVibemonAssets, type VibemonAccount } from "@alwith/module-auth/vibemon"
 import { convertFileSrc, invoke } from "@tauri-apps/api/core"
 import { emit, listen } from "@tauri-apps/api/event"
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 
+import { requestVibemon } from "@/features/vibemon/transport"
 import { logBackgroundError } from "@/lib/background-errors"
 import { openStore } from "@/lib/store"
 
@@ -24,6 +26,7 @@ function encode(bytes: Uint8Array): string {
   return btoa(value)
 }
 export function createPlatformVibemonAssets() {
+  const source = crypto.randomUUID()
   const reads = new Map<string, Promise<Uint8Array | null>>()
   const resourceUrl = async (path: string) =>
     convertFileSrc(await invoke<string>("vibemon_resource", { action: "url", path, bytes: null, destination: null }))
@@ -93,7 +96,8 @@ export function createPlatformVibemonAssets() {
         .catch(() => {})
         .then(async () => {
           await store.set(key, value)
-          await emit(CHANGED)
+          await subscription
+          await emit(CHANGED, { source })
           for (const listener of listeners) listener()
         })
       writes = write
@@ -103,7 +107,11 @@ export function createPlatformVibemonAssets() {
   const assets = createVibemonAssets({
     account,
     storage,
-    request: platformApiRequest,
+    request: <T>(path: string, method: "GET" | "POST", body?: unknown): Promise<T> => {
+      if (getCurrentWebviewWindow().label === "main") return platformApiRequest<T>(path, method, body)
+      if (method !== "GET") throw new Error("Vibemon mutations belong to the main window")
+      return requestVibemon<T>("asset-read", { path })
+    },
     onResourceError: (error, id) => logBackgroundError(`vibemon-resource/${id}`, error),
     async validateImage(bytes, mime) {
       const url = URL.createObjectURL(new Blob([new Uint8Array(bytes).buffer], { type: mime }))
@@ -139,7 +147,8 @@ export function createPlatformVibemonAssets() {
       for (const listener of listeners) listener()
     }
   })
-  const subscription = listen(CHANGED, () => {
+  const subscription = listen<{ source: string }>(CHANGED, ({ payload }) => {
+    if (payload?.source === source) return
     for (const listener of listeners) listener()
   })
   return {

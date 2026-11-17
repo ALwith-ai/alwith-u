@@ -3,10 +3,12 @@ import { useCallback, useState } from "react"
 /** Isolated native test entry: the actual browser pane, without auth or an agent runtime. */
 import { createRoot } from "react-dom/client"
 
+import { ThemeProvider } from "@/components/theme-provider"
 import { initI18n } from "@/lib/i18n"
 
 import { BrowserWorkspace } from "./browser-workspace"
 import { usePreviewRequest } from "./preview-request"
+import { installQuickChatFixture } from "./quick-chat-fixture"
 import "@/index.css"
 
 // Native tool calls can outlive an inspector's evaluation timeout. Keep their result
@@ -62,4 +64,9 @@ function Fixture() {
 }
 // The contract scripts ask for controls by their Chinese names.
 await initI18n("zh-CN")
-createRoot(document.getElementById("root")!).render(<Fixture />)
+installQuickChatFixture()
+createRoot(document.getElementById("root")!).render(
+  <ThemeProvider forced="light">
+    <Fixture />
+  </ThemeProvider>
+)

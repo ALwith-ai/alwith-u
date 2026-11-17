@@ -20,7 +20,7 @@ import type {
   SkillsListResponse
 } from "@alwith/module-chat/client"
 // Plugins & marketplace state, shaped after the official Codex app's local plugins page:
-// the catalog (`plugin/list`: marketplaces + featured ids), the installed set
+// local marketplaces (`plugin/list`), an HTTP cursor-paged remote catalog, the installed set
 // (`plugin/installed`, newest first), skills (`skills/list`), and the actions the page runs.
 // Every action talks to Codex through the client and re-reads the catalogs afterwards, the
 // way the official page invalidates its queries.
@@ -29,6 +29,7 @@ import { createStore, type StoreApi } from "zustand/vanilla"
 
 import i18n from "@/lib/i18n"
 
+import { createPluginCatalogStore, type PluginCatalogApi } from "./catalog-store"
 import { RequestCache, skillDocuments } from "./request-cache"
 
 /** The client methods the store needs; tests pass a fake. */
@@ -50,6 +51,7 @@ export type PluginsApi = {
 export type PluginEntry = { plugin: PluginSummary; marketplace: PluginMarketplaceEntry }
 
 type PluginsState = {
+  catalog: ReturnType<typeof createPluginCatalogStore>
   loading: boolean
   skillsLoading: boolean
   pluginsLoading: boolean
@@ -162,7 +164,8 @@ function readParams(entry: PluginEntry): PluginReadParams {
   }
 }
 
-export function createPluginsStore(api: PluginsApi): PluginsStore {
+export function createPluginsStore(api: PluginsApi, catalogApi: PluginCatalogApi): PluginsStore {
+  const catalogStore = createPluginCatalogStore(catalogApi)
   const store = createStore<PluginsState>((set, get) => {
     const skillsCache = new RequestCache<SkillsListResponse>("plugins.skills")
     const pluginsCache = new RequestCache<PluginListResponse>("plugins.marketplace")
@@ -186,7 +189,10 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
     const invalidate = (catalog = true) => {
       epoch++
       skillsCache.clear()
-      if (catalog) pluginsCache.clear()
+      if (catalog) {
+        pluginsCache.clear()
+        catalogStore.getState().clear()
+      }
       installedCache.clear()
       details.clear()
       skillDocuments.clear()
@@ -285,6 +291,7 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
       })
 
     return {
+      catalog: catalogStore,
       loading: false,
       skillsLoading: false,
       pluginsLoading: false,
@@ -357,6 +364,7 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
         const joining = existing?.epoch === epoch && (!force || existing.force) && (existing.catalog || !catalog)
         if (joining && JSON.stringify(get().cwds) === key) return existing.promise
         if (force && !joining) invalidate()
+        else if (catalog && !options.cached && !options.background) catalogStore.getState().clear()
         const revision = epoch
         const current = () => revision === epoch && JSON.stringify(get().cwds) === key
         const refresh = !joining && options.cached !== true
@@ -413,7 +421,12 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
             pluginsCache
               .read(
                 key,
-                () => api.listPlugins({ ...(cwds.length ? { cwds } : {}), ...(force ? { forceRefetch: true } : {}) }),
+                () =>
+                  api.listPlugins({
+                    marketplaceKinds: ["local"],
+                    ...(cwds.length ? { cwds } : {}),
+                    ...(force ? { forceRefetch: true } : {})
+                  }),
                 refresh
               )
               .then((response) => {
@@ -432,8 +445,7 @@ export function createPluginsStore(api: PluginsApi): PluginsStore {
               if (current())
                 set({
                   installed: installedEntries(response),
-                  installedLoading: false,
-                  ...(get().marketplaces.length === 0 ? { marketplaces: response.marketplaces } : {})
+                  installedLoading: false
                 })
             })
             .catch((error: unknown) => fail("installedError", "installedLoading", error))

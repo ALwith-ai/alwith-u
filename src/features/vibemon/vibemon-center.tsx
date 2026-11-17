@@ -8,7 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { usePlatformAuth } from "@/features/auth/store"
 
-export function VibemonCenter() {
+export function VibemonCenter({ active = true }: { active?: boolean }) {
   const user = usePlatformAuth((state) => state.user)
   const [attempt, setAttempt] = useState(0)
   const { t } = useTranslation("vibemon")
@@ -25,12 +25,12 @@ export function VibemonCenter() {
         </div>
       }
     >
-      <VibemonContent />
+      <VibemonContent active={active} />
     </ErrorBoundary>
   )
 }
 
-function VibemonContent() {
+function VibemonContent({ active }: { active: boolean }) {
   const status = useSyncExternalStore(subscribeResourceSync, resourceSyncStatus)
   const { t } = useTranslation()
   return (
@@ -46,7 +46,7 @@ function VibemonContent() {
         </Alert>
       )}
       <div className="vibemon-content relative min-h-0 w-full min-w-0 flex-1 overflow-hidden">
-        <SharedVibemonCenter />
+        <SharedVibemonCenter active={active} />
       </div>
     </main>
   )

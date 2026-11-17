@@ -46,11 +46,22 @@ test("floating authentication recovery logs in through main and reopens the same
   }
 })
 
-test("floating model recovery projects the catalog and resumes only the requested original session", async () => {
+test("floating model recovery automatically resumes only the requested original session", async () => {
   const fake = createFakeAgent()
   fake.persistedModels.set("removed", "gateway:removed:model")
   const port = new FakeHubPort(() => fake.app)
-  const owner = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
+  const configured = "gateway:deepseek:configured-model"
+  fake.gateways.set("deepseek", {
+    providerId: "openai",
+    apiType: "openai",
+    baseUrl: "https://gateway.test/v1",
+    _meta: { codex: { id: "deepseek", mode: "catalog" }, alwith: { models: [{ id: configured }] } }
+  })
+  const owner = new CodexClient(() => Promise.resolve(port), {
+    agentId: "codex",
+    launch: { engine: "codex" },
+    resolveModel: async (model) => model ?? configured
+  })
   const transport = eventBus()
   const stop = await serveChatClient(owner, transport)
   const remote = new RemoteChatClient(transport)
@@ -60,11 +71,11 @@ test("floating model recovery projects the catalog and resumes only the requeste
     const draft = await remote.prepareDraft("chat", "/tmp/original")
     await remote.discardDraft(draft)
     await remote.open("removed", "/tmp/original")
-    expect(remote.state.modelRecovery.removed).toBe(true)
+    expect(remote.state.modelRecovery.removed).toBeUndefined()
     expect(remote.state.nativeModels).toEqual(owner.state.nativeModels)
     expect(remote.session("removed").items).toHaveLength(2)
-    await remote.resumeModel("removed", "gpt-6.1-sol")
-    expect(resume).toHaveBeenCalledExactlyOnceWith("removed", "gpt-6.1-sol")
+    expect(resume).not.toHaveBeenCalled()
+    expect(fake.modelHints.get("removed")).toBe(configured)
     expect(remote.state.modelRecovery.removed).toBeUndefined()
     expect(remote.session("removed")).toMatchObject({ attached: true, readOnly: false })
     expect(port.started).toEqual(["codex"])

@@ -9,3 +9,14 @@ is tracked so a clean checkout can build without sibling repositories.
 
 Tauri 3.0.0-alpha.4 removes the `macos-private-api` feature. The dependency
 no longer requests it; window transparency is available without that feature.
+
+Panel conversion and restoration temporarily detach native glass and visual-effect
+views before changing the window's Objective-C class, then reattach them in their
+original stacking order. AppKit's effect views register KVO on that class; retaining
+those registrations across a class change raises `NSRangeException` when a later
+effect update removes them. Runtime webview host views remain attached.
+
+Run `cargo test --test panel-effects` from the application's `src-tauri` directory
+to check direct and nested materials, both class changes, stacking order and host
+retention on AppKit's main thread. The Hasgard `runtime-panel-effects` contract
+also exercises the application commands on both CEF and Wry.

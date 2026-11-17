@@ -1243,6 +1243,37 @@ function Unified({
   )
 }
 
+test("choosing an open simulator from the browser returns to it instead of closing it", () => {
+  native.nativeMode = true
+  const slot = document.createElement("div")
+  document.body.append(slot)
+  const context = canvasContext()
+  const surface = (region: DesktopCanvas["region"]) => (
+    <Unified canvas={{ ...context, region }} slot={slot}>
+      <Surface cwd="/a">
+        <NavigationProbe />
+      </Surface>
+    </Unified>
+  )
+  try {
+    const view = render(surface("chat"))
+    fireEvent.click(screen.getByRole("button", { name: "Show simulator" }))
+    expect(screen.getByTestId("workspace-pane")).toHaveTextContent("simulator")
+    view.rerender(surface("browser"))
+    vi.mocked(context.navigate).mockClear()
+    fireEvent.click(screen.getByRole("button", { name: "More actions" }))
+    fireEvent.click(screen.getByRole("menuitem", { name: "Show simulator" }))
+    expect(context.navigate).toHaveBeenCalledExactlyOnceWith("preview")
+    expect(screen.getByTestId("workspace-pane")).toHaveTextContent("simulator")
+    view.rerender(surface("preview"))
+    fireEvent.click(screen.getByRole("button", { name: "Show simulator" }))
+    expect(screen.getByTestId("workspace-pane")).toHaveTextContent("files")
+    view.unmount()
+  } finally {
+    slot.remove()
+  }
+})
+
 test("chat reveal navigates the unified canvas back from the preview", async () => {
   const navigate = vi.fn()
   const slot = document.createElement("div")

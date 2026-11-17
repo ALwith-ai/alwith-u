@@ -12,7 +12,9 @@ const mocks = vi.hoisted(() => ({
   list: vi.fn(),
   snapshot: vi.fn(),
   activate: vi.fn(),
+  register: vi.fn(),
   close: vi.fn(),
+  restore: vi.fn(),
   remember: vi.fn()
 }))
 vi.mock("@alwith/module-terminal/tauri", () => ({
@@ -21,6 +23,7 @@ vi.mock("@alwith/module-terminal/tauri", () => ({
     list: mocks.list,
     snapshot: mocks.snapshot,
     activate: mocks.activate,
+    register: mocks.register,
     close: mocks.close
   }
 }))
@@ -30,14 +33,17 @@ vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => k
 vi.mock("@tauri-apps/api/window", () => ({ getCurrentWindow: () => ({ label: "main" }) }))
 vi.mock("../view-preferences", () => ({
   rememberTerminalViews: mocks.remember,
-  restoreTerminalViews: () => Promise.resolve(null)
+  restoreTerminalViews: mocks.restore
 }))
 vi.mock("@alwith/module-terminal/react", () => ({
   TerminalView: ({ snapshot }: { snapshot: { terminalId: string } }) => (
     <div data-testid="terminal-view">{snapshot.terminalId}</div>
   )
 }))
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => {
+  vi.clearAllMocks()
+  mocks.restore.mockResolvedValue(null)
+})
 function mount() {
   const view = render(
     <WorkspaceContext.Provider
@@ -58,17 +64,17 @@ function mount() {
   fireEvent.click(view.getByRole("button", { name: "actions.more" }))
   return view
 }
-test("production native capability hides the terminal entry even with development frontend", async () => {
+test("unsupported native capability hides the terminal entry", async () => {
   mocks.capabilities.mockResolvedValue({ interactiveView: false, headless: true })
   mount()
   await waitFor(() => expect(mocks.capabilities).toHaveBeenCalledOnce())
-  expect(screen.queryByRole("menuitem", { name: "terminal.open" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("menuitem", { name: /^terminal\.open/ })).not.toBeInTheDocument()
 })
-test("embedded development native capability exposes the terminal entry", async () => {
+test("native interactive capability exposes the terminal entry in every build", async () => {
   mocks.capabilities.mockResolvedValue({ interactiveView: true, headless: true })
   mount()
   expect(screen.getByRole("menuitem", { name: "device.panel.open" })).toBeInTheDocument()
-  const button = await screen.findByRole("menuitem", { name: "terminal.open" })
+  const button = await screen.findByRole("menuitem", { name: /^terminal\.open/ })
   button.click()
   expect(mocks.openPane).toHaveBeenCalledWith("terminal")
 })
@@ -159,4 +165,71 @@ test("a poll started before close cannot restore a deleted terminal tab", async 
     unmount()
     vi.useRealTimers()
   }
+})
+
+test("headless startup keeps the selected view while allowing manual selection", async () => {
+  const view = { terminalId: "view", title: "shell", cwd: "/work", interactive: true }
+  const headless = {
+    terminalId: "headless",
+    title: "background",
+    cwd: "/work",
+    interactive: false
+  }
+  let entries = [view]
+  let nativeActive = view
+  mocks.capabilities.mockResolvedValue({ interactiveView: true, headless: true })
+  mocks.list.mockImplementation(async () => entries)
+  mocks.snapshot.mockImplementation(async () => nativeActive)
+  mocks.activate.mockImplementation(async (_session: string, id: string) => {
+    nativeActive = entries.find((entry) => entry.terminalId === id)!
+  })
+  vi.useFakeTimers()
+  const { unmount } = render(<TerminalWorkspacePane sessionId="chat-background" cwd="/work" onClose={vi.fn()} />)
+  try {
+    await act(async () => {})
+    expect(screen.getByRole("tab", { name: "shell" })).toHaveAttribute("aria-selected", "true")
+    entries = [view, headless]
+    nativeActive = headless
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1500)
+    })
+    expect(screen.getByRole("tab", { name: "shell" })).toHaveAttribute("aria-selected", "true")
+    expect(screen.getByRole("tab", { name: "background" })).toHaveAttribute("aria-selected", "false")
+    expect(screen.getByTestId("terminal-view")).toHaveTextContent("view")
+    fireEvent.click(screen.getByRole("tab", { name: "background" }))
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500)
+    })
+    expect(screen.getByTestId("terminal-view")).toHaveTextContent("headless")
+    const created = { ...view, terminalId: "created", title: "new shell" }
+    mocks.register.mockImplementation(async () => {
+      entries = [...entries, created]
+      nativeActive = created
+      return created
+    })
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "terminal.new" }))
+    })
+    expect(screen.getByRole("tab", { name: "new shell" })).toHaveAttribute("aria-selected", "true")
+  } finally {
+    unmount()
+    vi.useRealTimers()
+  }
+})
+
+test("reopening the pane restores the saved view instead of the background active terminal", async () => {
+  const view = { terminalId: "view", title: "shell", cwd: "/work", interactive: true }
+  const headless = {
+    terminalId: "headless",
+    title: "background",
+    cwd: "/work",
+    interactive: false
+  }
+  mocks.capabilities.mockResolvedValue({ interactiveView: true, headless: true })
+  mocks.list.mockResolvedValue([view, headless])
+  mocks.snapshot.mockResolvedValue(headless)
+  mocks.restore.mockResolvedValue("view")
+  render(<TerminalWorkspacePane sessionId="chat-restored" cwd="/work" onClose={vi.fn()} />)
+  await waitFor(() => expect(screen.getByRole("tab", { name: "shell" })).toHaveAttribute("aria-selected", "true"))
+  expect(screen.getByTestId("terminal-view")).toHaveTextContent("view")
 })

@@ -70,7 +70,11 @@ import { ChatDirectoryContext } from "@/features/chat/file-actions"
 import { DeviceWorkspaceMenu, DeviceWorkspacePane } from "@/features/device/device-workspace"
 import { useDeviceReveal } from "@/features/device/use-device-reveal"
 import { BackgroundWorkspacePane } from "@/features/terminal/background-workspace"
-import { TerminalWorkspaceMenuItem, TerminalWorkspacePane } from "@/features/terminal/terminal-workspace"
+import {
+  TerminalWorkspaceMenuItem,
+  TerminalWorkspacePane,
+  useTerminalViewAvailable
+} from "@/features/terminal/terminal-workspace"
 
 import {
   type FilePosition,
@@ -197,6 +201,7 @@ export function FileWorkspace({
     [treeVisible, setTreeVisible] = useState(true),
     [viewMode, setViewMode] = useState(false),
     [pane, setPane] = useState<WorkspacePane>("files")
+  const terminalAvailable = useTerminalViewAvailable()
   const paneSessionId = useContext(WorkspaceSessionContext)
   const currentPaneSession = useRef(paneSessionId)
   currentPaneSession.current = paneSessionId
@@ -828,6 +833,7 @@ export function FileWorkspace({
   )
   const openPane = useCallback(
     (next: WorkspacePane): void => {
+      if (next === "terminal" && (!terminalAvailable || paneSessionId === null)) return
       if (next === "files") {
         if (!visible || pane !== "files") {
           setPane("files")
@@ -836,7 +842,8 @@ export function FileWorkspace({
         return
       }
       requestGeneration.current++
-      if (visible && pane === next) {
+      // Selecting a retained pane from another screen reveals it instead of closing it.
+      if (visible && pane === next && (!canvas || canvas.region === "chat" || canvas.region === "preview")) {
         setVisible(false)
         setViewMode(false)
         setPane("files")
@@ -860,7 +867,7 @@ export function FileWorkspace({
       setVisible(true)
       navigateCanvas?.("preview")
     },
-    [visible, pane, toggle, navigateCanvas, paneSessionId]
+    [visible, pane, toggle, navigateCanvas, canvas, terminalAvailable, paneSessionId]
   )
   const revealDevice = useCallback(() => {
     requestGeneration.current++
@@ -879,6 +886,26 @@ export function FileWorkspace({
   }, [paneSessionId, revealDevice])
   useDeviceReveal(paneSessionId, revealAttachedDevice)
   useDeviceWindowReturn(paneSessionId, revealDevice)
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (
+        event.defaultPrevented ||
+        event.repeat ||
+        event.altKey ||
+        event.shiftKey ||
+        !(event.metaKey || event.ctrlKey) ||
+        event.key.toLowerCase() !== "j" ||
+        !terminalAvailable ||
+        paneSessionId === null
+      )
+        return
+      event.preventDefault()
+      event.stopPropagation()
+      openPane("terminal")
+    }
+    window.addEventListener("keydown", onKeyDown, true)
+    return () => window.removeEventListener("keydown", onKeyDown, true)
+  }, [terminalAvailable, paneSessionId, openPane])
   const context = useMemo(
     () => ({ visible, viewMode, pane, openPane, toggle, openFile, openProject, revealEntry, registerFileReference }),
     [visible, viewMode, pane, openPane, toggle, openFile, openProject, revealEntry, registerFileReference]

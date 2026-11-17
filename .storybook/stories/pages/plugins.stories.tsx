@@ -17,8 +17,7 @@ const meta = {
     a11y: { test: "todo" },
     docs: {
       description: {
-        component:
-          "使用真实产品组件和独立的内存模拟数据。重新选择示例即可重置页面状态。"
+        component: "使用真实产品组件和独立的内存模拟数据。重新选择示例即可重置页面状态。"
       }
     }
   },
@@ -50,3 +49,5 @@ export const NoResults: Story = {
     await userEvent.type(canvas.getByPlaceholderText(/搜索/), "no-match-plugin-937")
   }
 }
+
+export const Scrolling: Story = { name: "滚动加载远程插件", args: { pluginCase: "scroll" } }

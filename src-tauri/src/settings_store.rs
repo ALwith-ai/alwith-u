@@ -13,6 +13,7 @@ pub const PREFERENCE_KEYS: &[(&str, &str)] = &[
     ("zoomLevel", "appearance.zoomLevel"),
     ("sidebarPinned", "appearance.sidebarPinned"),
     ("chatWindowShortcut", "chat.windowShortcut"),
+    ("chatWindowTransparent", "chat.windowTransparent"),
     ("lastProjectDirectory", "general.lastProjectDirectory"),
     ("modelSelections", "chat.modelSelections"),
     ("composerPredictions", "chat.composerPredictions"),
@@ -349,6 +350,7 @@ fn setting_validity(key: &str, value: &Value) -> Option<bool> {
         | "system.preventSleep"
         | "computer.enabled"
         | "chat.composerPredictions"
+        | "chat.windowTransparent"
         | "explorer.showHidden"
         | "voice.enabled"
         | "voice.smooth"

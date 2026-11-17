@@ -1,3 +1,4 @@
+import type { SessionSummary } from "@alwith/module-chat/client"
 import { exportDraft, importDraft } from "@alwith/module-chat/conversation"
 import { desktopDefaults } from "@nyssance/atlas/layout"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
@@ -6,7 +7,6 @@ import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useStore } from "zustand"
 
-import type { SessionSummary } from "@alwith/module-chat/client"
 import { events } from "@/bindings"
 import { Button } from "@/components/ui/button"
 import { usePlatformAuth } from "@/features/auth/store"
@@ -78,7 +78,11 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
 
   const capture = useCallback(async (): Promise<ChatTransfer> => {
     const { selectedId, cwd } = current.current
-    return { sessionId: selectedId, cwd, draft: await exportDraft(selectedId ?? DRAFT_SESSION_ID) }
+    return {
+      sessionId: selectedId,
+      cwd: selectedId === null ? cwd : client.session(selectedId).cwd,
+      draft: await exportDraft(selectedId ?? DRAFT_SESSION_ID)
+    }
   }, [])
 
   const reconnect = useCallback(async (): Promise<void> => {
@@ -92,13 +96,28 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
           setSelectedId(restored.sessionId)
         }
       }
-      const { selectedId, cwd } = current.current
       // During replacement, the owner may already hold the new draft while the
       // mounted surface is still awaiting its response. Do not resume the retired id.
       const preparingDraft = Object.values(client.state.draftSessions).includes("chat")
-      if (selectedId !== null && !client.state.sessions[selectedId] && !preparingDraft) {
-        if (cwd === null) throw new Error("A chat session must have a working directory")
-        void client.open(selectedId, cwd).catch((error: unknown) => {
+      const previousId = current.current.selectedId
+      if (
+        previousId !== null &&
+        !client.state.sessions[previousId] &&
+        client.state.sessionWindows[previousId] === undefined &&
+        !preparingDraft
+      ) {
+        // Stopping an unsent draft removes it entirely: it has no saved thread
+        // to resume. Keep the project, but prepare a fresh draft on presentation.
+        current.current = { ...current.current, selectedId: null }
+        setSelectedId(null)
+        setGeneration((value) => value + 1)
+      }
+      const { selectedId, cwd } = current.current
+      const target = selectedId === null ? undefined : client.state.sessions[selectedId]
+      if (selectedId !== null && (!target || (!target.attached && !target.restoring)) && !preparingDraft) {
+        const directory = target ? target.cwd : cwd
+        if (directory === null) throw new Error("A chat session must have a working directory")
+        void client.open(selectedId, directory).catch((error: unknown) => {
           if (current.current.selectedId === selectedId)
             setRestoreError(error instanceof Error ? error.message : String(error))
           report(error)
@@ -382,7 +401,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
         (restoreError !== null ||
           connection === "disconnected" ||
           connection === "failed" ||
-          (selectedId !== null && session === null)) && (
+          (selectedId !== null && session === null && !replacingDraft)) && (
           <div className="flex items-center justify-between gap-2 px-4 py-2 text-sm" role="status">
             <span>{restoreError ?? t("connection.disconnected")}</span>
             <Button variant="outline" size="sm" onClick={() => void operation.run(reconnect).catch(report)}>

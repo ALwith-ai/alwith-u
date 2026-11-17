@@ -695,7 +695,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
                 </div>
                 {vibemonVisited && (
                   <div className={leadingPage === "vibemon" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
-                    <VibemonCenter />
+                    <VibemonCenter active={view === "vibemon"} />
                   </div>
                 )}
                 {view === "extension" && extensionView !== null ? (

@@ -18,6 +18,7 @@ import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { useWorkspace } from "@/features/workspace/context"
 import { useHostDialog } from "@/features/workspace/host-dialog"
+import { displayShortcut } from "@/lib/shortcut-formatter"
 import { text } from "@/lib/text"
 
 import { openTerminalLink } from "./open-link"
@@ -31,7 +32,7 @@ function report(error: unknown) {
   toast.error(text(error))
 }
 /** Native build capability, including embedded frontend development candidates. */
-function useTerminalViewAvailable() {
+export function useTerminalViewAvailable() {
   const [available, setAvailable] = useState(false)
   useEffect(() => {
     if (!isTauri()) return
@@ -61,6 +62,7 @@ export function TerminalWorkspaceMenuItem() {
     >
       <TerminalIcon />
       {t("terminal.open")}
+      <span className="ml-auto pl-4 text-xs text-muted-foreground">{displayShortcut("CommandOrControl+J")}</span>
     </DropdownMenuItem>
   )
 }
@@ -104,7 +106,7 @@ export function TerminalWorkspacePane({
     const [next, nativeActive] = result
     const selected = nativeActive?.terminalId ?? next.at(-1)?.terminalId ?? null
     setEntries(next)
-    setActive(selected)
+    setActive((id) => (next.some((entry) => entry.terminalId === id) ? id : selected))
     if (selected && !nativeActive) await terminalClient.activate(sessionId, selected)
   }, [sessionId, readTerminals])
   useEffect(() => {
@@ -117,17 +119,17 @@ export function TerminalWorkspacePane({
       if (!disposed && result) {
         const [next, nativeActive] = result
         setEntries(next)
-        setActive(
-          (id) =>
-            nativeActive?.terminalId ??
-            (next.some((entry) => entry.terminalId === id) ? id : (next.at(-1)?.terminalId ?? null))
+        setActive((id) =>
+          next.some((entry) => entry.terminalId === id)
+            ? id
+            : (nativeActive?.terminalId ?? next.at(-1)?.terminalId ?? null)
         )
       }
     }
     void (async () => {
       const original = await terminalClient.snapshot(sessionId)
       const restored = await restoreTerminalViews(sessionId)
-      const saved = original?.terminalId ?? restored
+      const saved = restored ?? original?.terminalId
       if (disposed) return
       if (saved) {
         const entries = await terminalClient.list(sessionId)

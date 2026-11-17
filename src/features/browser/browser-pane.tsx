@@ -1,4 +1,4 @@
-import { useDesktopCanvas, useDesktopZoom } from "@alwith/module-desktop-shell/react"
+import { useDesktopZoom } from "@alwith/module-desktop-shell/react"
 import { invoke } from "@tauri-apps/api/core"
 import { listen } from "@tauri-apps/api/event"
 import {
@@ -245,10 +245,6 @@ export function BrowserPane({
   const findInput = useRef<HTMLInputElement>(null)
   // The search text whose first match was already stepped onto.
   const firstMatch = useRef<string | null>(null)
-  const canvas = useDesktopCanvas()
-  useEffect(() => {
-    if (active && maximized) canvas?.navigate("browser")
-  }, [active, maximized, canvas?.navigate])
   const guestCallback = useRef(onGuest)
   guestCallback.current = onGuest
   const [guest, setGuest] = useState<Guest | null>(null)

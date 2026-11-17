@@ -150,6 +150,7 @@ export function ChatComposer({
       providers={providersPort}
       catalog={chatCatalog}
       shellCommands={!imageMode}
+      imagesOnly={imageMode}
       {...props}
       disabled={
         inputDisabled || props.disabled || inputMode?.ready === false || (imageMode && !availability.canGenerate)

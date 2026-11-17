@@ -117,6 +117,8 @@ pub fn run() {
         main.focus = false;
     }
 
+    let isolated_shell = cfg!(all(feature = "hasgard-testing", debug_assertions))
+        && std::env::var_os("ALWITH_U_CEF_SHELL_TEST").is_some();
     let voice_credentials = settings::VoiceCredentials::default();
     let builder = tauri::Builder::default()
         .on_web_content_process_terminate(|webview, _| {
@@ -169,8 +171,10 @@ pub fn run() {
                     ));
                 })
                 .build(),
-        )
-        .plugin(tauri_plugin_notification::init())
+        );
+    // Native fixtures must not register another app with Notification Center.
+    let builder = if isolated_shell { builder } else { builder.plugin(tauri_plugin_notification::init()) };
+    let builder = builder
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_process::init())
@@ -254,7 +258,7 @@ pub fn run() {
         ))
         .plugin(alwith_store::init())
         .plugin(alwith_terminal::init(alwith_terminal::Config {
-            interactive_views: cfg!(debug_assertions),
+            interactive_views: true,
             development_directory: native::development_directory(),
         }))
         .plugin(alwith_voice::init(
@@ -421,6 +425,9 @@ pub fn run() {
                 browser_ai::cef_browser_context,
                 browser_ai::cef_preview_ready,
                 browser_ai::cef_browser_bind,
+                browser_ai::cef_browser_quick_chat,
+                browser_ai::cef_browser_test_pointer,
+                browser_ai::cef_browser_tabs_ready,
                 browser_ai::cef_browser_revoke
             ];
             move |invoke| {
@@ -470,6 +477,9 @@ pub fn run() {
                             | "cef_browser_context"
                             | "cef_preview_ready"
                             | "cef_browser_bind"
+                            | "cef_browser_quick_chat"
+                            | "cef_browser_test_pointer"
+                            | "cef_browser_tabs_ready"
                             | "cef_browser_revoke"
                     )
                 {

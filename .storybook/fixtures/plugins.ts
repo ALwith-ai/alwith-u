@@ -1,8 +1,11 @@
 import type { PluginDetail, PluginMarketplaceEntry, PluginSummary, SkillMetadata } from "@alwith/module-chat/client"
 
+import { pluginMarketplace } from "@/features/plugins/instance"
+
 import { client } from "./client"
 
-export type PluginCase = "catalog" | "empty" | "loading" | "error" | "detailError" | "unavailable" | "installed"
+export type PluginCase =
+  "scroll" | "catalog" | "empty" | "loading" | "error" | "detailError" | "unavailable" | "installed"
 export type PluginOperation =
   | "ready"
   | "installing"
@@ -87,6 +90,8 @@ const names = [
   ]
 ]
 export function marketplace(): PluginMarketplaceEntry {
+  if (operation === "toggling" || operation === "toggleError")
+    return { name: "demo-local", path: "/demo/plugins/marketplace.json", interface: { displayName: "Local" }, plugins }
   return { name: "openai-primary-runtime", path: null, interface: { displayName: "OpenAI" }, plugins }
 }
 export function pluginEntry(index = 0) {
@@ -96,7 +101,7 @@ function detail(summary: PluginSummary): PluginDetail {
   return {
     summary,
     marketplaceName: marketplace().name,
-    marketplacePath: null,
+    marketplacePath: marketplace().path,
     shareUrl: null,
     description: summary.interface?.longDescription ?? "",
     onboardingSkill: null,
@@ -130,7 +135,10 @@ export function resetPlugins(next: PluginCase = "catalog", nextOperation: Plugin
           remotePluginId: name,
           version: "26.1020.11618",
           localVersion: index < 2 ? "26.1020.11618" : null,
-          source: { type: "remote" },
+          source:
+            operation === "toggling" || operation === "toggleError"
+              ? { type: "local", path: `/demo/plugins/${name}` }
+              : { type: "remote" },
           shareContext: null,
           installed: index < 2 || mode === "installed",
           installedAt: index < 2 ? 1792728000 - index : null,
@@ -165,13 +173,45 @@ export function resetPlugins(next: PluginCase = "catalog", nextOperation: Plugin
             screenshotUrls: []
           }
         }))
+  if (mode === "scroll")
+    plugins = Array.from({ length: 105 }, (_, index) => ({
+      ...plugins[index % plugins.length]!,
+      id: `demo-${index}`,
+      name: `demo-${index}`,
+      remotePluginId: `demo-${index}`,
+      installed: false,
+      interface: { ...plugins[index % plugins.length]!.interface!, displayName: `Plugin ${index + 1}` }
+    }))
+  const page = (query: string, cursor?: string | null, limit = 50) => {
+    const matches = plugins.filter(
+      (plugin) =>
+        !query ||
+        `${plugin.name} ${plugin.interface?.displayName} ${plugin.interface?.shortDescription}`
+          .toLowerCase()
+          .includes(query.toLowerCase())
+    )
+    const offset = Number(cursor ?? 0)
+    return {
+      data: matches
+        .slice(offset, offset + limit)
+        .map((plugin) => ({ plugin, marketplaceName: marketplace().name, marketplacePath: null })),
+      nextCursor: offset + limit < matches.length ? String(offset + limit) : null
+    }
+  }
+  pluginMarketplace.identity = async () => "storybook-account"
+  pluginMarketplace.catalogPlugins = async (params = {}) => {
+    if (mode === "loading") return new Promise(() => {})
+    if (mode === "error") throw new Error("Remote catalog unavailable")
+    return page("", params.cursor, params.limit ?? 50)
+  }
+  pluginMarketplace.searchPlugins = async (params) => page(params.searchTerm, params.cursor, params.limit ?? 50)
   client.listPlugins = async () => {
     if (mode === "loading") return new Promise(() => {})
     if (mode === "error") throw new Error("插件目录暂时无法加载，请重试。")
     return {
-      marketplaces: [marketplace()],
+      marketplaces: [],
       marketplaceLoadErrors: [],
-      featuredPluginIds: plugins.map((plugin) => plugin.id)
+      featuredPluginIds: []
     }
   }
   client.installedPlugins = () => Promise.resolve({ marketplaces: [marketplace()], marketplaceLoadErrors: [] })
