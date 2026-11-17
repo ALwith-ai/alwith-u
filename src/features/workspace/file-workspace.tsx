@@ -29,6 +29,7 @@ import { Effect } from "effect"
 
 import { ContextMenuItem } from "@/components/ui/context-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { focusDeviceWindow, useDeviceWindowReturn } from "@/features/device/window-routing"
 import { collaborationOwner, useCollaborationOwner } from "@/features/drive/collaboration-owners"
 import { DriveDocumentSurface, useDriveContentHost } from "@/features/drive/content-host"
 import { driveControls, driveDialogClassName } from "@/features/drive/controls"
@@ -67,6 +68,7 @@ import { toast } from "sonner"
 import { useTheme } from "@/components/theme-provider"
 import { ChatDirectoryContext } from "@/features/chat/file-actions"
 import { DeviceWorkspaceMenu, DeviceWorkspacePane } from "@/features/device/device-workspace"
+import { useDeviceReveal } from "@/features/device/use-device-reveal"
 import { BackgroundWorkspacePane } from "@/features/terminal/background-workspace"
 import { TerminalWorkspaceMenuItem, TerminalWorkspacePane } from "@/features/terminal/terminal-workspace"
 
@@ -196,6 +198,8 @@ export function FileWorkspace({
     [viewMode, setViewMode] = useState(false),
     [pane, setPane] = useState<WorkspacePane>("files")
   const paneSessionId = useContext(WorkspaceSessionContext)
+  const currentPaneSession = useRef(paneSessionId)
+  currentPaneSession.current = paneSessionId
   const canvas = useContext(CanvasContext)
   const navigateCanvas = canvas?.navigate
   const previousChatRevealRequest = useRef(chatRevealRequest)
@@ -838,12 +842,43 @@ export function FileWorkspace({
         setPane("files")
         return
       }
+      if (next === "simulator" && paneSessionId) {
+        const session = paneSessionId
+        void focusDeviceWindow(session)
+          .then((found) => {
+            if (currentPaneSession.current !== session) return
+            if (!found) {
+              setPane("simulator")
+              setVisible(true)
+              navigateCanvas?.("preview")
+            }
+          })
+          .catch((error: unknown) => toast.error(String(error)))
+        return
+      }
       setPane(next)
       setVisible(true)
       navigateCanvas?.("preview")
     },
-    [visible, pane, toggle, navigateCanvas]
+    [visible, pane, toggle, navigateCanvas, paneSessionId]
   )
+  const revealDevice = useCallback(() => {
+    requestGeneration.current++
+    setPane("simulator")
+    setVisible(true)
+    navigateCanvas?.("preview")
+  }, [navigateCanvas])
+  const revealAttachedDevice = useCallback(() => {
+    if (!paneSessionId) return
+    const session = paneSessionId
+    void focusDeviceWindow(session)
+      .then((found) => {
+        if (!found && currentPaneSession.current === session) revealDevice()
+      })
+      .catch((error: unknown) => toast.error(String(error)))
+  }, [paneSessionId, revealDevice])
+  useDeviceReveal(paneSessionId, revealAttachedDevice)
+  useDeviceWindowReturn(paneSessionId, revealDevice)
   const context = useMemo(
     () => ({ visible, viewMode, pane, openPane, toggle, openFile, openProject, revealEntry, registerFileReference }),
     [visible, viewMode, pane, openPane, toggle, openFile, openProject, revealEntry, registerFileReference]
@@ -938,6 +973,7 @@ export function FileWorkspace({
             />
           ) : pane === "simulator" && paneSessionId !== null ? (
             <DeviceWorkspacePane
+              key={paneSessionId}
               sessionId={paneSessionId}
               maximized={viewMode}
               onMaximize={() => setViewMode((value) => !value)}

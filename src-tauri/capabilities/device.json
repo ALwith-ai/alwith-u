@@ -2,6 +2,13 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "device",
   "description": "The device panel and agent session wiring for managed simulators",
-  "windows": ["main", "chat", "settings"],
-  "permissions": ["alwith-device:default"]
+  "windows": [
+    "main",
+    "chat",
+    "settings",
+    "device-*"
+  ],
+  "permissions": [
+    "alwith-device:default"
+  ]
 }

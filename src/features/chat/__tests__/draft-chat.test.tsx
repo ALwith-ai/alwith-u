@@ -1,5 +1,6 @@
 import { ReadableStream, TransformStream, WritableStream } from "node:stream/web"
 
+import { type ClientOptions, CodexClient } from "@alwith/module-chat/client"
 import { drafts, importDraft } from "@alwith/module-chat/conversation"
 import * as core from "@tauri-apps/api/core"
 import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks"
@@ -10,7 +11,6 @@ import { expect, test, vi } from "vitest"
 import { createFakeAgent } from "@/agent/__tests__/fake-agent"
 import { FakeHubPort } from "@/agent/__tests__/fake-runtime-client"
 import { projectContext } from "@/agent/__tests__/project-context"
-import { type ClientOptions, CodexClient } from "@alwith/module-chat/client"
 import { ThemeProvider } from "@/components/theme-provider"
 import { ChatWindow } from "@/features/chat-window/chat-window"
 import { must } from "@/lib/__tests__/must"
@@ -1248,7 +1248,7 @@ test("returning a floating draft transfers its input and releases the surface on
 })
 
 test("extension drafts fill the mounted composer without sending and protect existing input", async () => {
-  const { setComposerDraft } = await import("@alwith/module-chat/conversation")
+  const { setComposerDraft, appendComposerDraft } = await import("@alwith/module-chat/conversation")
   const { real, restore } = await environment()
   await real.connect()
   const id = await real.prepareDraft("main", "/tmp/extension-draft")
@@ -1260,6 +1260,11 @@ test("extension drafts fill the mounted composer without sending and protect exi
     expect(real.session(id).items.filter((item) => item.kind === "user")).toHaveLength(0)
     expect(() => setComposerDraft(id, "replacement")).toThrow("already has a draft")
     expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("Review this before sending")
+    await act(() => Promise.try(() => appendComposerDraft(id, "Device element context")))
+    expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe(
+      "Review this before sending\n\nDevice element context"
+    )
+    expect(real.session(id).items.filter((item) => item.kind === "user")).toHaveLength(0)
     await act(() => Promise.try(() => view.unmount()))
     expect(() => setComposerDraft(id, "after close")).toThrow("composer is not open")
   } finally {

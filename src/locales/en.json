@@ -1387,7 +1387,9 @@
     "panel": {
       "title": "iOS Simulator",
       "open": "Show simulator",
-      "close": "Hide simulator"
+      "close": "Hide simulator",
+      "detach": "Move to new window",
+      "dock": "Return to main window"
     }
   },
   "enterprise": {
@@ -1517,6 +1519,7 @@
     "tabs": "Browser tabs",
     "boundTab": "This tab belongs to the AI conversation that opened it",
     "aiTab": "AI conversation tab",
+    "releaseControl": "Release AI control",
     "closeTab": "Close tab {{title}}",
     "newTabButton": "New browser tab",
     "addToNewGroup": "Add to a new group",

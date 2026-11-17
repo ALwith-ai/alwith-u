@@ -13,6 +13,7 @@ import { productionJsxGuard } from "./scripts/lib/production-jsx.ts"
 
 const host = process.env.TAURI_DEV_HOST
 const debug = process.env.TAURI_ENV_DEBUG === "true"
+const port = Number(process.env.ALWITH_DEV_PORT ?? 1401)
 
 export const config = (mode = "development"): UserConfig => ({
   define: { __ALWITH_APP_ENV__: JSON.stringify(loadAppEnv(mode)) },
@@ -68,10 +69,10 @@ export const config = (mode = "development"): UserConfig => ({
   server: {
     // WebKit stack frames can omit URLs, which crashes Vite's console-forwarding parser.
     forwardConsole: false,
-    port: 1430,
+    port,
     strictPort: true,
     host: host ?? "127.0.0.1",
-    hmr: host ? { protocol: "ws", host, port: 1441 } : undefined,
+    hmr: host ? { protocol: "ws", host, port } : undefined,
     watch: {
       ignored: ["**/src-tauri/**"]
     }
@@ -82,8 +83,12 @@ export const config = (mode = "development"): UserConfig => ({
     target: "esnext",
     rolldownOptions: {
       input: {
-        ...(process.env.ALWITH_NATIVE_TEST === "1" ? { browserFixture: path.resolve(import.meta.dirname, "browser-fixture.html") } : {}),
+        ...(process.env.ALWITH_NATIVE_TEST === "1"
+          ? { browserFixture: path.resolve(import.meta.dirname, "browser-fixture.html") }
+          : {}),
         main: path.resolve(import.meta.dirname, "index.html"),
+        capture: path.resolve(import.meta.dirname, "capture.html"),
+        device: path.resolve(import.meta.dirname, "device.html"),
         chat: path.resolve(import.meta.dirname, "chat.html"),
         vibemon: path.resolve(import.meta.dirname, "vibemon.html"),
         vibemonBubble: path.resolve(import.meta.dirname, "vibemon-bubble.html"),

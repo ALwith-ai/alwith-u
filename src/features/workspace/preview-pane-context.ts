@@ -6,6 +6,7 @@ import { createContext } from "react"
  */
 export interface PreviewPane {
   slot: HTMLElement | null
+  registerDetach?: (handler: () => void) => () => void
   show: (state: { hidden: boolean; maximized: boolean }) => void
 }
 export const PreviewPaneContext = createContext<PreviewPane | null>(null)

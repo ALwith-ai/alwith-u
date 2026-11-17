@@ -158,3 +158,24 @@ test("a divider on a pane's end edge widens it toward the end", async () => {
   expect(Number.parseFloat(preview.style.width)).toBe(before + 30)
   expect(document.querySelector(".desktop-shell-drag-shield")).toBeNull()
 })
+
+test("an outside drop detaches only the requested pane, while capture loss cancels", async () => {
+  const detach = vi.fn(),
+    changed = vi.fn()
+  const host = panes().map((pane) => (pane.id === "preview" ? { ...pane, onDetach: detach } : pane))
+  const view = render(
+    <DesktopWorkspace navigation={null} panes={host} onPaneOrderChange={changed} initialNavigationPinned />
+  )
+  await act(async () => {})
+  const grip = view.getByRole("button", { name: "Move Preview" })
+  Object.defineProperty(grip, "setPointerCapture", { value: vi.fn() })
+  fireEvent.pointerDown(grip, { button: 0, clientX: 500, clientY: 30, pointerId: 1 })
+  fireEvent.pointerMove(grip, { clientX: -40, clientY: 30, pointerId: 1 })
+  fireEvent.lostPointerCapture(grip, { pointerId: 1 })
+  expect(detach).not.toHaveBeenCalled()
+  fireEvent.pointerDown(grip, { button: 0, clientX: 500, clientY: 30, pointerId: 2 })
+  fireEvent.pointerMove(grip, { clientX: -40, clientY: 30, pointerId: 2 })
+  fireEvent.pointerUp(grip, { clientX: -40, clientY: 30, pointerId: 2 })
+  expect(detach).toHaveBeenCalledTimes(1)
+  expect(changed).not.toHaveBeenCalled()
+})

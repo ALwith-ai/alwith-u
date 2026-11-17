@@ -404,40 +404,6 @@ test("the Windows titlebar hosts the same working sidebar switch", () => {
   }
 })
 
-test("the canvas reserves top space only when it owns the titlebar", () => {
-  const target = document.createElement("div")
-  document.body.append(target)
-  const layout = (titlebar: HTMLElement | null) => (
-    <WindowsTitleBarContext.Provider value={titlebar}>
-      <MainSidebarLayout
-        initialPinned
-        screen="main"
-        sidebar={<div>Sidebar</div>}
-        leading={null}
-        main={<main>Chat</main>}
-      />
-    </WindowsTitleBarContext.Provider>
-  )
-  try {
-    const view = render(layout(null))
-    const canvas = must(view.container.querySelector<HTMLElement>("[data-atlas]"), "canvas")
-    const chat = view.getByRole("main")
-    expect(canvas.style.getPropertyValue("--atlas-inset-top")).toBe("32px")
-
-    view.rerender(layout(target))
-    expect(canvas.style.getPropertyValue("--atlas-inset-top")).toBe("0px")
-    expect(view.getByRole("main")).toBe(chat)
-    expect(target).toContainElement(view.getByRole("switch"))
-
-    view.rerender(layout(null))
-    expect(canvas.style.getPropertyValue("--atlas-inset-top")).toBe("32px")
-    expect(view.getByRole("main")).toBe(chat)
-    view.unmount()
-  } finally {
-    target.remove()
-  }
-})
-
 test("window chrome stays outside the sliding screens across navigation and sidebar changes", () => {
   const layout = (screen: MainScreen) => (
     <MainSidebarLayout

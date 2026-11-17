@@ -113,6 +113,7 @@ pub fn settings_request(
     window: tauri::Window, state: State<'_, SharedSettings>, input: Value,
 ) -> Result<Value, String> {
     if !matches!(window.label(), "main" | "chat" | "settings" | "gamepad" | "guide" | "vibemon" | "bubble-menu-vibemon")
+        && !window.label().starts_with("device-")
     {
         return Err("Settings access denied".into());
     }

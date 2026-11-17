@@ -1,5 +1,6 @@
 import { requestVibemonView } from "@alwith/module-auth/vibemon/core"
-import { hasAccount, isFormElicitation } from "@alwith/module-chat/client"
+import { hasAccount, isFormElicitation, watchSessionList } from "@alwith/module-chat/client"
+import type { SessionSummary } from "@alwith/module-chat/client"
 import { exportDraft, type FormAction, importDraft, setComposerDraft } from "@alwith/module-chat/conversation"
 import { commands as mobile } from "@alwith/module-mobile/commands"
 import { isTauri } from "@tauri-apps/api/core"
@@ -11,8 +12,6 @@ import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useShallow } from "zustand/react/shallow"
 
-import type { SessionSummary } from "@alwith/module-chat/client"
-import { watchSessionList } from "@alwith/module-chat/client"
 import { events } from "@/bindings"
 import { Pane } from "@/components/alwith-ui/pane"
 import { toolboxContentClassName } from "@/components/alwith-ui/toolbox-layout"
@@ -27,6 +26,7 @@ import { MainInputModeProvider } from "@/features/chat/composer/input-mode"
 import { DRAFT_SESSION_ID, DraftChat } from "@/features/chat/draft-chat"
 import { newChatDirectory } from "@/features/chat/new-chat-directory"
 import { ChatProjectMenu } from "@/features/chat/project-session-popover"
+import { useDeviceWindowContext } from "@/features/device/window-routing"
 import { useDriveArchive } from "@/features/drive/archive-runtime"
 import { DriveDeleteConfirmation, DrivePage, DriveStatus, useDriveConnection } from "@/features/drive/drive"
 import { useDrivePluginBridge } from "@/features/drive/plugin-bridge-hook"
@@ -84,6 +84,7 @@ function describe(error: unknown): string {
 }
 
 export function App({ initialPreferences }: { initialPreferences: Preferences }) {
+  useDeviceWindowContext()
   useDriveConnection()
   useDrivePluginBridge()
   useDriveArchive()
@@ -161,6 +162,11 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   }, [leadingPage, openExtensions, openVibemon, openArchives, openPlugins])
   const session = useSession(selectedId)
   const draftSessions = useApp((state) => state.draftSessions)
+  const browserSessionTitles = useApp(
+    useShallow((state) =>
+      Object.fromEntries(Object.entries(state.sessions).map(([id, session]) => [id, session.title]))
+    )
+  )
   const { busy, operation } = useSurfaceOperation()
   const extensionSession = useRef(session)
   extensionSession.current = session
@@ -614,6 +620,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
     <div className="h-full">
       <WallpaperBackground onError={reportExtensionError}>
         <MainSidebarLayout
+          browserSessionTitles={browserSessionTitles}
           initialPinned={initialPreferences.sidebarPinned}
           initialPaneOrder={initialPreferences.paneOrder}
           screen={leading ? "leading" : "main"}

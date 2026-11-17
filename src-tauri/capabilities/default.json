@@ -7,7 +7,8 @@
     "settings",
     "gamepad",
     "guide",
-    "chat"
+    "chat",
+    "device-*"
   ],
   "permissions": [
     "core:default",
@@ -61,6 +62,7 @@
     "alwith-auth:default",
     "dialog:allow-save",
     "alwith-editor:default",
-    "alwith-terminal:default"
+    "alwith-terminal:default",
+    "core:window:allow-destroy"
   ]
 }

@@ -2,6 +2,7 @@
 mod windows_cef;
 
 fn main() {
+    println!("cargo:rerun-if-changed=capabilities");
     #[cfg(target_os = "windows")]
     {
         let destination =

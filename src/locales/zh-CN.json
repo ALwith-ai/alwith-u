@@ -1387,7 +1387,9 @@
     "panel": {
       "title": "iOS 模拟器",
       "open": "显示模拟器",
-      "close": "隐藏模拟器"
+      "close": "隐藏模拟器",
+      "detach": "移到独立窗口",
+      "dock": "收回主窗口"
     }
   },
   "enterprise": {
@@ -1517,6 +1519,7 @@
     "tabs": "网页标签",
     "boundTab": "此标签绑定到打开它的 AI 会话",
     "aiTab": "AI 会话标签",
+    "releaseControl": "释放 AI 控制",
     "closeTab": "关闭标签 {{title}}",
     "newTabButton": "新建网页标签",
     "addToNewGroup": "添加到新标签组",

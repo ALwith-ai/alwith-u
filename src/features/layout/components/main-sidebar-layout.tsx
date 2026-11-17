@@ -38,6 +38,7 @@ const report = (error: unknown): void => {
 
 /** U's main window is the shell's DesktopWorkspace; U supplies its strings, preferences and pages. */
 export function MainSidebarLayout({
+  browserSessionTitles,
   initialPinned,
   initialPaneOrder,
   screen,
@@ -51,6 +52,7 @@ export function MainSidebarLayout({
   statusBar,
   children
 }: {
+  browserSessionTitles?: Readonly<Record<string, string | null | undefined>>
   initialPinned: boolean
   /** The user's order of chat, preview and browser; each can be moved by its grip. */
   initialPaneOrder?: readonly string[]
@@ -86,7 +88,12 @@ export function MainSidebarLayout({
       ),
     []
   )
-  const previewPane = useMemo(() => ({ slot: previewSlot, show }), [previewSlot, show])
+  const [detach, setDetach] = useState<(() => void) | undefined>()
+  const registerDetach = useCallback((handler: () => void) => {
+    setDetach(() => handler)
+    return () => setDetach((current) => (current === handler ? undefined : current))
+  }, [])
+  const previewPane = useMemo(() => ({ slot: previewSlot, show, registerDetach }), [previewSlot, show, registerDetach])
   const labels = useMemo(
     () => ({
       pin: t("sidebar.pin"),
@@ -138,6 +145,7 @@ export function MainSidebarLayout({
             { id: "chat", title: t("chat.timeline"), children: main, min: 420, movable: true },
             {
               id: "preview",
+              onDetach: detach,
               title: t("workspace.preview"),
               children: <div ref={setPreviewSlot} className="flex min-h-0 flex-1 flex-col" />,
               min: MIN_PREVIEW_WIDTH,
@@ -159,6 +167,7 @@ export function MainSidebarLayout({
                     children: browser.visited ? (
                       <BrowserWorkspace
                         request={previewRequest}
+                        sessionTitles={browserSessionTitles}
                         active={!browser.hidden}
                         maximized={browser.maximized}
                         onMaximize={() =>

@@ -28,6 +28,9 @@ mod bundled_extensions;
 mod cef_runtime;
 mod chat_window;
 mod desktop_runtime;
+#[cfg(feature = "dev-backends")]
+mod development_instance;
+mod device_window;
 mod diagnostics;
 mod draft_directory;
 mod drive;
@@ -73,7 +76,9 @@ fn application_context() -> tauri::Context {
 pub fn run() {
     let login_launch = autostart::LoginLaunch::new(std::env::args());
     let mut context = application_context();
-    desktop_runtime::initialize(&context.config().identifier).expect("Cannot select desktop runtime");
+    #[cfg(feature = "dev-backends")]
+    development_instance::prepare(&context.config().identifier).expect("Cannot prepare development instance");
+    desktop_runtime::initialize(context.config()).expect("Cannot select desktop runtime");
     #[cfg(all(feature = "hasgard-testing", debug_assertions))]
     if std::env::var_os("ALWITH_U_CEF_SHELL_TEST").is_some() {
         assert!(
@@ -122,20 +127,10 @@ pub fn run() {
             #[cfg(not(feature = "runtime-cef"))]
             let _ = webview;
         })
-        .plugin(alwith_desktop_shell::init_with_options(
-            None,
-            alwith_desktop_shell::ShellOptions::new()
-                .host_native_window(cfg!(target_os = "macos") && desktop_runtime::is_cef()),
-        ))
-        .plugin(alwith_store::init())
-        // U keeps its own vibemon windows; the auth plugin only refreshes tokens here.
-        .plugin(alwith_auth::init(alwith_auth::Config {
-            development_directory: native::development_directory(),
-            vibemon: None,
-        }))
         .manage(login_launch)
         .manage(enterprise::Enterprise::default())
         .register_asynchronous_uri_scheme_protocol("preview-html", html_preview::handle_protocol)
+        // Official plugins; single-instance must run before services open exclusive resources.
         // Second launch: focus the running instance instead of starting a second alwith-runtime
         // against the same ~/.codex.
         .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
@@ -150,6 +145,15 @@ pub fn run() {
                 log::error!("Cannot reopen main window: {error}");
             }
         }))
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            Some(vec![autostart::ARGUMENT]),
+        ))
+        .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_deep_link::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        .plugin(tauri_plugin_http::init())
         .plugin(
             tauri_plugin_log::Builder::new()
                 .level(log::LevelFilter::Info)
@@ -166,82 +170,11 @@ pub fn run() {
                 })
                 .build(),
         )
-        .plugin(tauri_plugin_deep_link::init())
-        .plugin(tauri_plugin_shell::init())
-        .plugin(tauri_plugin_global_shortcut::Builder::new().build());
-
-    #[cfg(target_os = "macos")]
-    let builder = builder.plugin(tauri_nspanel::init());
-
-    #[cfg(target_os = "windows")]
-    let builder = builder.plugin(tauri_plugin_decoration::init());
-
-    let builder = builder
-        .plugin(chat_window::init())
-        .plugin(tauri_plugin_http::init())
-        .plugin(tauri_plugin_os::init())
-        .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_clipboard_manager::init())
-        .plugin(alwith_extension::init(alwith_extension::Config {
-            root: None,
-            development_directory: native::development_directory(),
-        }))
-        .plugin(alwith_fs::init(alwith_fs::Config {
-            coordinator: Some(std::sync::Arc::new(workspace::Coordinator)),
-            development_directory: native::development_directory(),
-        }))
-        .plugin(drive::plugin())
-        .plugin(appearance::wallpaper::plugin())
-        .plugin(alwith_terminal::init(alwith_terminal::Config {
-            interactive_views: cfg!(debug_assertions),
-            development_directory: native::development_directory(),
-        }))
-        .plugin(alwith_editor::init(alwith_editor::Config { development_directory: native::development_directory() }))
-        .plugin(alwith_computer::init(alwith_computer::Config {
-            development_directory: native::development_directory(),
-            proxy: native::development_resources().map(|resources| resources.join("computer/stdio.mjs")),
-            observer: Some(diagnostics::computer_observer()),
-            ..Default::default()
-        }))
-        .plugin(alwith_device::init(alwith_device::DeviceConfig {
-            resources: native::development_resources(),
-            development_directory: native::development_directory(),
-            ..Default::default()
-        }))
-        .plugin(alwith_media::init(
-            voice_credentials.clone(),
-            alwith_media::Config { development_directory: native::development_directory() },
-        ))
-        .plugin(alwith_voice::init(
-            voice_credentials.clone(),
-            alwith_voice::Config { development_directory: native::development_directory() },
-        ))
-        .plugin(alwith_gamepad::init(alwith_gamepad::Config {
-            development_directory: native::development_directory(),
-            ..Default::default()
-        }))
-        .plugin(alwith_installed_apps::init(alwith_installed_apps::Config {
-            development_directory: native::development_directory(),
-        }))
-        .plugin(alwith_mobile::init(
-            alwith_mobile::MobileConfig {
-                host_app: alwith_mobile::HostApp::U,
-                development_directory: native::development_directory(),
-            },
-            mobile::Host,
-        ))
-        .plugin(alwith_browser::init(
-            |_| runtime::sidecar_path("bun"),
-            native::development_resources().map(|resources| resources.join(alwith_browser::BRIDGE_RESOURCE)),
-        ))
-        .plugin(alwith_chat::init_with_account(runtime::ChatRuntime, native::development_directory()))
-        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_process::init())
-        .plugin(tauri_plugin_autostart::init(
-            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
-            Some(vec![autostart::ARGUMENT]),
-        ))
+        .plugin(tauri_plugin_shell::init())
         // Chat is created hidden before converting it to NSPanel. Restoring visibility here
         // would focus an unprepared NSWindow and break AppKit's keyboard/KVO lifecycle.
         // Settings has a fixed logical size; cached physical sizes must not override it.
@@ -256,16 +189,91 @@ pub fn run() {
                 // Windows guide windows must not restore their legacy undecorated state.
                 .map_label(|label| if cfg!(target_os = "windows") && label == "guide" { "guide-native" } else { label })
                 .build(),
-        )
+        );
+
+    // Non-official plugins, sorted by name after the platform window prerequisites.
+    // Decoration must precede webview creation; NSPanel supplies the application window manager.
+    #[cfg(target_os = "windows")]
+    let builder = builder.plugin(tauri_plugin_decoration::init());
+    #[cfg(target_os = "macos")]
+    let builder = builder.plugin(tauri_nspanel::init());
+    let builder = builder
+        // U keeps its own vibemon windows; the auth plugin only refreshes tokens here.
+        .plugin(alwith_auth::init(alwith_auth::Config {
+            development_directory: native::development_directory(),
+            vibemon: None,
+        }))
+        .plugin(alwith_browser::init(
+            |_| runtime::sidecar_path("bun"),
+            native::development_resources().map(|resources| resources.join(alwith_browser::BRIDGE_RESOURCE)),
+        ))
+        .plugin(alwith_chat::init_with_account(runtime::ChatRuntime, native::development_directory()))
+        .plugin(alwith_computer::init(alwith_computer::Config {
+            development_directory: native::development_directory(),
+            proxy: native::development_resources().map(|resources| resources.join("computer/stdio.mjs")),
+            observer: Some(diagnostics::computer_observer()),
+            ..Default::default()
+        }))
+        .plugin(alwith_desktop_shell::init_with_options(
+            None,
+            alwith_desktop_shell::ShellOptions::new()
+                .host_native_window(cfg!(target_os = "macos") && desktop_runtime::is_cef()),
+        ))
+        .plugin(alwith_device::init(alwith_device::DeviceConfig {
+            resources: native::development_resources(),
+            development_directory: native::development_directory(),
+            ..Default::default()
+        }))
+        .plugin(drive::plugin())
+        .plugin(alwith_editor::init(alwith_editor::Config { development_directory: native::development_directory() }))
+        .plugin(alwith_extension::init(alwith_extension::Config {
+            root: None,
+            development_directory: native::development_directory(),
+        }))
+        .plugin(alwith_fs::init(alwith_fs::Config {
+            coordinator: Some(std::sync::Arc::new(workspace::Coordinator)),
+            development_directory: native::development_directory(),
+        }))
+        .plugin(alwith_gamepad::init(alwith_gamepad::Config {
+            development_directory: native::development_directory(),
+            ..Default::default()
+        }))
+        .plugin(alwith_installed_apps::init(alwith_installed_apps::Config {
+            development_directory: native::development_directory(),
+        }))
+        .plugin(alwith_media::init(
+            voice_credentials.clone(),
+            alwith_media::Config { development_directory: native::development_directory() },
+        ))
+        .plugin(alwith_mobile::init(
+            alwith_mobile::MobileConfig {
+                host_app: alwith_mobile::HostApp::U,
+                development_directory: native::development_directory(),
+            },
+            mobile::Host,
+        ))
+        .plugin(alwith_store::init())
+        .plugin(alwith_terminal::init(alwith_terminal::Config {
+            interactive_views: cfg!(debug_assertions),
+            development_directory: native::development_directory(),
+        }))
+        .plugin(alwith_voice::init(
+            voice_credentials.clone(),
+            alwith_voice::Config { development_directory: native::development_directory() },
+        ))
+        .plugin(chat_window::init());
+    // Hasgard selects the same backend as the host.
+    let builder = desktop_runtime::configure(builder);
+    let builder = builder
+        .plugin(appearance::wallpaper::plugin())
         .manage(legacy_extensions::files::LegacyFiles::default())
         .manage(legacy_extensions::importer::LegacyImports::default())
         .manage(runtime::RuntimeState::default())
         .manage(voice_credentials)
         .manage(power::PreventSleep::default())
+        .manage(device_window::DeviceWindows::default())
         .manage(extension_inbox::InboxState::default())
         .manage(vibemon::BubblePresentation::default());
-
-    let builder = desktop_runtime::configure(builder);
 
     let app = builder
         .on_window_event(|window, event| {
@@ -361,6 +369,10 @@ pub fn run() {
         .invoke_handler({
             let typed = bindings().invoke_handler();
             let binary: fn(tauri::ipc::Invoke) -> bool = tauri::generate_handler![
+                device_window::device_window_open,
+                device_window::device_window_find,
+                device_window::device_window_over_main,
+                device_window::device_window_selection,
                 settings::settings_request,
                 desktop_runtime::runtime_capabilities,
                 desktop_runtime::runtime_restart
@@ -403,6 +415,8 @@ pub fn run() {
                 browser_chrome::cef_cancel_download,
                 web_automation::web_automation_execute,
                 web_automation::web_automation_cancel,
+                web_automation::web_automation_controls,
+                web_automation::web_automation_takeover,
                 browser_ai::cef_browser_open_url,
                 browser_ai::cef_browser_context,
                 browser_ai::cef_preview_ready,
@@ -450,6 +464,8 @@ pub fn run() {
                             | "cef_cancel_download"
                             | "web_automation_execute"
                             | "web_automation_cancel"
+                            | "web_automation_controls"
+                            | "web_automation_takeover"
                             | "cef_browser_open_url"
                             | "cef_browser_context"
                             | "cef_preview_ready"
@@ -459,7 +475,16 @@ pub fn run() {
                 {
                     return browser(invoke);
                 }
-                if matches!(invoke.message.command(), "settings_request" | "runtime_capabilities" | "runtime_restart") {
+                if matches!(
+                    invoke.message.command(),
+                    "device_window_open"
+                        | "device_window_find"
+                        | "device_window_over_main"
+                        | "device_window_selection"
+                        | "settings_request"
+                        | "runtime_capabilities"
+                        | "runtime_restart"
+                ) {
                     binary(invoke)
                 } else {
                     typed(invoke)
