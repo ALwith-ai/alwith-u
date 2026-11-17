@@ -76,3 +76,14 @@ test("unmount invalidates an in-flight release", async () => {
   await act(async () => {})
   expect(f.request).not.toHaveBeenCalled()
 })
+
+test.each([
+  { x: 50, closes: true },
+  { x: 49, closes: false }
+])("Desktop native nest coverage: x=$x, closes=$closes", async ({ x, closes }) => {
+  f.rect.x = x
+  renderHook(() => useLoungeDrop({ current: document.createElement("div") }))
+  await act(async () => f.handlers.get("vibemon:drag-end")?.())
+  if (closes) await waitFor(() => expect(f.request).toHaveBeenCalledExactlyOnceWith("close-vibemon"))
+  else expect(f.request).not.toHaveBeenCalled()
+})

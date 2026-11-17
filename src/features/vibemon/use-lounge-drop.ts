@@ -41,6 +41,7 @@ export function useLoungeDrop(pane: RefObject<HTMLDivElement | null>) {
     const start = listen("vibemon:drag-start", () => {
       const generation = generations.begin()
       stop()
+      setHighlighted(false)
       let sampling = false
       const sample = async () => {
         if (sampling) return
