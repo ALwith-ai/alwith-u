@@ -134,9 +134,9 @@ const MODULES = [
   "drive"
 ]
 const nativeDirectory = join(root, "src-tauri/resources/native")
-stageTerminal(triple, nativeDirectory)
 const staged = [
   ...MODULES.flatMap((module) => stageNativeModule(import.meta.url, module, triple, nativeDirectory, licenses)),
+  { path: stageTerminal(triple, nativeDirectory), signing: "resign" as const },
   { path: stageNativeEnterprise(triple, nativeDirectory, licenses), signing: "resign" as const }
 ]
 if (triple.endsWith("apple-darwin") && process.env.APPLE_SIGNING_IDENTITY) {
