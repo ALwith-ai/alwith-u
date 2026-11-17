@@ -54,10 +54,10 @@ export function DeviceWorkspaceMenu({ children }: { children?: ReactNode }) {
       >
         <MoreHorizontalIcon className="size-4" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end" className="min-w-52">
         <DropdownMenuGroup>
-          <DropdownMenuItem onClick={() => openPane("simulator")}>
-            <SmartphoneIcon />
+          <DropdownMenuItem className="whitespace-nowrap" onClick={() => openPane("simulator")}>
+            <SmartphoneIcon className="size-4 shrink-0 text-muted-foreground" />
             {t(active ? "device.panel.close" : "device.panel.open")}
           </DropdownMenuItem>
           {children}

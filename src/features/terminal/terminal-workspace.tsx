@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button"
 import { ContextMenuItem } from "@/components/ui/context-menu"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
+import { Kbd } from "@/components/ui/kbd"
 import { useWorkspace } from "@/features/workspace/context"
 import { useHostDialog } from "@/features/workspace/host-dialog"
 import { displayShortcut } from "@/lib/shortcut-formatter"
@@ -56,13 +57,14 @@ export function TerminalWorkspaceMenuItem() {
   if (!available || !workspace?.openPane) return null
   return (
     <DropdownMenuItem
+      className="whitespace-nowrap"
       onClick={() => {
         workspace.openPane?.("terminal")
       }}
     >
-      <TerminalIcon />
-      {t("terminal.open")}
-      <span className="ml-auto pl-4 text-xs text-muted-foreground">{displayShortcut("CommandOrControl+J")}</span>
+      <TerminalIcon className="size-4 shrink-0 text-muted-foreground" />
+      <span className="flex-1">{t("terminal.open")}</span>
+      <Kbd className="ms-auto shrink-0 bg-muted px-1.5">{displayShortcut("CommandOrControl+J")}</Kbd>
     </DropdownMenuItem>
   )
 }
