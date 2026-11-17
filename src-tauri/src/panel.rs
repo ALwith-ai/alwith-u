@@ -131,8 +131,8 @@ tauri_nspanel::tauri_panel! {
 }
 
 /// Pins this window's own appearance to dark, or releases it to follow the application again.
-/// Tauri's theme is application-wide on macOS, so a single dark window needs its own appearance;
-/// the native backdrop follows it.
+/// Under Wry the window theme is application-wide on macOS, so a single dark window needs its own
+/// appearance; the native backdrop follows it.
 pub fn pin_dark_appearance(window: &WebviewWindow, dark: bool) -> Result<(), String> {
     use objc2_app_kit::{NSAppearance, NSAppearanceCustomization, NSAppearanceNameDarkAqua, NSWindow};
 

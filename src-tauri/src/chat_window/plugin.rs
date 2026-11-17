@@ -74,8 +74,12 @@ pub async fn set_chat_window_backdrop(window: WebviewWindow, corner_radius: Opti
         corner_radius.map(|radius| tauri::window::EffectsBuilder::new().effect(BACKDROP).radius(radius).build());
     window.set_effects(effects).map_err(|error| error.to_string())?;
     window.set_shadow(!transparent).map_err(|error| error.to_string())?;
+    // The CEF runtime keeps a window theme through application-wide theme changes. Under Wry the
+    // window theme is application-wide on macOS, so the window pins its own native appearance.
     #[cfg(target_os = "macos")]
-    {
+    if crate::desktop_runtime::is_cef() {
+        window.set_theme(transparent.then_some(tauri::Theme::Dark)).map_err(|error| error.to_string())?;
+    } else {
         let handle = window.clone();
         let (send, receive) = tokio::sync::oneshot::channel();
         window
