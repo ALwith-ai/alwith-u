@@ -201,3 +201,19 @@ test("a reloaded empty chat has no session to restore", async () => {
     stopMain()
   }
 })
+
+test("a reloaded floating window clears a stopped draft's stale surface binding", async () => {
+  const before = client.state
+  client.store.setState({ sessions: {}, sessionWindows: {} })
+  useChatWindowSurface.setState({ sessionId: "stopped-unsent", visible: false })
+  currentLabel = "main"
+  const stopMain = await serveChatSurface(() => Promise.reject(new Error("Restore must not navigate main")))
+  try {
+    currentLabel = "chat"
+    await expect(requestChatSurface("main", { type: "restore" })).resolves.toBeNull()
+    expect(useChatWindowSurface.getState()).toEqual({ sessionId: null, visible: false })
+  } finally {
+    stopMain()
+    client.store.setState(before, true)
+  }
+})

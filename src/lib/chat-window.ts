@@ -83,11 +83,16 @@ export async function serveChatSurface(
             if (window.label !== "main" || payload.from !== "chat") throw new Error("Invalid chat surface restoration")
             const { sessionId } = useChatWindowSurface.getState()
             if (sessionId !== null) {
-              if (client.state.sessionWindows[sessionId] !== "chat")
-                throw new Error("The chat window conversation changed")
               const session = client.state.sessions[sessionId]
-              if (!session) throw new Error("The chat window conversation is unavailable")
-              value = { sessionId, cwd: session.cwd, draft: null }
+              const owner = client.state.sessionWindows[sessionId]
+              if (!session && owner === undefined) {
+                // A stopped unsent draft has no durable conversation to restore.
+                useChatWindowSurface.setState({ sessionId: null })
+              } else {
+                if (owner !== "chat") throw new Error("The chat window conversation changed")
+                if (!session) throw new Error("The chat window conversation is unavailable")
+                value = { sessionId, cwd: session.cwd, draft: null }
+              }
             }
           } else if (action.type === "inspectSurface") {
             if (window.label !== "chat" || payload.from !== "main") throw new Error("Invalid chat surface inspection")

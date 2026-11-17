@@ -1,5 +1,6 @@
 import { ReadableStream, TransformStream, WritableStream } from "node:stream/web"
 
+import { type ClientOptions, CodexClient } from "@alwith/module-chat/client"
 import { drafts, importDraft } from "@alwith/module-chat/conversation"
 import * as core from "@tauri-apps/api/core"
 import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks"
@@ -10,7 +11,6 @@ import { expect, test, vi } from "vitest"
 import { createFakeAgent } from "@/agent/__tests__/fake-agent"
 import { FakeHubPort } from "@/agent/__tests__/fake-runtime-client"
 import { projectContext } from "@/agent/__tests__/project-context"
-import { type ClientOptions, CodexClient } from "@alwith/module-chat/client"
 import { ThemeProvider } from "@/components/theme-provider"
 import { ChatWindow } from "@/features/chat-window/chat-window"
 import { must } from "@/lib/__tests__/must"
@@ -65,6 +65,7 @@ function environment(nativeWindow = false, resolveModel?: ClientOptions["resolve
       vi.spyOn(client, "setConfig").mockImplementation((...args) => real.setConfig(...args)),
       vi.spyOn(client, "prompt").mockImplementation((...args) => real.prompt(...args)),
       vi.spyOn(client, "respond").mockImplementation((...args) => real.respond(...args)),
+      vi.spyOn(client, "loadHistoryNavigation").mockImplementation((...args) => real.loadHistoryNavigation(...args)),
       vi.spyOn(core, "invoke").mockImplementation(async <T,>(command: string, args?: core.InvokeArgs): Promise<T> => {
         let result: unknown
         if (command === "enterprise_catalog") result = null
@@ -178,6 +179,54 @@ async function windowEnvironment(visible = false) {
   }
 }
 
+test("a floating default-project draft transfers its session directory and unsent input", async () => {
+  const env = await windowEnvironment(true)
+  const view = render(<ChatWindow preferences={{ ...windowPreferences, lastProjectDirectory: null }} />)
+  try {
+    await waitFor(() => expect(Object.keys(env.real.state.draftSessions)).toHaveLength(1))
+    const id = must(Object.keys(env.real.state.draftSessions)[0], "default-project floating draft")
+    await waitFor(() => expect(view.getByRole("textbox")).toBeEnabled())
+    await act(() =>
+      Promise.try(() => fireEvent.change(view.getByRole("textbox"), { target: { value: "keep my input" } }))
+    )
+    let transfer: chatWindow.ChatTransfer | null = null
+    await act(async () => {
+      transfer = await env.release(id)
+    })
+    expect(transfer).toMatchObject({
+      sessionId: id,
+      cwd: env.real.session(id).cwd,
+      draft: { text: "keep my input" }
+    })
+    expect(transfer).toHaveProperty("cwd", projectContext().chatDirectory)
+    expect(env.hidden).toBe(true)
+  } finally {
+    await act(() => Promise.try(() => view.unmount()))
+    env.restore()
+  }
+})
+
+test("floating restoration uses the session directory when the surface has no selected project", async () => {
+  const env = await windowEnvironment(true)
+  await env.real.connect()
+  const id = await env.real.newSession(projectContext().chatDirectory, null, "chat")
+  env.real.store.setState((state) => ({
+    sessions: { ...state.sessions, [id]: { ...env.real.session(id), attached: false } }
+  }))
+  env.restoreSurface({ sessionId: id, cwd: null, draft: null })
+  const view = render(<ChatWindow preferences={{ ...windowPreferences, lastProjectDirectory: null }} />)
+  try {
+    await waitFor(() => expect(client.open).toHaveBeenCalledWith(id, projectContext().chatDirectory))
+    await waitFor(() => expect(env.ready()).toBe(true))
+    await act(() => env.present())
+    expect(env.hidden).toBe(false)
+    expect(view.queryByText("A chat session must have a working directory")).toBeNull()
+  } finally {
+    await act(() => Promise.try(() => view.unmount()))
+    env.restore()
+  }
+})
+
 test("floating draft changes protect input while pending forms stay interactive", async () => {
   const env = await windowEnvironment(true)
   let release!: () => void
@@ -224,6 +273,51 @@ test("floating draft changes protect input while pending forms stay interactive"
     await changing?.catch(() => undefined)
     for (const action of env.real.state.actions) env.real.respond(action.id, { action: "cancel" })
     await answer?.catch(() => undefined)
+    await act(() => Promise.try(() => view.unmount()))
+    env.restore()
+  }
+})
+
+test("floating project replacement does not report a disconnected session before its reply arrives", async () => {
+  const env = await windowEnvironment(true)
+  let release!: () => void
+  const reply = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  const view = render(<ChatWindow preferences={windowPreferences} />)
+  try {
+    await waitFor(() => expect(Object.keys(env.real.state.draftSessions)).toHaveLength(1))
+    const original = must(Object.keys(env.real.state.draftSessions)[0], "the original floating draft")
+    await waitFor(() => expect(chatWindow.publishChatWindowSurface).toHaveBeenCalledWith(original, true))
+    fireEvent.change(view.getByRole("textbox"), { target: { value: "Keep this question" } })
+    mockOf(client, "prepareDraft").mockImplementation(async (...args) => {
+      const replacement = await env.real.prepareDraft(...args)
+      // The owner publishes the replacement before the floating request receives its reply.
+      await reply
+      return replacement
+    })
+    fireEvent.click(view.getByRole("button", { name: "More actions" }))
+    fireEvent.click(await view.findByRole("menuitem", { name: "New project" }))
+    await waitFor(() => expect(env.real.state.sessions[original]).toBeUndefined())
+    const replacement = must(Object.keys(env.real.state.draftSessions)[0], "the replacement floating draft")
+    expect(replacement).not.toBe(original)
+    expect(env.real.session(replacement).cwd).toBe("/tmp/window-replacement")
+    expect(view.queryByRole("button", { name: "Reconnect" })).toBeNull()
+    expect(view.getByRole("textbox")).toHaveValue("Keep this question")
+    for (const connection of ["disconnected", "failed"] as const) {
+      act(() => env.real.store.setState({ connection }))
+      expect(view.getByRole("button", { name: "Reconnect" })).toBeVisible()
+      act(() => env.real.store.setState({ connection: "ready" }))
+      expect(view.queryByRole("button", { name: "Reconnect" })).toBeNull()
+    }
+    await act(() => Promise.try(release))
+    await waitFor(() => expect(chatWindow.publishChatWindowSurface).toHaveBeenLastCalledWith(replacement, true))
+    expect(view.queryByRole("button", { name: "Reconnect" })).toBeNull()
+    expect(view.getByRole("textbox")).toHaveValue("Keep this question")
+    await act(() => env.real.stopSession(replacement))
+    expect(view.getByRole("button", { name: "Reconnect" })).toBeVisible()
+  } finally {
+    release()
     await act(() => Promise.try(() => view.unmount()))
     env.restore()
   }
@@ -312,6 +406,58 @@ test("confirmed sidebar creation replaces only its explicit floating conversatio
       await expect(env.startNewChat(original)).rejects.toThrow("The chat window conversation changed")
     })
     expect(Object.keys(env.real.state.draftSessions)).toEqual([draft])
+  } finally {
+    await act(() => Promise.try(() => view.unmount()))
+    env.restore()
+  }
+})
+
+test("reopening a floating window replaces a stopped unsent draft without resuming its retired id", async () => {
+  const env = await windowEnvironment(true)
+  const view = render(<ChatWindow preferences={windowPreferences} />)
+  try {
+    await waitFor(() => expect(Object.keys(env.real.state.draftSessions)).toHaveLength(1))
+    const id = must(Object.keys(env.real.state.draftSessions)[0], "floating draft")
+    await waitFor(() => expect(chatWindow.publishChatWindowSurface).toHaveBeenCalledWith(id, true))
+    await act(() => Promise.try(() => fireEvent.keyDown(window, { key: "Escape" })))
+    await waitFor(() => expect(env.hidden).toBe(true))
+    await act(() => env.real.stopSession(id))
+    expect(env.real.state.sessions[id]).toBeUndefined()
+    expect(env.real.state.sessionWindows[id]).toBeUndefined()
+    mockOf(client, "open").mockRejectedValue(new Error(`session/resume: thread not loaded: ${id}`))
+    await act(() => env.present())
+    await waitFor(() => expect(Object.keys(env.real.state.draftSessions)).toHaveLength(1))
+    const replacement = must(Object.keys(env.real.state.draftSessions)[0], "replacement draft")
+    expect(replacement).not.toBe(id)
+    expect(client.open).not.toHaveBeenCalled()
+    expect(view.getByRole("textbox")).toBeEnabled()
+    expect(view.queryByText(/thread not loaded/)).toBeNull()
+    expect(chatWindow.publishChatWindowSurface).toHaveBeenCalledWith(replacement, true)
+  } finally {
+    await act(() => Promise.try(() => view.unmount()))
+    env.restore()
+  }
+})
+
+test("reopening a stopped floating conversation reconnects the same saved session", async () => {
+  const env = await windowEnvironment(true)
+  const view = render(<ChatWindow preferences={windowPreferences} />)
+  try {
+    await waitFor(() => expect(Object.keys(env.real.state.draftSessions)).toHaveLength(1))
+    const id = must(Object.keys(env.real.state.draftSessions)[0], "floating draft")
+    await act(() => env.real.prompt(id, [{ type: "text", text: "Retain this conversation" }]))
+    await waitFor(() => expect(env.real.session(id).state).toBe("idle"))
+    await act(() => Promise.try(() => fireEvent.keyDown(window, { key: "Escape" })))
+    await waitFor(() => expect(env.hidden).toBe(true))
+    await act(() => env.real.stopSession(id))
+    expect(env.real.session(id).attached).toBe(false)
+    await act(() => env.present())
+    await waitFor(() => expect(env.real.session(id).attached).toBe(true))
+    expect(client.open).toHaveBeenCalledExactlyOnceWith(id, windowPreferences.lastProjectDirectory)
+    expect(Object.keys(env.real.state.draftSessions)).toHaveLength(0)
+    expect(view.getByRole("textbox")).toBeEnabled()
+    expect(env.real.session(id).items.some((item) => item.kind === "user")).toBe(true)
+    expect(chatWindow.publishChatWindowSurface).toHaveBeenLastCalledWith(id, true)
   } finally {
     await act(() => Promise.try(() => view.unmount()))
     env.restore()
