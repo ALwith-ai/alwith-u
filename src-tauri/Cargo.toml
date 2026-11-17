@@ -12,6 +12,11 @@ rust-version = "1.100"
 name = "alwith_u_lib"
 crate-type = ["rlib"]
 
+[[test]]
+name = "panel-effects"
+path = "src/__tests__/panel_effects_contract.rs"
+harness = false
+
 [build-dependencies]
 tauri-build = { version = "3.0.0-alpha.4", features = [] }
 

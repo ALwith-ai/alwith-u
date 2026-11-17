@@ -2,6 +2,8 @@ pub mod builder;
 pub mod common;
 pub mod event;
 pub mod panel;
+#[doc(hidden)]
+pub mod window_effects;
 
 // Re-export for macro usage
 #[doc(hidden)]
