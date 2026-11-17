@@ -21,7 +21,7 @@ function WelcomeProjectName({ project, children }: { project: string; children?:
         render={
           <Button
             variant="link"
-            className="inline h-auto max-w-full rounded-none p-0 align-baseline text-[length:inherit] leading-[inherit] font-normal whitespace-normal text-foreground underline decoration-muted-foreground/50 decoration-dashed decoration-1 underline-offset-6 hover:decoration-foreground active:bg-none!"
+            className="inline h-auto max-w-full rounded-none p-0 align-baseline whitespace-normal text-foreground underline decoration-muted-foreground/50 decoration-dashed decoration-1 underline-offset-6 [font:inherit] hover:decoration-foreground active:bg-none!"
             aria-label={`${t("actions.openFolder")}: ${basename(project)}`}
             onClick={() => void openPath(project).catch((error: unknown) => toast.error(text(error)))}
           />
@@ -47,8 +47,8 @@ export function ChatWelcome({ cwd = null }: { cwd?: string | null }) {
       : null
   const prefix = `chat.inputMode.welcome.${inputMode?.mode ?? "chat"}`
   return (
-    <Empty className="flex-1">
-      <EmptyHeader className="w-full max-w-3xl text-center">
+    <Empty className="min-h-0 flex-1 justify-start overflow-y-auto p-6 sm:p-12">
+      <EmptyHeader className="my-auto w-full max-w-3xl shrink-0 text-center">
         <EmptyTitle className="text-[28px] leading-relaxed font-normal [overflow-wrap:anywhere]">
           {project === null ? (
             t(`${prefix}.title`)
