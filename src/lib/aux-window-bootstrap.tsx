@@ -1,5 +1,6 @@
 // The one bootstrap for auxiliary windows (ALwith Desktop's aux-window-bootstrap): the
 // same providers the main window mounts, minus the App and its Runtime connection.
+import { isTauri } from "@tauri-apps/api/core"
 import { attachConsole, error as logError } from "@tauri-apps/plugin-log"
 import { type ComponentType, type ReactNode, StrictMode } from "react"
 import { createRoot } from "react-dom/client"
@@ -18,6 +19,7 @@ import { hydrateNavigationSound } from "@/features/chat/codex/navigation-sound-s
 import { predictionPreference } from "@/features/chat/composer/prediction-preference"
 import { initializeZoom } from "@/lib/desktop-zoom"
 import { initI18n } from "@/lib/i18n"
+import { installNativeFileDropGuard } from "@/lib/native-file-drop"
 import { startPreferenceSync } from "@/lib/preference-sync"
 import { loadPreferences, type Preferences } from "@/lib/preferences"
 import { bootstrapSettings } from "@/lib/settings-store"
@@ -33,6 +35,7 @@ export function bootstrapAuxWindow(opts: {
   /** A hook that pins the window to one appearance regardless of the user's theme, or returns undefined to follow it. */
   useForcedTheme?: () => "dark" | "light" | undefined
 }): void {
+  if (isTauri()) installNativeFileDropGuard(window)
   const Component = opts.component
   const useForcedTheme = opts.useForcedTheme ?? (() => undefined)
   function Themed({ children }: { children: ReactNode }) {

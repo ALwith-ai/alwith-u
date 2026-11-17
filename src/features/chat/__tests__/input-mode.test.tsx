@@ -1,11 +1,11 @@
 import { createSession } from "@alwith/module-chat/client"
+import type { SessionInputConfig } from "@alwith/module-chat/client"
 import { drafts } from "@alwith/module-chat/conversation"
 import { DEFAULT_IMAGE_SELECTION, type ImageSelection } from "@alwith/module-chat/image"
 import { act, fireEvent, render, waitFor } from "@testing-library/react"
 import type { ComponentProps } from "react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
-import type { SessionInputConfig } from "@alwith/module-chat/client"
 import { useImagePreferences } from "@/features/images/preferences"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
@@ -248,6 +248,16 @@ function setup({
   )
   return { ...view, session, attachment }
 }
+
+test("file selection admits ordinary files only in chat mode", () => {
+  const view = setup()
+  const input = view.container.querySelector<HTMLInputElement>('input[type="file"]')!
+  expect(input).not.toHaveAttribute("accept")
+  fireEvent.click(view.getByRole("button", { name: "Images" }))
+  expect(input).toHaveAttribute("accept", "image/png,image/jpeg,image/webp,image/gif")
+  fireEvent.click(view.getByRole("button", { name: "Chat" }))
+  expect(input).not.toHaveAttribute("accept")
+})
 
 test.each(["Chat", "Images"])("draft protection disables %s input without making the window inert", (mode) => {
   const view = setup({ inputDisabled: true })
