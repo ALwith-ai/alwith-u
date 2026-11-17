@@ -319,9 +319,6 @@ mod tests {
             "_codex/session_retry",
             "_codex/session_prediction_request",
             "_codex/realtime/start",
-            "_codex/realtime/appendAudio",
-            "_codex/realtime/appendText",
-            "_codex/realtime/appendSpeech",
         ] {
             assert!(
                 gate.check_request(

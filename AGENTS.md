@@ -182,7 +182,7 @@ Develop, debug and validate with local candidate packages in isolated environmen
 
 ## Shared chat dependency boundary
 
-Application code imports the client and session projections from `@alwith/module-chat/client`, import helpers from `@alwith/module-chat/import`, and adapter staging from `@alwith/module-chat/stage`. The shared chat package owns codex-acp; do not declare it directly or locate its files through the application's node_modules. The adapter still owns protocol implementation, and Runtime owns agent processes.
+Application code imports the client and session projections from `@alwith/module-chat/client` and adapter staging from `@alwith/module-chat/stage`. The shared chat package owns codex-acp; do not declare it directly or locate its files through the application's node_modules. The adapter still owns protocol implementation, and Runtime owns agent processes.
 
 ## Refresh previews after every change
 
