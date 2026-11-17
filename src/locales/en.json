@@ -886,6 +886,7 @@
       "newChat": "New chat",
       "commandPalette": "Command palette",
       "projectTree": "Open project tree",
+      "toggleTerminal": "Toggle terminal panel",
       "findInChat": "Find in chat",
       "openSettings": "Open settings",
       "openHotkeys": "Keyboard shortcuts",

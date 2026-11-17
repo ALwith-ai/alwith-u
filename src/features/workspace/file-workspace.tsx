@@ -68,7 +68,11 @@ import { useTheme } from "@/components/theme-provider"
 import { ChatDirectoryContext } from "@/features/chat/file-actions"
 import { DeviceWorkspaceMenu, DeviceWorkspacePane } from "@/features/device/device-workspace"
 import { BackgroundWorkspacePane } from "@/features/terminal/background-workspace"
-import { TerminalWorkspaceMenuItem, TerminalWorkspacePane } from "@/features/terminal/terminal-workspace"
+import {
+  TerminalWorkspaceMenuItem,
+  TerminalWorkspacePane,
+  useTerminalViewAvailable
+} from "@/features/terminal/terminal-workspace"
 
 import {
   type FilePosition,
@@ -195,6 +199,7 @@ export function FileWorkspace({
     [treeVisible, setTreeVisible] = useState(true),
     [viewMode, setViewMode] = useState(false),
     [pane, setPane] = useState<WorkspacePane>("files")
+  const terminalAvailable = useTerminalViewAvailable()
   const paneSessionId = useContext(WorkspaceSessionContext)
   const canvas = useContext(CanvasContext)
   const navigateCanvas = canvas?.navigate
@@ -824,6 +829,7 @@ export function FileWorkspace({
   )
   const openPane = useCallback(
     (next: WorkspacePane): void => {
+      if (next === "terminal" && (!terminalAvailable || paneSessionId === null)) return
       if (next === "files") {
         if (!visible || pane !== "files") {
           setPane("files")
@@ -843,8 +849,28 @@ export function FileWorkspace({
       setVisible(true)
       navigateCanvas?.("preview")
     },
-    [visible, pane, toggle, navigateCanvas, canvas]
+    [visible, pane, toggle, navigateCanvas, canvas, terminalAvailable, paneSessionId]
   )
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (
+        event.defaultPrevented ||
+        event.repeat ||
+        event.altKey ||
+        event.shiftKey ||
+        !(event.metaKey || event.ctrlKey) ||
+        event.key.toLowerCase() !== "j" ||
+        !terminalAvailable ||
+        paneSessionId === null
+      )
+        return
+      event.preventDefault()
+      event.stopPropagation()
+      openPane("terminal")
+    }
+    window.addEventListener("keydown", onKeyDown, true)
+    return () => window.removeEventListener("keydown", onKeyDown, true)
+  }, [terminalAvailable, paneSessionId, openPane])
   const context = useMemo(
     () => ({ visible, viewMode, pane, openPane, toggle, openFile, openProject, revealEntry, registerFileReference }),
     [visible, viewMode, pane, openPane, toggle, openFile, openProject, revealEntry, registerFileReference]

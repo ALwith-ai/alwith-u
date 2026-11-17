@@ -886,6 +886,7 @@
       "newChat": "新聊天",
       "commandPalette": "命令面板",
       "projectTree": "打开项目树",
+      "toggleTerminal": "切换终端面板",
       "findInChat": "在聊天中查找",
       "openSettings": "打开设置",
       "openHotkeys": "键盘快捷键",

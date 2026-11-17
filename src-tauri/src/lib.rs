@@ -193,7 +193,7 @@ pub fn run() {
         .plugin(drive::plugin())
         .plugin(appearance::wallpaper::plugin())
         .plugin(alwith_terminal::init(alwith_terminal::Config {
-            interactive_views: cfg!(debug_assertions),
+            interactive_views: true,
             development_directory: native::development_directory(),
         }))
         .plugin(alwith_editor::init(alwith_editor::Config { development_directory: native::development_directory() }))
