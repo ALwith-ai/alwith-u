@@ -133,7 +133,10 @@ test("Tauri keeps ASCII technical identifiers while displaying ALwith U", () => 
     bundle?: { publisher?: string }
     plugins?: { updater?: { endpoints?: string[] } }
   }
-  const devConfig = JSON.parse(read("src-tauri/tauri.dev-instance.conf.json")) as { productName?: string }
+  const devConfig = JSON.parse(read("src-tauri/tauri.dev-instance.conf.json")) as {
+    productName?: string
+    identifier?: string
+  }
 
   expect(config.productName).toBe("ALwith U")
   expect(config.mainBinaryName).toBe("alwith-u")
@@ -143,7 +146,9 @@ test("Tauri keeps ASCII technical identifiers while displaying ALwith U", () => 
   expect(config.plugins?.updater?.endpoints).toEqual([
     "https://api.alwith.ai/service/api/v1/open-source-versions/alwith-u/update/{{target}}-{{arch}}/{{current_version}}"
   ])
-  expect(devConfig.productName).toBe("ALwith U Dev")
+  expect(devConfig.productName).toMatch(/^ALwith U Dev[1-9]$/)
+  const instance = devConfig.productName?.match(/^ALwith U Dev([1-9])$/)?.[1]
+  expect(devConfig.identifier).toBe(`ai.alwith.u.dev${instance}`)
 })
 
 test("TOS mirroring follows successful tagged builds and can retry a draft release manually", () => {

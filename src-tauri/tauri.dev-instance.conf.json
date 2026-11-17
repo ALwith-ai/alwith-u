@@ -1,11 +1,14 @@
 {
-  "identifier": "ai.alwith.u.dev",
-  "productName": "ALwith U Dev",
+  "identifier": "ai.alwith.u.dev1",
+  "productName": "ALwith U Dev1",
   "bundle": {
     "createUpdaterArtifacts": false,
     "macOS": {
       "signingIdentity": null,
       "hardenedRuntime": false
     }
+  },
+  "build": {
+    "devUrl": "http://127.0.0.1:1401"
   }
 }

@@ -13,6 +13,8 @@ src-tauri/resources/adapter/
 src-tauri/resources/licenses/alwith-native/
 src-tauri/resources/licenses/alwith-runtime/
 src-tauri/target/
+src-tauri/target-dev*/
+.alwith-dev-instance.json
 src-tauri/gen/schemas/
 *.bun-build
 test-results.xml
