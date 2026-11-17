@@ -2,6 +2,7 @@ import type { PluginSummary } from "@alwith/module-chat/client"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useEffect } from "react"
 
+import { createPluginCatalogStore } from "../../../src/features/plugins/catalog-store"
 import { pluginsStore } from "../../../src/features/plugins/instance"
 import { PluginsPage } from "../../../src/features/plugins/plugins-page"
 import { client } from "../../../src/lib/client"
@@ -42,10 +43,19 @@ function CatalogPreview({ loading = false }: { loading?: boolean }) {
         capabilities: { _meta: { codex: { plugins: true, skills: true } } }
       }
     })
+    const catalog = createPluginCatalogStore({
+      identity: async () => "preview",
+      catalogPlugins: async () => ({ data: [], nextCursor: null }),
+      searchPlugins: async () => ({ data: [], nextCursor: null })
+    })
+    catalog.setState({ query: "", loading })
     pluginsStore.setState({
       loading,
-      marketplaces: [marketplace],
-      installed: [{ plugin: plugins[0], marketplace }],
+      catalog,
+      pluginsLoading: loading,
+      installedLoading: loading,
+      marketplaces: loading ? [] : [marketplace],
+      installed: loading ? [] : [{ plugin: plugins[0], marketplace }],
       skillProjects: { "/work/alwith-desktop": ["/project/.agents/skills/review/SKILL.md"] },
       skills: [
         {

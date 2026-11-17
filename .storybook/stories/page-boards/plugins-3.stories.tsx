@@ -11,3 +11,4 @@ export default meta
 export const Empty = { ...source.Empty, name: "插件与技能均为空" }
 export const Loading = { ...source.Loading, name: "加载中" }
 export const Failed = { ...source.Failed, name: "加载失败与重试" }
+export const Scrolling = { ...source.Scrolling, name: "滚动加载远程插件" }

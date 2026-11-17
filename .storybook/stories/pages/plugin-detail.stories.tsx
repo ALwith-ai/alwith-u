@@ -16,8 +16,7 @@ const meta = {
     a11y: { test: "todo" },
     docs: {
       description: {
-        component:
-          "使用真实产品组件和独立的内存模拟数据。重新选择示例即可重置页面状态。"
+        component: "使用真实产品组件和独立的内存模拟数据。重新选择示例即可重置页面状态。"
       }
     }
   },
@@ -28,7 +27,7 @@ type Story = StoryObj<typeof meta>
 
 export const Available: Story = { name: "未安装 · 详情与能力" }
 
-export const Installed: Story = { name: "已安装 · 开关与卸载", args: { pluginCase: "installed" } }
+export const Installed: Story = { name: "已安装远程插件 · 卸载", args: { pluginCase: "installed" } }
 
 export const Unavailable: Story = { name: "不可用 · 套餐限制", args: { pluginCase: "unavailable" } }
 

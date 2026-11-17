@@ -37,6 +37,18 @@
         },
         {
           "url": "https://api-dev.alwith.ai/service/**"
+        },
+        {
+          "url": "https://chatgpt.com/backend-api/ps/plugins/list"
+        },
+        {
+          "url": "https://chatgpt.com/backend-api/ps/plugins/search"
+        },
+        {
+          "url": "https://*.chatgpt.com/backend-api/ps/plugins/list"
+        },
+        {
+          "url": "https://*.chatgpt.com/backend-api/ps/plugins/search"
         }
       ]
     },

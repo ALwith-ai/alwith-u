@@ -8,6 +8,6 @@ const meta = {
 }
 export default meta
 
-export const Installed = { ...source.Installed, name: "已安装 · 开关与卸载" }
+export const Installed = { ...source.Installed, name: "已安装远程插件 · 卸载" }
 export const Unavailable = { ...source.Unavailable, name: "不可用 · 套餐限制" }
 export const Failed = { ...source.Failed, name: "详情加载失败" }

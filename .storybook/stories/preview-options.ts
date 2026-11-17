@@ -82,7 +82,7 @@ export const productPreviewArgTypes = {
   },
   pluginCase: {
     control: "select",
-    options: ["catalog", "installed", "empty", "loading", "error", "detailError", "unavailable"]
+    options: ["catalog", "installed", "empty", "loading", "error", "detailError", "unavailable", "scroll"]
   },
   extensionCase: {
     control: "select",
@@ -223,7 +223,10 @@ export const productPreviewArgTypes = {
     control: "select",
     options: ["disabled", "idle", "starting", "recording", "transcribing", "error", "unconfigured", "noSpeech"]
   },
-  chatDetail: { control: "select", options: [undefined, "usage", "usageWarning", "usageCritical", "usageFull", "fork"] },
+  chatDetail: {
+    control: "select",
+    options: [undefined, "usage", "usageWarning", "usageCritical", "usageFull", "fork"]
+  },
   accountSignedIn: { control: "boolean" },
   companyAccount: { control: "boolean" },
   emptyThreads: { control: "boolean" },

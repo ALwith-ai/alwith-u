@@ -9,6 +9,7 @@ import { must } from "@/lib/__tests__/must"
 import { client } from "@/lib/client"
 import i18n, { initI18n } from "@/lib/i18n"
 
+import { createPluginCatalogStore } from "../catalog-store"
 import { pluginsStore } from "../instance"
 import { PluginsPage } from "../plugins-page"
 
@@ -19,7 +20,19 @@ const initialAppState = client.state
 
 beforeEach(async () => {
   await initI18n("en")
-  pluginsStore.setState({ ...initialState, refresh: async () => {}, discoverSkillProjects: async () => {} }, true)
+  pluginsStore.setState(
+    {
+      ...initialState,
+      refresh: async () => {},
+      discoverSkillProjects: async () => {},
+      catalog: createPluginCatalogStore({
+        identity: async () => "account",
+        catalogPlugins: async () => ({ data: [], nextCursor: null }),
+        searchPlugins: async () => ({ data: [], nextCursor: null })
+      })
+    },
+    true
+  )
   client.store.setState({
     connection: "ready",
     agent: {
@@ -32,6 +45,7 @@ beforeEach(async () => {
 afterEach(() => {
   cleanup()
   vi.restoreAllMocks()
+  vi.unstubAllGlobals()
   pluginsStore.setState(initialState, true)
   client.store.setState(initialAppState, true)
 })
@@ -129,7 +143,10 @@ test("bundled plugins remain visible and searchable when Codex provides no hidde
     expect(within(section).getByRole("button", { name })).toBeInTheDocument()
   fireEvent.change(view.getByPlaceholderText("Search plugins"), { target: { value: "computer" } })
   await waitFor(() => expect(view.queryByRole("button", { name: "codex-app-tools" })).not.toBeInTheDocument())
-  const results = must(view.getByRole("heading", { name: "Bundled catalog" }).closest("section"), "search results")
+  const results = must(
+    (await view.findByRole("heading", { name: "Bundled catalog" })).closest("section"),
+    "search results"
+  )
   expect(within(results).getByRole("button", { name: "unified-computer-use" })).toBeInTheDocument()
   expect(within(results).getByText("1", { exact: true })).toBeInTheDocument()
 })
@@ -203,7 +220,7 @@ test("plugin controls and skill scopes follow a language change without remounti
 
 test("empty plugin and skill lists have translated messages in both supported UI languages", async () => {
   const view = render(<PluginsPage cwd={null} active />)
-  expect(view.getByText("No plugins found")).toBeDefined()
+  expect(await view.findByText("No plugins found")).toBeDefined()
   expect(view.getByText("No plugins installed")).toBeDefined()
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Skills" }))))
   expect(view.getByText("No skills found")).toBeDefined()
@@ -213,7 +230,7 @@ test("empty plugin and skill lists have translated messages in both supported UI
   expect(view.getByText("找不到技能")).toBeDefined()
   fireEvent.click(view.getByRole("button", { name: "插件" }))
   expect(view.getByText("尚未安装插件")).toBeDefined()
-  expect(view.getByText("未找到插件")).toBeDefined()
+  expect(await view.findByText("未找到插件")).toBeDefined()
 })
 
 test("plugin icons use the same local Figma asset in marketplace and installed lists", async (): Promise<void> => {
@@ -239,30 +256,64 @@ test("plugin icons use the same local Figma asset in marketplace and installed l
   expect(must(view.container.querySelector("use"), "localized plugin icon").getAttribute("href")).toBe(href)
 })
 
-test("search paginates large catalogs and a new query resets the page", async () => {
-  const plugins = Array.from({ length: 6000 }, (_, index) => plugin(`Searchable ${index}`))
+test("scrolling appends server pages without page buttons and search accepts semantic matches", async () => {
+  let intersect: IntersectionObserverCallback = () => {}
+  vi.stubGlobal(
+    "IntersectionObserver",
+    class {
+      constructor(callback: IntersectionObserverCallback) {
+        intersect = callback
+      }
+      observe() {}
+      disconnect() {}
+    }
+  )
+  const browse = vi.fn(async ({ cursor }: { cursor?: string | null } = {}) => ({
+    data: Array.from({ length: 50 }, (_, index) => ({
+      plugin: plugin(`Remote ${index + (cursor ? 50 : 0)}`),
+      marketplaceName: "remote",
+      marketplacePath: null
+    })),
+    nextCursor: cursor ? null : "next"
+  }))
+  const search = vi.fn(async () => ({
+    data: [{ plugin: plugin("Semantic result"), marketplaceName: "remote", marketplacePath: null }],
+    nextCursor: null
+  }))
   pluginsStore.setState({
-    marketplaces: [{ name: "Remote", path: null, interface: null, plugins }],
-    featuredPluginIds: [plugins[0].id]
+    catalog: createPluginCatalogStore({
+      identity: async () => "account",
+      catalogPlugins: browse,
+      searchPlugins: search
+    })
   })
   const view = render(<PluginsPage cwd={null} active />)
-  expect(view.getAllByRole("button", { name: "Install" })).toHaveLength(1)
-  await act(() =>
-    Promise.try(() =>
-      fireEvent.change(view.getByPlaceholderText("Search plugins"), { target: { value: "Searchable" } })
-    )
-  )
-  expect(view.getAllByRole("button", { name: "Install" })).toHaveLength(48)
-  expect(view.queryByText("Searchable 48")).toBeNull()
-  await act(() => Promise.try(() => fireEvent.click(view.getByRole("button", { name: "Next" }))))
-  expect(view.getByText("Searchable 48")).toBeDefined()
-  await act(() =>
-    Promise.try(() =>
-      fireEvent.change(view.getByPlaceholderText("Search plugins"), { target: { value: "Searchable 5999" } })
-    )
-  )
-  expect(view.getByText("Searchable 5999")).toBeDefined()
-  expect(view.getAllByRole("button", { name: "Install" })).toHaveLength(1)
+  await waitFor(() => expect(view.getAllByRole("button", { name: "Install" })).toHaveLength(50))
+  expect(browse).toHaveBeenCalledOnce()
+  expect(view.queryByRole("button", { name: "Next" })).not.toBeInTheDocument()
+  expect(view.queryByRole("button", { name: "Previous" })).not.toBeInTheDocument()
+  await act(async () => {
+    intersect([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver)
+    intersect([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver)
+  })
+  await waitFor(() => expect(view.getAllByRole("button", { name: "Install" })).toHaveLength(100))
+  expect(browse).toHaveBeenCalledTimes(2)
+  expect(browse).toHaveBeenLastCalledWith({
+    cursor: "next",
+    limit: 50,
+    signal: expect.any(AbortSignal),
+    accountId: "account"
+  })
+  fireEvent.change(view.getByPlaceholderText("Search plugins"), { target: { value: "mail" } })
+  await waitFor(() => expect(view.getByRole("button", { name: "Semantic result" })).toBeInTheDocument())
+  expect(search).toHaveBeenCalledWith({
+    searchTerm: "mail",
+    cursor: null,
+    limit: 50,
+    signal: expect.any(AbortSignal),
+    accountId: "account"
+  })
+  expect(view.queryByRole("button", { name: "Remote 0" })).not.toBeInTheDocument()
 })
 
 test("the upgrade spinner belongs only to an upgrade, not plugin mutations or catalog refresh", async () => {
@@ -722,4 +773,49 @@ test("a marketplace error is confined to plugins and does not hide cached skills
   expect(view.queryByRole("alert")).toBeNull()
   expect(view.getAllByRole("button", { name: "Cached skill" })[0]).toBeVisible()
   expect(view.queryByRole("status", { name: "Loading skills…" })).toBeNull()
+})
+
+test("remote failures retain local plugins and retry without hiding the directory", async () => {
+  const local: PluginMarketplaceEntry = {
+    name: "Local",
+    path: "/local",
+    interface: null,
+    plugins: [plugin("Local tool")]
+  }
+  const browse = vi
+    .fn()
+    .mockRejectedValueOnce(new Error("Service unavailable"))
+    .mockResolvedValueOnce({ data: [], nextCursor: null })
+  pluginsStore.setState({
+    marketplaces: [local],
+    catalog: createPluginCatalogStore({
+      identity: async () => "account",
+      catalogPlugins: browse,
+      searchPlugins: async () => ({ data: [], nextCursor: null })
+    })
+  })
+  const view = render(<PluginsPage cwd={null} active />)
+  expect(view.getByRole("button", { name: "Local tool" })).toBeInTheDocument()
+  const alert = await view.findByRole("alert")
+  expect(alert).toHaveTextContent("Service unavailable")
+  fireEvent.click(within(alert).getByRole("button", { name: "Retry" }))
+  await waitFor(() => expect(view.queryByRole("alert")).not.toBeInTheDocument())
+  expect(browse).toHaveBeenCalledTimes(2)
+  expect(view.getByRole("button", { name: "Local tool" })).toBeInTheDocument()
+})
+
+test("a hidden plugin page does not fetch remote pages", async () => {
+  const browse = vi.fn(async () => ({ data: [], nextCursor: null }))
+  pluginsStore.setState({
+    catalog: createPluginCatalogStore({
+      identity: async () => "account",
+      catalogPlugins: browse,
+      searchPlugins: async () => ({ data: [], nextCursor: null })
+    })
+  })
+  const view = render(<PluginsPage cwd={null} active={false} />)
+  await act(async () => {})
+  expect(browse).not.toHaveBeenCalled()
+  view.rerender(<PluginsPage cwd={null} active />)
+  await waitFor(() => expect(browse).toHaveBeenCalledOnce())
 })

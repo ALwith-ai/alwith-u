@@ -15,7 +15,7 @@ import {
   Trash2Icon,
   XIcon
 } from "lucide-react"
-import { memo, type ReactNode, useDeferredValue, useEffect, useMemo, useState } from "react"
+import { memo, type ReactNode, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useStore } from "zustand"
 
@@ -133,8 +133,6 @@ function usePluginsReady(): boolean {
   return useApp((state) => state.connection === "ready" && hasPluginStore(state.agent))
 }
 
-const PAGE_SIZE = 48
-
 function MarketplaceSection({
   marketplace,
   plugins,
@@ -147,8 +145,6 @@ function MarketplaceSection({
   const { t } = useTranslation()
   const removeMarketplace = useStore(pluginsStore, (state) => state.removeMarketplace)
 
-  const [selectedPage, setPage] = useState(0)
-  const page = Math.min(selectedPage, Math.max(0, Math.ceil(plugins.length / PAGE_SIZE) - 1))
   if (plugins.length === 0) return null
   return (
     <section key={marketplace.name} className="flex flex-col gap-4">
@@ -179,7 +175,7 @@ function MarketplaceSection({
         )}
       </div>
       <PanelList className="grid grid-cols-1 gap-x-8 gap-y-2 px-0 @min-[700px]:grid-cols-2">
-        {plugins.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map((plugin) => (
+        {plugins.map((plugin) => (
           <PluginRow
             onOpen={onOpen}
             key={plugin.remotePluginId ?? plugin.id}
@@ -189,69 +185,72 @@ function MarketplaceSection({
           />
         ))}
       </PanelList>
-      {plugins.length > PAGE_SIZE && (
-        <div className="flex items-center justify-end gap-2 px-2">
-          <Button variant="outline" size="sm" className="h-9" disabled={page === 0} onClick={() => setPage(page - 1)}>
-            {t("plugins.previousPage")}
-          </Button>
-          <span className="text-xs text-muted-foreground">
-            {page + 1} / {Math.ceil(plugins.length / PAGE_SIZE)}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-9"
-            disabled={(page + 1) * PAGE_SIZE >= plugins.length}
-            onClick={() => setPage(page + 1)}
-          >
-            {t("plugins.nextPage")}
-          </Button>
-        </div>
-      )}
     </section>
   )
 }
 
 const MarketplaceResults = memo(function MarketplaceResults({
   query,
+  active,
   onOpen
 }: {
   query: string
+  active: boolean
   onOpen: (entry: PluginEntry) => void
 }) {
   const { t } = useTranslation()
   const marketplaces = useStore(pluginsStore, (state) => state.marketplaces)
-  const featuredIds = useStore(pluginsStore, (state) => state.featuredPluginIds)
-  const index = useMemo(
-    () =>
-      marketplaces.map((marketplace) => ({
-        marketplace,
-        entries: marketplace.plugins.map((plugin) => ({
-          plugin,
-          text: [
-            plugin.name,
-            pluginTitle(plugin),
-            pluginDescription(plugin),
-            plugin.interface?.developerName ?? "",
-            ...plugin.keywords
-          ]
-            .join("\n")
-            .toLowerCase()
-        }))
-      })),
-    [marketplaces]
-  )
+  const catalog = useStore(pluginsStore, (state) => state.catalog)
+  const { entries, query: selectedQuery, loading, error, nextCursor, loadMore, retry } = useStore(catalog)
+  const current = selectedQuery === query
+  const sentinel = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const element = sentinel.current
+    if (!element || !active || !current || loading || error || nextCursor === null) return
+    let requested = false
+    const observer = new IntersectionObserver((observations) => {
+      if (requested || !observations.some((entry) => entry.isIntersecting)) return
+      requested = true
+      void loadMore()
+    })
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [active, current, loading, error, nextCursor, loadMore])
   const sections = useMemo(() => {
-    const featured = new Set(featuredIds)
-    return index.map(({ marketplace, entries }) => ({
-      marketplace,
-      plugins: entries
-        .filter(({ plugin, text }) =>
-          query === "" ? marketplace.path !== null || featured.has(plugin.id) : text.includes(query)
+    const groups = new Map<string, { marketplace: PluginMarketplaceEntry; plugins: PluginSummary[] }>()
+    const term = query.toLowerCase()
+    for (const marketplace of marketplaces)
+      groups.set(JSON.stringify([marketplace.name, marketplace.path]), {
+        marketplace,
+        plugins: marketplace.plugins.filter(
+          (plugin) =>
+            !term ||
+            [
+              plugin.name,
+              pluginTitle(plugin),
+              pluginDescription(plugin),
+              plugin.interface?.developerName ?? "",
+              ...plugin.keywords
+            ]
+              .join("\n")
+              .toLowerCase()
+              .includes(term)
         )
-        .map(({ plugin }) => plugin)
-    }))
-  }, [index, featuredIds, query])
+      })
+    if (current)
+      for (const { plugin, marketplaceName, marketplacePath } of entries) {
+        const key = JSON.stringify([marketplaceName, marketplacePath])
+        const group = groups.get(key) ?? {
+          marketplace: marketplaces.find(
+            (marketplace) => marketplace.name === marketplaceName && marketplace.path === marketplacePath
+          ) ?? { name: marketplaceName, path: marketplacePath, interface: null, plugins: [] },
+          plugins: []
+        }
+        group.plugins.push(plugin)
+        groups.set(key, group)
+      }
+    return [...groups.values()]
+  }, [marketplaces, entries, current, query])
   return (
     <>
       {sections.map(({ marketplace, plugins }) => (
@@ -262,9 +261,19 @@ const MarketplaceResults = memo(function MarketplaceResults({
           onOpen={onOpen}
         />
       ))}
-      {sections.every((section) => section.plugins.length === 0) && (
+      {(loading || !current) && <CatalogSkeleton />}
+      {current && error && (
+        <div role="alert" className="flex items-center justify-between gap-2 px-2 text-sm text-destructive">
+          <p>{error}</p>
+          <Button variant="outline" size="sm" disabled={loading} onClick={() => void retry()}>
+            {t("plugins.loadError.retry")}
+          </Button>
+        </div>
+      )}
+      {current && !loading && !error && sections.every((section) => section.plugins.length === 0) && (
         <p className="px-2 py-6 text-center text-sm text-muted-foreground">{t("plugins.empty")}</p>
       )}
+      <div ref={sentinel} className="h-px" aria-hidden="true" />
     </>
   )
 })
@@ -360,11 +369,29 @@ function PluginToolbar() {
   )
 }
 
-function MarketplaceTab({ onOpen, query }: { onOpen: (entry: PluginEntry) => void; query: string }) {
+function MarketplaceTab({
+  onOpen,
+  query,
+  active
+}: {
+  onOpen: (entry: PluginEntry) => void
+  query: string
+  active: boolean
+}) {
   const ready = usePluginsReady()
   const loadErrors = useStore(pluginsStore, (state) => state.marketplaceLoadErrors)
   const loading = useStore(pluginsStore, (state) => state.pluginsLoading && state.marketplaces.length === 0) || !ready
-  const q = useDeferredValue(query.trim().toLowerCase())
+  const catalog = useStore(pluginsStore, (state) => state.catalog)
+  const revision = useStore(catalog, (state) => state.revision)
+  const scope = useStore(pluginsStore, (state) => JSON.stringify(state.cwds))
+  const [q, setQuery] = useState(query.trim())
+  useEffect(() => {
+    const timer = setTimeout(() => setQuery(query.trim()), 200)
+    return () => clearTimeout(timer)
+  }, [query])
+  useEffect(() => {
+    if (active && ready) void catalog.getState().load(q, JSON.parse(scope) as string[])
+  }, [active, ready, catalog, q, scope, revision])
   return (
     <Pane className="pe-0" viewportClassName="pe-0">
       <div className={`${toolboxContentClassName} flex flex-col gap-8`}>
@@ -373,7 +400,7 @@ function MarketplaceTab({ onOpen, query }: { onOpen: (entry: PluginEntry) => voi
             {error.marketplacePath}: {error.message}
           </p>
         ))}
-        {loading ? <CatalogSkeleton /> : <MarketplaceResults query={q} onOpen={onOpen} />}
+        {loading ? <CatalogSkeleton /> : <MarketplaceResults query={q} active={active} onOpen={onOpen} />}
       </div>
     </Pane>
   )
@@ -625,7 +652,11 @@ export function PluginsPage({
                   hidden={kind !== "plugins"}
                   className={kind === "plugins" ? "flex min-h-0 flex-1 flex-col" : "hidden"}
                 >
-                  <MarketplaceTab query={queries.plugins} onOpen={openPlugin} />
+                  <MarketplaceTab
+                    query={queries.plugins}
+                    onOpen={openPlugin}
+                    active={active && !extensions?.active && kind === "plugins" && selected === null}
+                  />
                 </div>
                 <div
                   hidden={kind !== "skills"}
