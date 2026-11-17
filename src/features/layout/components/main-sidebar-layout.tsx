@@ -119,8 +119,8 @@ export function MainSidebarLayout({
       <WorkspaceBrowserEntryContext.Provider
         value={
           capabilities?.embeddedBrowser ? (
-            <DropdownMenuItem aria-label={t("browser.open")} onClick={showBrowser}>
-              <Globe />
+            <DropdownMenuItem className="whitespace-nowrap" aria-label={t("browser.open")} onClick={showBrowser}>
+              <Globe className="size-4 shrink-0 text-muted-foreground" />
               {t("browser.title")}
             </DropdownMenuItem>
           ) : null
