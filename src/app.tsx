@@ -1,5 +1,6 @@
 import { requestVibemonView } from "@alwith/module-auth/vibemon/core"
-import { hasAccount, isFormElicitation } from "@alwith/module-chat/client"
+import { hasAccount, isFormElicitation, watchSessionList } from "@alwith/module-chat/client"
+import type { SessionSummary } from "@alwith/module-chat/client"
 import { exportDraft, type FormAction, importDraft, setComposerDraft } from "@alwith/module-chat/conversation"
 import { commands as mobile } from "@alwith/module-mobile/commands"
 import { isTauri } from "@tauri-apps/api/core"
@@ -11,8 +12,6 @@ import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useShallow } from "zustand/react/shallow"
 
-import type { SessionSummary } from "@alwith/module-chat/client"
-import { watchSessionList } from "@alwith/module-chat/client"
 import { events } from "@/bindings"
 import { Pane } from "@/components/alwith-ui/pane"
 import { toolboxContentClassName } from "@/components/alwith-ui/toolbox-layout"
@@ -688,7 +687,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
                 </div>
                 {vibemonVisited && (
                   <div className={leadingPage === "vibemon" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
-                    <VibemonCenter />
+                    <VibemonCenter active={view === "vibemon"} />
                   </div>
                 )}
                 {view === "extension" && extensionView !== null ? (

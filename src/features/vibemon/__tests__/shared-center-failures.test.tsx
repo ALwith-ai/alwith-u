@@ -20,6 +20,7 @@ const assets = {
   getMyVibemons: vi.fn(),
   getPointAccount: vi.fn(),
   getGachaFirstDraw: vi.fn(),
+  markVibemonFirstVisit: vi.fn(),
   getActiveGachaPools: vi.fn(),
   getGachaPoolDetail: vi.fn(),
   drawGachaPool: vi.fn(),
@@ -27,6 +28,7 @@ const assets = {
 }
 const externalError = vi.fn()
 let stop: (() => void) | undefined
+let settings: Map<string, unknown>
 const originalDecode = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, "decode")
 
 beforeEach(async () => {
@@ -38,7 +40,7 @@ beforeEach(async () => {
     value: () => Promise.resolve()
   })
   await initI18n("en")
-  const settings = new Map<string, unknown>([["vibemon.introSeen", { [accountKey(account)]: true }]])
+  settings = new Map<string, unknown>([["vibemon.introSeen", { [accountKey(account)]: true }]])
   assets.getMyVibemons.mockResolvedValue([])
   assets.getPointAccount.mockResolvedValue({ available_points: 100 })
   assets.getGachaFirstDraw.mockResolvedValue({ first_draw: false })
@@ -49,6 +51,10 @@ beforeEach(async () => {
     uuid: "pool",
     name: "Test pool",
     multi_count: 10,
+    single_cost: 1,
+    multi_cost: 10,
+    start_time: null,
+    end_time: null,
     status: 1,
     items: [{ reward_type: "VIBEMON", vibemon_uuid: "pet", status: 1, rarity_code: "SSR" }]
   })
@@ -79,37 +85,28 @@ afterEach(() => {
   else Reflect.deleteProperty(HTMLImageElement.prototype, "decode")
 })
 
-test("ready resources enter the center without waiting for any animation frame", async () => {
-  vi.spyOn(globalThis, "requestAnimationFrame").mockReturnValue(1)
-  const cancelFrame = vi.spyOn(globalThis, "cancelAnimationFrame").mockImplementation(() => {})
-  let finish!: (images: Record<string, string>) => void
-  assets.resolveImages.mockImplementationOnce(
-    () =>
-      new Promise<Record<string, string>>((resolve) => {
-        finish = resolve
-      })
-  )
+test("home enters without waiting for any business requests and reopens from decoded assets", async () => {
+  assets.getMyVibemons.mockImplementation(() => new Promise(() => {}))
+  assets.getActiveGachaPools.mockImplementation(() => new Promise(() => {}))
+  assets.getPointAccount.mockImplementation(() => new Promise(() => {}))
   const view = render(<VibemonCenter />)
-  await waitFor(() => expect(assets.resolveImages).toHaveBeenCalled())
-  expect(view.getByRole("progressbar")).toBeInTheDocument()
-  expect(view.queryByRole("button", { name: "Wish" })).not.toBeInTheDocument()
-  await act(() => {
-    finish({})
-    return Promise.resolve()
-  })
-  expect(view.queryByRole("progressbar")).not.toBeInTheDocument()
-  expect(view.getByRole("button", { name: "Wish" })).toBeInTheDocument()
-  expect(cancelFrame).toHaveBeenCalled()
+  await view.findByRole("button", { name: "Wish" })
+  expect(assets.getMyVibemons).not.toHaveBeenCalled()
+  expect(assets.getActiveGachaPools).not.toHaveBeenCalled()
+  expect(assets.getPointAccount).not.toHaveBeenCalled()
+  view.unmount()
+  const reopened = render(<VibemonCenter />)
+  expect(reopened.getByRole("button", { name: "Wish" })).toBeInTheDocument()
+  expect(reopened.queryByRole("progressbar")).not.toBeInTheDocument()
 })
 
-test.each(["owned", "pool-list", "pool-detail", "resource"])(
-  "%s failure stays inside the real shared center and retry restarts loading",
+test.each(["owned", "pool-list", "pool-detail"])(
+  "%s failure is isolated to its page and home remains available",
   async (failure) => {
     const error = new Error("Request canceled")
     if (failure === "owned") assets.getMyVibemons.mockRejectedValueOnce(error)
     if (failure === "pool-list") assets.getActiveGachaPools.mockRejectedValueOnce(error)
     if (failure === "pool-detail") assets.getGachaPoolDetail.mockRejectedValueOnce(error)
-    if (failure === "resource") assets.resolveImages.mockRejectedValueOnce(error)
     const view = render(
       <ErrorBoundary fallback={<p>Whole app crashed</p>}>
         <button>Chat</button>
@@ -117,15 +114,13 @@ test.each(["owned", "pool-list", "pool-detail", "resource"])(
       </ErrorBoundary>
     )
     const chat = view.getByRole("button", { name: "Chat" })
+    fireEvent.click(await view.findByRole("button", { name: failure === "owned" ? "Album" : "Wish" }))
     expect(await view.findByRole("alert")).toHaveTextContent("Vibémon assets are unavailable")
     expect(view.queryByText("Whole app crashed")).not.toBeInTheDocument()
-    fireEvent.click(view.getByRole("button", { name: "Retry" }))
-    await waitFor(() => expect(assets.getMyVibemons).toHaveBeenCalledTimes(2))
-    await waitFor(() => expect(view.queryByRole("alert")).not.toBeInTheDocument())
+    fireEvent.click(view.getByRole("button", { name: "Back" }))
+    expect(view.getByRole("button", { name: "Wish" })).toBeInTheDocument()
     expect(view.getByRole("button", { name: "Chat" })).toBe(chat)
     expect(externalError).not.toHaveBeenCalled()
-    const { toast } = await import("sonner")
-    expect(toast.error).not.toHaveBeenCalled()
   }
 )
 
@@ -188,12 +183,13 @@ test.each(["resource", "decode"])("successful draws recover from %s failure with
     })
   const pointsBefore = assets.getPointAccount.mock.calls.length
   const ownedBefore = assets.getMyVibemons.mock.calls.length
-  const poolsBefore = assets.getActiveGachaPools.mock.calls.length
+  const poolsBefore = assets.getGachaPoolDetail.mock.calls.length
   fireEvent.click(pull)
   expect(await view.findByRole("alert")).toHaveTextContent("Draw succeeded")
   expect(assets.getPointAccount.mock.calls.length).toBeGreaterThan(pointsBefore)
   expect(assets.getMyVibemons.mock.calls.length).toBeGreaterThan(ownedBefore)
-  expect(assets.getActiveGachaPools.mock.calls.length).toBeGreaterThan(poolsBefore)
+  expect(assets.getGachaPoolDetail.mock.calls.length).toBeGreaterThan(poolsBefore)
+  expect(assets.getActiveGachaPools).toHaveBeenCalledTimes(1)
   expect(view.getByRole("button", { name: "Pull once" })).toBeDisabled()
   failResult = false
   fireEvent.click(view.getByRole("button", { name: "Reload result" }))
@@ -227,7 +223,7 @@ test("failed catalog refresh preserves a successful draw and its result recovery
   requestVibemonView("pull")
   const view = render(<VibemonCenter />)
   const pull = await view.findByRole("button", { name: "Pull once" })
-  assets.getActiveGachaPools.mockRejectedValueOnce(new Error("Catalog offline"))
+  assets.getGachaPoolDetail.mockRejectedValueOnce(new Error("Catalog offline"))
   assets.drawGachaPool.mockResolvedValue({ results: [] })
   fireEvent.click(pull)
   expect(await view.findByRole("alert")).toHaveTextContent("Draw succeeded")
@@ -252,4 +248,167 @@ test("failed inventory refresh keeps a successful draw available for result reco
   expect(view.getByRole("button", { name: "Pull once" })).toBeDisabled()
   expect(view.queryByText("Vibémon assets are unavailable")).not.toBeInTheDocument()
   expect(assets.drawGachaPool).toHaveBeenCalledTimes(1)
+})
+
+test("hidden centers stop balance refreshes and resume when shown", async () => {
+  requestVibemonView("pull")
+  const view = render(<VibemonCenter active />)
+  await view.findByRole("button", { name: "Pull once" })
+  const before = assets.getPointAccount.mock.calls.length
+  view.rerender(<VibemonCenter active={false} />)
+  fireEvent.focus(window)
+  expect(assets.getPointAccount).toHaveBeenCalledTimes(before)
+  view.rerender(<VibemonCenter active />)
+  await waitFor(() => expect(assets.getPointAccount.mock.calls.length).toBeGreaterThan(before))
+})
+
+test("an unresolved first-visit check never blocks cached home materials", async () => {
+  settings.set("vibemon.introSeen", {})
+  await refreshSettings()
+  assets.markVibemonFirstVisit = vi.fn(() => new Promise(() => {}))
+  const view = render(<VibemonCenter />)
+  expect(await view.findByRole("button", { name: "Wish" })).toBeInTheDocument()
+  expect(assets.getActiveGachaPools).not.toHaveBeenCalled()
+})
+
+test("persisted pools remain visible while background reconciliation is pending", async () => {
+  settings.set(`vibemon.poolCatalog.${accountKey(account)}`, {
+    pools: [
+      {
+        poolUuid: "saved",
+        name: "Saved pool",
+        sidebarSelectedImageUrl: "",
+        sidebarHoverImageUrl: "",
+        sidebarUnselectedImageUrl: "",
+        pageBackgroundImageUrl: "",
+        poolCardImageUrl: "",
+        status: "ACTIVE",
+        startsAt: null,
+        endsAt: null,
+        singlePrice: 1,
+        multiPrice: 10,
+        currencyType: "points",
+        canDraw: true,
+        isDefault: true
+      }
+    ]
+  })
+  assets.getActiveGachaPools.mockImplementation(() => new Promise(() => {}))
+  requestVibemonView("pull")
+  const view = render(<VibemonCenter />)
+  expect(await view.findByRole("tab", { name: "Saved pool" })).toBeInTheDocument()
+  expect(view.queryByRole("progressbar")).not.toBeInTheDocument()
+})
+
+test("a late first-visit response cannot interrupt a page the user already opened", async () => {
+  settings.set("vibemon.introSeen", {})
+  await refreshSettings()
+  let finish!: (result: { first_visit: boolean }) => void
+  assets.markVibemonFirstVisit.mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve
+      })
+  )
+  const view = render(<VibemonCenter />)
+  fireEvent.click(await view.findByRole("button", { name: "Album" }))
+  expect(await view.findByRole("button", { name: "Back" })).toBeInTheDocument()
+  await act(async () => {
+    finish({ first_visit: true })
+    await Promise.resolve()
+  })
+  expect(view.getByRole("button", { name: "Back" })).toBeInTheDocument()
+})
+
+test("cached pool browsing stays visible while draws wait for background reconciliation", async () => {
+  const initialSummaries = await assets.getActiveGachaPools.getMockImplementation()!()
+  const initialDetail = await assets.getGachaPoolDetail.getMockImplementation()!()
+  assets.getActiveGachaPools.mockResolvedValue([
+    ...initialSummaries,
+    { ...initialSummaries[0], uuid: "second-pool", sort_order: 1, is_default: 0 }
+  ])
+  assets.getGachaPoolDetail.mockImplementation(async (id: string) => ({
+    ...initialDetail,
+    uuid: id,
+    name: id === "second-pool" ? "Second pool" : "Test pool"
+  }))
+  requestVibemonView("pull")
+  const view = render(<VibemonCenter />)
+  await waitFor(() => expect(view.getByRole("button", { name: "Pull once" })).toBeEnabled())
+  const summaries = await assets.getActiveGachaPools.mock.results[0].value
+  let finish!: (value: unknown) => void
+  assets.getActiveGachaPools.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve
+      })
+  )
+  fireEvent.click(view.getByRole("button", { name: "Back" }))
+  fireEvent.click(view.getByRole("button", { name: "Wish" }))
+  await waitFor(() => expect(assets.getActiveGachaPools).toHaveBeenCalledTimes(2))
+  expect(view.getByRole("tab", { name: "Test pool" })).toBeEnabled()
+  const secondPool = view.getByRole("tab", { name: "Second pool" })
+  expect(secondPool).toBeEnabled()
+  fireEvent.click(secondPool)
+  expect(secondPool).toHaveAttribute("aria-selected", "true")
+  expect(view.getByRole("tab", { name: "Test pool" })).toHaveAttribute("aria-selected", "false")
+  expect(view.queryByRole("progressbar")).not.toBeInTheDocument()
+  const pull = view.getByRole("button", { name: "Pull once" })
+  expect(pull).toBeDisabled()
+  fireEvent.click(pull)
+  expect(assets.drawGachaPool).not.toHaveBeenCalled()
+  await act(async () => {
+    finish(summaries)
+    await Promise.resolve()
+  })
+  await waitFor(() => expect(pull).toBeEnabled())
+  assets.drawGachaPool.mockResolvedValue({ results: [] })
+  fireEvent.click(pull)
+  expect(await view.findByRole("alert")).toHaveTextContent("Draw succeeded")
+  await waitFor(() => expect(assets.getGachaPoolDetail).toHaveBeenCalledTimes(5))
+  expect(assets.getActiveGachaPools).toHaveBeenCalledTimes(2)
+})
+
+test("focus during an in-flight draw does not start a competing full pool refresh", async () => {
+  requestVibemonView("pull")
+  const view = render(<VibemonCenter />)
+  await waitFor(() => expect(view.getByRole("button", { name: "Pull once" })).toBeEnabled())
+  let finish!: (value: unknown) => void
+  assets.drawGachaPool.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve
+      })
+  )
+  fireEvent.click(view.getByRole("button", { name: "Pull once" }))
+  await waitFor(() => expect(assets.drawGachaPool).toHaveBeenCalledTimes(1))
+  expect(view.getByRole("tab", { name: "Test pool" })).toBeDisabled()
+  fireEvent.focus(window)
+  expect(assets.getActiveGachaPools).toHaveBeenCalledTimes(1)
+  await act(async () => {
+    finish({ results: [] })
+    await Promise.resolve()
+  })
+  expect(await view.findByRole("alert")).toHaveTextContent("Draw succeeded")
+  await waitFor(() => expect(assets.getGachaPoolDetail).toHaveBeenCalledTimes(2))
+  expect(assets.getActiveGachaPools).toHaveBeenCalledTimes(1)
+})
+
+test("uncached pools keep the pool frame with a content spinner and can return home", async () => {
+  assets.getActiveGachaPools.mockImplementation(() => new Promise(() => {}))
+  requestVibemonView("pull")
+  const view = render(<VibemonCenter />)
+  const loading = await view.findByTestId("vibemon-pool-loading")
+  expect(view.getByRole("status", { name: "Loading…" })).toBeInTheDocument()
+  expect(loading.querySelector(".animate-spin")).not.toBeNull()
+  const stage = view.getByTestId("vibemon-pull-stage")
+  expect(stage).toContainElement(loading)
+  expect(view.getByTestId("vibemon-pool-page-background")).toBeInTheDocument()
+  expect(view.getByRole("button", { name: "Album" })).toBeEnabled()
+  expect(view.getByRole("button", { name: "Vibémon" })).toBeEnabled()
+  expect(view.queryByRole("button", { name: "Pull once" })).not.toBeInTheDocument()
+  expect(view.queryByRole("progressbar")).not.toBeInTheDocument()
+  fireEvent.click(view.getByRole("button", { name: "Back" }))
+  expect(view.getByRole("button", { name: "Wish" })).toBeInTheDocument()
+  expect(view.queryByTestId("vibemon-pool-loading")).not.toBeInTheDocument()
 })

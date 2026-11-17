@@ -322,8 +322,17 @@ async function start() {
       dropCenter?: { x: number; y: number }
       level: VibemonPanelLevel
       trusted?: boolean
+      path?: string
     }
     switch (request.action) {
+      case "asset-read": {
+        if (request.from !== "vibemon" && request.from !== "bubble-menu-vibemon")
+          throw new Error("Only Vibemon windows may request asset reads")
+        if (payload.path === "/api/v1/vibemons/mine") return assets.assets.getMyVibemons()
+        const detail = /^\/api\/v1\/vibemons\/([^/]+)$/.exec(payload.path ?? "")
+        if (detail && detail[1] !== "catalog") return assets.assets.getVibemonDetail(decodeURIComponent(detail[1]))
+        throw new Error("Unsupported Vibemon asset read")
+      }
       case "sync-resources":
         void syncVibemonResources()
         return null

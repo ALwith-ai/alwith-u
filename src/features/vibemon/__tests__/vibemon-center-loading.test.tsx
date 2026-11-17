@@ -6,7 +6,7 @@ import {
 } from "@alwith/module-auth/vibemon"
 import { configureVibemon, initializeSettings, type VibemonHost } from "@alwith/module-auth/vibemon/core"
 import { VibemonCenter } from "@alwith/module-auth/vibemon/react"
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 
 let disposeHost = () => {}
@@ -19,7 +19,7 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-test("cached entry waits for Wish images once and preserves server ordering", async () => {
+test("home bypasses unrequested pool resources and Wish preserves server ordering", async () => {
   const summaries: GachaPoolSummary[] = [
     { uuid: "v4", name: "v4", sort_order: 3, is_default: 0 },
     { uuid: "v3", name: "v3", sort_order: 4, is_default: 1 },
@@ -157,26 +157,21 @@ test("cached entry waits for Wish images once and preserves server ordering", as
       }
     })
   render(<VibemonCenter />)
-  await waitFor(() => expect(resolve).toHaveBeenCalledTimes(4))
-  await waitFor(() =>
-    expect(decode.mock.contexts.some((image) => image.src === "https://local.test/v3/background.png")).toBe(true)
-  )
-  advanceFrames()
-  expect(screen.getByRole("progressbar")).toBeInTheDocument()
-  expect(screen.queryByRole("button", { name: "Wish" })).not.toBeInTheDocument()
-  await act(async () => {
-    releaseBackground()
-    await background
-  })
-  advanceFrames()
-  fireEvent.click(await screen.findByRole("button", { name: "Wish" }))
+  await screen.findByRole("button", { name: "Wish" })
+  expect(resolve).not.toHaveBeenCalled()
+  expect(request.mock.calls.some(([path]) => path.includes("/pools"))).toBe(false)
+  fireEvent.click(screen.getByRole("button", { name: "Wish" }))
+  await screen.findByRole("tab", { name: "v2" })
   expect(screen.queryByRole("progressbar")).not.toBeInTheDocument()
   expect(screen.getAllByRole("tab").map((tab) => tab.getAttribute("aria-label"))).toEqual(["v2", "v1", "v4", "v3"])
   expect(screen.getByRole("tab", { name: "v2" })).toHaveAttribute("aria-selected", "true")
-  expect(resolve).toHaveBeenCalledWith("v3", "https://cdn.test/v3.zip")
+  expect(resolve).toHaveBeenCalledWith("v2")
+  expect(decode.mock.contexts.some((image) => image.src === "https://local.test/v3/background.png")).toBe(false)
+  releaseBackground()
+  advanceFrames()
   fireEvent.click(screen.getByRole("button", { name: "Back" }))
   fireEvent.click(screen.getByRole("button", { name: "Wish" }))
   expect(screen.queryByRole("progressbar")).not.toBeInTheDocument()
-  expect(resolve).toHaveBeenCalledTimes(4)
+  expect(resolve.mock.calls.every(([id]) => id === "v2")).toBe(true)
   assets.dispose()
 })
