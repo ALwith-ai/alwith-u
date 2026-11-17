@@ -832,7 +832,8 @@ export function FileWorkspace({
         return
       }
       requestGeneration.current++
-      if (visible && pane === next) {
+      // Selecting a retained pane from another screen reveals it instead of closing it.
+      if (visible && pane === next && (!canvas || canvas.region === "chat" || canvas.region === "preview")) {
         setVisible(false)
         setViewMode(false)
         setPane("files")
@@ -842,7 +843,7 @@ export function FileWorkspace({
       setVisible(true)
       navigateCanvas?.("preview")
     },
-    [visible, pane, toggle, navigateCanvas]
+    [visible, pane, toggle, navigateCanvas, canvas]
   )
   const context = useMemo(
     () => ({ visible, viewMode, pane, openPane, toggle, openFile, openProject, revealEntry, registerFileReference }),
