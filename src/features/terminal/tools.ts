@@ -66,7 +66,6 @@ export function createTerminalTools(service: TerminalClient, cwd: string) {
     defineApplicationTool({
       name: definition.name,
       description: definition.description,
-      revision: "terminal-v1",
       inputSchema: {
         type: "object",
         properties: Object.fromEntries(definition.keys.map((key) => [key, properties[key]])),
@@ -74,7 +73,7 @@ export function createTerminalTools(service: TerminalClient, cwd: string) {
         additionalProperties: false
       },
       ...(definition.name === "terminal_list" || definition.name === "read_thread_terminal"
-        ? { autoApprove: () => true }
+        ? { annotations: { readOnlyHint: true } }
         : {}),
       parse(input: unknown) {
         const args = object(input)
@@ -98,10 +97,7 @@ export function createTerminalTools(service: TerminalClient, cwd: string) {
             typeof args.terminalId === "string" ? args.terminalId : undefined
           )
           if (!snapshot)
-            return {
-              success: true,
-              contentItems: [{ type: "text", text: "No application terminal is attached to this chat." }]
-            }
+            return { content: [{ type: "text", text: "No application terminal is attached to this chat." }] }
           if (definition.name === "read_thread_terminal") result = snapshot
           else if (definition.name === "terminal_write") {
             await service.write(snapshot, text(args, "data"))
@@ -124,7 +120,7 @@ export function createTerminalTools(service: TerminalClient, cwd: string) {
           : result
             ? readable(result as TerminalSnapshot)
             : null
-        return { success: true, contentItems: [{ type: "text", text: JSON.stringify(data) }] }
+        return { content: [{ type: "text", text: JSON.stringify(data) }] }
       }
     })
   )

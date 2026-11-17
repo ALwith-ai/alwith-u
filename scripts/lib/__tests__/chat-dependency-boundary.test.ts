@@ -6,7 +6,6 @@ import * as chat from "@alwith/module-chat/client"
 
 test("the installed chat package exposes the application tool API consumed by U", () => {
   expect(typeof chat.defineApplicationTool).toBe("function")
-  expect(typeof chat.applicationToolSet).toBe("function")
 })
 
 test("module-chat owns the adapter dependency and its patches", () => {

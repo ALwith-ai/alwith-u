@@ -1,4 +1,4 @@
-import { type ApplicationToolResult, defineApplicationTool } from "@alwith/module-chat/client"
+import { defineApplicationTool } from "@alwith/module-chat/client"
 import { invoke } from "@tauri-apps/api/core"
 
 import { tools } from "./definitions.mjs"
@@ -21,8 +21,7 @@ export function createWebAutomationTools() {
   return tools.map((definition) =>
     defineApplicationTool({
       ...definition,
-      revision: "web-automation-v2",
-      autoApprove: () => readOnlyTools.has(definition.name),
+      ...(readOnlyTools.has(definition.name) ? { annotations: { readOnlyHint: true } } : {}),
       parse(input: unknown) {
         if (input === undefined) return {}
         if (!input || typeof input !== "object" || Array.isArray(input)) throw Error("Expected browser arguments")
@@ -40,20 +39,21 @@ export function createWebAutomationTools() {
           if (definition.name === "browser_screenshot") {
             const capture = result as { image?: { mimeType: string; data: string }; pending?: boolean }
             if (capture.pending)
-              return { success: true, contentItems: [{ type: "text", text: JSON.stringify(result) }] }
+              return { content: [{ type: "text", text: JSON.stringify(result) }] }
             if (capture.image?.mimeType !== "image/png" || typeof capture.image.data !== "string")
               throw Error("Invalid browser screenshot result")
             const { image, ...metadata } = capture
-            const contentItems: ApplicationToolResult["contentItems"] = [
-              { type: "text", text: JSON.stringify(metadata) },
-              { type: "image", mimeType: image.mimeType, data: image.data }
-            ]
-            return { success: true, contentItems }
+            return {
+              content: [
+                { type: "text", text: JSON.stringify(metadata) },
+                { type: "image", mimeType: image.mimeType, data: image.data }
+              ]
+            }
           }
           const outcome = result as { ok?: boolean; pending?: boolean } | null
           return {
-            success: outcome?.ok !== false || outcome?.pending === true,
-            contentItems: [{ type: "text", text: JSON.stringify(result) }]
+            content: [{ type: "text", text: JSON.stringify(result) }],
+            isError: outcome?.ok === false && outcome.pending !== true
           }
         } finally {
           signal.removeEventListener("abort", cancel)

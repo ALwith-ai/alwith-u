@@ -8,10 +8,6 @@ import { createDocsTools, docsToolSet } from "../docs-tools"
 import { createFakeAgent } from "./fake-agent"
 import { FakeHubPort } from "./fake-runtime-client"
 
-const docsRevisions = docsToolSet.definitions.map((tool) => [tool.name, docsToolSet.revision])
-const docsRevision = JSON.stringify(docsRevisions)
-const imageDocsRevision = JSON.stringify([...docsRevisions, ["generate_image", "images-v1"]])
-
 const chapters = parseGuide(content, metadata)
 function fixture(images = false) {
   const fake = createFakeAgent()
@@ -39,14 +35,13 @@ function fixture(images = false) {
   return { client, fake, requests, generateExternal }
 }
 
-function payload(result: unknown) {
-  const response = result as {
-    success: boolean
-    contentItems: { type: string; text: string }[]
-  }
-  expect(response.success).toBe(true)
-  return JSON.parse(response.contentItems[0].text)
+function payload(outcome: unknown) {
+  const { result } = outcome as { result: { isError?: boolean; content: { type: string; text: string }[] } }
+  expect(result.isError).toBeUndefined()
+  return JSON.parse(result.content[0].text)
 }
+
+const declared = { mcpServers: [{ type: "acp", name: "alwith", serverId: expect.any(String) }] }
 
 test("ordinary sessions declare and execute all three documentation tools through the application channel", async () => {
   const { client, fake, requests } = fixture()
@@ -54,18 +49,11 @@ test("ordinary sessions declare and execute all three documentation tools throug
     await client.connect()
     const id = await client.newSession("/project")
     const creation = requests.mock.calls.find((call) => call[1] === "session/new")?.[2]
-    expect(creation).toMatchObject({
-      _meta: {
-        alwith: {
-          tools: docsToolSetWithRevision(docsRevision)
-        }
-      }
-    })
+    expect(creation).toMatchObject(declared)
     expect((await client.readInputConfig(id)).inputConfig).toBeNull()
     const call = (name: string, args: unknown) =>
       fake.requestTool({
         sessionId: id,
-        toolSetRevision: docsRevision,
         name,
         arguments: args
       })
@@ -76,76 +64,53 @@ test("ordinary sessions declare and execute all three documentation tools throug
     expect(chapter.data.text).toBe(chapters.find((entry) => entry.id === "models")!.text)
     expect(chapter.data.url).toBe("alwith-docs://guide/models")
     expect(payload(await call("alwith_docs_outline", {})).data).toHaveLength(chapters.length)
-    for (const args of [{ id: "../../private" }, { id: "models", extra: true }, null])
-      expect(await call("alwith_docs_fetch", args)).toMatchObject({
-        success: false
-      })
+    for (const args of [{ id: "../../private" }, { id: "models", extra: true }])
+      expect(await call("alwith_docs_fetch", args)).toMatchObject({ result: { isError: true } })
+    expect(await call("alwith_docs_fetch", null)).toMatchObject({ error: { code: -32602 } })
   } finally {
     client.disconnect()
   }
 })
-
-function docsToolSetWithRevision(revision: string) {
-  return { ...docsToolSet, revision }
-}
 
 test("restored and forked sessions receive documentation tools and calls remain bound to their explicit session", async () => {
   const { client, fake, requests } = fixture()
   try {
     await client.connect()
     await client.open("saved-docs", "/project")
-    expect(requests.mock.calls.find((call) => call[1] === "session/resume")?.[2]).toMatchObject({
-      _meta: {
-        alwith: {
-          tools: docsToolSetWithRevision(docsRevision)
-        }
-      }
-    })
+    expect(requests.mock.calls.find((call) => call[1] === "session/resume")?.[2]).toMatchObject(declared)
     const fork = await client.fork("saved-docs", "/project")
-    const call = (sessionId: string, revision = docsRevision) =>
+    const call = (sessionId: string) =>
       fake.requestTool({
         sessionId,
-        toolSetRevision: revision,
         name: "alwith_docs_outline",
         arguments: {}
       })
     expect(payload(await call(fork)).version).toBe("1.2.3")
     expect(payload(await call("saved-docs")).version).toBe("1.2.3")
-    expect(await call("unknown")).toMatchObject({ success: false })
-    expect(await call(fork, "stale")).toMatchObject({ success: false })
+    await expect(call("unknown")).rejects.toThrow("declared no application tools")
     await client.close(fork)
-    expect(await call(fork)).toMatchObject({ success: false })
+    await expect(call(fork)).rejects.toMatchObject({ code: -33001 })
   } finally {
     client.disconnect()
   }
 })
 
-test("image and documentation tools coexist with one revision without rerouting image calls", async () => {
+test("image and documentation tools coexist without rerouting image calls", async () => {
   const { client, fake, requests, generateExternal } = fixture(true)
   try {
     await client.connect()
     const id = await client.newSession("/project", {
       meta: { alwith: { inputMode: "image" } }
     })
-    const creation = requests.mock.calls.find((call) => call[1] === "session/new")?.[2]
-    expect(creation).toMatchObject({
-      _meta: {
-        alwith: {
-          tools: {
-            revision: imageDocsRevision,
-            definitions: expect.arrayContaining([
-              { ...docsToolSet.definitions[0] },
-              expect.objectContaining({ name: "generate_image" })
-            ])
-          }
-        }
-      }
-    })
+    expect(requests.mock.calls.find((call) => call[1] === "session/new")?.[2]).toMatchObject(declared)
+    const listed = (await fake.listTools(id)) as { result: { tools: { name: string }[] } }
+    expect(listed.result.tools.map((tool) => tool.name)).toEqual(
+      expect.arrayContaining([docsToolSet.definitions[0].name, "generate_image"])
+    )
     expect(
       payload(
         await fake.requestTool({
           sessionId: id,
-          toolSetRevision: imageDocsRevision,
           name: "alwith_docs_outline",
           arguments: {}
         })
@@ -155,72 +120,26 @@ test("image and documentation tools coexist with one revision without rerouting 
     expect(
       await fake.requestTool({
         sessionId: id,
-        toolSetRevision: imageDocsRevision,
         name: "generate_image",
         arguments: { prompt: "A tree" }
       })
-    ).toMatchObject({ success: true })
+    ).not.toHaveProperty("result.isError")
     expect(generateExternal).toHaveBeenCalledTimes(1)
   } finally {
     client.disconnect()
   }
 })
 
-test("installed shared client approves live guide calls while other tools still require review", async () => {
+test("guide tools are read-only, so the agent runs them without asking", async () => {
   const { client, fake } = fixture()
   try {
     await client.connect()
-    const id = await client.newSession("/project", {
-      meta: { codex: { mode: "agent" } }
-    })
-    await fake.pushUpdate(id, {
-      sessionUpdate: "state_update",
-      state: "running"
-    })
-    const request = (toolCallId: string) =>
-      fake.requestPermission({
-        sessionId: id,
-        title: "Search the installed ALwith U user guide",
-        subject: {
-          type: "tool_call",
-          toolCall: { toolCallId, kind: "other", status: "pending" }
-        },
-        options: [
-          { optionId: "allow_once", kind: "allow_once", name: "Allow" },
-          { optionId: "reject_once", kind: "reject_once", name: "Reject" }
-        ]
-      })
-    for (const tool of docsToolSet.definitions) {
-      await fake.pushUpdate(id, {
-        sessionUpdate: "tool_call_update",
-        toolCallId: tool.name,
-        name: `alwith_client_${tool.name}`,
-        title: "Translated tool title",
-        status: "in_progress"
-      })
-      // Request immediately: the UI snapshot may still be waiting for its render batch.
-      expect(await request(tool.name)).toEqual({
-        outcome: { outcome: "selected", optionId: "allow_once" }
-      })
-      expect(client.state.actions).toHaveLength(0)
+    const id = await client.newSession("/project")
+    const listed = (await fake.listTools(id)) as {
+      result: { tools: { name: string; annotations?: Record<string, unknown> }[] }
     }
-    for (const name of ["exec_command", "alwith_client_generate_image", "alwith_client_unregistered"]) {
-      await fake.pushUpdate(id, {
-        sessionUpdate: "tool_call_update",
-        toolCallId: name,
-        name,
-        title: "Search the installed ALwith U user guide",
-        status: "in_progress"
-      })
-      const pending = request(name)
-      await vi.waitFor(() => expect(client.state.actions).toHaveLength(1))
-      client.respond(client.state.actions[0].id, {
-        outcome: { outcome: "selected", optionId: "reject_once" }
-      })
-      expect(await pending).toEqual({
-        outcome: { outcome: "selected", optionId: "reject_once" }
-      })
-    }
+    for (const tool of docsToolSet.definitions)
+      expect(listed.result.tools.find((entry) => entry.name === tool.name)?.annotations).toEqual({ readOnlyHint: true })
   } finally {
     client.disconnect()
   }

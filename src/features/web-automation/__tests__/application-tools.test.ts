@@ -1,4 +1,4 @@
-import { applicationToolSet, CodexClient } from "@alwith/module-chat/client"
+import { CodexClient } from "@alwith/module-chat/client"
 import { expect, test, vi } from "vitest"
 
 import { createFakeAgent } from "@/agent/__tests__/fake-agent"
@@ -13,7 +13,7 @@ test("new, resumed and forked conversations call native web automation with thei
   invoke.mockReset().mockImplementation(async (_command, args: { sessionId: string }) => ({ session: args.sessionId }))
   const fake = createFakeAgent()
   const port = new FakeHubPort(() => fake.app)
-  const tools = createWebAutomationTools().map((tool) => ({ ...tool, autoApprove: () => true }))
+  const tools = createWebAutomationTools()
   const client = new CodexClient(() => Promise.resolve(port), {
     agentId: "codex",
     launch: { engine: "codex" },
@@ -28,19 +28,17 @@ test("new, resumed and forked conversations call native web automation with thei
     for (const sessionId of [fresh, "saved-browser", fork]) {
       const reply = await fake.requestTool({
         sessionId,
-        toolSetRevision: applicationToolSet(tools).revision,
         name: "browser_list",
         arguments: {}
       })
       expect(reply).toMatchObject({
-        success: true,
-        contentItems: [{ type: "text", text: JSON.stringify({ session: sessionId }) }]
+        result: { content: [{ type: "text", text: JSON.stringify({ session: sessionId }) }] }
       })
       expect(invoke).toHaveBeenLastCalledWith("web_automation_execute", { sessionId, name: "browser_list", args: {} })
     }
     for (const [, method, params] of requests.mock.calls) {
       if (!["session/new", "session/resume", "session/fork"].includes(method)) continue
-      expect(params).toMatchObject({ _meta: { alwith: { tools: applicationToolSet(tools) } } })
+      expect(params).toMatchObject({ mcpServers: [{ type: "acp", name: "alwith" }] })
       expect(JSON.stringify(params)).not.toContain("embedded_browser")
     }
   } finally {
@@ -76,11 +74,11 @@ test("cancellation releases only the originating native session and never report
   expect(invoke.mock.calls.filter(([command]) => command === "web_automation_execute")).toHaveLength(1)
 })
 
-test("read-only observations need no extra approval while actions retain the application permission boundary", () => {
+test("read-only observations are annotated so the agent runs them without asking, while actions keep its approval", () => {
   const tools = createWebAutomationTools()
-  expect(tools.find((tool) => tool.name === "browser_read_page")?.autoApprove?.("session")).toBe(true)
-  expect(tools.find((tool) => tool.name === "browser_type")?.autoApprove?.("session")).toBe(false)
-  expect(tools.find((tool) => tool.name === "browser_evaluate")?.autoApprove?.("session")).toBe(false)
+  expect(tools.find((tool) => tool.name === "browser_read_page")?.annotations).toEqual({ readOnlyHint: true })
+  expect(tools.find((tool) => tool.name === "browser_type")?.annotations).toBeUndefined()
+  expect(tools.find((tool) => tool.name === "browser_evaluate")?.annotations).toBeUndefined()
 })
 
 test("screenshots are delivered as image content, not base64 embedded in text", async () => {
@@ -100,8 +98,8 @@ test("screenshots are delivered as image content, not base64 embedded in text", 
       agent: {} as import("@alwith/module-chat/client").ApplicationToolContext["agent"]
     }
   )
-  expect(result.contentItems[1]).toEqual({ type: "image", mimeType: "image/png", data: "aW1hZ2U=" })
-  expect(result.contentItems[0]).toMatchObject({ type: "text", text: expect.not.stringContaining("aW1hZ2U=") })
+  expect(result.content[1]).toEqual({ type: "image", mimeType: "image/png", data: "aW1hZ2U=" })
+  expect(result.content[0]).toMatchObject({ type: "text", text: expect.not.stringContaining("aW1hZ2U=") })
 })
 
 test("a rejected replacement is not reported as successful application execution", async () => {
@@ -117,5 +115,5 @@ test("a rejected replacement is not reported as successful application execution
       agent: {} as import("@alwith/module-chat/client").ApplicationToolContext["agent"]
     }
   )
-  expect(result.success).toBe(false)
+  expect(result.isError).toBe(true)
 })

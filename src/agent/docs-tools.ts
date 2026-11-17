@@ -6,8 +6,6 @@ type DocsService = { chapters: GuideChapter[]; version: string }
 
 /** Read-only application tools share the guide's parsed content and citation URLs. */
 export const docsToolSet = {
-  version: 1,
-  revision: "docs-v1",
   definitions: [
     {
       name: "alwith_docs_search",
@@ -63,10 +61,9 @@ export function createDocsTools(service: DocsService) {
   return docsToolSet.definitions.map((definition) =>
     defineApplicationTool({
       ...definition,
-      revision: docsToolSet.revision,
-      autoApprove: () => true,
+      annotations: { readOnlyHint: true },
       parse: (input: unknown) => callDocsTool(service, definition.name, input),
-      execute: (result) => ({ success: true, contentItems: [{ type: "text", text: JSON.stringify(result) }] })
+      execute: (result) => ({ content: [{ type: "text", text: JSON.stringify(result) }] })
     })
   )
 }

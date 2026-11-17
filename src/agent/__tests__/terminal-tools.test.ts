@@ -33,28 +33,26 @@ test("application terminals bind native actions to the requesting chat across tu
     launch: { engine: "codex" },
     applicationTools: ({ cwd }) => createTerminalTools(service, cwd)
   })
-  const revision = JSON.stringify(createTerminalTools(service, "/project").map((tool) => [tool.name, tool.revision]))
   try {
     await client.connect()
     const a = await client.newSession("/project/a"),
       b = await client.newSession("/project/b")
     const call = (sessionId: string, name: string, args: unknown) =>
-      fake.requestTool({ sessionId, toolSetRevision: revision, name, arguments: args })
+      fake.requestTool({ sessionId, name, arguments: args })
     const result = await call(a, "terminal_start", { command: "bun dev" })
-    expect(result).toMatchObject({ success: true })
+    expect(result).not.toHaveProperty("result.isError")
     expect(native).toHaveBeenLastCalledWith(
       "start",
       expect.objectContaining({ sessionId: a, cwd: "/project/a", command: "bun dev", interactive: false })
     )
     expect(JSON.stringify(result)).not.toContain("Base64")
-    expect(await call(b, "terminal_list", {})).toMatchObject({ success: true })
+    expect(await call(b, "terminal_list", {})).not.toHaveProperty("result.isError")
     expect(native).toHaveBeenLastCalledWith("list", { sessionId: b })
     const count = native.mock.calls.length
-    expect(await call(a, "terminal_start", { sessionId: b, command: "wrong" })).toMatchObject({ success: false })
+    expect(await call(a, "terminal_start", { sessionId: b, command: "wrong" })).toMatchObject({ result: { isError: true } })
     expect(native).toHaveBeenCalledTimes(count)
     expect(await call(a, "read_thread_terminal", {})).toMatchObject({
-      success: true,
-      contentItems: [{ type: "text", text: "No application terminal is attached to this chat." }]
+      result: { content: [{ type: "text", text: "No application terminal is attached to this chat." }] }
     })
     expect(native).toHaveBeenLastCalledWith("snapshot", { sessionId: a, terminalId: null })
   } finally {

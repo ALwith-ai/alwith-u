@@ -202,12 +202,10 @@ describe("browser application tools", () => {
         applicationTools: tools.map((definition) =>
           defineApplicationTool({
             ...definition,
-            revision: "web-automation-v2",
-            autoApprove: () => definition.name === "browser_read_page",
+            ...(definition.name === "browser_read_page" ? { annotations: { readOnlyHint: true } } : {}),
             parse: (input: unknown) => input,
             execute: async (args, { sessionId }) => ({
-              success: true,
-              contentItems: [
+              content: [
                 {
                   type: "text",
                   text: JSON.stringify(await ipc("web_automation_execute", { sessionId, name: definition.name, args }))

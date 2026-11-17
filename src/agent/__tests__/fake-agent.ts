@@ -40,7 +40,12 @@ export type FakeAgent = {
   pushRateLimits: (usedPercent: number) => Promise<void>
   pushUpdate: (sessionId: string, update: acp.SessionUpdate) => Promise<void>
   requestPermission: (params: acp.RequestPermissionRequest) => Promise<acp.RequestPermissionResponse>
-  requestTool: (params: unknown) => Promise<unknown>
+  /** Calls an application tool the way codex-acp does: `tools/call` over MCP-over-ACP, with Codex's call metadata. */
+  requestTool: (params: { sessionId: string; name: string; arguments: unknown; toolCallId?: string }) => Promise<acp.McpOutcome>
+  /** The `"type": "acp"` server each session declared last, by session. */
+  mcpServers: Map<string, string>
+  /** Lists a session's application tools as Codex does, with `tools/list`. */
+  listTools: (sessionId: string) => Promise<acp.McpOutcome>
   requestForm: (params: acp.CreateElicitationRequest) => Promise<acp.CreateElicitationResponse>
   resumeResponse: { current: ((signal: AbortSignal) => Promise<acp.ResumeSessionResponse>) | null }
   /** Stored routes survive catalog changes and are checked before any history replay. */
@@ -145,7 +150,7 @@ export function createFakeAgent(): FakeAgent {
       protocolVersion: 2,
       info: { name: "fake-codex", version: "1" },
       capabilities: {
-        session: { fork: {}, title: {}, systemPrompt: {}, prompt: { image: {} } },
+        session: { fork: {}, title: {}, systemPrompt: {}, prompt: { image: {} }, mcp: { acp: {} } },
         _meta: {
           codex: {
             forkAtTurn: true,
@@ -236,6 +241,13 @@ export function createFakeAgent(): FakeAgent {
     if (gateways.size === 0) gateway.current = null
     return {}
   })
+  const mcpServers = new Map<string, string>()
+  const declareServers = (id: string, servers: acp.McpServer[] | undefined) => {
+    const server = servers?.find((entry) => entry.type === "acp")
+    if (server) mcpServers.set(id, (server as acp.McpServerAcp).serverId)
+    else mcpServers.delete(id)
+  }
+  const caller = new acp.McpOverAcpCaller({ clientInfo: { name: "fake-codex", version: "1" } })
   app.onRequest("session/new", async ({ params }) => {
     await newSessionDelay.current?.(params.cwd)
     const hint = modelHintOf(params)
@@ -245,6 +257,7 @@ export function createFakeAgent(): FakeAgent {
     if (params.cwd === "/needs-auth" && !configuredGateway) throw acp.RequestError.authRequired()
     const id = sessionId()
     modelHints.set(id, hint)
+    declareServers(id, params.mcpServers)
     return { sessionId: id, configOptions: optionsFor(hint, params._meta), availableCommands: sessionCommands.current }
   })
   app.onRequest("session/fork", async ({ params, client }) => {
@@ -254,6 +267,7 @@ export function createFakeAgent(): FakeAgent {
     if (input) inputConfig.set(id, { ...input, sessionId: id })
     const hint = modelHintOf(params)
     modelHints.set(id, hint)
+    declareServers(id, params.mcpServers)
     const codex = {
       nativeSessionId: id,
       forkedFromId: params.sessionId,
@@ -296,6 +310,7 @@ export function createFakeAgent(): FakeAgent {
   app.onRequest("session/resume", async ({ params, client, signal }) => {
     const hint = modelHintOf(params)
     modelHints.set(params.sessionId, hint)
+    declareServers(params.sessionId, params.mcpServers)
     const selected = hint ?? persistedModels.get(params.sessionId) ?? null
     if (
       selected?.startsWith("gateway:") &&
@@ -530,12 +545,21 @@ export function createFakeAgent(): FakeAgent {
       if (link === null) throw new Error("Fake agent is not connected")
       return link.request("session/request_permission", params)
     },
-    requestTool: async (params) => {
+    mcpServers,
+    listTools: async (id) => {
       if (link === null) throw new Error("Fake agent is not connected")
-      return link.request("_alwith/tool/call", {
-        turnId: "tool-turn",
-        toolCallId: crypto.randomUUID(),
-        ...(params as Record<string, unknown>)
+      const serverId = mcpServers.get(id)
+      if (serverId === undefined) throw new Error(`Session ${id} declared no application tools`)
+      return caller.request(link, serverId, "tools/list", {})
+    },
+    requestTool: async ({ sessionId: id, name, arguments: args, toolCallId = crypto.randomUUID() }) => {
+      if (link === null) throw new Error("Fake agent is not connected")
+      const serverId = mcpServers.get(id)
+      if (serverId === undefined) throw new Error(`Session ${id} declared no application tools`)
+      return caller.request(link, serverId, "tools/call", {
+        name,
+        arguments: args,
+        _meta: { callId: toolCallId, "x-codex-turn-metadata": { turn_id: "tool-turn" } }
       })
     },
     requestForm: async (params) => {
