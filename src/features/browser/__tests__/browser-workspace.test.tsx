@@ -1,8 +1,10 @@
 import "./language"
+import { type DesktopCanvas, DesktopCanvasContext } from "@alwith/module-desktop-shell/react"
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { expect, test, vi } from "vitest"
 
 import { BrowserWorkspace } from "../browser-workspace"
+vi.mock("../browser-quick-chat", () => ({ BrowserQuickChat: () => null }))
 vi.mock("@tauri-apps/api/window", () => ({ getCurrentWindow: () => ({ onFocusChanged: async () => () => {} }) }))
 vi.mock("../browser-pane", () => ({
   BrowserPane: ({ request, active }: { request?: { url: string }; active: boolean }) => (
@@ -12,6 +14,40 @@ vi.mock("../browser-pane", () => ({
   )
 }))
 const props = { active: true, maximized: false, onMaximize: vi.fn(), onClose: vi.fn() }
+
+test("revealing an open browser returns to its canvas region without recreating its page", () => {
+  const navigate = vi.fn()
+  const canvas: DesktopCanvas = {
+    viewportWidth: 1256,
+    budget: 1000,
+    region: "preview",
+    trailingActive: false,
+    moving: false,
+    movePane: vi.fn(() => false),
+    navigate
+  }
+  const surface = (revealRequest: number, region = "preview", active = true) => (
+    <DesktopCanvasContext.Provider value={{ ...canvas, region }}>
+      <BrowserWorkspace {...props} active={active} revealRequest={revealRequest} />
+    </DesktopCanvasContext.Provider>
+  )
+  const view = render(surface(1))
+  expect(navigate).toHaveBeenLastCalledWith("browser")
+  const draft = screen.getByRole("textbox", { name: "manual draft" })
+  fireEvent.change(draft, { target: { value: "retained page" } })
+  navigate.mockClear()
+  view.rerender(surface(1, "preview"))
+  expect(navigate).not.toHaveBeenCalled()
+  view.rerender(surface(2))
+  expect(navigate).toHaveBeenCalledExactlyOnceWith("browser")
+  expect(screen.getByRole("textbox", { name: "manual draft" })).toBe(draft)
+  expect(draft).toHaveValue("retained page")
+  navigate.mockClear()
+  view.rerender(surface(3, "preview", false))
+  expect(navigate).not.toHaveBeenCalled()
+  view.rerender(surface(3))
+  expect(navigate).toHaveBeenCalledExactlyOnceWith("browser")
+})
 test("different AI requests create independent retained tabs", async () => {
   const a = { id: "a", url: "https://first.example/", sessionId: "ai-a" }
   const b = { id: "b", url: "https://second.example/", sessionId: "ai-b" }

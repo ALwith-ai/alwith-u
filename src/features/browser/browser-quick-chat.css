@@ -1,0 +1,71 @@
+/* Composer menus stay inside the floating panel above its input. */
+[data-quick-chat-panel] {
+  container: browser-chat / size;
+}
+
+[data-quick-chat-panel] [role="listbox"] > div {
+  max-height: min(18rem, var(--browser-chat-menu-height, 18rem));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+[data-quick-chat-panel] .codex-composer-surface {
+  --chat-input-max-height: min(18rem, 30cqh);
+}
+
+/* Keep Desktop's intrinsic model width, allowing it to shrink between fixed controls. */
+[data-quick-chat-panel] .chat-composer-toolbar div:has(> [data-testid="model-trigger"]) {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+/* One inline text run owns the ellipsis; the two edge icons remain outside it. */
+[data-quick-chat-panel] .chat-composer-toolbar [data-testid="model-trigger"] {
+  position: relative;
+  display: block;
+  align-content: center;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  padding-inline: 1.5rem 1.25rem;
+  text-align: start;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-quick-chat-panel] [data-testid="model-trigger"] > svg:first-child,
+[data-quick-chat-panel] [data-testid="model-trigger"] > img:first-child {
+  position: absolute;
+  inset-inline-start: 0.25rem;
+  inset-block: 0;
+  margin-block: auto;
+}
+
+[data-quick-chat-panel] [data-testid="model-trigger"] > svg:last-child {
+  position: absolute;
+  inset-inline-end: 0.25rem;
+  inset-block: 0;
+  margin-block: auto;
+}
+
+[data-quick-chat-panel] [data-testid="model-trigger"] > span,
+[data-quick-chat-panel] [data-testid="model-trigger"] > span + span > span {
+  display: inline;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+[data-quick-chat-panel] [data-testid="model-trigger"] > span + span::before {
+  content: " ";
+}
+
+[data-quick-chat-panel] [data-testid="model-trigger"] > span + span > .invisible {
+  display: none;
+}
+
+@container browser-chat (max-width: 340px) {
+  [data-quick-chat-panel] .chat-composer-toolbar > div {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 0.25rem;
+  }
+}

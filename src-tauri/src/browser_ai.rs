@@ -169,7 +169,7 @@ pub struct GuestAgent {
     pub url: Mutex<String>,
     pub title: Mutex<String>,
     pub chrome: Mutex<crate::browser_chrome::ChromeState>,
-    /// A private tab: the user's alone, never a conversation's.
+    /// Private tabs are accessible only to the browser floating chat.
     pub private: std::sync::atomic::AtomicBool,
     /// What the tab's login script last said; see `browser_logins`.
     pub logins: Mutex<crate::browser_logins::TabLogins>,
@@ -336,6 +336,9 @@ pub struct BrowserAi {
     pub sessions: Mutex<HashMap<String, Option<String>>>,
     pub leases: Mutex<HashMap<String, String>>,
     pub owners: Mutex<HashMap<String, String>>,
+    /// The browser floating chat may operate all website tabs, including private ones.
+    pub quick_chat: Mutex<Option<String>>,
+    tab_requests: Mutex<HashMap<String, oneshot::Sender<Value>>>,
     pub guests: Mutex<HashMap<String, Arc<GuestAgent>>>,
     /// Titles of guests that were titled before they were registered, by label.
     pub early_titles: Mutex<HashMap<String, String>>,
@@ -354,31 +357,39 @@ impl BrowserAi {
     pub fn session(&self, token: &str) -> Option<String> {
         self.sessions.lock().unwrap().get(token).cloned().flatten()
     }
-    /// A tab showing one of the browser's own pages is the user's alone:
-    /// whoever drives it can enable, disable and remove extensions.
-    fn internal(&self, label: &str) -> bool {
-        self.guests.lock().unwrap().get(label).is_some_and(|guest| {
-            guest.private.load(std::sync::atomic::Ordering::Relaxed) || internal_page(&guest.url.lock().unwrap())
-        })
+    fn is_quick_chat(&self, session: &str) -> bool {
+        self.quick_chat.lock().unwrap().as_deref() == Some(session)
     }
     pub fn can_access(&self, token: &str, label: &str) -> bool {
         let Some(session) = self.session(token) else { return false };
-        if self.internal(label) {
+        let guests = self.guests.lock().unwrap();
+        let Some(guest) = guests.get(label) else { return false };
+        if internal_page(&guest.url.lock().unwrap()) {
             return false;
         }
-        self.owners.lock().unwrap().get(label).is_none_or(|owner| owner == &session)
+        if self.is_quick_chat(&session) {
+            return true;
+        }
+        !guest.private.load(std::sync::atomic::Ordering::Relaxed)
+            && self.owners.lock().unwrap().get(label).is_none_or(|owner| owner == &session)
     }
     pub fn claim(&self, token: &str, label: &str) -> Result<(), String> {
-        let session = self.session(token).ok_or("Browser session revoked")?;
-        if self.internal(label) {
-            return Err("This tab shows a browser page that only the user operates".into());
+        if self.can_access(token, label) { Ok(()) } else { Err("Tab is unavailable to this AI conversation".into()) }
+    }
+    async fn prepare_tabs(&self, app: &tauri::AppHandle) -> Result<Value, String> {
+        let id = uuid::Uuid::new_v4().to_string();
+        let (send, receive) = oneshot::channel();
+        self.tab_requests.lock().unwrap().insert(id.clone(), send);
+        let result = async {
+            app.emit_to("main", "browser-prepare-tabs", json!({"id":id})).map_err(|e| e.to_string())?;
+            tokio::time::timeout(Duration::from_secs(15), receive)
+                .await
+                .map_err(|_| "Browser tabs did not become available".to_string())?
+                .map_err(|_| "Browser tab preparation was cancelled".to_string())
         }
-        // Only explicitly opened conversation tabs have persistent ownership.
-        // User-opened tabs remain available after the active CDP lease ends.
-        match self.owners.lock().unwrap().get(label) {
-            Some(owner) if owner != &session => Err("Tab belongs to another AI conversation".into()),
-            _ => Ok(()),
-        }
+        .await;
+        self.tab_requests.lock().unwrap().remove(&id);
+        result
     }
 }
 #[derive(Deserialize)]
@@ -443,6 +454,15 @@ async fn dispatch(
         return open_preview(&app, &session_id, url, Some(token)).await.map(Json);
     }
     if request.method == "list" {
+        let tab_info = if state.session(token).is_some_and(|id| state.is_quick_chat(&id)) {
+            let info = state.prepare_tabs(&app).await.map_err(|e| (StatusCode::BAD_GATEWAY, e))?;
+            if state.session(token).is_none() {
+                return Err((StatusCode::UNAUTHORIZED, "Browser session revoked".into()));
+            }
+            info
+        } else {
+            json!([])
+        };
         let labels: Vec<_> = state.guests.lock().expect("browser guests").keys().cloned().collect();
         let targets: Vec<_> = labels
             .into_iter()
@@ -450,7 +470,8 @@ async fn dispatch(
             .filter_map(|label| {
                 let agent = state.guests.lock().unwrap().get(&label).cloned()?;
                 let url = agent.url.lock().unwrap().clone();
-                Some(json!({"id":label,"url":url}))
+                let info = tab_info.as_array().and_then(|tabs| tabs.iter().find(|tab| tab["id"] == label));
+                Some(json!({"id":label,"url":url,"title":info.map(|tab| &tab["title"]),"active":info.is_some_and(|tab| tab["active"] == true)}))
             })
             .collect();
         return Ok(Json(json!({"targets":targets})));
@@ -617,6 +638,13 @@ pub fn cef_browser_bind(webview: tauri::Webview, token: String, session_id: Stri
 #[tauri::command]
 pub async fn cef_browser_revoke(webview: tauri::Webview, session_id: String) -> Result<(), String> {
     main(&webview)?;
+    {
+        let state = webview.state::<BrowserAi>();
+        let mut quick = state.quick_chat.lock().unwrap();
+        if quick.as_deref() == Some(&session_id) {
+            *quick = None;
+        }
+    }
     webview.state::<BrowserAi>().executor.release(webview.app_handle(), &session_id).await?;
     webview
         .state::<BrowserAi>()
@@ -624,6 +652,56 @@ pub async fn cef_browser_revoke(webview: tauri::Webview, session_id: String) -> 
         .lock()
         .expect("browser sessions")
         .retain(|_, id| id.as_ref() != Some(&session_id));
+    Ok(())
+}
+
+/// Exercise Chromium's native pointer path only in the isolated contract fixture.
+#[tauri::command]
+pub async fn cef_browser_test_pointer(webview: tauri::Webview, phase: String, x: i32, y: i32) -> Result<(), String> {
+    main(&webview)?;
+    if !cfg!(all(feature = "hasgard-testing", debug_assertions))
+        || !webview.app_handle().config().identifier.ends_with(".contract-test")
+        || std::env::var_os("ALWITH_U_CEF_BROWSER_TEST").is_none()
+    {
+        return Err("Native pointer injection requires an isolated contract fixture".into());
+    }
+    if !matches!(phase.as_str(), "down" | "move" | "up") {
+        return Err("Expected down, move or up".into());
+    }
+    GuestTarget::View(webview)
+        .browser(move |browser| {
+            use tauri_runtime_cef::cef::{ImplBrowser, ImplBrowserHost, MouseButtonType, MouseEvent};
+            let host = browser.host().ok_or("Browser closed")?;
+            let event = MouseEvent { x, y, modifiers: if phase == "up" { 0 } else { 1 << 4 } };
+            if phase == "move" {
+                host.send_mouse_move_event(Some(&event), 0);
+            } else {
+                host.send_mouse_click_event(Some(&event), MouseButtonType::LEFT, i32::from(phase == "up"), 1);
+            }
+            Ok(())
+        })
+        .await
+}
+
+/// Only the trusted main host can associate its floating chat with the browser.
+#[tauri::command]
+pub fn cef_browser_quick_chat(webview: tauri::Webview, session_id: Option<String>) -> Result<(), String> {
+    main(&webview)?;
+    if session_id.as_ref().is_some_and(|id| id.is_empty()) {
+        return Err("Missing sessionId".into());
+    }
+    *webview.state::<BrowserAi>().quick_chat.lock().unwrap() = session_id;
+    Ok(())
+}
+#[tauri::command]
+pub fn cef_browser_tabs_ready(webview: tauri::Webview, id: String, tabs: Value) -> Result<(), String> {
+    main(&webview)?;
+    if !tabs.is_array() {
+        return Err("Expected tab metadata".into());
+    }
+    if let Some(send) = webview.state::<BrowserAi>().tab_requests.lock().unwrap().remove(&id) {
+        let _ = send.send(tabs);
+    }
     Ok(())
 }
 
@@ -734,6 +812,7 @@ mod tests {
             .lock()
             .unwrap()
             .extend([("a".into(), Some("conversation-a".into())), ("b".into(), Some("conversation-b".into()))]);
+        state.guests.lock().unwrap().insert("user-tab".into(), Arc::new(GuestAgent::default()));
         state.claim("a", "user-tab").unwrap();
         assert!(!state.owners.lock().unwrap().contains_key("user-tab"));
         state.sessions.lock().unwrap().remove("a");
@@ -751,6 +830,7 @@ mod tests {
             ("b".into(), Some("conversation-b".into())),
             ("unbound".into(), None),
         ]);
+        state.guests.lock().unwrap().insert("tab".into(), Arc::new(GuestAgent::default()));
         assert!(state.claim("unbound", "tab").is_err());
         state.owners.lock().unwrap().insert("tab".into(), "conversation-a".into());
         state.claim("a", "tab").unwrap();
@@ -761,6 +841,34 @@ mod tests {
         assert!(!state.can_access("a", "tab"));
         assert!(state.can_access("a-reconnected", "tab"));
     }
+    #[test]
+    fn floating_chat_can_use_private_and_foreign_tabs_without_transferring_ownership() {
+        let state = BrowserAi::default();
+        state
+            .sessions
+            .lock()
+            .unwrap()
+            .extend([("floating".into(), Some("browser-chat".into())), ("other".into(), Some("other-chat".into()))]);
+        let guest = Arc::new(GuestAgent::default());
+        *guest.url.lock().unwrap() = "https://example.com/".into();
+        guest.private.store(true, std::sync::atomic::Ordering::Relaxed);
+        state.guests.lock().unwrap().insert("tab".into(), guest.clone());
+        state.owners.lock().unwrap().insert("tab".into(), "original-chat".into());
+        assert!(!state.can_access("floating", "tab"));
+        *state.quick_chat.lock().unwrap() = Some("browser-chat".into());
+        state.claim("floating", "tab").unwrap();
+        assert!(!state.can_access("other", "tab"));
+        assert_eq!(state.owners.lock().unwrap().get("tab").unwrap(), "original-chat");
+        *guest.url.lock().unwrap() = EXTENSIONS_PAGE.into();
+        assert!(!state.can_access("floating", "tab"));
+        *guest.url.lock().unwrap() = "https://example.com/".into();
+        *state.quick_chat.lock().unwrap() = None;
+        assert!(state.claim("floating", "tab").is_err());
+        *state.quick_chat.lock().unwrap() = Some("browser-chat".into());
+        state.sessions.lock().unwrap().remove("floating");
+        assert!(!state.can_access("floating", "tab"));
+    }
+
     #[test]
     fn protocol_cannot_escape_to_other_browser_targets() {
         for method in

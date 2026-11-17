@@ -236,7 +236,6 @@ pub fn run() {
         ))
         .plugin(alwith_chat::init_with_account(runtime::ChatRuntime, native::development_directory()))
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
@@ -265,6 +264,10 @@ pub fn run() {
         .manage(extension_inbox::InboxState::default())
         .manage(vibemon::BubblePresentation::default());
 
+    // Native interaction fixtures do not register a second application with Notification Center.
+    let isolated_shell = cfg!(all(feature = "hasgard-testing", debug_assertions))
+        && std::env::var_os("ALWITH_U_CEF_SHELL_TEST").is_some();
+    let builder = if isolated_shell { builder } else { builder.plugin(tauri_plugin_notification::init()) };
     let builder = desktop_runtime::configure(builder);
 
     let app = builder
@@ -407,6 +410,9 @@ pub fn run() {
                 browser_ai::cef_browser_context,
                 browser_ai::cef_preview_ready,
                 browser_ai::cef_browser_bind,
+                browser_ai::cef_browser_quick_chat,
+                browser_ai::cef_browser_test_pointer,
+                browser_ai::cef_browser_tabs_ready,
                 browser_ai::cef_browser_revoke
             ];
             move |invoke| {
@@ -454,6 +460,9 @@ pub fn run() {
                             | "cef_browser_context"
                             | "cef_preview_ready"
                             | "cef_browser_bind"
+                            | "cef_browser_quick_chat"
+                            | "cef_browser_test_pointer"
+                            | "cef_browser_tabs_ready"
                             | "cef_browser_revoke"
                     )
                 {

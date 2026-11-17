@@ -23,13 +23,14 @@ import {
   SessionStateDot,
   useActivityPreview
 } from "@alwith/module-chat/session-list"
-import { ActivityIcon, AppWindowIcon, ArrowLeftIcon, PictureInPicture2Icon } from "lucide-react"
+import { ActivityIcon, AppWindowIcon, ArrowLeftIcon, GlobeIcon, PictureInPicture2Icon } from "lucide-react"
 import { useEffect, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
 import { Pane } from "@/components/alwith-ui/pane"
 import { Kbd } from "@/components/ui/kbd"
+import { useBrowserQuickChat } from "@/features/browser/quick-chat-state"
 import { mergeListeningPorts, useTerminalPorts } from "@/features/terminal/ports"
 import { useCmdHeld } from "@/hooks/use-cmd-held"
 import { focusChatSession } from "@/lib/chat-window"
@@ -78,6 +79,7 @@ export function ActivityPanel({
   const runStates = useApp((state) => state.runStates)
   const sessionRows = useApp((state) => state.sessionList)
   const chatSurface = useChatWindowSurface()
+  const browserSurface = useBrowserQuickChat()
   const sessionWindows = useApp((state) => state.sessionWindows)
   const draftSessions = useApp((state) => state.draftSessions)
 
@@ -104,7 +106,10 @@ export function ActivityPanel({
     const byKey = new Map<string, typeof rows>()
     for (const row of rows) {
       const key = activityGroupOf({
-        visible: row.sid === selectedId || (chatSurface.visible && row.sid === chatSurface.sessionId)
+        visible:
+          row.sid === selectedId ||
+          (chatSurface.visible && row.sid === chatSurface.sessionId) ||
+          (browserSurface.visible && row.sid === browserSurface.sessionId)
       })
       const bucket = byKey.get(key) ?? []
       bucket.push(row)
@@ -122,7 +127,7 @@ export function ActivityPanel({
           rows: byKey.get(key) ?? []
         }))
     )
-  }, [rows, selectedId, chatSurface, t])
+  }, [rows, selectedId, chatSurface, browserSurface, t])
   // Collapsed state lives only in process memory: it survives leaving Activity and returning, but resets on restart.
   const collapsedGroups = useSessionsUiStore((s) => s.activityCollapsedGroups)
   const setCollapsedGroups = useSessionsUiStore((s) => s.setActivityCollapsedGroups)
@@ -132,8 +137,11 @@ export function ActivityPanel({
   )
 
   const openRow = (sessionRow: SessionSummary): void => {
-    if (sessionWindows[sessionRow.sessionId] === "chat") void report(focusChatSession(sessionRow.sessionId))
-    else onSelect(sessionRow)
+    if (useBrowserQuickChat.getState().sessionId === sessionRow.sessionId) {
+      useBrowserQuickChat.setState({ revealSessionId: sessionRow.sessionId })
+    } else if (sessionWindows[sessionRow.sessionId] === "chat") {
+      void report(focusChatSession(sessionRow.sessionId))
+    } else onSelect(sessionRow)
   }
 
   // Cmd/Ctrl+1 through Cmd/Ctrl+9 jump to the Nth row in ascending order; number hints appear only on the first nine rows.
@@ -166,7 +174,15 @@ export function ActivityPanel({
         tasks={row.record.tasks}
         listeningPorts={mergeListeningPorts(row.record.listeningPorts, terminalPorts[row.sid])}
         onOpen={() => openRow(row.sessionRow)}
-        windowLabel={sessionWindows[row.sid] === "chat" ? "chat" : row.sid === selectedId ? "main" : null}
+        windowLabel={
+          row.sid === browserSurface.sessionId
+            ? "browser"
+            : sessionWindows[row.sid] === "chat"
+              ? "chat"
+              : row.sid === selectedId
+                ? "main"
+                : null
+        }
         onReturnToMain={() => onSelect(row.sessionRow)}
         hint={index < 9 && cmdHeld ? <Kbd>{displayShortcut(`CommandOrControl+${index + 1}`)}</Kbd> : undefined}
       />
@@ -221,7 +237,7 @@ function ActivityRow({
   /** Running subagent tasks parsed by Runtime, rendered as indented children and removed from updates on completion. */
   tasks: SessionTask[]
   listeningPorts: number[]
-  windowLabel: "main" | "chat" | null
+  windowLabel: "main" | "chat" | "browser" | null
   onReturnToMain: () => void
   onOpen: () => void
   hint?: React.ReactNode
@@ -268,12 +284,28 @@ function ActivityRow({
           windowLabel === null ? undefined : (
             <span
               role="img"
-              aria-label={t(windowLabel === "chat" ? "navigation.chatWindow" : "navigation.mainWindow", {
-                ns: "common"
-              })}
-              title={t(windowLabel === "chat" ? "navigation.chatWindow" : "navigation.mainWindow", { ns: "common" })}
+              aria-label={t(
+                windowLabel === "browser"
+                  ? "browser.quickChat.activity"
+                  : windowLabel === "chat"
+                    ? "navigation.chatWindow"
+                    : "navigation.mainWindow",
+                {
+                  ns: windowLabel === "browser" ? "translation" : "common"
+                }
+              )}
+              title={t(
+                windowLabel === "browser"
+                  ? "browser.quickChat.activity"
+                  : windowLabel === "chat"
+                    ? "navigation.chatWindow"
+                    : "navigation.mainWindow",
+                { ns: windowLabel === "browser" ? "translation" : "common" }
+              )}
             >
-              {windowLabel === "chat" ? (
+              {windowLabel === "browser" ? (
+                <GlobeIcon className="size-3.5 text-muted-foreground" />
+              ) : windowLabel === "chat" ? (
                 <PictureInPicture2Icon className="size-3.5 text-muted-foreground" />
               ) : (
                 <AppWindowIcon className="size-3.5 text-muted-foreground" />

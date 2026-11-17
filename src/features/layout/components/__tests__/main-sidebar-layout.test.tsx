@@ -10,6 +10,7 @@ import { afterEach, beforeEach, expect, type MockInstance, test, vi } from "vite
 
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { useBrowserQuickChat } from "@/features/browser/quick-chat-state"
 import { WorkspaceBrowserEntryContext } from "@/features/workspace/context"
 import { must } from "@/lib/__tests__/must"
 import { initI18n } from "@/lib/i18n"
@@ -26,10 +27,12 @@ await initI18n("en")
 let save: MockInstance<typeof preferences.savePreference>
 beforeEach(() => {
   capabilities.embeddedBrowser = false
+  useBrowserQuickChat.setState({ revealSessionId: null })
   save = vi.spyOn(preferences, "savePreference").mockResolvedValue()
 })
 afterEach(() => {
   cleanup()
+  useBrowserQuickChat.setState({ revealSessionId: null })
   save.mockRestore()
 })
 
@@ -519,4 +522,23 @@ test("every pane, the browser included, sits on the shell's plate without drawin
   const bodies = [...view.container.querySelectorAll(".main-screen-pane-body")]
   expect(bodies.length).toBeGreaterThanOrEqual(3)
   for (const body of bodies) expect(body).toHaveAttribute("data-atlas-surface")
+})
+
+test("choosing an already open browser keeps it visible instead of toggling it closed", async () => {
+  capabilities.embeddedBrowser = true
+  const view = setup()
+  for (let selection = 0; selection < 2; selection++) {
+    fireEvent.click(view.getByRole("button", { name: "More" }))
+    fireEvent.click(view.getByRole("menuitem", { name: "Open the embedded browser" }))
+    const workspace = await view.findByRole("region", { name: "Browser workspace" })
+    expect(workspace.closest("[data-screen-panel=browser]")).toHaveAttribute("aria-hidden", "false")
+  }
+})
+
+test("browser activity requests reveal the browser pane without selecting a main conversation", async () => {
+  capabilities.embeddedBrowser = true
+  const view = setup()
+  act(() => useBrowserQuickChat.setState({ revealSessionId: "browser" }))
+  const workspace = await view.findByRole("region", { name: "Browser workspace" })
+  expect(workspace.closest("[data-screen-panel=browser]")).toHaveAttribute("aria-hidden", "false")
 })

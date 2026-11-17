@@ -12,10 +12,11 @@ import { Globe } from "lucide-react"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { BrowserWorkspace } from "@/features/browser/browser-workspace"
 import { usePreviewRequest } from "@/features/browser/preview-request"
+import { useBrowserQuickChat } from "@/features/browser/quick-chat-state"
 import { WorkspaceBrowserEntryContext } from "@/features/workspace/context"
 import { useRuntimeCapabilities } from "@/lib/runtime-capabilities"
 import "@nyssance/atlas/styles.css"
-import { type ReactNode, useCallback, useContext, useMemo, useState } from "react"
+import { type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
@@ -70,11 +71,14 @@ export function MainSidebarLayout({
   const { level: zoom } = useDesktopZoom()
   const capabilities = useRuntimeCapabilities()
   const trackpad = useThreeFingerSwipeEnabled()
-  const [browser, setBrowser] = useState({ visited: false, hidden: true, maximized: false })
+  const [browser, setBrowser] = useState({ visited: false, hidden: true, maximized: false, revealRequest: 0 })
   const showBrowser = useCallback(() => {
-    setBrowser((state) => ({ ...state, visited: true, hidden: false }))
-    setPreview((state) => ({ ...state, maximized: false }))
+    setBrowser((state) => ({ ...state, visited: true, hidden: false, revealRequest: state.revealRequest + 1 }))
   }, [])
+  const browserChatRequested = useBrowserQuickChat((state) => state.revealSessionId)
+  useEffect(() => {
+    if (browserChatRequested && capabilities?.embeddedBrowser) showBrowser()
+  }, [browserChatRequested, capabilities?.embeddedBrowser, showBrowser])
   const previewRequest = usePreviewRequest(!!capabilities?.embeddedBrowser, showBrowser)
   // Chat, then the preview the file workspace fills from inside chat; hidden until it opens.
   const [previewSlot, setPreviewSlot] = useState<HTMLElement | null>(null)
@@ -115,16 +119,7 @@ export function MainSidebarLayout({
       <WorkspaceBrowserEntryContext.Provider
         value={
           capabilities?.embeddedBrowser ? (
-            <DropdownMenuItem
-              aria-label={t("browser.open")}
-              onClick={() =>
-                setBrowser((state) => ({
-                  ...state,
-                  visited: true,
-                  hidden: !state.hidden
-                }))
-              }
-            >
+            <DropdownMenuItem aria-label={t("browser.open")} onClick={showBrowser}>
               <Globe />
               {t("browser.title")}
             </DropdownMenuItem>
@@ -159,6 +154,7 @@ export function MainSidebarLayout({
                     children: browser.visited ? (
                       <BrowserWorkspace
                         request={previewRequest}
+                        revealRequest={browser.revealRequest}
                         active={!browser.hidden}
                         maximized={browser.maximized}
                         onMaximize={() =>

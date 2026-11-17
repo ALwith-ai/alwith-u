@@ -1,11 +1,11 @@
-import { useDesktopZoom } from "@alwith/module-desktop-shell/react"
+import { useDesktopCanvas, useDesktopZoom } from "@alwith/module-desktop-shell/react"
 import { invoke } from "@tauri-apps/api/core"
 import { listen } from "@tauri-apps/api/event"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import { revealItemsInDir } from "@tauri-apps/plugin-opener"
 import i18n from "i18next"
 import { Download, Globe, Plus, Volume2, VolumeX, X } from "lucide-react"
-import { Fragment, useEffect, useRef, useState } from "react"
+import { Fragment, lazy, Suspense, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useStore } from "zustand"
@@ -34,6 +34,8 @@ import { groupColors, joinGroup, leaveGroup, settleGroup, type TabGroup, usedGro
 import { insertAfter, moveTab, moveTo, pinTab } from "./tab-order"
 import { TabSearch } from "./tab-search"
 import { loadTabs, saveTabs, type TabHistory } from "./tab-store"
+
+const BrowserQuickChat = lazy(async () => ({ default: (await import("./browser-quick-chat")).BrowserQuickChat }))
 
 interface Tab {
   id: string
@@ -92,7 +94,10 @@ function initialState(request?: PreviewRequest): State {
     request
   }
   const stored = loadTabs()
-  const groups = (stored?.groups ?? []).map((group): TabGroup => ({ ...group, id: crypto.randomUUID() }))
+  const groups = (stored?.groups ?? []).map((group): TabGroup => ({
+    ...group,
+    id: crypto.randomUUID()
+  }))
   const saved = (stored?.tabs ?? []).map((tab): Tab => ({
     id: crypto.randomUUID(),
     // A tab with no page yet has no title of its own; one saved under the old wording is such a tab.
@@ -121,12 +126,14 @@ function initialState(request?: PreviewRequest): State {
 /** Each tab keeps its real CEF surface mounted; selection changes only visibility. */
 export function BrowserWorkspace({
   request,
+  revealRequest = 0,
   active,
   maximized,
   onMaximize,
   onClose
 }: {
   request?: PreviewRequest
+  revealRequest?: number
   active: boolean
   maximized: boolean
   onMaximize: () => void
@@ -134,6 +141,11 @@ export function BrowserWorkspace({
 }) {
   const { t } = useTranslation()
   const [state, setState] = useState(() => initialState(request))
+  const navigate = useDesktopCanvas()?.navigate
+  // Retained panes can be open on another screen; every explicit reveal must navigate to this one.
+  useEffect(() => {
+    if (active) navigate?.("browser")
+  }, [active, maximized, revealRequest, navigate])
   // The one interface zoom, kept by the desktop shell; pages follow it.
   const desktopZoom = useDesktopZoom()
   const { tabs, selected, opened, closed } = state
@@ -217,6 +229,31 @@ export function BrowserWorkspace({
       state.groups
     )
   }, [tabs, selected, state.groups])
+  // Restore suspended pages only when the browser chat explicitly asks to discover tabs.
+  const tabRequests = useRef(new Set<string>())
+  useEffect(() => {
+    const stop = listen<{ id: string }>("browser-prepare-tabs", ({ payload }) => {
+      tabRequests.current.add(payload.id)
+      setState((state) => ({
+        ...state,
+        opened: state.tabs.map((tab) => tab.id)
+      }))
+    })
+    void stop.catch((error: unknown) => toast.error(String(error)))
+    return () => {
+      void stop.then((unlisten) => unlisten()).catch(() => {})
+    }
+  }, [])
+  useEffect(() => {
+    if (tabs.some((tab) => !tab.label)) return
+    for (const id of tabRequests.current) {
+      tabRequests.current.delete(id)
+      void invoke("cef_browser_tabs_ready", {
+        id,
+        tabs: tabs.map((tab) => ({ id: tab.label, title: tab.title, active: tab.id === selected }))
+      }).catch((error: unknown) => toast.error(String(error)))
+    }
+  }, [tabs, opened, selected])
   const lastRequest = useRef(request?.id)
   useEffect(() => {
     if (!request || lastRequest.current === request.id) return
@@ -233,10 +270,23 @@ export function BrowserWorkspace({
       // Only an ordinary page can come back: a conversation's tab is reopened by its conversation.
       const closed =
         !bound(removed) && !removed.private && removed.url && /^https?:\/\//i.test(removed.url)
-          ? [...state.closed, { url: removed.url, title: removed.title, history: removed.history }].slice(-closedLimit)
+          ? [
+              ...state.closed,
+              {
+                url: removed.url,
+                title: removed.title,
+                history: removed.history
+              }
+            ].slice(-closedLimit)
           : state.closed
       return select(
-        { ...state, tabs, closed, selected: next, opened: state.opened.filter((id) => id !== removed.id) },
+        {
+          ...state,
+          tabs,
+          closed,
+          selected: next,
+          opened: state.opened.filter((id) => id !== removed.id)
+        },
         next
       )
     })
@@ -266,7 +316,11 @@ export function BrowserWorkspace({
       switch (command) {
         case "new-tab":
         case "new-private-tab": {
-          const created: Tab = { id: crypto.randomUUID(), title: "", private: command === "new-private-tab" }
+          const created: Tab = {
+            id: crypto.randomUUID(),
+            title: "",
+            private: command === "new-private-tab"
+          }
           return select({ ...state, tabs: [...state.tabs, created] }, created.id)
         }
         case "reopen-tab": {
@@ -280,7 +334,14 @@ export function BrowserWorkspace({
             url: last.url,
             history: last.history
           }
-          return select({ ...state, tabs: [...state.tabs, reopened], closed: state.closed.slice(0, -1) }, reopened.id)
+          return select(
+            {
+              ...state,
+              tabs: [...state.tabs, reopened],
+              closed: state.closed.slice(0, -1)
+            },
+            reopened.id
+          )
         }
         case "previous-tab":
         case "next-tab": {
@@ -349,7 +410,12 @@ export function BrowserWorkspace({
       movedLabel.current = payload.label
       setState((state) => {
         const tab = state.tabs.find((tab) => tab.label === payload.label)
-        return tab ? { ...state, tabs: settleGroup(moveTo(state.tabs, tab.id, payload.index), tab.id) } : state
+        return tab
+          ? {
+              ...state,
+              tabs: settleGroup(moveTo(state.tabs, tab.id, payload.index), tab.id)
+            }
+          : state
       })
     })
     const pin = listen<{ label: string; pinned: boolean }>("browser-tab-pin", ({ payload }) => {
@@ -377,7 +443,15 @@ export function BrowserWorkspace({
             : select(
                 {
                   ...state,
-                  tabs: [...state.tabs, { id: payload.label, label: payload.label, title: "", adopted: payload }]
+                  tabs: [
+                    ...state.tabs,
+                    {
+                      id: payload.label,
+                      label: payload.label,
+                      title: "",
+                      adopted: payload
+                    }
+                  ]
                 },
                 payload.label
               )
@@ -430,7 +504,12 @@ export function BrowserWorkspace({
       )
       // The end of a download is recorded and announced once, however many updates repeat it.
       if (previous === payload.state || payload.state === "progress") return
-      recordDownload({ url: payload.url, path: payload.path, state: payload.state, at: Date.now() })
+      recordDownload({
+        url: payload.url,
+        path: payload.path,
+        state: payload.state,
+        at: Date.now()
+      })
       if (payload.state === "canceled") return
       const name = fileName(payload)
       if (payload.state === "failed") toast.error(i18n.t("browser.downloadFailed", { name }))
@@ -458,6 +537,7 @@ export function BrowserWorkspace({
       className="flex min-h-0 flex-1 flex-col overflow-hidden"
       onKeyDown={(event) => {
         // The same chords while focus is in the browser's own chrome rather than a page.
+        if ((event.target as Element).closest("[data-browser-quick-chat]")) return
         const command = keyCommand(event.nativeEvent)
         if (!command) return
         event.preventDefault()
@@ -502,10 +582,14 @@ export function BrowserWorkspace({
                     <ContextMenu>
                       <ContextMenuTrigger
                         render={
-                          <div
+                          <TabsTrigger
+                            value={tab.id}
+                            render={<div />}
+                            nativeButton={false}
+                            title={bound(tab) ? t("browser.boundTab") : tab.title || t("browser.newTab")}
                             // A tab as a browser draws it: the one in front is a sheet joined to the toolbar below.
                             className={cn(
-                              "group/tab flex h-[34px] min-w-0 shrink items-center rounded-t-lg pr-1.5 transition-colors",
+                              "group/tab flex h-[34px] min-w-0 flex-none shrink items-center justify-start gap-2 rounded-t-lg rounded-b-none border-0 px-2.5 pr-1.5 text-xs font-normal text-muted-foreground shadow-none after:hidden hover:text-foreground data-active:text-foreground group-data-[variant=default]/tabs-list:data-active:shadow-none dark:data-active:border-transparent dark:data-active:bg-background",
                               // Tabs share the strip evenly and narrow together; a pinned one is its icon.
                               tab.pinned ? "w-auto shrink-0" : "w-52",
                               tab.id === selected ? "bg-background" : "hover:bg-background/50",
@@ -537,59 +621,55 @@ export function BrowserWorkspace({
                               }
                             }}
                             onDragEnd={() => (dragged.current = undefined)}
-                          />
-                        }
-                      >
-                        <TabsTrigger
-                          value={tab.id}
-                          className="h-[34px] min-w-0 flex-1 justify-start gap-2 rounded-t-lg rounded-b-none border-0 bg-transparent px-2.5 text-xs font-normal text-muted-foreground shadow-none after:hidden hover:text-foreground dark:text-muted-foreground data-active:bg-transparent data-active:text-foreground data-active:shadow-none dark:data-active:border-transparent dark:data-active:bg-transparent dark:data-active:text-foreground"
-                          title={
-                            (tab.request?.sessionId ?? tab.adopted?.sessionId)
-                              ? t("browser.boundTab")
-                              : tab.title || t("browser.newTab")
-                          }
-                        >
-                          {tab.loading ? (
-                            <Spinner aria-hidden="true" aria-label={undefined} role="presentation" />
-                          ) : tab.favicon ? (
-                            <img src={tab.favicon} alt="" className="size-4 shrink-0" />
-                          ) : (
-                            <Globe aria-hidden="true" />
-                          )}
-                          {!tab.pinned && (
-                            <span className="min-w-0 flex-1 truncate text-left">
-                              {tab.title || t("browser.newTab")}
-                            </span>
-                          )}
-                          {tab.pinned && (
-                            <span className="sr-only">
-                              {tab.title || t("browser.newTab")} · {t("browser.pinnedTab")}
-                            </span>
-                          )}
-                          {tab.muted ? (
-                            <VolumeX aria-label={t("browser.mutedTab")} />
-                          ) : (
-                            tab.audible && <Volume2 aria-label={t("browser.audibleTab")} />
-                          )}
-                          {bound(tab) && <span aria-label={t("browser.aiTab")}> · AI</span>}
-                          {tab.private && <span aria-label={t("browser.privateTab")}> · {t("browser.private")}</span>}
-                        </TabsTrigger>
-                        {!tab.pinned && (
-                          <Button
-                            variant="ghost"
-                            size="icon-xs"
-                            // Always there on the tab in front; on the others when the pointer or the keyboard reaches them.
-                            className={cn(
-                              "size-5 rounded-full",
-                              tab.id !== selected && "opacity-0 group-hover/tab:opacity-100 focus-visible:opacity-100"
-                            )}
-                            aria-label={t("browser.closeTab", { title: tab.title || t("browser.newTab") })}
-                            onClick={() => close({ id: tab.id })}
                           >
-                            <X />
-                          </Button>
-                        )}
-                      </ContextMenuTrigger>
+                            {tab.loading ? (
+                              <Spinner aria-hidden="true" aria-label={undefined} role="presentation" />
+                            ) : tab.favicon ? (
+                              <img src={tab.favicon} alt="" className="size-4 shrink-0" />
+                            ) : (
+                              <Globe aria-hidden="true" />
+                            )}
+                            {!tab.pinned && (
+                              <span className="min-w-0 flex-1 truncate text-left">
+                                {tab.title || t("browser.newTab")}
+                              </span>
+                            )}
+                            {tab.pinned && (
+                              <span className="sr-only">
+                                {tab.title || t("browser.newTab")} · {t("browser.pinnedTab")}
+                              </span>
+                            )}
+                            {tab.muted ? (
+                              <VolumeX aria-label={t("browser.mutedTab")} />
+                            ) : (
+                              tab.audible && <Volume2 aria-label={t("browser.audibleTab")} />
+                            )}
+                            {bound(tab) && <span aria-label={t("browser.aiTab")}> · AI</span>}
+                            {tab.private && <span aria-label={t("browser.privateTab")}> · {t("browser.private")}</span>}
+                            {!tab.pinned && (
+                              <Button
+                                variant="ghost"
+                                size="icon-xs"
+                                // Always there on the tab in front; on the others when the pointer or the keyboard reaches them.
+                                className={cn(
+                                  "size-5 rounded-full",
+                                  tab.id !== selected &&
+                                    "opacity-0 group-hover/tab:opacity-100 focus-visible:opacity-100"
+                                )}
+                                aria-label={t("browser.closeTab", {
+                                  title: tab.title || t("browser.newTab")
+                                })}
+                                onClick={(event) => {
+                                  event.stopPropagation()
+                                  close({ id: tab.id })
+                                }}
+                              >
+                                <X />
+                              </Button>
+                            )}
+                          </TabsTrigger>
+                        }
+                      />
                       <ContextMenuContent>
                         <ContextMenuItem
                           disabled={!tab.url || bound(tab)}
@@ -600,11 +680,20 @@ export function BrowserWorkspace({
                                 title: tab.title,
                                 initialUrl: tab.url,
                                 // A private tab's history ends with it.
-                                ...(!tab.private && { initialHistory: tab.history, history: tab.history }),
+                                ...(!tab.private && {
+                                  initialHistory: tab.history,
+                                  history: tab.history
+                                }),
                                 url: tab.url,
                                 private: tab.private
                               }
-                              return select({ ...state, tabs: insertAfter(state.tabs, tab.id, created) }, created.id)
+                              return select(
+                                {
+                                  ...state,
+                                  tabs: insertAfter(state.tabs, tab.id, created)
+                                },
+                                created.id
+                              )
                             })
                           }
                         >
@@ -631,7 +720,10 @@ export function BrowserWorkspace({
                           onClick={() => {
                             const muted = !tab.muted
                             if (!tab.label) return
-                            void invoke("cef_guest_mute", { label: tab.label, muted })
+                            void invoke("cef_guest_mute", {
+                              label: tab.label,
+                              muted
+                            })
                               .then(() =>
                                 setTabs((tabs) =>
                                   tabs.map((value) => (value.id === tab.id ? { ...value, muted } : value))
@@ -675,7 +767,9 @@ export function BrowserWorkspace({
                               disabled={Boolean(tab.pinned)}
                               onClick={() => setTabs((tabs) => joinGroup(tabs, tab.id, entry.id))}
                             >
-                              {t("browser.addToGroup", { title: entry.title || t("browser.unnamedGroup") })}
+                              {t("browser.addToGroup", {
+                                title: entry.title || t("browser.unnamedGroup")
+                              })}
                             </ContextMenuItem>
                           ))}
                         {tab.group && (
@@ -708,7 +802,11 @@ export function BrowserWorkspace({
           open={searching}
           onOpenChange={setSearching}
           // A private tab is found among the open ones like any other; closed, it left nothing to find.
-          tabs={tabs.map((tab) => ({ id: tab.id, title: tab.title, url: tab.url }))}
+          tabs={tabs.map((tab) => ({
+            id: tab.id,
+            title: tab.title,
+            url: tab.url
+          }))}
           closed={closed}
           onSelect={setSelected}
           onReopen={(index) =>
@@ -724,7 +822,11 @@ export function BrowserWorkspace({
                 history: entry.history
               }
               return select(
-                { ...state, tabs: [...state.tabs, reopened], closed: state.closed.filter((_, at) => at !== index) },
+                {
+                  ...state,
+                  tabs: [...state.tabs, reopened],
+                  closed: state.closed.filter((_, at) => at !== index)
+                },
                 reopened.id
               )
             })
@@ -738,7 +840,9 @@ export function BrowserWorkspace({
                   variant="ghost"
                   size="icon-sm"
                   className="mb-1 ml-auto size-7 shrink-0 rounded-full"
-                  aria-label={t("browser.downloadsRunning", { count: downloads.length })}
+                  aria-label={t("browser.downloadsRunning", {
+                    count: downloads.length
+                  })}
                 />
               }
             >
@@ -756,9 +860,10 @@ export function BrowserWorkspace({
                         variant="ghost"
                         size="sm"
                         onClick={() =>
-                          void invoke("cef_cancel_download", { label: item.label, id: item.id }).catch(
-                            (error: unknown) => toast.error(String(error))
-                          )
+                          void invoke("cef_cancel_download", {
+                            label: item.label,
+                            id: item.id
+                          }).catch((error: unknown) => toast.error(String(error)))
                         }
                       >
                         {t("browser.cancel")}
@@ -766,12 +871,16 @@ export function BrowserWorkspace({
                     </div>
                     {item.total > 0 ? (
                       <Progress
-                        aria-label={t("browser.downloadProgress", { name: fileName(item) })}
+                        aria-label={t("browser.downloadProgress", {
+                          name: fileName(item)
+                        })}
                         value={Math.round((item.received / item.total) * 100)}
                       />
                     ) : (
                       <span className="text-xs text-muted-foreground">
-                        {t("browser.received", { size: megabytes(item.received) })}
+                        {t("browser.received", {
+                          size: megabytes(item.received)
+                        })}
                       </span>
                     )}
                   </li>
@@ -808,70 +917,75 @@ export function BrowserWorkspace({
           </Popover>
         )}
       </div>
-      {tabs.map((tab) => (
-        <div
-          key={tab.id}
-          role="tabpanel"
-          aria-label={tab.title}
-          hidden={tab.id !== selected}
-          className={tab.id === selected ? "flex min-h-0 flex-1 flex-col" : "hidden"}
-        >
-          {opened.includes(tab.id) && (
-            <BrowserPane
-              ref={(handle) => {
-                if (handle) panes.current.set(tab.id, handle)
-                else panes.current.delete(tab.id)
-              }}
-              onGuest={(label) =>
-                setTabs((tabs) => tabs.map((value) => (value.id === tab.id ? { ...value, label } : value)))
-              }
-              onMeta={(meta) => {
-                // A committed location the tab was not already on is a visit.
-                if (meta.url && meta.url !== tab.url && !tab.private) visit(meta.url, "")
-                setTabs((tabs) => tabs.map((value) => (value.id === tab.id ? { ...value, ...meta } : value)))
-              }}
-              private={tab.private}
-              onCommand={(command) => run(command)}
-              onOpenTab={(url) => {
-                // What a private tab opens is private too.
-                const created: Tab = {
-                  id: crypto.randomUUID(),
-                  title: new URL(url).hostname || url,
-                  initialUrl: url,
-                  url,
-                  private: tab.private
+      <div className="relative flex min-h-0 flex-1 flex-col">
+        {tabs.map((tab) => (
+          <div
+            key={tab.id}
+            role="tabpanel"
+            aria-label={tab.title}
+            hidden={tab.id !== selected}
+            className={tab.id === selected ? "flex min-h-0 flex-1 flex-col" : "hidden"}
+          >
+            {opened.includes(tab.id) && (
+              <BrowserPane
+                ref={(handle) => {
+                  if (handle) panes.current.set(tab.id, handle)
+                  else panes.current.delete(tab.id)
+                }}
+                onGuest={(label) =>
+                  setTabs((tabs) => tabs.map((value) => (value.id === tab.id ? { ...value, label } : value)))
                 }
-                setState((state) => select({ ...state, tabs: [...state.tabs, created] }, created.id))
-              }}
-              initialUrl={tab.initialUrl}
-              initialHistory={tab.initialHistory}
-              openPages={tabs.flatMap((other) =>
-                other.id !== tab.id && !other.private && other.url && /^https?:\/\//i.test(other.url)
-                  ? [{ url: other.url, title: other.title }]
-                  : []
-              )}
-              onSwitchTab={(url) =>
-                setState((state) => {
-                  const shown = state.tabs.find((other) => other.id !== tab.id && !other.private && other.url === url)
-                  return shown ? select(state, shown.id) : state
-                })
-              }
-              request={tab.request}
-              adopted={tab.adopted}
-              active={active && tab.id === selected}
-              maximized={maximized}
-              onMaximize={onMaximize}
-              onClose={onClose}
-              onTitle={(title) => {
-                if (tab.url && title && !tab.private) retitle(tab.url, title)
-                setTabs((tabs) =>
-                  tabs.map((value) => (value.id === tab.id && value.title !== title ? { ...value, title } : value))
-                )
-              }}
-            />
-          )}
-        </div>
-      ))}
+                onMeta={(meta) => {
+                  // A committed location the tab was not already on is a visit.
+                  if (meta.url && meta.url !== tab.url && !tab.private) visit(meta.url, "")
+                  setTabs((tabs) => tabs.map((value) => (value.id === tab.id ? { ...value, ...meta } : value)))
+                }}
+                private={tab.private}
+                onCommand={(command) => run(command)}
+                onOpenTab={(url) => {
+                  // What a private tab opens is private too.
+                  const created: Tab = {
+                    id: crypto.randomUUID(),
+                    title: new URL(url).hostname || url,
+                    initialUrl: url,
+                    url,
+                    private: tab.private
+                  }
+                  setState((state) => select({ ...state, tabs: [...state.tabs, created] }, created.id))
+                }}
+                initialUrl={tab.initialUrl}
+                initialHistory={tab.initialHistory}
+                openPages={tabs.flatMap((other) =>
+                  other.id !== tab.id && !other.private && other.url && /^https?:\/\//i.test(other.url)
+                    ? [{ url: other.url, title: other.title }]
+                    : []
+                )}
+                onSwitchTab={(url) =>
+                  setState((state) => {
+                    const shown = state.tabs.find((other) => other.id !== tab.id && !other.private && other.url === url)
+                    return shown ? select(state, shown.id) : state
+                  })
+                }
+                request={tab.request}
+                adopted={tab.adopted}
+                active={active && tab.id === selected}
+                maximized={maximized}
+                onMaximize={onMaximize}
+                onClose={onClose}
+                onTitle={(title) => {
+                  if (tab.url && title && !tab.private) retitle(tab.url, title)
+                  setTabs((tabs) =>
+                    tabs.map((value) => (value.id === tab.id && value.title !== title ? { ...value, title } : value))
+                  )
+                }}
+              />
+            )}
+          </div>
+        ))}
+        <Suspense fallback={null}>
+          <BrowserQuickChat active={active && !pageFullscreen} />
+        </Suspense>
+      </div>
     </section>
   )
 }
