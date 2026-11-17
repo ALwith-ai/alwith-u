@@ -39,6 +39,7 @@ const report = (error: unknown): void => {
 /** U's main window is the shell's DesktopWorkspace; U supplies its strings, preferences and pages. */
 export function MainSidebarLayout({
   initialPinned,
+  initialPaneOrder,
   screen,
   onScreenChange,
   onRegionChange,
@@ -51,6 +52,8 @@ export function MainSidebarLayout({
   children
 }: {
   initialPinned: boolean
+  /** The user's order of chat, preview and browser; each can be moved by its grip. */
+  initialPaneOrder?: readonly string[]
   screen: MainScreen
   onScreenChange?: (screen: MainScreen) => void
   /** The canvas's foreground region; chat collapsed beside a maximized preview is not it. */
@@ -90,11 +93,13 @@ export function MainSidebarLayout({
       unpin: t("sidebar.unpin"),
       pages: t("canvas.navigation"),
       page: (number: number) => t("canvas.page", { number }),
-      overview: t("canvas.overview")
+      overview: t("canvas.overview"),
+      movePane: (title: string) => t("canvas.movePane", { title })
     }),
     [t]
   )
   const persistPinned = useCallback((pinned: boolean) => savePreference("sidebarPinned", pinned), [])
+  const persistPaneOrder = useCallback((order: string[]) => savePreference("paneOrder", order), [])
   const openLink = useCallback((url: string) => void openExternal(url).catch(report), [])
   const regionChanged = useCallback(
     (region: DesktopCanvasRegion) => {
@@ -130,7 +135,7 @@ export function MainSidebarLayout({
           navigation={<NavigationOverlayBridge>{sidebar}</NavigationOverlayBridge>}
           leading={leading}
           panes={[
-            { id: "chat", title: t("chat.timeline"), children: main, min: 420 },
+            { id: "chat", title: t("chat.timeline"), children: main, min: 420, movable: true },
             {
               id: "preview",
               title: t("workspace.preview"),
@@ -138,7 +143,8 @@ export function MainSidebarLayout({
               min: MIN_PREVIEW_WIDTH,
               hidden: preview.hidden,
               maximized: preview.maximized,
-              resizable: true
+              resizable: true,
+              movable: true
             },
             ...(capabilities?.embeddedBrowser
               ? [
@@ -149,6 +155,7 @@ export function MainSidebarLayout({
                     hidden: browser.hidden,
                     maximized: browser.maximized,
                     resizable: true,
+                    movable: true,
                     children: browser.visited ? (
                       <BrowserWorkspace
                         request={previewRequest}
@@ -176,6 +183,8 @@ export function MainSidebarLayout({
           onRegionChange={regionChanged}
           initialNavigationPinned={initialPinned}
           onNavigationPinnedChange={persistPinned}
+          initialPaneOrder={initialPaneOrder}
+          onPaneOrderChange={persistPaneOrder}
           labels={labels}
           direction={i18n.dir()}
           trackpad={trackpad}

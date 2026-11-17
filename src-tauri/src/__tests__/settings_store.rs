@@ -211,6 +211,19 @@ fn rejected_voice_saves_do_not_cancel_recording() {
 }
 
 #[test]
+fn pane_order_survives_restart_and_rejects_malformed_orders() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut store = SettingsStore::load(dir.path().into()).unwrap();
+    store.update(changes(json!({"appearance.paneOrder": ["browser", "chat", "preview"]})), None).unwrap();
+    store = SettingsStore::load(dir.path().into()).unwrap();
+    assert_eq!(store.values["appearance.paneOrder"], json!(["browser", "chat", "preview"]));
+    for invalid in [json!("chat"), json!(["chat", "chat"]), json!(["Chat"]), json!(["side-pane"]), json!([1])] {
+        assert!(store.update(changes(json!({"appearance.paneOrder": invalid})), None).is_err());
+    }
+    assert_eq!(store.values["appearance.paneOrder"], json!(["browser", "chat", "preview"]));
+}
+
+#[test]
 fn computer_preference_survives_restart_and_rejects_non_boolean_values() {
     let dir = tempfile::tempdir().unwrap();
     let mut store = SettingsStore::load(dir.path().into()).unwrap();

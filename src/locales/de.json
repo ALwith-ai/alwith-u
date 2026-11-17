@@ -363,7 +363,8 @@
   "canvas": {
     "navigation": "Seitennavigation",
     "page": "Seite {{number}}",
-    "overview": "Übersicht"
+    "overview": "Übersicht",
+    "movePane": "{{title}} verschieben"
   },
   "computer": {
     "connection": "Verbindung",

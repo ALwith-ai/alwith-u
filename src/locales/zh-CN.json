@@ -1259,7 +1259,8 @@
   "canvas": {
     "navigation": "页面导航",
     "page": "第 {{number}} 页",
-    "overview": "缩略图总览"
+    "overview": "缩略图总览",
+    "movePane": "移动“{{title}}”"
   },
   "collection": {
     "defaultFavorites": "收藏夹",

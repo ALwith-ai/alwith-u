@@ -12,6 +12,8 @@ import { settingsStore, updateSettings } from "./settings-store"
 export type Preferences = {
   composerPredictions?: boolean
   sidebarPinned: boolean
+  /** The user's order of the main window's movable panes (chat, preview, browser). */
+  paneOrder?: string[]
   chatWindowShortcut?: string
   /** The floating chat window shows the native backdrop instead of an opaque background. */
   chatWindowTransparent?: boolean
@@ -29,6 +31,7 @@ export type Preferences = {
 const preferenceKeys: Record<keyof Preferences, string> = {
   composerPredictions: "chat.composerPredictions",
   sidebarPinned: "appearance.sidebarPinned",
+  paneOrder: "appearance.paneOrder",
   chatWindowShortcut: "chat.windowShortcut",
   chatWindowTransparent: "chat.windowTransparent",
   lastProjectDirectory: "general.lastProjectDirectory",
@@ -81,6 +84,7 @@ export async function loadPreferences(): Promise<Preferences> {
   return {
     composerPredictions: (await store.get<boolean>("composerPredictions")) ?? true,
     sidebarPinned: sidebarPinned ?? false,
+    paneOrder: (await store.get<string[]>("paneOrder")) ?? [],
     chatWindowShortcut: (await store.get<string>("chatWindowShortcut")) ?? "Alt+Space",
     chatWindowTransparent: (await store.get<boolean>("chatWindowTransparent")) ?? true,
     lastProjectDirectory: restoredDirectory,

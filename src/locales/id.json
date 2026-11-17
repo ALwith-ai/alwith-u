@@ -379,7 +379,8 @@
   "canvas": {
     "navigation": "Navigasi halaman",
     "page": "Halaman {{number}}",
-    "overview": "Ikhtisar"
+    "overview": "Ikhtisar",
+    "movePane": "Pindahkan {{title}}"
   },
   "computer": {
     "connection": "Koneksi",

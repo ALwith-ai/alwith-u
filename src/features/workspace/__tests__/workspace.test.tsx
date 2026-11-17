@@ -1219,6 +1219,7 @@ function canvasContext(overrides: Partial<DesktopCanvas> = {}): DesktopCanvas {
     trailingActive: false,
     moving: false,
     navigate: vi.fn(),
+    movePane: vi.fn(() => false),
     ...overrides
   }
 }

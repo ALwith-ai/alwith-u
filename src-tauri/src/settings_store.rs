@@ -372,6 +372,17 @@ fn setting_validity(key: &str, value: &Value) -> Option<bool> {
         "images.minimax.region" => matches!(value.as_str(), Some("cn" | "intl")),
         "images.seedream.baseUrl" | "images.minimax.baseUrl" => value.as_str().is_some_and(|v| v.len() <= 2048),
         "collections.data" => valid_collections(value),
+        // The main window's movable panes in the user's order: a few distinct pane IDs.
+        "appearance.paneOrder" => value.as_array().is_some_and(|ids| {
+            ids.len() <= 16
+                && ids.iter().enumerate().all(|(index, id)| {
+                    id.as_str().is_some_and(|id| {
+                        id.len() <= 64
+                            && id.starts_with(|c: char| c.is_ascii_lowercase())
+                            && id.chars().all(|c| c.is_ascii_alphanumeric())
+                    }) && !ids[..index].contains(id)
+                })
+        }),
         "appearance.theme" => matches!(value.as_str(), Some("light" | "dark" | "system")),
         "appearance.zoomLevel" => value.as_f64().is_some_and(|n| n > 0.0 && n <= 5.0),
         "editor.fontSize" => value.as_f64().is_some_and(|n| (8.0..=40.0).contains(&n)),

@@ -391,7 +391,8 @@
   "canvas": {
     "navigation": "पेज नेविगेशन",
     "page": "पेज {{number}}",
-    "overview": "अवलोकन"
+    "overview": "अवलोकन",
+    "movePane": "{{title}} को खिसकाएं"
   },
   "computer": {
     "connection": "कनेक्शन",

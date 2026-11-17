@@ -372,7 +372,8 @@
   "canvas": {
     "navigation": "Navigation entre les pages",
     "page": "Page {{number}}",
-    "overview": "Vue d’ensemble"
+    "overview": "Vue d’ensemble",
+    "movePane": "Déplacer {{title}}"
   },
   "computer": {
     "connection": "Connexion",

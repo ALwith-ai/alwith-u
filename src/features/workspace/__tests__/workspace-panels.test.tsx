@@ -20,7 +20,8 @@ test("in the main window the layout's preview pane holds the preview and the she
     region: "chat",
     trailingActive: false,
     moving: false,
-    navigate: vi.fn()
+    navigate: vi.fn(),
+    movePane: vi.fn(() => false)
   }
   try {
     const view = render(

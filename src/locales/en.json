@@ -1259,7 +1259,8 @@
   "canvas": {
     "navigation": "Page navigation",
     "page": "Page {{number}}",
-    "overview": "Overview"
+    "overview": "Overview",
+    "movePane": "Move {{title}}"
   },
   "collection": {
     "defaultFavorites": "Favorites",

@@ -489,7 +489,8 @@
   "canvas": {
     "navigation": "التنقل بين الصفحات",
     "page": "الصفحة {{number}}",
-    "overview": "نظرة عامة"
+    "overview": "نظرة عامة",
+    "movePane": "نقل {{title}}"
   },
   "computer": {
     "connection": "الاتصال",

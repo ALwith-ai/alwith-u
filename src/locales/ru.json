@@ -393,7 +393,8 @@
   "canvas": {
     "navigation": "Навигация по страницам",
     "page": "Страница {{number}}",
-    "overview": "Обзор"
+    "overview": "Обзор",
+    "movePane": "Переместить «{{title}}»"
   },
   "computer": {
     "connection": "Подключение",

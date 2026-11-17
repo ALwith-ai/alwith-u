@@ -615,6 +615,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       <WallpaperBackground onError={reportExtensionError}>
         <MainSidebarLayout
           initialPinned={initialPreferences.sidebarPinned}
+          initialPaneOrder={initialPreferences.paneOrder}
           screen={leading ? "leading" : "main"}
           onScreenChange={(screen) => {
             if (screen === "main") setView("chat")

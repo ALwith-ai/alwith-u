@@ -393,7 +393,8 @@
   "canvas": {
     "navigation": "ページナビゲーション",
     "page": "ページ {{number}}",
-    "overview": "概要"
+    "overview": "概要",
+    "movePane": "{{title}} を移動"
   },
   "computer": {
     "connection": "接続",
