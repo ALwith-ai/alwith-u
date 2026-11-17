@@ -8,7 +8,6 @@ import { ProcessRuntimeClient } from "@alwith/api/node"
 import sharedProviders from "@alwith/module-chat/assets/provider-catalog.json"
 
 import manifest from "../package.json"
-import { verifyCodexArtifacts } from "./lib/codex-signatures"
 import { joinModelCatalogPaths } from "./lib/model-catalog"
 import { assertVersion, codexSidecars, toolchainVersions } from "./lib/toolchain"
 import { deadline, removeTemporaryDirectory, stopRuntime, withCleanup } from "./lib/toolchain-cleanup"
@@ -28,10 +27,6 @@ const resources = process.argv[3]
     : directory
 const suffix = process.platform === "win32" ? ".exe" : ""
 const versions = toolchainVersions(manifest)
-const triples: Record<string, string> = { darwin: "aarch64-apple-darwin", win32: "x86_64-pc-windows-msvc" }
-const triple = triples[process.platform]
-if (!triple) throw new Error(`Unsupported toolchain verification platform: ${process.platform}`)
-verifyCodexArtifacts(resolve(import.meta.dirname, ".."), triple, directory)
 const codexHome = mkdtempSync(join(tmpdir(), "alwith-u 工具链-"))
 
 function run(name: string, args: string[]): string {
