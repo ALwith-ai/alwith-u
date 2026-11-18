@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 
@@ -7,15 +7,18 @@ import { verifyCodexArtifacts } from "../codex-signatures"
 import { codexSidecars } from "../toolchain"
 
 function fixture(windows = false) {
-  const root = mkdtempSync(join(tmpdir(), "codex-signatures-"))
+  const root = realpathSync(mkdtempSync(join(tmpdir(), "codex-signatures-")))
   const triple = windows ? "x86_64-pc-windows-msvc" : "aarch64-apple-darwin"
   const platform = windows ? "win32-x64" : "darwin-arm64"
+  const pkg = join(root, `node_modules/@openai/codex/node_modules/@openai/codex-${platform}`)
+  mkdirSync(pkg, { recursive: true })
+  writeFileSync(join(pkg, "package.json"), "{}")
   const destination = join(root, "bundle")
   const files = codexSidecars(windows).map((name) => {
     const filename = `${name}${windows ? ".exe" : ""}`
     const source = join(
-      root,
-      `node_modules/@openai/codex-${platform}/vendor`,
+      pkg,
+      "vendor",
       triple,
       name.startsWith("codex-windows") || name === "codex-command-runner" ? "codex-resources" : "bin",
       filename

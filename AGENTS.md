@@ -57,6 +57,10 @@ Always answer the user in Chinese.
 - ACP unions carry a `{type: string}` catch-all; narrow with the guards in
   `src/core/blocks.ts`, never with a bare `type ===` comparison.
 
+## Bundled Codex CLI
+
+- Use the stable npm tag `latest` for `@openai/codex`. Never pin its version in the application manifest or declare separate Codex platform aliases. Resolve native binaries through the installed CLI package and commit the Bun lockfile for reproducible builds.
+
 ## Code
 
 - Bun for everything: `bun add`, `bun run`, `bunx`. No npm, pnpm or yarn.

@@ -1,13 +1,15 @@
 import { expect, test } from "bun:test"
 
+import codexPackage from "@openai/codex/package.json"
+
 import manifest from "../../../package.json"
 import { assertVersion, toolchainVersions } from "../toolchain"
 
-test("all Bun and Codex platform pins match their authoritative versions", () => {
+test("Codex uses the installed CLI version", () => {
   expect(toolchainVersions(manifest)).toEqual({
     buildBun: manifest.packageManager.slice("bun@".length),
     bun: manifest.optionalDependencies["@oven/bun-darwin-aarch64"],
-    codex: manifest.devDependencies["@openai/codex"]
+    codex: codexPackage.version
   })
 })
 
@@ -24,8 +26,8 @@ test("rejects floating toolchain versions and mismatched platform pins", () => {
   bunMismatch.optionalDependencies["@oven/bun-windows-x64-baseline"] = "0.0.0"
   expect(() => toolchainVersions(bunMismatch)).toThrow("@oven/bun-windows-x64-baseline: expected")
   const codexMismatch = structuredClone(manifest)
-  codexMismatch.optionalDependencies["@openai/codex-win32-x64"] = "npm:@openai/codex@0.0.0-win32-x64"
-  expect(() => toolchainVersions(codexMismatch)).toThrow("@openai/codex-win32-x64: expected")
+  codexMismatch.devDependencies["@openai/codex"] = "0.170.0"
+  expect(() => toolchainVersions(codexMismatch)).toThrow("@openai/codex must use latest")
 })
 
 test("rejects missing or stale installed artifacts", () => {

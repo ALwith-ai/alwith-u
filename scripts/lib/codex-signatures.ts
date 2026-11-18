@@ -3,7 +3,7 @@ import { createHash } from "node:crypto"
 import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 
-import { CODEX_WINDOWS_HELPERS, codexSidecars } from "./toolchain"
+import { CODEX_WINDOWS_HELPERS, codexPlatformDirectory, codexSidecars } from "./toolchain"
 
 type SignatureResult = { status: number | null; stderr: string; error?: Error }
 type SignatureRunner = (args: string[]) => SignatureResult
@@ -41,8 +41,8 @@ export function verifyCodexArtifacts(
   for (const name of codexSidecars(target.exe === ".exe")) {
     const directory = CODEX_WINDOWS_HELPERS.some((helper) => helper === name) ? "codex-resources" : "bin"
     const original = join(
-      root,
-      `node_modules/@openai/codex-${target.platform}/vendor`,
+      codexPlatformDirectory(root, target.platform),
+      "vendor",
       triple,
       directory,
       `${name}${target.exe}`

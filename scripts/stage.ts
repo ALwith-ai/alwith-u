@@ -28,7 +28,7 @@ import { verifyCodexArtifacts } from "./lib/codex-signatures"
 import { stageComputer } from "./lib/computer-artifact"
 import { stageDocs } from "./lib/docs-artifact"
 import { runtimeBuildArtifact, runtimeSource, stageTarget } from "./lib/runtime-artifact"
-import { assertVersion, BUN_PACKAGES, CODEX_WINDOWS_HELPERS, codexSidecars, toolchainVersions } from "./lib/toolchain"
+import { assertVersion, BUN_PACKAGES, CODEX_WINDOWS_HELPERS, codexPlatformDirectory, codexSidecars, toolchainVersions } from "./lib/toolchain"
 import { stageWorkBuddy } from "./lib/workbuddy-artifact"
 import { stageBrowser } from "./stage-browser"
 
@@ -154,12 +154,7 @@ const codexPackage = JSON.parse(readFileSync(join(root, "node_modules/@openai/co
 }
 const codexVersion = codexPackage.version
 assertVersion("installed Codex package", codexVersion, versions.codex)
-const platformPackage = join(root, `node_modules/@openai/codex-${target.npm}`)
-if (!existsSync(platformPackage)) {
-  throw new Error(
-    `Missing ${platformPackage}. Install the platform package for ${triple}: bun add -d @openai/codex-${target.npm}@npm:@openai/codex@${codexVersion}-${target.npm}`
-  )
-}
+const platformPackage = codexPlatformDirectory(root, target.npm)
 const codexPlatformPackage = JSON.parse(readFileSync(join(platformPackage, "package.json"), "utf8")) as {
   version: string
 }

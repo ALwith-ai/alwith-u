@@ -1,10 +1,18 @@
+import { createRequire } from "node:module"
+import { dirname, join } from "node:path"
+
+import codexPackage from "@openai/codex/package.json"
+
 /** Official npm artifacts; x64 baseline avoids requiring AVX2 on users' machines. */
 export const BUN_PACKAGES: Record<string, string> = {
   "aarch64-apple-darwin": "@oven/bun-darwin-aarch64",
   "x86_64-pc-windows-msvc": "@oven/bun-windows-x64-baseline"
 }
 
-const CODEX_PLATFORMS = ["darwin-arm64", "win32-x64"]
+export function codexPlatformDirectory(root: string, platform: string): string {
+  const fromCli = createRequire(join(root, "node_modules/@openai/codex/package.json"))
+  return dirname(fromCli.resolve(`@openai/codex-${platform}/package.json`))
+}
 
 type Manifest = {
   packageManager: string
@@ -24,19 +32,13 @@ export function toolchainVersions(manifest: Manifest): { buildBun: string; bun: 
   const bun = manifest.optionalDependencies[BUN_PACKAGES["aarch64-apple-darwin"]]
   if (!bun || !/^\d+\.\d+\.\d+$/.test(bun))
     throw new Error("the bundled Bun platform packages must pin an exact version")
-  const codex = manifest.devDependencies["@openai/codex"]
-  if (!codex || !/^\d+\.\d+\.\d+$/.test(codex)) throw new Error("@openai/codex must pin an exact version")
+  if (manifest.devDependencies["@openai/codex"] !== "latest") throw new Error("@openai/codex must use latest")
+  if (Object.keys(manifest.optionalDependencies).some((name) => name.startsWith("@openai/codex-")))
+    throw new Error("Codex platform packages must come from the installed CLI")
   for (const name of Object.values(BUN_PACKAGES)) {
     assertVersion(name, manifest.optionalDependencies[name], bun)
   }
-  for (const platform of CODEX_PLATFORMS) {
-    assertVersion(
-      `@openai/codex-${platform}`,
-      manifest.optionalDependencies[`@openai/codex-${platform}`],
-      `npm:@openai/codex@${codex}-${platform}`
-    )
-  }
-  return { buildBun, bun, codex }
+  return { buildBun, bun, codex: codexPackage.version }
 }
 
 export function assertVersion(name: string, actual: string | undefined, expected: string): void {
