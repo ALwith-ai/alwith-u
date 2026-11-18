@@ -114,6 +114,7 @@ test("the attachment action opens the existing picker without sending the draft"
   vi.spyOn(client, "installedApps").mockResolvedValue({ apps: [] })
   const submit = vi.fn(async () => {})
   const view = render(<Composer session={session} onSubmit={submit} />)
+  expect(screen.queryByRole("button", { name: "添加图片" })).toBeNull()
   const fileInput = view.container.querySelector<HTMLInputElement>('input[type="file"]')!
   const pick = vi.spyOn(fileInput, "click").mockImplementation(() => {})
   fireEvent.change(screen.getByRole("textbox"), { target: { value: "Keep my draft" } })
@@ -123,6 +124,56 @@ test("the attachment action opens the existing picker without sending the draft"
   expect(screen.getByRole("textbox")).toHaveValue("Keep my draft")
   expect(submit).not.toHaveBeenCalled()
 })
+
+test.each(["plain", "inline"])(
+  "the %s composer keeps an image when backspacing past an empty draft",
+  async (editor) => {
+    const view = render(<Composer session={session} />)
+    const fileInput = view.container.querySelector<HTMLInputElement>('input[type="file"]')!
+    const pick = vi.spyOn(fileInput, "click").mockImplementation(() => {})
+    await open()
+    fireEvent.click(screen.getByRole("option", { name: "添加附件…" }))
+    expect(pick).toHaveBeenCalledOnce()
+    fireEvent.change(fileInput, { target: { files: [new File(["png"], "reference.png", { type: "image/png" })] } })
+    const remove = screen.getByRole("button", { name: "移除附件" })
+    if (editor === "inline") {
+      await open()
+      fireEvent.click(screen.getByRole("option", { name: /deploy/ }))
+      await waitFor(() =>
+        expect(screen.getByRole("textbox").querySelector('[data-inline-skill="$deploy"]')).toBeTruthy()
+      )
+      const input = screen.getByRole("textbox") as HTMLTextAreaElement
+      input.setSelectionRange(0, input.value.length)
+      fireEvent.keyDown(input, { key: "Backspace" })
+    }
+    const input = screen.getByRole("textbox")
+    expect(input).toHaveValue("")
+    fireEvent.keyDown(input, { key: "Backspace", repeat: true })
+    expect(remove).toBeInTheDocument()
+    fireEvent.click(remove)
+    expect(remove).not.toBeInTheDocument()
+  }
+)
+
+test.each(["plain", "inline"])(
+  "Option+Enter replaces the selection in the %s composer without sending",
+  async (editor) => {
+    const submit = vi.fn(async () => {})
+    render(<Composer session={session} onSubmit={submit} />)
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "oneXtwo" } })
+    if (editor === "inline") {
+      await open()
+      fireEvent.click(screen.getByRole("option", { name: /deploy/ }))
+      await waitFor(() => expect(screen.getByRole("textbox")).toHaveValue("oneXtwo\n$deploy "))
+    }
+    const input = screen.getByRole("textbox") as HTMLTextAreaElement
+    input.setSelectionRange(3, 4)
+    fireEvent.keyDown(input, { key: "Enter", altKey: true })
+    expect(input).toHaveValue(editor === "inline" ? "one\ntwo\n$deploy " : "one\ntwo")
+    expect(input.selectionStart).toBe(4)
+    expect(submit).not.toHaveBeenCalled()
+  }
+)
 
 test("keyboard selection inserts a command without letting Enter submit the form", async () => {
   vi.spyOn(client, "installedApps").mockResolvedValue({ apps: [] })

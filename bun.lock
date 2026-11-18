@@ -143,6 +143,7 @@
     },
   },
   "patchedDependencies": {
+    "@alwith/module-chat@0.6.30": "patches/@alwith%2Fmodule-chat@0.6.30.patch",
     "@nyssance/cef-rs@158.0.26": "patches/@nyssance%2Fcef-rs@158.0.26.patch",
     "vite@8.3.8": "patches/vite@8.3.8.patch",
   },
