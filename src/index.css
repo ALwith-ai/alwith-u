@@ -26,6 +26,32 @@ pre,
 /* Published vibemon components also live in shared chunks at the dist root. */
 @source "../node_modules/@alwith/module-auth/dist";
 
+.vibemon-task-decision[data-decision="allow"] {
+  --vibemon-decision-color: var(--success);
+}
+
+.vibemon-task-decision[data-decision="reject"] {
+  --vibemon-decision-color: var(--destructive);
+}
+
+.vibemon-task-decision[data-decision] {
+  --vibemon-decision-shade: var(--foreground);
+  --vibemon-decision-foreground: var(--primary-foreground);
+  --vibemon-decision-background: color-mix(in oklab, var(--vibemon-decision-color) 68%, var(--vibemon-decision-shade));
+  border-color: transparent;
+  background-color: var(--vibemon-decision-background);
+  color: var(--vibemon-decision-foreground);
+}
+
+.vibemon-task-decision[data-decision]:hover:not(:disabled) {
+  background-color: color-mix(in oklab, var(--vibemon-decision-background) 88%, var(--vibemon-decision-shade));
+}
+
+.dark .vibemon-task-decision[data-decision] {
+  --vibemon-decision-shade: var(--background);
+  --vibemon-decision-foreground: var(--foreground);
+}
+
 @custom-variant dark (&:is(.dark *));
 
 /* Reserve the status bar before Atlas initializes so startup has no vertical layout transition. */

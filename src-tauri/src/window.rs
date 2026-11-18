@@ -10,6 +10,7 @@ pub fn show_main_window(app: tauri::AppHandle) -> Result<(), String> {
     let window = app.get_webview_window("main").expect("main window is retained for the application lifetime");
     window.unminimize().map_err(|error| error.to_string())?;
     window.show().map_err(|error| error.to_string())?;
+    crate::window_state::publish_current(&window);
     window.set_focus().map_err(|error| error.to_string())
 }
 

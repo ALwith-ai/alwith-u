@@ -85,7 +85,10 @@ export const config = (mode = "development"): UserConfig => ({
     rolldownOptions: {
       input: {
         ...(process.env.ALWITH_NATIVE_TEST === "1"
-          ? { browserFixture: path.resolve(import.meta.dirname, "browser-fixture.html") }
+          ? {
+              browserFixture: path.resolve(import.meta.dirname, "browser-fixture.html"),
+              vibemonPermissionFixture: path.resolve(import.meta.dirname, "vibemon-permission-fixture.html")
+            }
           : {}),
         main: path.resolve(import.meta.dirname, "index.html"),
         capture: path.resolve(import.meta.dirname, "capture.html"),

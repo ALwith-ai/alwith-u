@@ -155,7 +155,7 @@ test("permission answers use the original request token and options", async () =
     ]
   })
   await f.host.refresh()
-  await f.host.minimized(true)
+  await f.host.mainWindowHidden(true)
   const observation = must(f.host.snapshot(), "vibemon observation")
   expect(observation.prompt?.options).toEqual([{ id: "approve", label: "Allow once", decision: "allow" }])
   await expect(f.host.answer(observation.binding, "invalid", "permission", "invented")).rejects.toThrow(
@@ -258,7 +258,7 @@ test("a once-only vibemon answer resolves the original fake agent approval and k
     await new Promise((resolve) => setTimeout(resolve, 5))
   }
   await f.host.refresh()
-  await f.host.minimized(true)
+  await f.host.mainWindowHidden(true)
   const observation = must(f.host.snapshot(), "vibemon observation")
   const approval = must(observation.prompt, "vibemon approval")
   await f.host.answer(observation.binding, "allow-request", approval.token, "allow_once")
@@ -303,15 +303,15 @@ test("all active tasks survive surface changes and dismissal does not cancel or 
   expect(f.markRead).toHaveBeenCalledExactlyOnceWith(f.b.id)
 })
 
-test("permission visibility follows actual minimization independently of surface visibility", async () => {
+test("permission visibility follows the main window state independently of the chat surface", async () => {
   const f = await fixture()
   await f.host.surface("main", { sessionId: f.a.id, visible: false })
   expect(f.host.snapshot()?.taskFeed?.mainMinimized).toBe(false)
-  await f.host.minimized(true)
+  await f.host.mainWindowHidden(true)
   expect(f.host.snapshot()?.taskFeed?.mainMinimized).toBe(true)
   await f.host.surface("main", { sessionId: f.b.id, visible: true })
   expect(f.host.snapshot()?.taskFeed?.mainMinimized).toBe(true)
-  await f.host.minimized(false)
+  await f.host.mainWindowHidden(false)
   expect(f.host.snapshot()?.taskFeed?.mainMinimized).toBe(false)
 })
 
@@ -437,7 +437,7 @@ test("an authorization is answered once while its Runtime action remains pending
       }
     ]
   })
-  await f.host.minimized(true)
+  await f.host.mainWindowHidden(true)
   const binding = must(f.host.snapshot(), "task").binding
   f.respond.mockImplementationOnce(() => {
     throw new Error("answer failed")
@@ -476,7 +476,7 @@ test("a child permission is shown and answered through its parent's vibemon bind
     ]
   }))
   await f.host.surface("main", { sessionId: f.a.id, visible: false })
-  await f.host.minimized(true)
+  await f.host.mainWindowHidden(true)
   const observation = must(f.host.snapshot(), "vibemon observation")
   expect(observation.prompt?.token).toBe("child-permission")
   f.respond.mockImplementation(() => {})
@@ -485,7 +485,7 @@ test("a child permission is shown and answered through its parent's vibemon bind
   await expect(f.host.send(observation.binding, "busy-child", "continue")).rejects.toThrow("requires an answer")
 })
 
-test("automatic animation binding follows the current conversation instead of the first background run", async () => {
+test("changing visible conversations preserves the independent global task feed", async () => {
   const f = await fixture()
   f.client.applyRunStates([
     { ...f.run(f.a.id), state: "running" },
@@ -496,4 +496,20 @@ test("automatic animation binding follows the current conversation instead of th
   expect(
     f.host.snapshot()?.taskFeed?.tasks.some((task) => task.binding.sessionId === f.a.id && task.state === "running")
   ).toBe(true)
+  const before = f.host.snapshot()?.taskFeed?.tasks.map(({ binding, state }) => [binding.sessionId, state])
+  await f.host.surface("main", { sessionId: f.a.id, visible: true })
+  expect(f.host.snapshot()?.taskFeed?.tasks.map(({ binding, state }) => [binding.sessionId, state])).toEqual(before)
+})
+
+test("historical interruption and reusable drafts do not become desktop tasks", async () => {
+  const f = await fixture()
+  f.client.applyRunStates(
+    [
+      { ...f.run(f.a.id), state: "requires_action", interruption: "runtime restarted" },
+      { ...f.run(f.b.id), reusableDraft: true }
+    ],
+    "snapshot"
+  )
+  await f.host.refresh()
+  expect(f.host.snapshot()?.taskFeed?.tasks).toEqual([])
 })

@@ -29,7 +29,7 @@ import { logBackgroundError } from "@/lib/background-errors"
 import { focusChatSession, openChatWindow, requestChatSurface, syncChatWindowSurface } from "@/lib/chat-window"
 import { client, markRead } from "@/lib/client"
 import { CODEX_AGENT_ID, runtimeClient } from "@/lib/runtime"
-import { observeWindowMinimized } from "@/lib/window-minimized"
+import { observeWindowHidden } from "@/lib/window-hidden"
 
 import { collapseToVibemon } from "./collapse"
 import { reportVibemonError } from "./display-error"
@@ -97,7 +97,7 @@ async function start() {
   })
   setMainSurface = (value) => owner.surface("main", value)
   const mainWindow = getCurrentWebviewWindow()
-  const windowState = await observeWindowMinimized(mainWindow, (minimized) => owner.minimized(minimized), report)
+  const windowState = await observeWindowHidden(mainWindow, (hidden) => owner.mainWindowHidden(hidden), report)
   let queue: Promise<unknown> = Promise.resolve()
   const serialize = <T>(work: () => Promise<T>): Promise<T> => {
     const result = queue.then(work)

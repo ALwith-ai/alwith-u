@@ -387,6 +387,7 @@ pub fn run() {
                 device_window::device_window_over_main,
                 device_window::device_window_selection,
                 settings::settings_request,
+                window_state::main_window_hidden,
                 desktop_runtime::runtime_capabilities,
                 desktop_runtime::runtime_restart
             ];
@@ -501,6 +502,7 @@ pub fn run() {
                         | "device_window_over_main"
                         | "device_window_selection"
                         | "settings_request"
+                        | "main_window_hidden"
                         | "runtime_capabilities"
                         | "runtime_restart"
                 ) {
@@ -527,6 +529,8 @@ pub fn run() {
             let window = app.get_webview_window("main").expect("main window exists on close");
             if let Err(error) = window.hide() {
                 log::error!("Cannot hide main window: {error}");
+            } else {
+                window_state::publish_current(&window);
             }
         }
         // Unexpected destruction cannot leave background services without their host.

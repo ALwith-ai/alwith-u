@@ -37,6 +37,8 @@ test("the application stylesheet includes Vibemon utilities from published share
       String.raw`.rounded-\[6\.25cqw\]`
     ])
       expect(css.includes(selector), `Missing Vibemon layout utility: ${selector}`).toBe(true)
+    expect(css).toMatch(/\.vibemon-task-decision\[data-decision="allow"\]\s*\{[^}]*--success/)
+    expect(css).toMatch(/\.vibemon-task-decision\[data-decision="reject"\]\s*\{[^}]*--destructive/)
   } finally {
     await rm(root, { recursive: true, force: true })
   }

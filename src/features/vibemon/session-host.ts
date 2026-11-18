@@ -53,7 +53,7 @@ export function createVibemonSessionOwner(owner: VibemonSessionOwner) {
   let selected: string | null = null
   let panel: VibemonPanelLevel = "hidden"
   let focusedSessionId: string | undefined
-  let mainMinimized = false
+  let mainHidden = false
   let snapshot: VibemonObservation | null = null
   let sequence = 0
   let order = 0
@@ -132,11 +132,12 @@ export function createVibemonSessionOwner(owner: VibemonSessionOwner) {
         completions.delete(id)
         stopped.delete(id)
       }
-      if (run.state === "done" && previous !== "done") completions.set(id, `${epoch}/${run.since}`)
+      if (run.state === "done" && previous !== "done" && source === "event")
+        completions.set(id, `${epoch}/${run.version}/${run.since}`)
       if (stopping.has(id) && run.state !== "running" && run.state !== "requires_action") {
         stopping.delete(id)
         stopped.add(id)
-        completions.set(id, `${epoch}/stopped/${run.since}`)
+        completions.delete(id)
       }
       previousStates.set(id, run.state)
       const attached = session?.attached ?? false
@@ -172,10 +173,17 @@ export function createVibemonSessionOwner(owner: VibemonSessionOwner) {
         tool === null || action?.sessionId == null
           ? undefined
           : state.sessions[action.sessionId]?.items.find((item) => item.id === tool.toolCallId && item.kind === "tool")
-      const prompt = vibemonPrompt(
-        action,
-        tool?.rawInput !== undefined ? tool.rawInput : storedTool?.kind === "tool" ? storedTool.rawInput : undefined
-      )
+      const prompt =
+        run.state === "done"
+          ? null
+          : vibemonPrompt(
+              action,
+              tool?.rawInput !== undefined
+                ? tool.rawInput
+                : storedTool?.kind === "tool"
+                  ? storedTool.rawInput
+                  : undefined
+            )
       const last = session?.items.findLast((item) => item.kind === "assistant")
       const reply =
         last?.kind === "assistant"
@@ -191,7 +199,7 @@ export function createVibemonSessionOwner(owner: VibemonSessionOwner) {
       const agent = agents.get(id)
       return {
         binding,
-        source: changed ? "snapshot" : source,
+        source: changed && !completions.has(id) ? "snapshot" : source,
         revision: revision + 1,
         hidden: hidden.has(id),
         stopped: stopped.has(id),
@@ -240,13 +248,18 @@ export function createVibemonSessionOwner(owner: VibemonSessionOwner) {
       }
       const active = tasks.filter(
         (task) =>
-          task.binding.sessionId === focusedSessionId ||
-          task.state !== "idle" ||
-          task.error !== null ||
+          (task.binding.sessionId === focusedSessionId && task.state === "idle") ||
+          task.state === "running" ||
+          task.state === "done" ||
+          (task.state === "requires_action" && state.runStates[task.binding.sessionId].interruption == null) ||
           task.prompt !== null ||
           task.stopped
       )
-      publish({ ...primary, revision: ++revision, taskFeed: { tasks: active, mainMinimized, panel, focusedSessionId } })
+      publish({
+        ...primary,
+        revision: ++revision,
+        taskFeed: { tasks: active, mainMinimized: mainHidden, panel, focusedSessionId }
+      })
     }
     // Publish transitions synchronously before resolving ownership, including done -> idle.
     publishAll()
@@ -345,8 +358,8 @@ export function createVibemonSessionOwner(owner: VibemonSessionOwner) {
       observations = []
       publish(null)
     },
-    minimized(value: boolean) {
-      mainMinimized = value
+    mainWindowHidden(value: boolean) {
+      mainHidden = value
       return refresh()
     },
     panel(level: VibemonPanelLevel) {
@@ -399,7 +412,7 @@ export function createVibemonSessionOwner(owner: VibemonSessionOwner) {
       await owner.prompt(binding.sessionId, [{ type: "text", text }])
     },
     async answer(binding: VibemonBinding, requestId: string, token: string, optionId: string) {
-      if (!mainMinimized) throw new Error("Open the main window to answer this permission")
+      if (!mainHidden) throw new Error("Open the main window to answer this permission")
       const value = await claim(binding, requestId)
       if (answered.has(token)) return
       const action = owner
@@ -408,7 +421,7 @@ export function createVibemonSessionOwner(owner: VibemonSessionOwner) {
           (item) => item.id === token && inSessionTree(owner.state().sessions, binding.sessionId, item.sessionId)
         )
       if (
-        !mainMinimized ||
+        !mainHidden ||
         value.prompt?.kind !== "permission" ||
         value.prompt?.token !== token ||
         action === undefined ||
