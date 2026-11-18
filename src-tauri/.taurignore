@@ -2,5 +2,6 @@
 # They must not restart the concurrent Tauri development process.
 /binaries/
 /resources/adapter/
+/resources/cef/
 /resources/native/
 /resources/licenses/
