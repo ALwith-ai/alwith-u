@@ -464,7 +464,7 @@ test("the collapsed float shows only its task and replies to that binding after 
   await act(() => Promise.resolve(f.pending.resolve()))
 })
 
-test("sidebar and task capsules share yellow running pulses and solid green unread completion", async () => {
+test("task capsules show yellow running pulses and solid blue unread completion", async () => {
   const f = await fixture()
   const task = { ...f.value, state: "running" as const }
   await f.update({ taskFeed: { tasks: [task], panel: "expanded", mainMinimized: false } })
@@ -480,7 +480,7 @@ test("sidebar and task capsules share yellow running pulses and solid green unre
   expect(capsule).toHaveClass("text-yellow-500")
   expect(capsule.querySelector('[style*="--uib-size"]')).not.toBeNull()
   await f.update({ taskFeed: { tasks: [{ ...task, state: "done" }], panel: "expanded", mainMinimized: false } })
-  expect(view.getByLabelText("Completed")).toHaveClass("bg-success", "rounded-full")
+  expect(view.getByLabelText("Completed")).toHaveClass("bg-[var(--vibemon-task-completed)]", "rounded-full")
   expect(view.getByLabelText("Completed").querySelector('[style*="--uib-size"]')).toBeNull()
 })
 

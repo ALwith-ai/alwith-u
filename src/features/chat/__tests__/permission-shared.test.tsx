@@ -1,12 +1,12 @@
 import { ReadableStream, TransformStream, WritableStream } from "node:stream/web"
 
+import { CodexClient, type PendingAction } from "@alwith/module-chat/client"
 import { PermissionModeMenu } from "@alwith/module-chat/conversation"
 import { act, fireEvent, render, waitFor } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 
 import { createFakeAgent } from "@/agent/__tests__/fake-agent"
 import { FakeHubPort } from "@/agent/__tests__/fake-runtime-client"
-import { CodexClient, type PendingAction } from "@alwith/module-chat/client"
 import { ThemeProvider } from "@/components/theme-provider"
 import { client as applicationClient } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
@@ -95,6 +95,53 @@ test.each(["Implement this plan?", "Review the implementation plan"])(
     })
   }
 )
+
+test("an approval in the active chat takes keyboard focus from its draft and confirms the highlighted option", () => {
+  const action: PendingAction = {
+    id: "keyboard-approval",
+    kind: "permission",
+    sessionId: "active-chat",
+    params: {
+      sessionId: "active-chat",
+      title: "Run command?",
+      options: [
+        { optionId: "allow", name: "Allow once", kind: "allow_once" },
+        { optionId: "deny", name: "Reject", kind: "reject_once" }
+      ]
+    }
+  }
+  const respond = vi.fn()
+  const chat = (pending: boolean) => (
+    <div data-chat-drop-zone>
+      {pending && (
+        <div data-session-actions>
+          <ActionCard action={action} onRespond={respond} />
+        </div>
+      )}
+      <textarea aria-label="Draft" data-chat-input defaultValue="Keep this draft" />
+    </div>
+  )
+  const view = render(chat(false), { wrapper: ThemeProvider })
+  mounted.push(view)
+  const draft = view.getByRole("textbox", { name: "Draft" })
+  draft.focus()
+  view.rerender(chat(true))
+
+  const choices = view.getByRole("listbox", { name: "Run command?" })
+  expect(choices).toHaveFocus()
+  fireEvent.keyDown(choices, { key: "ArrowDown" })
+  const reject = view.getByRole("option", { name: /Reject/ })
+  expect(reject).toHaveAttribute("aria-selected", "true")
+  expect(choices).toHaveAttribute("aria-activedescendant", reject.id)
+  fireEvent.keyDown(choices, { key: "ArrowUp" })
+  expect(view.getByRole("option", { name: /Allow once/ })).toHaveAttribute("aria-selected", "true")
+  fireEvent.keyDown(choices, { key: "ArrowDown" })
+  fireEvent.keyDown(choices, { key: "Enter" })
+  expect(respond).toHaveBeenCalledExactlyOnceWith(action.id, {
+    outcome: { outcome: "selected", optionId: "deny" }
+  })
+  expect(draft).toHaveValue("Keep this draft")
+})
 
 test("U shared approval answers the exact pending request through the real ACP client", async () => {
   const fake = createFakeAgent()

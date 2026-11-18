@@ -9,6 +9,8 @@ import { VibemonCenter } from "@alwith/module-auth/vibemon/react"
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 
+import { initI18n } from "@/lib/i18n"
+
 let disposeHost = () => {}
 let disposeSettings = () => {}
 afterEach(() => {
@@ -20,6 +22,7 @@ afterEach(() => {
 })
 
 test("home bypasses unrequested pool resources and Wish preserves server ordering", async () => {
+  await initI18n("en")
   const summaries: GachaPoolSummary[] = [
     { uuid: "v4", name: "v4", sort_order: 3, is_default: 0 },
     { uuid: "v3", name: "v3", sort_order: 4, is_default: 1 },

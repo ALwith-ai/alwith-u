@@ -68,7 +68,12 @@ test.each(["Tab", "ArrowRight", "Enter"])(
     expect(input).toHaveValue("")
     for (const modifier of ["ctrlKey", "altKey", "metaKey"]) {
       fireEvent.keyDown(input, { key, [modifier]: true })
-      expect(input).toHaveValue("")
+      if (key === "Enter" && modifier === "altKey") {
+        expect(input).toHaveValue("\n")
+        fireEvent.change(input, { target: { value: "" } })
+      } else {
+        expect(input).toHaveValue("")
+      }
     }
     fireEvent.keyDown(input, { key, isComposing: true })
     expect(input).toHaveValue("")
