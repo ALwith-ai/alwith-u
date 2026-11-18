@@ -30,7 +30,7 @@ import { logEnterpriseError, logEnterpriseResponse, traceEnterprise } from "./en
 import { createEnterpriseModels } from "./enterprise-models"
 import { createAccountTransition, createManagedProviders } from "./managed-providers"
 import { createProviderRefreshClient, serveProviderRefresh } from "./provider-refresh-bridge"
-import { registrationContext } from "./registration-context"
+import { registrationContext, registrationSource } from "./registration-context"
 
 export const API_BASE_URL = appEnv.apiBaseUrl
 const STATE_EVENT = "alwith-auth-state"
@@ -142,32 +142,14 @@ export function requestEnterpriseProviderRefresh(): Promise<void> {
   requestEnterpriseRefresh ??= createProviderRefreshClient(getCurrentWebviewWindow().label, undefined, "enterprise")
   return requestEnterpriseRefresh()
 }
-// Share the authenticated report with gacha requests so the first draw cannot race registration.
-let usage: { user: string; ready: Promise<void> } | undefined
-function ensureClientUsage(user: string): Promise<void> {
-  if (usage?.user === user) return usage.ready
-  const ready = getIdentifier().then(async (bundleId) => {
-    if (usePlatformAuth.getState().user?.user_uuid !== user) throw new Error("ALwith account changed")
-    await transport.request("/api/v1/me/client-usage", "POST", { bundle_id: bundleId })
-  })
-  usage = { user, ready }
-  void ready.catch(() => {
-    if (usage?.ready === ready) usage = undefined
-  })
-  return ready
-}
 function reportClientUsage(user: string): void {
-  void ensureClientUsage(user).catch((error: unknown) => console.warn("[auth] client usage report failed", error))
+  void getIdentifier().then(async (bundleId) => {
+    if (usePlatformAuth.getState().user?.user_uuid === user) {
+      await transport.request("/api/v1/me/client-usage", "POST", { bundle_id: bundleId })
+    }
+  }).catch((error: unknown) => console.warn("[auth] client usage report failed", error))
 }
-export async function platformApiRequest<T>(path: string, method: "GET" | "POST", body?: unknown): Promise<T> {
-  if (path.startsWith("/api/v1/gacha/")) {
-    const user = usePlatformAuth.getState().user?.user_uuid
-    if (!user) throw new Error("Sign in to use Vibemon")
-    await ensureClientUsage(user)
-    if (usePlatformAuth.getState().user?.user_uuid !== user) throw new Error("ALwith account changed")
-  }
-  return transport.request<T>(path, method, body)
-}
+export const platformApiRequest = transport.request
 async function getRegistrationContext(): Promise<RegistrationContext> {
   return registrationContext(await storage.tokenStorage.getDeviceId())
 }
@@ -176,7 +158,7 @@ export const authClient = createAuthClient({
     if (body && typeof body === "object") {
       const isCodeLogin = path === "/api/v1/auth/login" && "login_type" in body && body.login_type === "EMAIL"
       if (isCodeLogin || path === "/api/v1/auth/oauth/sessions") {
-        body = { ...body, bundle_id: await getIdentifier() }
+        body = { ...body, ...(await registrationSource()) }
       }
     }
     return transport.request(path, "POST", body, false)
@@ -214,7 +196,6 @@ export const usePlatformAuth = create<AuthState & AuthActions>(
     clearAccountConversation: async () => {},
     onSignedIn: (user, source) => {
       if (source === "login") {
-        usage = undefined
         reportClientUsage(user.user_uuid)
         managedProviders.confirm(user.user_uuid)
         enterpriseProviders.confirm(user.user_uuid)

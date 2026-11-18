@@ -167,7 +167,7 @@ test("code login sends the installed bundle with the verification code", async (
   const { authClient } = await import("../store")
   await authClient.loginWithCode("a@example.test", "123456")
   expect(host.request).toHaveBeenCalledWith("/api/v1/auth/login", "POST", {
-    email: "a@example.test", code: "123456", login_type: "EMAIL", bundle_id: "ai.alwith.u",
+    email: "a@example.test", code: "123456", login_type: "EMAIL", channel: "macos", bundle_id: "ai.alwith.u",
     client_type: "DESKTOP", client_name: "Tauri-macos-aarch64", device_id: "existing-device"
   }, false)
 })
@@ -179,7 +179,7 @@ test("OAuth binds the native bundle to session creation and preserves the ticket
   expect(host.request).toHaveBeenNthCalledWith(1, "/api/v1/auth/oauth/sessions", "POST", {
     provider: "GOOGLE", platform: "MACOS", return_target: "APP_LOGIN", client_type: "DESKTOP",
     client_name: "Tauri-macos-aarch64", device_id: "existing-device", client_code_challenge: "challenge",
-    loopback_port: 1420, bundle_id: "ai.alwith.u.dev"
+    loopback_port: 1420, channel: "macos", bundle_id: "ai.alwith.u.dev"
   }, false)
   expect(host.request).toHaveBeenNthCalledWith(2, "/api/v1/auth/oauth/tickets/exchange", "POST", {
     ticket: "ticket", client_code_verifier: "verifier"
@@ -384,7 +384,7 @@ test("enterprise events cannot renew credentials from a stale generation", async
   expect(host.enterpriseUpdateAccount).not.toHaveBeenCalled()
 })
 
-test("restoring a session reports the native bundle and gacha waits for that report", async () => {
+test("restoring a session reports the native bundle without blocking gacha on that report", async () => {
   let finish!: () => void
   host.request.mockImplementation(async (path: string) => {
     if (path === "/api/v1/me/client-usage") await new Promise<void>((resolve) => { finish = resolve })
@@ -395,9 +395,9 @@ test("restoring a session reports the native bundle and gacha waits for that rep
     bundle_id: "ai.alwith.u.dev"
   }))
   const balance = auth.platformApiRequest("/api/v1/gacha/first-draw", "GET")
-  expect(host.request.mock.calls.some(([path]) => path === "/api/v1/gacha/first-draw")).toBe(false)
-  finish()
   await balance
+  expect(host.request).toHaveBeenCalledWith("/api/v1/gacha/first-draw", "GET")
+  finish()
   expect(host.request.mock.calls.filter(([path]) => path === "/api/v1/me/client-usage")).toHaveLength(1)
 })
 
