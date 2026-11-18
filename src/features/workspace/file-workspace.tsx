@@ -266,12 +266,7 @@ export function FileWorkspace({
       },
       ...localPreviewProviders(
         {
-          htmlPreview: createHtmlPreviewHost(
-            workspace.root,
-            workspace.fs,
-            invoke,
-            navigator.userAgent.includes("Windows")
-          ),
+          htmlPreview: createHtmlPreviewHost(workspace.root, workspace.fs, invoke),
           openLink: openExternal,
           resolveResource: (path, reference) => resolvePreviewResource(workspace.fs, workspace.root, path, reference),
           openExternal,

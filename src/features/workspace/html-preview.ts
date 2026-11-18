@@ -1,5 +1,6 @@
 import type { PreviewHost } from "@alwith/module-editor/previews"
 import { containsPath, dirname, type FileSystem } from "@alwith/module-fs/core"
+import { convertFileSrc } from "@tauri-apps/api/core"
 
 type Invoke = (command: string, args: Record<string, unknown>) => Promise<unknown>
 
@@ -7,8 +8,7 @@ type Invoke = (command: string, args: Record<string, unknown>) => Promise<unknow
 export function createHtmlPreviewHost(
   root: string,
   fs: FileSystem,
-  invoke: Invoke,
-  windows: boolean
+  invoke: Invoke
 ): NonNullable<PreviewHost["htmlPreview"]> {
   return {
     async open(path, source) {
@@ -23,9 +23,10 @@ export function createHtmlPreviewHost(
       )
         throw new Error("Invalid native HTML preview response")
       const token = result.token
-      const resource = [token, ...result.path.split("/")].map(encodeURIComponent).join("/")
+      const base = convertFileSrc(token, "preview-html")
+      const resource = result.path.split("/").map(encodeURIComponent).join("/")
       return {
-        url: `${windows ? "http://preview-html.localhost" : "preview-html://localhost"}/${resource}`,
+        url: `${base}/${resource}`,
         async dispose() {
           await invoke("html_preview_close", { token })
         }

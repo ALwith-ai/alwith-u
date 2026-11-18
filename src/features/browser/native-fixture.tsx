@@ -64,9 +64,13 @@ function Fixture() {
 }
 // The contract scripts ask for controls by their Chinese names.
 await initI18n("zh-CN")
-installQuickChatFixture()
-createRoot(document.getElementById("root")!).render(
-  <ThemeProvider forced="light">
-    <Fixture />
-  </ThemeProvider>
-)
+const workspaceDirectory = new URLSearchParams(location.search).get("html-preview-workspace")
+let content
+if (workspaceDirectory === null) {
+  installQuickChatFixture()
+  content = <Fixture />
+} else {
+  const { HtmlPreviewFixture } = await import("../workspace/html-preview-fixture")
+  content = <HtmlPreviewFixture directory={workspaceDirectory} />
+}
+createRoot(document.getElementById("root")!).render(<ThemeProvider forced="light">{content}</ThemeProvider>)
