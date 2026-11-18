@@ -72,6 +72,7 @@ test("the packaged vibemon preserves drag animation and resumes its renderer aft
             states: [
               { id: "empty", row: 0, frames: 4 },
               { id: "working", row: 1, frames: 4 },
+              { id: "done", row: 2, frames: 4 },
               { id: "drag", row: 3, frames: 8 }
             ]
           }
@@ -153,7 +154,7 @@ test("the packaged vibemon preserves drag animation and resumes its renderer aft
       },
       moved: (listener) => {
         moved.listener = listener
-        return Promise.resolve(stop)
+        return started.promise.then(() => stop)
       },
       commands: (listener) => {
         onCommand = listener
@@ -183,7 +184,7 @@ test("the packaged vibemon preserves drag animation and resumes its renderer aft
   drawImage.mockClear()
   fireEvent.pointerDown(canvas, { button: 0, screenX: 100, screenY: 100 })
   await act(async () => {
-    fireEvent.pointerMove(canvas, { screenX: 110, screenY: 100 })
+    fireEvent.pointerMove(canvas, { buttons: 1, screenX: 110, screenY: 100 })
     await started.promise
   })
   expect(drawImage.mock.calls.at(-1)?.slice(1, 3)).toEqual([0, 192])
@@ -276,7 +277,10 @@ test("the packaged vibemon preserves drag animation and resumes its renderer aft
   await publish("expanded")
   expect(bubbleFocus.at(-1)).toBe(false)
   await publish("hidden")
-  expect(view.getByRole("button", { name: "Expand tasks" })).toHaveTextContent("1")
+  const expand = view.getByRole("button", { name: "Expand tasks" })
+  expect(expand.querySelector(".lucide-bell")).toBeInTheDocument()
+  expect(expand.querySelector(".vibemon-task-count")).toHaveTextContent("1")
+  expect(expand).toHaveAttribute("data-tone", "completed")
   expect(bubbleVisibility.at(-1)).toBe(true)
   await act(async () => {
     await vi.advanceTimersByTimeAsync(120)
@@ -292,6 +296,7 @@ test("the packaged vibemon preserves drag animation and resumes its renderer aft
     await vi.advanceTimersByTimeAsync(240)
   })
   expect(bubbleVisibility.at(-1)).toBe(false)
+  const surface = view.container.querySelector("[data-vibemon-animation]")
   const background = {
     ...task,
     binding: { ...task.binding, sessionId: "background" },
@@ -300,7 +305,16 @@ test("the packaged vibemon preserves drag animation and resumes its renderer aft
   }
   observation = { ...task, taskFeed: { tasks: [task, background], panel: "hidden", mainMinimized: false } }
   await act(() => Promise.resolve(observe?.(observation)))
-  expect(drawImage.mock.calls.at(-1)?.[2]).toBe(0)
+  expect(surface).toHaveAttribute("data-vibemon-animation", "working")
+  observation = { ...background, taskFeed: observation.taskFeed }
+  await act(() => Promise.resolve(observe?.(observation)))
+  expect(surface).toHaveAttribute("data-vibemon-animation", "working")
+  const completed = { ...background, state: "done" as const, hidden: false, completion: "new-turn" }
+  observation = { ...task, taskFeed: { tasks: [task, completed], panel: "hidden", mainMinimized: false } }
+  await act(() => Promise.resolve(observe?.(observation)))
+  expect(surface).toHaveAttribute("data-vibemon-animation", "done")
+  await act(async () => vi.advanceTimersByTimeAsync(1000))
+  expect(surface).toHaveAttribute("data-vibemon-animation", "empty")
   for (const value of [
     { ...task, taskFeed: { tasks: [{ ...task, hidden: true }], panel: "expanded" as const, mainMinimized: false } },
     { ...task, taskFeed: { tasks: [], panel: "hidden" as const, mainMinimized: false } },

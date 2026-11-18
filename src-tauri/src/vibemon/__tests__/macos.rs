@@ -1,8 +1,19 @@
-use super::{bubble_frame, offscreen_origin};
+use super::{bubble_frame, covers_pointer, offscreen_origin};
 use objc2_foundation::{NSPoint, NSRect, NSSize};
 
 fn rect(x: f64, y: f64, width: f64, height: f64) -> NSRect {
     NSRect::new(NSPoint::new(x, y), NSSize::new(width, height))
+}
+
+#[test]
+fn only_a_visible_pets_footprint_claims_pointer_movement_from_the_window_under_it() {
+    let pet = rect(-180.0, 40.0, 120.0, 120.0);
+    let inside = NSPoint::new(-100.0, 90.0);
+    assert!(covers_pointer(pet, inside, 21, 21, 9));
+    assert!(covers_pointer(pet, inside, 9, 21, 9));
+    assert!(!covers_pointer(pet, inside, 32, 21, 9));
+    assert!(!covers_pointer(pet, inside, 9, 9, 9));
+    assert!(!covers_pointer(pet, NSPoint::new(-60.0, 90.0), 21, 21, 9));
 }
 
 #[test]

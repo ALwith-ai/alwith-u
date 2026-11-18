@@ -1,7 +1,65 @@
 use super::backdrop;
-use objc2::{AnyThread, MainThreadMarker};
-use objc2_app_kit::{NSApplication, NSScreen, NSWindow, NSWindowOrderingMode};
+use std::{cell::OnceCell, ptr::NonNull};
+
+use objc2::{AnyThread, MainThreadMarker, rc::Retained, runtime::AnyObject};
+use objc2_app_kit::{NSApplication, NSEvent, NSEventMask, NSEventType, NSScreen, NSWindow, NSWindowOrderingMode};
 use objc2_foundation::{NSPoint, NSRect, NSSize};
+use tauri::Manager;
+
+thread_local! {
+    static POINTER_MONITOR: OnceCell<Retained<AnyObject>> = const { OnceCell::new() };
+}
+
+fn covers_pointer(frame: NSRect, point: NSPoint, front: isize, source: isize, pet: isize) -> bool {
+    source != pet
+        && (front == source || front == pet)
+        && point.x >= frame.origin.x
+        && point.x < frame.origin.x + frame.size.width
+        && point.y >= frame.origin.y
+        && point.y < frame.origin.y + frame.size.height
+}
+
+fn monitor_pointer(host: &tauri::WebviewWindow) -> Result<(), String> {
+    POINTER_MONITOR.with(|monitor| {
+        if monitor.get().is_some() {
+            return Ok(());
+        }
+        let app = host.app_handle().clone();
+        let handler = block2::RcBlock::new(move |event: NonNull<NSEvent>| {
+            // AppKit invokes this monitor on its main thread, with a live event and native windows.
+            let event_ref = unsafe { event.as_ref() };
+            let Some(window) = app.get_webview_window("vibemon") else { return event.as_ptr() };
+            let Ok(pointer) = window.ns_window() else { return event.as_ptr() };
+            let pet = unsafe { &*(pointer as *const NSWindow) };
+            if !pet.isVisible() || pet.ignoresMouseEvents() || event_ref.windowNumber() == pet.windowNumber() {
+                return event.as_ptr();
+            }
+            let point = NSEvent::mouseLocation();
+            let Some(marker) = MainThreadMarker::new() else { return event.as_ptr() };
+            let front = NSWindow::windowNumberAtPoint_belowWindowWithWindowNumber(point, 0, marker);
+            if !covers_pointer(pet.frame(), point, front, event_ref.windowNumber(), pet.windowNumber()) {
+                return event.as_ptr();
+            }
+            let Some(routed) = NSEvent::mouseEventWithType_location_modifierFlags_timestamp_windowNumber_context_eventNumber_clickCount_pressure(
+                NSEventType::MouseMoved,
+                pet.convertPointFromScreen(point),
+                event_ref.modifierFlags(),
+                event_ref.timestamp(),
+                pet.windowNumber(),
+                None,
+                event_ref.eventNumber(),
+                0,
+                0.0,
+            ) else { return event.as_ptr() };
+            pet.sendEvent(&routed);
+            std::ptr::null_mut()
+        });
+        // The handler either returns the original event or consumes it after sending a retained replacement.
+        let installed = unsafe { NSEvent::addLocalMonitorForEventsMatchingMask_handler(NSEventMask::MouseMoved, &handler) }
+            .ok_or("Could not install Vibemon pointer routing")?;
+        monitor.set(installed).map_err(|_| "Vibemon pointer routing already installed".to_owned())
+    })
+}
 
 fn offscreen_origin(frame: NSRect, visible_frames: &[NSRect], preferred: NSRect) -> Option<NSPoint> {
     let center = NSPoint::new(frame.origin.x + frame.size.width / 2.0, frame.origin.y + frame.size.height / 2.0);
@@ -97,6 +155,7 @@ pub(super) fn apply(host: &tauri::WebviewWindow, action: super::WindowAction) ->
             crate::panel::prepare(host)?;
             crate::panel::set_presented(host.label(), true);
             if action.role == "vibemon" {
+                monitor_pointer(host)?;
                 ensure_visible(window)?;
             }
             window.orderFrontRegardless();
@@ -135,7 +194,26 @@ pub(super) fn apply(host: &tauri::WebviewWindow, action: super::WindowAction) ->
         }
         "drag" => {
             let app = NSApplication::sharedApplication(marker);
-            let event = app.currentEvent().ok_or("No native mouse event for vibemon drag")?;
+            if NSEvent::pressedMouseButtons() & 1 == 0 {
+                return Ok(());
+            }
+            let event = app.currentEvent().filter(|event| {
+                event.windowNumber() == window.windowNumber()
+                    && matches!(event.r#type(), NSEventType::LeftMouseDown | NSEventType::LeftMouseDragged)
+            });
+            let event = event.or_else(|| {
+                NSEvent::mouseEventWithType_location_modifierFlags_timestamp_windowNumber_context_eventNumber_clickCount_pressure(
+                    NSEventType::LeftMouseDragged,
+                    window.convertPointFromScreen(NSEvent::mouseLocation()),
+                    NSEvent::modifierFlags_class(),
+                    0.0,
+                    window.windowNumber(),
+                    None,
+                    0,
+                    1,
+                    1.0,
+                )
+            }).ok_or("No native mouse event for vibemon drag")?;
             window.performWindowDragWithEvent(&event);
         }
         _ => return Err("Unsupported native vibemon action".into()),

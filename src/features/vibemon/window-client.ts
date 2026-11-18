@@ -14,6 +14,7 @@ import { LogicalPosition } from "@tauri-apps/api/window"
 import i18n from "@/lib/i18n"
 
 import type { VibemonCollapseResult } from "./collapse"
+import { reportVibemonError } from "./display-error"
 import { sessionIcons } from "./session-icons"
 import { fitSessionMenuLabel } from "./session-menu-label"
 import { requestVibemon } from "./transport"
@@ -77,10 +78,11 @@ export function vibemonWindowCall<T>(action: string, payload: Record<string, unk
   if (action === "menu") payload = { ...payload, closeLabel: i18n.t("vibemon.recall") }
   if (action === "drag")
     return (async () => {
-      await emitTo("main", "vibemon:drag-start")
+      const started = emitTo("main", "vibemon:drag-start").catch(reportVibemonError)
       try {
         return await invoke<T>("vibemon_window", { action, payload })
       } finally {
+        await started
         await emitTo("main", "vibemon:drag-end")
       }
     })()

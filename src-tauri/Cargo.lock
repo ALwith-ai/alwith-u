@@ -427,6 +427,7 @@ dependencies = [
  "atlas-tauri",
  "axum",
  "base64 0.23.1",
+ "block2",
  "dirs 7.0.0",
  "hex",
  "image",
