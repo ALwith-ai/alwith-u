@@ -40,7 +40,7 @@ export type CatalogRunner = {
 }
 type Launcher = { command: string; prefixArgs: string[]; shell: boolean }
 type Catalog = { models: Array<Record<string, unknown>>; [key: string]: unknown }
-type PreparedCatalog = { path: string | null; refresh: Promise<void>; dispose: () => void }
+type PreparedCatalog = { path: string | null; dispose: () => void }
 const refreshAfterMs = 60 * 60 * 1000
 const maxBuffer = 64 * 1024 * 1024
 
@@ -165,22 +165,22 @@ function cachePath(launcher: Launcher, env: NodeJS.ProcessEnv, version: string):
     .filter(([key]) => /^(CODEX_|OPENAI_|AZURE_OPENAI_)/.test(key) && key !== "CODEX_ACP_MODEL_CATALOGS")
     .toSorted(([a], [b]) => a.localeCompare(b))
   const key = createHash("sha256")
-    .update(JSON.stringify({ schema: 1, launcher, version, home, auth, config, environment }))
+    .update(JSON.stringify({ schema: 2, launcher, version, home, auth, config, environment }))
     .digest("hex")
   return join(home, "cache", "alwith-u-models", `${key}.json`)
 }
 
-/** Select an immutable startup snapshot. Refresh may populate the next launch's cache but must never
- * delay ACP initialization or replace the catalog used by a running Codex app-server.
+/** Refresh missing or expired metadata before selecting the immutable startup snapshot.
+ * A running Codex app-server must keep the same catalog for its entire lifetime.
  */
-export function prepareModelCatalog(
+export async function prepareModelCatalog(
   launcher: Launcher,
   env: NodeJS.ProcessEnv,
   version: string,
   runner = runnerFor(launcher, env)
-): PreparedCatalog {
+): Promise<PreparedCatalog> {
   const raw = env.CODEX_ACP_MODEL_CATALOGS
-  if (raw === undefined || raw.trim() === "") return { path: null, refresh: Promise.resolve(), dispose() {} }
+  if (raw === undefined || raw.trim() === "") return { path: null, dispose() {} }
   let cache: string | null = null
   const custom = hasCustomCatalog(env, runner.warn)
   let base: Catalog | undefined
@@ -207,6 +207,31 @@ export function prepareModelCatalog(
   } catch (error) {
     runner.warn(`Model catalog cache unavailable: ${String(error)}`)
   }
+  if (!custom && cache !== null && !fresh) {
+    let temporary: string | undefined
+    try {
+      // The timeout also bounds a cold start when the upstream service is unavailable.
+      base = parseCatalog(JSON.parse(await runner.refresh(AbortSignal.timeout(15_000))))
+      // Never persist a result under credentials or configuration that changed during refresh.
+      if (cachePath(launcher, env, version) === cache) {
+        mkdirSync(dirname(cache), { recursive: true, mode: 0o700 })
+        temporary = `${cache}.${randomUUID()}.tmp`
+        writeFileSync(temporary, JSON.stringify({ fetchedAt: Date.now(), catalog: base }), { mode: 0o600 })
+        renameSync(temporary, cache)
+        temporary = undefined
+      }
+    } catch (error) {
+      runner.warn(`Model catalog refresh failed; keeping available catalog: ${String(error).slice(0, 500)}`)
+    } finally {
+      if (temporary !== undefined) {
+        try {
+          rmSync(temporary, { force: true })
+        } catch (error) {
+          runner.warn(`Model catalog temporary file cleanup failed: ${String(error)}`)
+        }
+      }
+    }
+  }
   base ??= parseCatalog(JSON.parse(custom || cache === null ? runner.configured() : runner.bundled()))
   const directory = mkdtempSync(join(tmpdir(), "alwith-u-models-catalog-"))
   const path = join(directory, "models.json")
@@ -227,43 +252,9 @@ export function prepareModelCatalog(
     rmSync(directory, { recursive: true, force: true })
     throw error
   }
-  const controller = new AbortController()
-  const refresh =
-    fresh || cache === null
-      ? Promise.resolve()
-      : (async () => {
-          let temporary: string | undefined
-          try {
-            const catalog = parseCatalog(JSON.parse(await runner.refresh(controller.signal)))
-            if (controller.signal.aborted) return
-            // Login/config may change while the subprocess refreshes. Never cache that result under the old identity.
-            if (cachePath(launcher, env, version) !== cache) return
-            mkdirSync(join(resolve(env.CODEX_HOME || join(homedir(), ".codex")), "cache", "alwith-u-models"), {
-              recursive: true,
-              mode: 0o700
-            })
-            temporary = `${cache}.${randomUUID()}.tmp`
-            writeFileSync(temporary, JSON.stringify({ fetchedAt: Date.now(), catalog }), { mode: 0o600 })
-            renameSync(temporary, cache)
-            temporary = undefined
-          } catch (error) {
-            if (!controller.signal.aborted)
-              runner.warn(`Model catalog refresh failed; keeping startup catalog: ${String(error).slice(0, 500)}`)
-          } finally {
-            if (temporary !== undefined) {
-              try {
-                rmSync(temporary, { force: true })
-              } catch (error) {
-                runner.warn(`Model catalog temporary file cleanup failed: ${String(error)}`)
-              }
-            }
-          }
-        })()
   return {
     path,
-    refresh,
     dispose() {
-      controller.abort()
       try {
         rmSync(directory, { recursive: true, force: true })
       } catch (error) {

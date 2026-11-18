@@ -29,9 +29,10 @@ test("script catalog lists use the same Windows quoting as the native host", () 
   expect(() => joinModelCatalogPaths([String.raw`C:\bad"name.json`], "win32")).toThrow("cannot contain a quote")
 })
 
-const catalogs: ReturnType<typeof prepare>[] = []
-function prepareModelCatalog(...args: Parameters<typeof prepare>): ReturnType<typeof prepare> {
-  const catalog = prepare(...args)
+type PreparedCatalog = Awaited<ReturnType<typeof prepare>>
+const catalogs: PreparedCatalog[] = []
+async function prepareModelCatalog(...args: Parameters<typeof prepare>): Promise<PreparedCatalog> {
+  const catalog = await prepare(...args)
   catalogs.push(catalog)
   return catalog
 }
@@ -65,208 +66,211 @@ function models(path: string | null): Array<Record<string, unknown>> {
   if (path === null) throw new Error("Expected a merged catalog")
   return (JSON.parse(readFileSync(path, "utf8")) as { models: Array<Record<string, unknown>> }).models
 }
+function cacheFile(env: NodeJS.ProcessEnv): string {
+  const directory = join(env.CODEX_HOME!, "cache", "alwith-u-models")
+  const file = readdirSync(directory).find((name) => name.endsWith(".json"))
+  if (file === undefined) throw new Error("Expected a cached catalog")
+  return join(directory, file)
+}
+function expireCache(env: NodeJS.ProcessEnv): void {
+  const file = cacheFile(env)
+  const saved = JSON.parse(readFileSync(file, "utf8")) as Record<string, unknown>
+  writeFileSync(file, JSON.stringify({ ...saved, fetchedAt: 0 }))
+}
 
-test("startup does not wait for refresh and never changes the active catalog", async () => {
+test("cold startup waits for upstream metadata and exposes new models in the first snapshot", async () => {
   const { env, runner } = fixture()
   const pending = Promise.withResolvers<string>()
-  runner.refresh = () => pending.promise
-  const catalog = prepareModelCatalog(launcher, env, "0.159.2", runner)
+  const started = Promise.withResolvers<void>()
+  runner.refresh = (signal) => {
+    expect(signal.aborted).toBe(false)
+    started.resolve()
+    return pending.promise
+  }
+  let ready = false
+  const preparing = prepareModelCatalog(launcher, env, "0.169.0", runner).then((catalog) => {
+    ready = true
+    return catalog
+  })
+  await started.promise
+  expect(ready).toBe(false)
+  pending.resolve(
+    JSON.stringify({
+      models: [
+        { slug: "gpt-6.2-sol", visibility: "list", context_window: 500000 },
+        { slug: "gpt-6.2-astra", visibility: "list", context_window: 272000 }
+      ]
+    })
+  )
+  const catalog = await preparing
   expect(models(catalog.path)).toEqual([
-    { slug: "bundled", visibility: "list", context_window: 100 },
+    { slug: "gpt-6.2-sol", visibility: "list", context_window: 500000 },
+    { slug: "gpt-6.2-astra", visibility: "list", context_window: 272000 },
     { slug: "gateway", visibility: "hide" }
   ])
-  pending.resolve(refreshed)
-  await catalog.refresh
-  expect(models(catalog.path)[0]?.slug).toBe("bundled")
-  const next = prepareModelCatalog(launcher, env, "0.159.2", {
-    ...runner,
-    bundled: () => {
-      throw new Error("Fresh cache should avoid a subprocess")
-    },
-    refresh: () => {
-      return Promise.try(() => {
-        throw new Error("Fresh cache should avoid refresh")
-      })
-    }
-  })
-  expect(models(next.path)[0]?.slug).toBe("new-model")
-  await next.refresh
+  const saved = JSON.parse(readFileSync(cacheFile(env), "utf8")) as { catalog: { models: unknown[] } }
+  expect(saved.catalog.models).toHaveLength(2)
 })
 
-test("a failed background refresh leaves startup usable and reports the failure", async () => {
-  const { env, runner, warnings } = fixture()
+test("fresh metadata avoids upstream lookup and leaves existing snapshots immutable", async () => {
+  const { env, runner } = fixture()
+  const first = await prepareModelCatalog(launcher, env, "0.169.0", runner)
+  const before = readFileSync(first.path!, "utf8")
   runner.refresh = () => {
-    return Promise.try(() => {
-      throw new Error("offline")
-    })
+    throw new Error("Fresh cache must not refresh")
   }
-  const catalog = prepareModelCatalog(launcher, env, "0.159.2", runner)
-  await catalog.refresh
+  runner.bundled = () => {
+    throw new Error("Fresh cache must not load bundled metadata")
+  }
+  const second = await prepareModelCatalog(launcher, env, "0.169.0", runner)
+  expect(models(second.path)[0]?.slug).toBe("new-model")
+  expireCache(env)
+  runner.refresh = () => Promise.resolve(bundled)
+  expect(models((await prepareModelCatalog(launcher, env, "0.169.0", runner)).path)[0]?.slug).toBe("bundled")
+  expect(readFileSync(first.path!, "utf8")).toBe(before)
+})
+
+test("expired metadata is refreshed before the current startup snapshot is created", async () => {
+  const { env, runner } = fixture()
+  await prepareModelCatalog(launcher, env, "0.169.0", runner)
+  expireCache(env)
+  runner.refresh = () => Promise.resolve(bundled)
+  expect(models((await prepareModelCatalog(launcher, env, "0.169.0", runner)).path)[0]?.slug).toBe("bundled")
+})
+
+test("failed or timed out cold refresh uses bundled metadata without caching it", async () => {
+  const { env, runner, warnings } = fixture()
+  runner.refresh = () => Promise.reject(new DOMException("Timed out", "TimeoutError"))
+  const catalog = await prepareModelCatalog(launcher, env, "0.169.0", runner)
   expect(models(catalog.path)[0]?.slug).toBe("bundled")
   expect(warnings).toHaveLength(1)
-  expect(warnings[0]).toContain("refresh")
+  expect(existsSync(join(env.CODEX_HOME!, "cache", "alwith-u-models"))).toBe(false)
 })
 
-test("an expired cache remains usable when refresh fails", async () => {
+test("an expired cache remains usable when upstream refresh fails", async () => {
   const { env, runner, warnings } = fixture()
-  await prepareModelCatalog(launcher, env, "0.159.2", runner).refresh
-  const directory = join(env.CODEX_HOME!, "cache", "alwith-u-models")
-  const file = join(
-    directory,
-    readdirSync(directory).find((name) => name.endsWith(".json"))!
-  )
-  const cached = JSON.parse(readFileSync(file, "utf8")) as Record<string, unknown>
-  writeFileSync(file, JSON.stringify({ ...cached, fetchedAt: 0 }))
-  runner.refresh = () => {
-    return Promise.try(() => {
-      throw new Error("offline")
-    })
+  await prepareModelCatalog(launcher, env, "0.169.0", runner)
+  expireCache(env)
+  const before = readFileSync(cacheFile(env), "utf8")
+  runner.refresh = () => Promise.reject(new Error("offline"))
+  expect(models((await prepareModelCatalog(launcher, env, "0.169.0", runner)).path)[0]?.slug).toBe("new-model")
+  expect(readFileSync(cacheFile(env), "utf8")).toBe(before)
+  expect(warnings).toHaveLength(1)
+})
+
+test.each(["version", "account", "config", "environment"])(
+  "%s changes refresh before selecting metadata",
+  async (change) => {
+    const { env, runner } = fixture()
+    await prepareModelCatalog(launcher, env, "0.169.0", runner)
+    if (change === "account") writeFileSync(join(env.CODEX_HOME!, "auth.json"), '{"OPENAI_API_KEY":"account-b"}')
+    if (change === "config") writeFileSync(join(env.CODEX_HOME!, "config.toml"), 'model_provider = "other"')
+    if (change === "environment") env.OPENAI_BASE_URL = "https://other.example"
+    runner.refresh = () => Promise.resolve(bundled)
+    const catalog = await prepareModelCatalog(launcher, env, change === "version" ? "0.170.0" : "0.169.0", runner)
+    expect(models(catalog.path)[0]?.slug).toBe("bundled")
   }
-  const catalog = prepareModelCatalog(launcher, env, "0.159.2", runner)
+)
+
+test("corrupt cache is replaced by upstream metadata during startup", async () => {
+  const { env, runner, warnings } = fixture()
+  await prepareModelCatalog(launcher, env, "0.169.0", runner)
+  writeFileSync(cacheFile(env), "{broken")
+  const catalog = await prepareModelCatalog(launcher, env, "0.169.0", runner)
   expect(models(catalog.path)[0]?.slug).toBe("new-model")
-  await catalog.refresh
   expect(warnings).toHaveLength(1)
 })
 
-test.each(["version", "account", "config", "environment"])("%s changes invalidate the cache", async (change) => {
-  const { env, runner } = fixture()
-  await prepareModelCatalog(launcher, env, "0.159.2", runner).refresh
-  if (change === "account") writeFileSync(join(env.CODEX_HOME!, "auth.json"), '{"OPENAI_API_KEY":"account-b"}')
-  if (change === "config") writeFileSync(join(env.CODEX_HOME!, "config.toml"), 'model_provider = "other"')
-  if (change === "environment") env.OPENAI_BASE_URL = "https://other.example"
-  const catalog = prepareModelCatalog(launcher, env, change === "version" ? "0.160.0" : "0.159.2", runner)
-  expect(models(catalog.path)[0]?.slug).toBe("bundled")
-  await catalog.refresh
-})
-
-test("corrupt cache is reported and replaced without delaying startup", async () => {
+test("invalid upstream metadata cannot replace a valid expired cache", async () => {
   const { env, runner, warnings } = fixture()
-  await prepareModelCatalog(launcher, env, "0.159.2", runner).refresh
-  const directory = join(env.CODEX_HOME!, "cache", "alwith-u-models")
-  const file = join(
-    directory,
-    readdirSync(directory).find((name) => name.endsWith(".json"))!
-  )
-  writeFileSync(file, "{broken")
-  const catalog = prepareModelCatalog(launcher, env, "0.159.2", runner)
-  expect(models(catalog.path)[0]?.slug).toBe("bundled")
-  expect(warnings).toHaveLength(1)
-  await catalog.refresh
-  expect(models(prepareModelCatalog(launcher, env, "0.159.2", runner).path)[0]?.slug).toBe("new-model")
-})
-
-test("invalid refresh data cannot replace a previously valid cache", async () => {
-  const { env, runner, warnings } = fixture()
+  await prepareModelCatalog(launcher, env, "0.169.0", runner)
+  expireCache(env)
+  const before = readFileSync(cacheFile(env), "utf8")
   runner.refresh = () => Promise.resolve('{"models":[{"slug":42}]}')
-  const catalog = prepareModelCatalog(launcher, env, "0.159.2", runner)
-  await catalog.refresh
+  const catalog = await prepareModelCatalog(launcher, env, "0.169.0", runner)
+  expect(models(catalog.path)[0]?.slug).toBe("new-model")
+  expect(readFileSync(cacheFile(env), "utf8")).toBe(before)
   expect(warnings).toHaveLength(1)
-  expect(models(catalog.path)[0]?.slug).toBe("bundled")
 })
 
-test("the startup snapshot merges gateway metadata without overriding the native account catalog", async () => {
+test("gateway metadata cannot override native upstream metadata", async () => {
   const { env, runner } = fixture()
-  await prepareModelCatalog(launcher, env, "0.159.2", runner).refresh
   writeFileSync(
     env.CODEX_ACP_MODEL_CATALOGS!,
     JSON.stringify({ models: [{ slug: "new-model", context_window: 1 }, { slug: "second-gateway" }] })
   )
-  const catalog = prepareModelCatalog(launcher, env, "0.159.2", runner)
+  const catalog = await prepareModelCatalog(launcher, env, "0.169.0", runner)
   expect(models(catalog.path)).toEqual([
     { slug: "new-model", visibility: "list", context_window: 200 },
     { slug: "second-gateway", visibility: "hide" }
   ])
-  await catalog.refresh
 })
 
-test("disposing an adapter aborts refresh without writing cache or reporting a failure", async () => {
-  const { env, runner, warnings } = fixture()
-  runner.refresh = (signal) =>
-    new Promise((_resolve, reject) => {
-      signal.addEventListener("abort", () => reject(new Error("aborted")), { once: true })
-    })
-  const catalog = prepareModelCatalog(launcher, env, "0.159.2", runner)
-  catalog.dispose()
-  await catalog.refresh
-  expect(warnings).toEqual([])
-  expect(existsSync(catalog.path!)).toBe(false)
-  expect(existsSync(join(env.CODEX_HOME!, "cache", "alwith-u-models"))).toBe(false)
-})
-
-test("cache write failure is reported without failing the active session", async () => {
+test("cache write failure preserves freshly retrieved metadata for the current startup", async () => {
   const { env, runner, warnings } = fixture()
   mkdirSync(join(env.CODEX_HOME!, "cache"))
   writeFileSync(join(env.CODEX_HOME!, "cache", "alwith-u-models"), "not a directory")
-  const catalog = prepareModelCatalog(launcher, env, "0.159.2", runner)
-  await catalog.refresh
-  expect(models(catalog.path)[0]?.slug).toBe("bundled")
+  const catalog = await prepareModelCatalog(launcher, env, "0.169.0", runner)
+  expect(models(catalog.path)[0]?.slug).toBe("new-model")
   expect(warnings.length).toBeGreaterThan(0)
 })
 
-test("invalid bundled data remains a hard failure", () => {
+test("invalid bundled data remains a hard failure after upstream refresh fails", async () => {
   const { env, runner } = fixture()
+  runner.refresh = () => Promise.reject(new Error("offline"))
   runner.bundled = () => '{"models":[]}'
-  expect(() => prepareModelCatalog(launcher, env, "0.159.2", runner)).toThrow()
+  await expect(prepareModelCatalog(launcher, env, "0.169.0", runner)).rejects.toThrow("Invalid model catalog")
 })
 
-test("without extra catalogs, Codex keeps its native catalog path", async () => {
+test("without extra catalogs Codex retains its native lookup", async () => {
   const { env, runner } = fixture()
-  const catalog = prepareModelCatalog(launcher, { ...env, CODEX_ACP_MODEL_CATALOGS: "" }, "0.159.2", runner)
-  expect(catalog.path).toBeNull()
-  await catalog.refresh
-})
-
-test("explicit native catalogs retain Codex configuration and bypass bundled/cache selection", async () => {
-  const { env, runner, warnings } = fixture()
-  writeFileSync(join(env.CODEX_HOME!, "config.toml"), 'model_catalog_json = "/custom/models.json"')
-  runner.configured = () => JSON.stringify({ models: [{ slug: "custom-model" }] })
-  runner.bundled = () => {
-    throw new Error("Custom configuration must remain authoritative")
-  }
   runner.refresh = () => {
-    return Promise.try(() => {
-      throw new Error("Custom catalogs must not be cached")
-    })
+    throw new Error("Native lookup must not be intercepted")
   }
-  const catalog = prepareModelCatalog(launcher, env, "0.159.2", runner)
-  expect(models(catalog.path)[0]?.slug).toBe("custom-model")
-  await catalog.refresh
-  expect(warnings).toEqual([])
+  const catalog = await prepareModelCatalog(launcher, { ...env, CODEX_ACP_MODEL_CATALOGS: "" }, "0.169.0", runner)
+  expect(catalog.path).toBeNull()
 })
 
-test("a credentials change during refresh cannot populate the previous account cache", async () => {
+test("explicit catalogs and keyring credentials retain Codex configuration resolution", async () => {
+  for (const config of ['model_catalog_json = "/custom/models.json"', 'cli_auth_credentials_store = "keyring"']) {
+    const { env, runner, warnings } = fixture()
+    writeFileSync(join(env.CODEX_HOME!, "config.toml"), config)
+    runner.configured = () => JSON.stringify({ models: [{ slug: "custom-model" }] })
+    runner.bundled = () => {
+      throw new Error("Native configuration is authoritative")
+    }
+    runner.refresh = () => {
+      throw new Error("Unidentified accounts and explicit catalogs must not be cached")
+    }
+    const catalog = await prepareModelCatalog(launcher, env, "0.169.0", runner)
+    expect(models(catalog.path)).toEqual([{ slug: "custom-model" }, { slug: "gateway", visibility: "hide" }])
+    expect(warnings).toEqual([])
+  }
+})
+
+test("a credential change during refresh cannot populate the previous account cache", async () => {
   const { env, runner } = fixture()
-  const pending = Promise.withResolvers<string>()
-  runner.refresh = () => pending.promise
-  const catalog = prepareModelCatalog(launcher, env, "0.159.2", runner)
-  writeFileSync(join(env.CODEX_HOME!, "auth.json"), '{"OPENAI_API_KEY":"account-b"}')
-  pending.resolve(refreshed)
-  await catalog.refresh
+  runner.refresh = async () => {
+    writeFileSync(join(env.CODEX_HOME!, "auth.json"), '{"OPENAI_API_KEY":"account-b"}')
+    return refreshed
+  }
+  await prepareModelCatalog(launcher, env, "0.169.0", runner)
   expect(existsSync(join(env.CODEX_HOME!, "cache", "alwith-u-models"))).toBe(false)
 })
 
-test("keyring credentials retain native lookup instead of reusing a file-account catalog", async () => {
-  const { env, runner, warnings } = fixture()
-  await prepareModelCatalog(launcher, env, "0.159.2", runner).refresh
-  writeFileSync(join(env.CODEX_HOME!, "config.toml"), 'cli_auth_credentials_store = "keyring"')
-  runner.configured = () => JSON.stringify({ models: [{ slug: "keyring-account-model" }] })
-  runner.refresh = () => {
-    return Promise.try(() => {
-      throw new Error("Cannot persist an unidentified account's catalog")
-    })
-  }
-  const catalog = prepareModelCatalog(launcher, env, "0.159.2", runner)
-  expect(models(catalog.path)[0]?.slug).toBe("keyring-account-model")
-  await catalog.refresh
-  expect(warnings).toEqual([])
-})
-
-test("advisory configuration parsing cannot override Codex's own validation", async () => {
+test("advisory configuration parsing cannot override Codex validation", async () => {
   const { env, runner, warnings } = fixture()
   writeFileSync(join(env.CODEX_HOME!, "config.toml"), "[broken")
   runner.configured = () => JSON.stringify({ models: [{ slug: "native-resolved" }] })
-  const catalog = prepareModelCatalog(launcher, env, "0.159.2", runner)
+  const catalog = await prepareModelCatalog(launcher, env, "0.169.0", runner)
   expect(models(catalog.path)[0]?.slug).toBe("native-resolved")
   expect(warnings).toHaveLength(1)
-  await catalog.refresh
+})
+
+test("disposing a snapshot removes its temporary file but preserves upstream cache", async () => {
+  const { env, runner } = fixture()
+  const catalog = await prepareModelCatalog(launcher, env, "0.169.0", runner)
+  catalog.dispose()
+  expect(existsSync(catalog.path!)).toBe(false)
+  expect(existsSync(cacheFile(env))).toBe(true)
 })

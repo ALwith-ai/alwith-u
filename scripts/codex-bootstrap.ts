@@ -19,7 +19,7 @@ async function start(): Promise<void> {
     process.stderr.write("[alwith-docs] Preserved an existing or user-edited alwith-docs skill.\n")
   }
   process.env.CODEX_CONFIG = interactiveSessionConfig(process.env.CODEX_CONFIG)
-  const catalog = prepareModelCatalog({ command, prefixArgs: [], shell: false }, process.env, probe.stdout.trim())
+  const catalog = await prepareModelCatalog({ command, prefixArgs: [], shell: false }, process.env, probe.stdout.trim())
   if (catalog.path === null) delete process.env.ALWITH_U_CODEX_CATALOG
   else process.env.ALWITH_U_CODEX_CATALOG = catalog.path
   process.once("exit", catalog.dispose)
