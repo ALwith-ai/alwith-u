@@ -132,7 +132,7 @@ pub fn run() {
         .manage(login_launch)
         .manage(enterprise::Enterprise::default())
         .register_asynchronous_uri_scheme_protocol("preview-html", html_preview::handle_protocol)
-        // Official plugins; single-instance must run before services open exclusive resources.
+        // Official plugins sorted by name, except single-instance must precede exclusive resources.
         // Second launch: focus the running instance instead of starting a second alwith-runtime
         // against the same ~/.codex.
         .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
@@ -178,7 +178,14 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_process::init())
-        .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_shell::init());
+    // The shell schedules updates but the host must register the underlying updater first.
+    let builder = if alwith_desktop_shell::updates_configured(context.config()) {
+        builder.plugin(tauri_plugin_updater::Builder::new().build())
+    } else {
+        builder
+    };
+    let builder = builder
         // Chat is created hidden before converting it to NSPanel. Restoring visibility here
         // would focus an unprepared NSWindow and break AppKit's keyboard/KVO lifecycle.
         // Settings has a fixed logical size; cached physical sizes must not override it.
