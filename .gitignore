@@ -36,3 +36,5 @@ src-tauri/.cargo/config.toml
 # Staged by scripts/stage-browser.ts.
 src-tauri/resources/browser/
 src-tauri/resources/cef/
+
+/target/cef-h264-aac/

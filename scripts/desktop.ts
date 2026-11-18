@@ -15,6 +15,7 @@ const child = Bun.spawn(["bun", "tauri", ...args], {
   cwd,
   env: {
     ...process.env,
+    CEF_PATH: resolve(cwd, "target/cef-h264-aac/158.0.25", process.platform === "darwin" ? "cef_macos_aarch64" : "cef_windows_x86_64"),
     ...(development
       ? {
           ALWITH_DEV_PORT: String(1400 + instance),

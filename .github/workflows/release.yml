@@ -53,6 +53,8 @@ jobs:
       - uses: ilammy/msvc-dev-cmd@v1
         if: runner.os == 'Windows'
       - uses: tauri-apps/tauri-action@v1
+        env:
+          CEF_PATH: ${{ github.workspace }}/target/cef-h264-aac/158.0.25/${{ runner.os == 'macOS' && 'cef_macos_aarch64' || 'cef_windows_x86_64' }}
         with:
           tauriScript: bun tauri
           args: --features ${{ matrix.backend }} --target ${{ matrix.target }} --config src-tauri/tauri.ci-test.conf.json -- --no-default-features
@@ -172,6 +174,7 @@ jobs:
         run: bash scripts/macos-signing.sh setup
       - uses: tauri-apps/tauri-action@v1
         env:
+          CEF_PATH: ${{ github.workspace }}/target/cef-h264-aac/158.0.25/${{ runner.os == 'macOS' && 'cef_macos_aarch64' || 'cef_windows_x86_64' }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
