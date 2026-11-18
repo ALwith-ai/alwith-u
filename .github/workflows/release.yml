@@ -44,11 +44,12 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
+      # Cargo metadata resolves the SDK from node_modules/@alwith/api/rust.
+      - run: bun install --frozen-lockfile
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
           key: ${{ matrix.target }}
-      - run: bun install --frozen-lockfile
       - uses: ilammy/msvc-dev-cmd@v1
         if: runner.os == 'Windows'
       - uses: tauri-apps/tauri-action@v1
@@ -154,11 +155,12 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
+      # Cargo metadata resolves the SDK from node_modules/@alwith/api/rust.
+      - run: bun install --frozen-lockfile
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
           key: ${{ matrix.target }}
-      - run: bun install --frozen-lockfile
       - uses: ilammy/msvc-dev-cmd@v1
         if: runner.os == 'Windows'
       - name: Import Apple signing certificate
