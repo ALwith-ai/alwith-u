@@ -7,6 +7,8 @@ import { ipc, rpc, ui, waitFor } from "./lib/app"
 
 describe.runIf(process.platform === "darwin")("runtime panel effects", () => {
   const chat = (command: string, args: unknown = {}) => rpc("ipc", { window: "chat", command, args })
+  const chatUi = (script: string) => rpc("eval", { window: "chat", script })
+  const visible = () => chat("plugin:window|is_visible", { label: "chat" })
   const absent = () =>
     waitFor(async () => {
       const result = (await rpc("windows.list", {})) as { windows: { label: string }[] }
@@ -62,10 +64,96 @@ describe.runIf(process.platform === "darwin")("runtime panel effects", () => {
         draft,
         "Panel conversion and effect changes must preserve the live webview"
       )
-      // Leave glass attached when closing: the reverse class change must preserve observers too.
+      // Exercise disposal with glass still attached after the panel has resigned key status.
+      await chat("plugin:window|hide", { label: "chat" })
+      await waitFor(async () => !(await visible()), `Cycle ${cycle}: the chat panel did not hide`)
       await ipc("plugin:window|close", { label: "chat" })
       await absent()
       assert.equal(await ui("document.readyState"), "complete", `Cycle ${cycle}: host stopped responding`)
     }
+  })
+
+  test("closing a retained chat panel hides it and reopens the same webview", async () => {
+    await ipc("show_main_window")
+    await ipc("plugin:webview|create_webview_window", {
+      options: {
+        label: "chat",
+        url: "native-shell-test.html",
+        title: "Retained chat panel",
+        width: 560,
+        height: 640,
+        minWidth: 420,
+        minHeight: 360,
+        center: true,
+        decorations: false,
+        transparent: true,
+        alwaysOnTop: true,
+        visible: false,
+        focus: false,
+        maximizable: false,
+        skipTaskbar: true
+      }
+    })
+    await waitFor(
+      () => chatUi("document.readyState === 'complete'").catch(() => false),
+      "Chat fixture did not load",
+      30_000
+    )
+    // Hasgard evaluates in an isolated world under CEF. The listener belongs to the application world.
+    await chatUi(`(() => {
+      const script = document.createElement("script")
+      script.textContent = ${JSON.stringify(`
+        (async () => {
+          const api = window.__TAURI_INTERNALS__
+          const draft = document.createElement("textarea")
+          draft.id = "retained-draft"
+          draft.value = "Unsent draft"
+          document.body.append(draft)
+          let closeCount = 0
+          const listener = await api.invoke("plugin:event|listen", {
+            event: "tauri://close-requested",
+            target: { kind: "WebviewWindow", label: "chat" },
+            handler: api.transformCallback(async () => {
+              await api.invoke("plugin:window|hide", { label: "chat" })
+              document.body.dataset.closeCount = String(++closeCount)
+            })
+          })
+          document.body.addEventListener("unlisten-close", async () => {
+            await api.invoke("plugin:event|unlisten", { event: "tauri://close-requested", eventId: listener })
+            document.body.dataset.closeCount = "unregistered"
+          }, { once: true })
+          document.body.dataset.closeCount = "0"
+        })()
+      `)}
+      document.documentElement.append(script)
+      script.remove()
+    })()`)
+    await waitFor(() => chatUi('document.body.dataset.closeCount === "0"'), "Close listener did not register")
+    await chat("set_chat_window_backdrop", { cornerRadius: 24 })
+    await chat("present_chat_window")
+    await waitFor(visible, "Chat panel did not show")
+
+    for (const cycle of [1, 2, 3]) {
+      await chat("plugin:window|close", { label: "chat" })
+      await waitFor(
+        () => chatUi(`document.body.dataset.closeCount === "${cycle}"`),
+        `Cycle ${cycle}: the retained webview did not handle the native close request`
+      )
+      assert.equal(await visible(), false, `Cycle ${cycle}: the chat panel was still visible`)
+      await chat("present_chat_window")
+      await waitFor(visible, `Cycle ${cycle}: the chat panel did not reopen`)
+      assert.equal(await chatUi('document.querySelector("#retained-draft").value'), "Unsent draft")
+      assert.equal(await ui("document.readyState"), "complete", `Cycle ${cycle}: the host stopped responding`)
+    }
+
+    await chat("plugin:window|hide", { label: "chat" })
+    await waitFor(async () => !(await visible()), "Chat panel did not hide for cleanup")
+    await chatUi('document.body.dispatchEvent(new Event("unlisten-close"))')
+    await waitFor(
+      () => chatUi('document.body.dataset.closeCount === "unregistered"'),
+      "Close listener did not unregister"
+    )
+    await ipc("plugin:window|close", { label: "chat" })
+    await absent()
   })
 })

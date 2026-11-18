@@ -95,12 +95,21 @@ impl ExitRequestApi {
 
 /// Api exposed on the `CloseRequested` event.
 #[derive(Debug, Clone)]
-pub struct CloseRequestApi(Sender<bool>);
+pub struct CloseRequestApi {
+  signal_tx: Sender<bool>,
+  prevented: Arc<atomic::AtomicBool>,
+}
 
 impl CloseRequestApi {
   /// Prevents the window from being closed.
   pub fn prevent_close(&self) {
-    self.0.send(true).unwrap();
+    self.prevented.store(true, atomic::Ordering::Relaxed);
+    self.signal_tx.send(true).unwrap();
+  }
+
+  /// Whether a listener has already prevented this close request.
+  pub fn is_prevented(&self) -> bool {
+    self.prevented.load(atomic::Ordering::Relaxed)
   }
 }
 
@@ -174,7 +183,10 @@ impl From<RuntimeWindowEvent> for WindowEvent {
       RuntimeWindowEvent::Resized(size) => Self::Resized(size),
       RuntimeWindowEvent::Moved(position) => Self::Moved(position),
       RuntimeWindowEvent::CloseRequested { signal_tx } => Self::CloseRequested {
-        api: CloseRequestApi(signal_tx),
+        api: CloseRequestApi {
+          signal_tx,
+          prevented: Arc::default(),
+        },
       },
       RuntimeWindowEvent::Destroyed => Self::Destroyed,
       RuntimeWindowEvent::Focused(flag) => Self::Focused(flag),

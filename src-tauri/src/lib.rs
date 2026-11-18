@@ -289,10 +289,12 @@ pub fn run() {
     let app = builder
         .on_window_event(|window, event| {
             #[cfg(target_os = "macos")]
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event
+                && !api.is_prevented()
             {
-                if matches!(event, tauri::WindowEvent::CloseRequested { .. }) {
-                    panel::before_close(window.app_handle(), window.label());
-                }
+                // Tauri has already honored the webview's close listener. A retained panel
+                // must keep its native class and AppKit observers when the listener hides it.
+                panel::before_close(window.app_handle(), window.label());
             }
             #[cfg(not(target_os = "macos"))]
             let _ = (window, event);
