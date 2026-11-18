@@ -1,5 +1,5 @@
 diff --git a/rust/cef/src/bindings/x86_64_pc_windows_msvc.rs b/rust/cef/src/bindings/x86_64_pc_windows_msvc.rs
-index 2f4faf8d68d8f7ed4eb0bf102afc738a7608f230..3ffb92f13c7b263364d6872a98e6288d0ef3f448 100644
+index 2f4faf8..3ffb92f 100644
 --- a/rust/cef/src/bindings/x86_64_pc_windows_msvc.rs
 +++ b/rust/cef/src/bindings/x86_64_pc_windows_msvc.rs
 @@ -508,6 +508,408 @@ impl Default for AcceleratedPaintInfo {
@@ -3192,7 +3192,7 @@ index 2f4faf8d68d8f7ed4eb0bf102afc738a7608f230..3ffb92f13c7b263364d6872a98e6288d
      pub const COLOR_TAB_DIVIDER_FRAME_ACTIVE: Self =
          Self(cef_color_id_t::CEF_ColorTabDividerFrameActive);
 diff --git a/rust/cef/src/resources/x86_64_pc_windows_msvc.rs b/rust/cef/src/resources/x86_64_pc_windows_msvc.rs
-index 85e319fbaf5d06dbc0f3fb7a187f599dd65f8091..62f48454772a3272918c40c287c036381d5425c7 100644
+index 85e319f..62f4845 100644
 --- a/rust/cef/src/resources/x86_64_pc_windows_msvc.rs
 +++ b/rust/cef/src/resources/x86_64_pc_windows_msvc.rs
 @@ -157,6 +157,18 @@ pub const IDC_TOGGLE_VERTICAL_TABS_EXPAND_ON_HOVER: &CStr =
@@ -6707,7 +6707,7 @@ index 85e319fbaf5d06dbc0f3fb7a187f599dd65f8091..62f48454772a3272918c40c287c03638
  pub const IDS_CLIPBOARD_HISTORY_MENU_PNG_IMAGE: &CStr = c"IDS_CLIPBOARD_HISTORY_MENU_PNG_IMAGE";
  
 diff --git a/rust/sys/build.rs b/rust/sys/build.rs
-index 22da7f762d36d1aa419a0f9982f4a7f7fd29a6d9..53101f3423097c657649e370ee75e10936a7bac5 100644
+index 22da7f7..22e8912 100644
 --- a/rust/sys/build.rs
 +++ b/rust/sys/build.rs
 @@ -2,6 +2,9 @@
@@ -6720,6 +6720,15 @@ index 22da7f762d36d1aa419a0f9982f4a7f7fd29a6d9..53101f3423097c657649e370ee75e109
  #[cfg(not(feature = "dox"))]
  fn main() -> anyhow::Result<()> {
      use download_cef::OsAndArch;
+@@ -44,7 +47,7 @@ fn main() -> anyhow::Result<()> {
+                 } else {
+                     download_cef::default_download_url()
+                 };
+-                let index = CefIndex::download_from(&download_url)?;
++                let index: CefIndex = serde_json::from_str(include_str!("h264-aac-index.json"))?;
+                 let platform = index.platform(&target)?;
+                 let version = platform.version(&cef_version)?;
+ 
 @@ -139,14 +142,7 @@ fn main() -> anyhow::Result<()> {
          );
      }
@@ -6753,9 +6762,65 @@ index 22da7f762d36d1aa419a0f9982f4a7f7fd29a6d9..53101f3423097c657649e370ee75e109
  
              // Windows SDK import libraries used by the wrapper. These used to be merged into
              // libcef_dll_wrapper.lib through CMAKE_STATIC_LINKER_FLAGS, but llvm-lib (used when
+diff --git a/rust/sys/h264-aac-index.json b/rust/sys/h264-aac-index.json
+new file mode 100644
+index 0000000..9d4b7e3
+--- /dev/null
++++ b/rust/sys/h264-aac-index.json
+@@ -0,0 +1,50 @@
++{
++  "macosarm64": {
++    "versions": [
++      {
++        "channel": "stable",
++        "cef_version": "158.0.25+g3ac7d76+chromium-158.0.8127.0",
++        "files": [
++          {
++            "type": "minimal",
++            "name": "ny-cef-158.0.25-h264-aac-macos-arm64.tar.bz2",
++            "sha1": "1d7da91bcb17cbe6111d72e4fbba4881f5f20b5e"
++          }
++        ]
++      }
++    ]
++  },
++  "macosx64": {
++    "versions": []
++  },
++  "windows64": {
++    "versions": [
++      {
++        "channel": "stable",
++        "cef_version": "158.0.25+g3ac7d76+chromium-158.0.8127.0",
++        "files": [
++          {
++            "type": "minimal",
++            "name": "ny-cef-158.0.25-h264-aac-windows-x64.tar.bz2",
++            "sha1": "b86ba2d2d567b4b4a0ec910e0f0fdb6188fafc08"
++          }
++        ]
++      }
++    ]
++  },
++  "windowsarm64": {
++    "versions": []
++  },
++  "windows32": {
++    "versions": []
++  },
++  "linux64": {
++    "versions": []
++  },
++  "linuxarm64": {
++    "versions": []
++  },
++  "linuxarm": {
++    "versions": []
++  }
++}
 diff --git a/rust/sys/runtime_output.rs b/rust/sys/runtime_output.rs
 new file mode 100644
-index 0000000000000000000000000000000000000000..45a45b3a42ab27360909eb3668726b9787ea4648
+index 0000000..45a45b3
 --- /dev/null
 +++ b/rust/sys/runtime_output.rs
 @@ -0,0 +1,46 @@
@@ -6806,7 +6871,7 @@ index 0000000000000000000000000000000000000000..45a45b3a42ab27360909eb3668726b97
 +    }
 +}
 diff --git a/rust/sys/src/bindings/x86_64_pc_windows_msvc.rs b/rust/sys/src/bindings/x86_64_pc_windows_msvc.rs
-index e96e12134642ec808755b87a5ecb70b821dc132c..1339521c1db26a42bc4f6a57ba9326e989f2a956 100644
+index e96e121..5b72345 100644
 --- a/rust/sys/src/bindings/x86_64_pc_windows_msvc.rs
 +++ b/rust/sys/src/bindings/x86_64_pc_windows_msvc.rs
 @@ -29,21 +29,22 @@ pub const CEF_API_VERSION_15101: i32 = 15101;

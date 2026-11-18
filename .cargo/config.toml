@@ -5,6 +5,9 @@ rustflags = ["-C", "force-unwind-tables=yes"]
 [env]
 MACOSX_DEPLOYMENT_TARGET = { value = "26.0", force = true }
 ALWITH_NATIVE_DIRECTORY = { value = "src-tauri/resources/native", relative = true }
+# Keep codec variants separate even when they share the same CEF ABI version.
+CEF_DOWNLOAD_URL = { value = "https://github.com/nyssance/ny-cef/releases/download/v158.0.25", force = true }
+CEF_PATH = { value = "target/cef-h264-aac", relative = true, force = true }
 
 [net]
 # Use the developer or build runner Git credential helper for private source dependencies.
