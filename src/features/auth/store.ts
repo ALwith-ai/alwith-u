@@ -14,6 +14,7 @@ import {
 import { createTauriAuthRefresh } from "@alwith/module-auth/tauri"
 import { createAuthTransport } from "@alwith/module-auth/transport"
 import { createManagedProvidersPort } from "@alwith/module-chat/settings"
+import { getIdentifier } from "@tauri-apps/api/app"
 import { emit, emitTo, listen } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { fetch } from "@tauri-apps/plugin-http"
@@ -29,7 +30,7 @@ import { logEnterpriseError, logEnterpriseResponse, traceEnterprise } from "./en
 import { createEnterpriseModels } from "./enterprise-models"
 import { createAccountTransition, createManagedProviders } from "./managed-providers"
 import { createProviderRefreshClient, serveProviderRefresh } from "./provider-refresh-bridge"
-import { registrationContext } from "./registration-context"
+import { registrationContext, registrationSource } from "./registration-context"
 
 export const API_BASE_URL = appEnv.apiBaseUrl
 const STATE_EVENT = "alwith-auth-state"
@@ -141,12 +142,27 @@ export function requestEnterpriseProviderRefresh(): Promise<void> {
   requestEnterpriseRefresh ??= createProviderRefreshClient(getCurrentWebviewWindow().label, undefined, "enterprise")
   return requestEnterpriseRefresh()
 }
+function reportClientUsage(user: string): void {
+  void getIdentifier().then(async (bundleId) => {
+    if (usePlatformAuth.getState().user?.user_uuid === user) {
+      await transport.request("/api/v1/me/client-usage", "POST", { bundle_id: bundleId })
+    }
+  }).catch((error: unknown) => console.warn("[auth] client usage report failed", error))
+}
 export const platformApiRequest = transport.request
 async function getRegistrationContext(): Promise<RegistrationContext> {
   return registrationContext(await storage.tokenStorage.getDeviceId())
 }
 export const authClient = createAuthClient({
-  publicPost: (path, body) => transport.request(path, "POST", body, false),
+  publicPost: async (path, body) => {
+    if (body && typeof body === "object") {
+      const isCodeLogin = path === "/api/v1/auth/login" && "login_type" in body && body.login_type === "EMAIL"
+      if (isCodeLogin || path === "/api/v1/auth/oauth/sessions") {
+        body = { ...body, ...(await registrationSource()) }
+      }
+    }
+    return transport.request(path, "POST", body, false)
+  },
   apiPost: (path, body) => transport.request(path, "POST", body),
   platform,
   arch,
@@ -172,6 +188,7 @@ export const usePlatformAuth = create<AuthState & AuthActions>(
     onProfileRestored: () => {
       const user = usePlatformAuth.getState().user
       if (!user) throw new Error("ALwith profile restored without an account")
+      reportClientUsage(user.user_uuid)
       managedProviders.confirm(user.user_uuid)
       enterpriseProviders.confirm(user.user_uuid)
       refreshSignedInProviders()
@@ -179,6 +196,7 @@ export const usePlatformAuth = create<AuthState & AuthActions>(
     clearAccountConversation: async () => {},
     onSignedIn: (user, source) => {
       if (source === "login") {
+        reportClientUsage(user.user_uuid)
         managedProviders.confirm(user.user_uuid)
         enterpriseProviders.confirm(user.user_uuid)
         refreshSignedInProviders()
