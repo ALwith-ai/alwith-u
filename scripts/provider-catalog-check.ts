@@ -3,14 +3,14 @@ import assert from "node:assert/strict"
 import { resolve } from "node:path"
 
 import { startTestRuntime } from "@alwith/api/node"
-import { textOf } from "@alwith/module-chat/client"
+import { CodexClient, isAuthenticationRequired, textOf } from "@alwith/module-chat/client"
 
-import { CodexClient } from "@alwith/module-chat/client"
-import { isAuthenticationRequired } from "@alwith/module-chat/client"
 import { staged, stagedCodexEngine } from "./lib/runtime"
 
 const requests: { model: string; path: string }[] = []
-let failNext = false
+// The fixture rejects every request whose newest user message is this prompt. A one-shot flag would be
+// consumed by whichever request arrives first, and Codex also sends requests of its own between turns.
+const FAILING_PROMPT = "Exercise provider failure"
 const server = Bun.serve({
   port: 0,
   hostname: "127.0.0.1",
@@ -23,10 +23,12 @@ const server = Bun.serve({
           { id: "alternate-model", label: "Alternate", description: null }
         ]
       })
-    const body = (await request.json()) as { model: string }
+    const body = (await request.json()) as { model: string; input?: unknown }
     requests.push({ model: body.model, path })
-    if (failNext) {
-      failNext = false
+    const newest = Array.isArray(body.input)
+      ? body.input.findLast((item: { role?: unknown }) => item.role === "user")
+      : undefined
+    if (newest !== undefined && JSON.stringify(newest).includes(FAILING_PROMPT)) {
       return Response.json({ error: { message: "Intentional provider failure" } }, { status: 400 })
     }
     const id = `resp_${crypto.randomUUID()}`
@@ -128,8 +130,7 @@ try {
   ids.push(id)
   await reply(id, "cold start without Codex account")
   if (!process.argv.includes("--recovery-only")) {
-    failNext = true
-    await client.prompt(id, [{ type: "text", text: "Exercise provider failure" }])
+    await client.prompt(id, [{ type: "text", text: FAILING_PROMPT }])
     const failedDeadline = Date.now() + 20_000
     while (client.session(id).state !== "idle" || client.session(id).lastStopReason !== "error") {
       if (Date.now() > failedDeadline) throw new Error("Failed turn did not settle")
@@ -160,6 +161,12 @@ try {
     if (session.attached) await client.close(session.id)
   }
   await runtime.client.stop("codex")
+  // The stop command only acknowledges the request; the agent is gone when the registry no longer lists it.
+  const exitDeadline = Date.now() + 10_000
+  while ((await runtime.client.agents()).some((agent) => agent.agentId === "codex")) {
+    if (Date.now() > exitDeadline) throw new Error("The stopped agent is still registered")
+    await Bun.sleep(20)
+  }
   client.disconnect()
   const restored = new CodexClient(() => Promise.resolve(runtime.client), {
     agentId: "codex",
