@@ -34,7 +34,9 @@ function documentFixture(path: string, text = ""): EditorDocument {
     kind: text ? "text" : "binary",
     text,
     savedText: text,
-    bytes: new TextEncoder().encode(text || "media"),
+    bytes: new TextEncoder().encode(text),
+    // A file the page loads itself has an address instead of bytes.
+    url: text ? null : `alwith-file://localhost/token${path}`,
     encoding: "utf-8",
     bom: false,
     eol: "\n",
@@ -244,24 +246,22 @@ test("Markdown publishes edits before an immediate close, and external replaceme
   controller.dispose()
 })
 
-test("media URL initialization and replacement keep the current source and dispose only the old element", async () => {
-  const { revoke } = installObjectUrls()
+test("media plays from the file's address, and a new address replaces the element and releases the old one", async () => {
   vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => {})
   vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(() => {})
   const context = contextFixture()
   const provider = providerFor(hostFixture(), "media")
   const initial = documentFixture("/repo/audio.mp3")
   const rendered = render(provider.render(initial, context))
-  await waitFor(() => expect(rendered.container.querySelector("audio")).toHaveAttribute("src", "blob:preview-1"))
+  await waitFor(() => expect(rendered.container.querySelector("audio")).toHaveAttribute("src", initial.url))
   const previous = rendered.container.querySelector("audio")
-  rendered.rerender(provider.render({ ...initial, bytes: new Uint8Array([4, 5, 6]) }, context))
-  await waitFor(() => expect(rendered.container.querySelector("audio")).toHaveAttribute("src", "blob:preview-2"))
+  // A reload gives the document a new address.
+  const next = "alwith-file://localhost/next/repo/audio.mp3"
+  rendered.rerender(provider.render({ ...initial, url: next }, context))
+  await waitFor(() => expect(rendered.container.querySelector("audio")).toHaveAttribute("src", next))
   expect(rendered.container.querySelector("audio")).not.toBe(previous)
   expect(previous).not.toHaveAttribute("src")
-  expect(revoke).toHaveBeenCalledWith("blob:preview-1")
-  expect(revoke).not.toHaveBeenCalledWith("blob:preview-2")
   rendered.unmount()
-  expect(revoke).toHaveBeenCalledWith("blob:preview-2")
   expect(context.onError).not.toHaveBeenCalled()
 })
 

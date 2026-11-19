@@ -40,7 +40,11 @@ vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({
   }
 }))
 vi.mock("@/components/theme-provider", () => ({ useTheme: () => ({ resolvedTheme: "light" }) }))
-vi.mock("@tauri-apps/api/core", () => ({ invoke: native.invoke, isTauri: () => native.nativeMode }))
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: native.invoke,
+  isTauri: () => native.nativeMode,
+  convertFileSrc: (token: string, protocol: string) => `${protocol}://localhost/${token}`
+}))
 vi.mock("@tauri-apps/api/window", () => ({
   getCurrentWindow: () => ({
     listen: native.listen,
@@ -77,11 +81,10 @@ type NativeArgs = {
   enabled?: boolean
   showHidden?: boolean
   showIgnored?: boolean
-  data?: number[]
-  mode?: WriteOptions["mode"]
-  expectedVersion?: string | null
 }
 let adapter: FsAdapter
+/** Files that have an address, by token: a file is read by fetching its address. */
+const links = new Map<string, string>()
 let authorize: ((path: string) => Promise<string>) | null
 beforeEach(async () => {
   localStorage.clear()
@@ -99,7 +102,21 @@ beforeEach(async () => {
   vi.spyOn(client, "refreshProjectContext").mockResolvedValue({ ...projectContext(), chatDirectory: "/a" })
   authorize = null
   adapter = createMemoryAdapter({ "/a/one.txt": "first", "/b/two.txt": "second" })
-  native.invoke.mockImplementation(async (command: string, args: NativeArgs): Promise<unknown> => {
+  links.clear()
+  vi.stubGlobal("fetch", async (url: string) => {
+    const path = links.get(new URL(url).pathname.split("/")[1]!)
+    return path === undefined
+      ? new Response("This file address is not open", { status: 403 })
+      : new Response(new Uint8Array(await adapter.readFile(path)))
+  })
+  native.invoke.mockImplementation(
+    async (command: string, args: NativeArgs | Uint8Array, options?: { headers: { options: string } }): Promise<unknown> => {
+    if (args instanceof Uint8Array) {
+      // A write carries the file's bytes as its body and the rest in a header.
+      if (command !== `${FS}workspace_write_file`) throw new Error(`Unexpected raw command: ${command}`)
+      const write = JSON.parse(decodeURIComponent(required(options).headers.options)) as WriteOptions & { path: string }
+      return adapter.writeFile(write.path, args, { mode: write.mode, expectedVersion: write.expectedVersion ?? undefined })
+    }
     if (command === "draft_directory") return args.cwd
     if (command === "workspace_dirty" || command === "workspace_exit") return null
     const operation = command.startsWith(FS) ? command.slice(FS.length) : null
@@ -115,13 +132,13 @@ beforeEach(async () => {
           showHidden: required(args.showHidden),
           showIgnored: required(args.showIgnored)
         })
-      case "workspace_read_file":
-        return [...(await adapter.readFile(required(args.path)))]
-      case "workspace_write_file":
-        return adapter.writeFile(required(args.path), new Uint8Array(required(args.data)), {
-          mode: required(args.mode),
-          expectedVersion: args.expectedVersion ?? undefined
-        })
+      case "workspace_link": {
+        const token = `token-${links.size + 1}`
+        links.set(token, required(args.path))
+        return token
+      }
+      case "workspace_unlink":
+        return null
       case "workspace_move":
         return adapter.move(required(args.path), required(args.to))
       case "workspace_copy":
@@ -133,7 +150,8 @@ beforeEach(async () => {
       default:
         throw new Error(`Unexpected native command: ${command}`)
     }
-  })
+    }
+  )
 })
 
 test("opening a projectless workspace uses the adapter's default chat directory", async () => {
@@ -217,6 +235,7 @@ test("remount restores pinned files, active file and expanded folders without dr
 afterEach(() => {
   cleanup()
   vi.restoreAllMocks()
+  vi.unstubAllGlobals()
 })
 test("workspace actions use the shell toolbar target without bypassing it for Windows", async () => {
   const target = document.createElement("div")

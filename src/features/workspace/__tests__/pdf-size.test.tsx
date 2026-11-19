@@ -1,11 +1,11 @@
 import { createEditorController, EditorWorkbench } from "@alwith/module-editor"
 import { createFileSystem } from "@alwith/module-fs"
 import { createMemoryAdapter } from "@alwith/module-fs/testing"
-import { fireEvent, render } from "@testing-library/react"
+import { render } from "@testing-library/react"
 import { expect, test, vi } from "vitest"
 
-test.each([16 * 1024 * 1024 + 1, 40 * 1024 * 1024, 40 * 1024 * 1024 + 1])(
-  "PDF preview enforces the 40 MiB boundary: %s bytes",
+test.each([16 * 1024 * 1024 + 1, 40 * 1024 * 1024 + 1, 4 * 1024 * 1024 * 1024])(
+  "a PDF of any size opens by its address without being read: %s bytes",
   async (size) => {
     const fs = createFileSystem({
       adapter: createMemoryAdapter({ "/repo/report.PDF": "%PDF-test" }),
@@ -20,28 +20,20 @@ test.each([16 * 1024 * 1024 + 1, 40 * 1024 * 1024, 40 * 1024 * 1024 + 1])(
     const editor = createEditorController({ fs, confirmClose: async () => "cancel", reportError: vi.fn() })
     try {
       const doc = await editor.open("/repo/report.PDF")
-      const large = size > 40 * 1024 * 1024
-      expect(doc.status).toBe(large ? "tooLarge" : "loaded")
-      expect(read).toHaveBeenCalledTimes(large ? 0 : 1)
-      const external = vi.fn(async () => {})
+      expect(doc.status).toBe("loaded")
+      expect(doc.url).not.toBeNull()
+      expect(doc.bytes.byteLength).toBe(0)
       const preview = vi.fn(() => <div>PDF pages</div>)
       const view = render(
         <EditorWorkbench
           controller={editor}
           previews={[{ id: "pdf", supports: () => true, render: preview }]}
-          onOpenExternal={external}
           onError={vi.fn()}
         />
       )
-      expect(external).not.toHaveBeenCalled()
-      if (large) {
-        expect(view.getByText("This file is too large to preview.")).toBeInTheDocument()
-        expect(preview).not.toHaveBeenCalled()
-        fireEvent.click(view.getAllByRole("button", { name: "Open externally" }).at(-1)!)
-        expect(external).toHaveBeenCalledWith(expect.objectContaining({ path: doc.path }))
-        await editor.ensureLoaded(doc.id)
-        expect(read).not.toHaveBeenCalled()
-      } else expect(view.getByText("PDF pages")).toBeInTheDocument()
+      expect(view.getByText("PDF pages")).toBeInTheDocument()
+      expect(preview).toHaveBeenCalledWith(expect.objectContaining({ url: doc.url }), expect.anything())
+      expect(read).not.toHaveBeenCalled()
     } finally {
       editor.dispose()
     }

@@ -1,18 +1,18 @@
 import { createEditorController, defaultEditorLabels, EditorWorkbench } from "@alwith/module-editor"
 import { createFileSystem } from "@alwith/module-fs"
 import { createMemoryAdapter } from "@alwith/module-fs/testing"
-import { fireEvent, render } from "@testing-library/react"
+import { fireEvent, render, waitFor } from "@testing-library/react"
 import { expect, test, vi } from "vitest"
 
-test.each(["report.txt", "workbook.xlsx", "archive.zip"])(
-  "oversized %s retains a file tab and usable system actions without reading its contents",
+test.each(["report.txt", "document.docx", "archive.zip"])(
+  "%s past VS Code's large file limit retains a file tab, system actions and an explicit way to open it",
   async (name) => {
     const path = `/repo/${name}`
     const fs = createFileSystem({ adapter: createMemoryAdapter({ [path]: "content" }), reportError: vi.fn() })
     const stat = fs.stat.bind(fs)
     vi.spyOn(fs, "stat").mockImplementation(async (path) => {
       const value = await stat(path)
-      return value?.kind === "file" ? { ...value, size: 16 * 1024 * 1024 + 1 } : value
+      return value?.kind === "file" ? { ...value, size: 1024 * 1024 * 1024 + 1 } : value
     })
     const read = vi.spyOn(fs, "readFile")
     const write = vi.spyOn(fs, "writeFile")
@@ -38,7 +38,7 @@ test.each(["report.txt", "workbook.xlsx", "archive.zip"])(
         />
       )
       expect(view.getByRole("tab", { name: new RegExp(name) })).toBeInTheDocument()
-      expect(view.getByText("This file is too large to preview.")).toBeInTheDocument()
+      expect(view.getByText("The file is not displayed because it is very large.")).toBeInTheDocument()
       expect(external).not.toHaveBeenCalled()
       expect(reveal).not.toHaveBeenCalled()
       fireEvent.click(view.getByRole("button", { name: "Show in Finder" }))
@@ -52,6 +52,10 @@ test.each(["report.txt", "workbook.xlsx", "archive.zip"])(
       expect(write).not.toHaveBeenCalled()
       expect(preview).not.toHaveBeenCalled()
       expect(error).not.toHaveBeenCalled()
+      // Opening it anyway is the user's call, and reads the file.
+      fireEvent.click(view.getByRole("button", { name: "Open anyway" }))
+      await waitFor(() => expect(editor.getSnapshot().documents[0]?.status).toBe("loaded"))
+      expect(read).toHaveBeenCalledOnce()
       expect(await editor.requestClose(doc.id)).toBe(true)
     } finally {
       editor.dispose()

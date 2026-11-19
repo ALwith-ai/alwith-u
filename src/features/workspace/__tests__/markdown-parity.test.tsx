@@ -14,6 +14,7 @@ function fixture(text: string): PreviewProps {
       text,
       savedText: text,
       bytes: new TextEncoder().encode(text),
+      url: null,
       encoding: "utf-8",
       bom: false,
       eol: "\n",
