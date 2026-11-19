@@ -1016,6 +1016,7 @@
     "updateReloadSuccess": "{{name}} updated and reloaded"
   },
   "workspace": {
+    "chatInFolder": "Chat in this folder",
     "previousPane": "Previous pane",
     "nextPane": "Next pane",
     "thumbnails": "Page thumbnails",

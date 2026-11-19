@@ -3,6 +3,7 @@ import {
   DesktopCanvasContext as CanvasContext,
   DesktopWorkspaceControlsContext as WindowsWorkspaceControlsContext
 } from "@alwith/module-desktop-shell/react"
+import { CONTRACT_VERSION } from "@alwith/module-drive"
 import type { TextEditorProps } from "@alwith/module-editor"
 import { type FsAdapter, normalizePath, type WriteOptions } from "@alwith/module-fs"
 import { createMemoryAdapter } from "@alwith/module-fs/testing"
@@ -15,6 +16,8 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest"
 import { projectContext } from "@/agent/__tests__/project-context"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { ChatHeader } from "@/features/chat/chat-header"
+import type { FolderChatTarget } from "@/features/chat/folder-chat"
+import { drive } from "@/features/drive/controller"
 import { openGuideWindow } from "@/features/guide/guide-window"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
@@ -110,46 +113,55 @@ beforeEach(async () => {
       : new Response(new Uint8Array(await adapter.readFile(path)))
   })
   native.invoke.mockImplementation(
-    async (command: string, args: NativeArgs | Uint8Array, options?: { headers: { options: string } }): Promise<unknown> => {
-    if (args instanceof Uint8Array) {
-      // A write carries the file's bytes as its body and the rest in a header.
-      if (command !== `${FS}workspace_write_file`) throw new Error(`Unexpected raw command: ${command}`)
-      const write = JSON.parse(decodeURIComponent(required(options).headers.options)) as WriteOptions & { path: string }
-      return adapter.writeFile(write.path, args, { mode: write.mode, expectedVersion: write.expectedVersion ?? undefined })
-    }
-    if (command === "draft_directory") return args.cwd
-    if (command === "workspace_dirty" || command === "workspace_exit") return null
-    const operation = command.startsWith(FS) ? command.slice(FS.length) : null
-    switch (operation) {
-      case "workspace_open":
-        return authorize === null ? args.path : authorize(required(args.path))
-      case "workspace_watch":
-        return null
-      case "workspace_stat":
-        return adapter.stat(required(args.path))
-      case "workspace_read_directory":
-        return adapter.readDirectory(required(args.path), {
-          showHidden: required(args.showHidden),
-          showIgnored: required(args.showIgnored)
+    async (
+      command: string,
+      args: NativeArgs | Uint8Array,
+      options?: { headers: { options: string } }
+    ): Promise<unknown> => {
+      if (args instanceof Uint8Array) {
+        // A write carries the file's bytes as its body and the rest in a header.
+        if (command !== `${FS}workspace_write_file`) throw new Error(`Unexpected raw command: ${command}`)
+        const write = JSON.parse(decodeURIComponent(required(options).headers.options)) as WriteOptions & {
+          path: string
+        }
+        return adapter.writeFile(write.path, args, {
+          mode: write.mode,
+          expectedVersion: write.expectedVersion ?? undefined
         })
-      case "workspace_create_url": {
-        const token = `token-${links.size + 1}`
-        links.set(token, required(args.path))
-        return token
       }
-      case "workspace_revoke_url":
-        return null
-      case "workspace_move":
-        return adapter.move(required(args.path), required(args.to))
-      case "workspace_copy":
-        return adapter.copy(required(args.path), required(args.to))
-      case "workspace_create_directory":
-        return adapter.createDirectory(required(args.path))
-      case "workspace_remove":
-        return adapter.remove(required(args.path))
-      default:
-        throw new Error(`Unexpected native command: ${command}`)
-    }
+      if (command === "draft_directory") return args.cwd
+      if (command === "workspace_dirty" || command === "workspace_exit") return null
+      const operation = command.startsWith(FS) ? command.slice(FS.length) : null
+      switch (operation) {
+        case "workspace_open":
+          return authorize === null ? args.path : authorize(required(args.path))
+        case "workspace_watch":
+          return null
+        case "workspace_stat":
+          return adapter.stat(required(args.path))
+        case "workspace_read_directory":
+          return adapter.readDirectory(required(args.path), {
+            showHidden: required(args.showHidden),
+            showIgnored: required(args.showIgnored)
+          })
+        case "workspace_create_url": {
+          const token = `token-${links.size + 1}`
+          links.set(token, required(args.path))
+          return token
+        }
+        case "workspace_revoke_url":
+          return null
+        case "workspace_move":
+          return adapter.move(required(args.path), required(args.to))
+        case "workspace_copy":
+          return adapter.copy(required(args.path), required(args.to))
+        case "workspace_create_directory":
+          return adapter.createDirectory(required(args.path))
+        case "workspace_remove":
+          return adapter.remove(required(args.path))
+        default:
+          throw new Error(`Unexpected native command: ${command}`)
+      }
     }
   )
 })
@@ -281,17 +293,26 @@ test("the browser entry is in More immediately below the simulator", () => {
 function Surface({
   cwd,
   chatRevealRequest = 0,
+  onChatInFolder,
+  revealFolder,
   children
 }: {
   cwd: string | null
   chatRevealRequest?: number
+  onChatInFolder?: (target: FolderChatTarget) => void
+  revealFolder?: FolderChatTarget | null
   children?: ReactNode
 }) {
   const [toolbar, setToolbar] = useState<HTMLDivElement | null>(null)
   return (
     <WorkspaceHeaderContext.Provider value={toolbar}>
       <div ref={setToolbar} data-testid="window-titlebar" />
-      <FileWorkspace cwd={cwd} chatRevealRequest={chatRevealRequest}>
+      <FileWorkspace
+        cwd={cwd}
+        chatRevealRequest={chatRevealRequest}
+        onChatInFolder={onChatInFolder}
+        revealFolder={revealFolder}
+      >
         <ChatHeader title="Conversation" project={<span>Project</span>}>
           {null}
         </ChatHeader>
@@ -724,6 +745,88 @@ test("Desktop-style context menu, inline rename cancellation, and search keyboar
   expect(screen.queryByRole("treeitem", { name: /one.txt/ })).toBeNull()
   fireEvent.keyDown(search, { key: "Escape" })
   expect(document.body).toContainOneByRole("treeitem", { name: /one.txt/ })
+})
+
+test("chat in folder is available on directory rows and reveals the selected directory", async () => {
+  await adapter.createDirectory("/a/reports")
+  const onChatInFolder = vi.fn<(target: FolderChatTarget) => void>()
+  const view = render(<Surface cwd="/a" onChatInFolder={onChatInFolder} />)
+  fireEvent.click(screen.getByRole("button", { name: "Open workspace" }))
+  fireEvent.contextMenu(await screen.findByRole("treeitem", { name: "one.txt" }))
+  await screen.findByRole("menuitem", { name: "Rename" })
+  expect(screen.queryByRole("menuitem", { name: "Chat in this folder" })).toBeNull()
+  fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" })
+  await waitFor(() => expect(screen.queryByRole("menu")).toBeNull())
+
+  fireEvent.contextMenu(screen.getByRole("treeitem", { name: "reports" }))
+  fireEvent.click(await screen.findByRole("menuitem", { name: "Chat in this folder" }))
+  expect(onChatInFolder).toHaveBeenCalledWith({ cwd: "/a/reports", path: "/a/reports" })
+  view.rerender(
+    <Surface
+      cwd="/a/reports"
+      onChatInFolder={onChatInFolder}
+      revealFolder={{ cwd: "/a/reports", path: "/a/reports" }}
+    />
+  )
+  await waitFor(() =>
+    expect(screen.getByRole("treeitem", { name: "reports" })).toHaveAttribute("aria-selected", "true")
+  )
+  expect(screen.getByRole("treeitem", { name: "reports" })).toHaveAttribute("aria-level", "1")
+})
+
+test("chat in a Drive directory uses the enclosing Drive root for Codex", async () => {
+  await adapter.createDirectory("/a/reports")
+  vi.spyOn(drive, "getSnapshot").mockReturnValue({
+    connected: true,
+    error: null,
+    snapshot: {
+      version: CONTRACT_VERSION,
+      generation: 1,
+      sequence: 0,
+      configured: true,
+      running: false,
+      baseUrl: "https://drive.example.test",
+      localRoot: "/a",
+      webBaseUrl: null,
+      status: null,
+      pendingDeletes: [],
+      files: [],
+      projects: [],
+      error: null,
+      roots: [
+        {
+          projectId: 1,
+          projectKey: "docs",
+          name: "Library",
+          kind: "MATERIAL",
+          scope: "PERSONAL",
+          deptName: null,
+          drivePath: "My space/Library",
+          node: "PERSONAL",
+          container: "MATERIAL",
+          nodePath: "My space",
+          skillsPath: null,
+          syncEnabled: true,
+          canWrite: true,
+          cloudOnly: false,
+          cursor: "1",
+          pinned: false,
+          departmentId: null,
+          ownerId: null,
+          isMine: true,
+          localPath: "/a",
+          selected: true
+        }
+      ]
+    }
+  })
+  const onChatInFolder = vi.fn<(target: FolderChatTarget) => void>()
+  render(<Surface cwd="/a" onChatInFolder={onChatInFolder} />)
+  fireEvent.click(screen.getByRole("button", { name: "Open workspace" }))
+  const folder = await screen.findByRole("treeitem", { name: "reports" })
+  fireEvent.contextMenu(folder)
+  fireEvent.click(await screen.findByRole("menuitem", { name: "Chat in this folder" }))
+  expect(onChatInFolder).toHaveBeenCalledWith({ cwd: "/a", path: "/a/reports" })
 })
 
 test("tree toolbar creates folders and files, searches, refreshes and collapses", async () => {

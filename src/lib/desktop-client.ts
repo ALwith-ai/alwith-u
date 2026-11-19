@@ -1,10 +1,17 @@
-import type { AppsInstalledParams, FuzzyFileSearchParams, FuzzyFileSearchResponse } from "@alwith/module-chat/client"
+import type {
+  AppsInstalledParams,
+  FuzzyFileSearchParams,
+  FuzzyFileSearchResponse,
+  PromptOptions
+} from "@alwith/module-chat/client"
 import { CodexClient } from "@alwith/module-chat/client"
 import type { TerminalClient } from "@alwith/module-terminal"
 
 import { useBrowserQuickChat } from "@/features/browser/quick-chat-state"
 import { deleteSessionInputMode } from "@/features/chat/composer/input-mode-config"
+import { deleteChatFolder } from "@/features/chat/folder-chat"
 
+import { logBackgroundError } from "./background-errors"
 import { initialFileResults } from "./initial-file-results"
 
 /** Main owns native filesystem access; floating clients forward this method to it. */
@@ -29,6 +36,23 @@ export class DesktopCodexClient extends CodexClient {
         const name = (app.runtimeName ?? app.id).toLowerCase().replaceAll(/[\s/_-]+/g, "")
         return !["pets", "pages", "space", "chatgptspace", "pagesspace"].includes(name)
       })
+    }
+  }
+
+  protected override promptMeta(id: string, options: PromptOptions): Record<string, unknown> | undefined {
+    const { workspaceFolder, ...meta } = options.meta ?? {}
+    if (typeof workspaceFolder !== "string") return super.promptMeta(id, options)
+    const resolved = super.promptMeta(id, { ...options, meta })
+    const alwith = resolved?.alwith as { applicationContext?: Record<string, string | null> } | undefined
+    return {
+      ...resolved,
+      alwith: {
+        ...alwith,
+        applicationContext: {
+          ...alwith?.applicationContext,
+          workspaceFolder: `The user started this conversation in ${JSON.stringify(workspaceFolder)}.`
+        }
+      }
     }
   }
 
@@ -59,6 +83,7 @@ export class DesktopCodexClient extends CodexClient {
   override delete(sessionId: string): Promise<void> {
     const pending = this.deleting.get(sessionId)
     if (pending) return pending
+    const draft = Boolean(this.state.drafts[sessionId])
     // Stop admitting reads before any asynchronous cleanup, and drain admitted reads
     // before removing the remote session. Other sessions remain independent.
     const operation = Promise.resolve()
@@ -68,6 +93,8 @@ export class DesktopCodexClient extends CodexClient {
         await super.delete(sessionId)
         if (useBrowserQuickChat.getState().sessionId === sessionId)
           useBrowserQuickChat.setState({ sessionId: null, cwd: null })
+        if (!draft)
+          void deleteChatFolder(sessionId).catch((error) => logBackgroundError("chat-folder-preferences", error))
         await deleteSessionInputMode(sessionId)
       })
       .finally(() => this.deleting.delete(sessionId))

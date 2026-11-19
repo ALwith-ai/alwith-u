@@ -26,9 +26,11 @@ import { createTauriAdapter } from "@alwith/module-fs/tauri"
 import { writeText } from "@tauri-apps/plugin-clipboard-manager"
 import { confirm } from "@tauri-apps/plugin-dialog"
 import { Effect } from "effect"
+import { MessageSquareIcon } from "lucide-react"
 
 import { ContextMenuItem } from "@/components/ui/context-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { type FolderChatTarget, sameChatDirectory } from "@/features/chat/folder-chat"
 import { focusDeviceWindow, useDeviceWindowReturn } from "@/features/device/window-routing"
 import { collaborationOwner, useCollaborationOwner } from "@/features/drive/collaboration-owners"
 import { DriveDocumentSurface, useDriveContentHost } from "@/features/drive/content-host"
@@ -125,11 +127,15 @@ function report(error: unknown): void {
 export function FileWorkspace({
   cwd,
   children,
-  chatRevealRequest = 0
+  chatRevealRequest = 0,
+  onChatInFolder,
+  revealFolder
 }: {
   cwd: string | null
   children: ReactNode
   chatRevealRequest?: number
+  onChatInFolder?: (target: FolderChatTarget) => void
+  revealFolder?: FolderChatTarget | null
 }) {
   const fileReference = useRef<WorkspaceFileReference | null>(null)
   const registerFileReference = useCallback((target: WorkspaceFileReference) => {
@@ -671,6 +677,31 @@ export function FileWorkspace({
     }
   }, [cwd, ensure, visible])
   useEffect(() => {
+    if (!revealFolder || (cwd !== null && !sameChatDirectory(cwd, revealFolder.cwd))) return
+    const generation = ++requestGeneration.current
+    let active = true
+    const isCurrent = (): boolean => active && generation === requestGeneration.current
+    void ensure(revealFolder.cwd)
+      .then(async (target) => {
+        if (!isCurrent()) return
+        await target.tree.reveal(revealFolder.path)
+        if (!isCurrent()) return
+        const row = target.tree.getSnapshot().rows.find((row) => row.path === normalizePath(revealFolder.path))
+        if (row && !row.expanded) await target.tree.toggle(row.path)
+        if (!isCurrent()) return
+        setWorkspace(target)
+        setPane("files")
+        setVisible(true)
+        setTreeVisible(true)
+      })
+      .catch((error: unknown) => {
+        if (isCurrent()) report(error)
+      })
+    return () => {
+      active = false
+    }
+  }, [cwd, ensure, revealFolder])
+  useEffect(() => {
     function beforeUnload(event: BeforeUnloadEvent): void {
       if (
         [...workspaces.current.values()].some((value) => value.editor.getSnapshot().documents.some((doc) => doc.dirty))
@@ -1074,25 +1105,38 @@ export function FileWorkspace({
                             {t("workspace.publishTo")}
                           </ContextMenuItem>
                         )
-                      return paths.length === 1 &&
-                        path !== undefined &&
-                        driveState?.running &&
-                        driveState.roots.some((root) => containsPath(root.localPath, path)) ? (
-                        <DriveTreeActions
-                          path={path}
-                          isDirectory={workspace.tree
-                            .getSnapshot()
-                            .rows.some((row) => row.path === path && row.kind === "directory")}
-                          onSharing={setSharingPath}
-                          onCondense={(scope) => {
-                            setCondenseJob(undefined)
-                            setCondenseScope(scope)
-                          }}
-                          onMove={(path, kind) => setMoveTarget({ path, kind })}
-                          onPublish={(path) => setPublishSources({ owner: workspace, paths: [path] })}
-                          saveDocument={saveDriveDocument}
-                        />
-                      ) : null
+                      if (paths.length !== 1 || path === undefined) return null
+                      const isDirectory = workspace.tree
+                        .getSnapshot()
+                        .rows.some((row) => row.path === path && row.kind === "directory")
+                      const driveRoot = resolveDriveRoot(path, driveState?.roots ?? [])?.root
+                      return (
+                        <>
+                          {isDirectory && onChatInFolder && (
+                            <ContextMenuItem
+                              onClick={() => onChatInFolder({ cwd: driveRoot?.localPath ?? path, path })}
+                            >
+                              <MessageSquareIcon />
+                              {t("workspace.chatInFolder")}
+                            </ContextMenuItem>
+                          )}
+                          {driveState?.running &&
+                            driveState.roots.some((root) => containsPath(root.localPath, path)) && (
+                              <DriveTreeActions
+                                path={path}
+                                isDirectory={isDirectory}
+                                onSharing={setSharingPath}
+                                onCondense={(scope) => {
+                                  setCondenseJob(undefined)
+                                  setCondenseScope(scope)
+                                }}
+                                onMove={(path, kind) => setMoveTarget({ path, kind })}
+                                onPublish={(path) => setPublishSources({ owner: workspace, paths: [path] })}
+                                saveDocument={saveDriveDocument}
+                              />
+                            )}
+                        </>
+                      )
                     }}
                     renderDecoration={(row) => (
                       <DriveBadge

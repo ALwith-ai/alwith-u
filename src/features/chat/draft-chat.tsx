@@ -1,12 +1,12 @@
 // A draft owns a real ACP session before the first send, as in Desktop.
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { createSession, type PromptOptions } from "@alwith/module-chat/client"
+import type { DraftOwner } from "@alwith/module-chat/client"
 import { ConversationBody, drafts, importDraft, ModelMenu, SessionActions } from "@alwith/module-chat/conversation"
 import { invoke } from "@tauri-apps/api/core"
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
-import type { DraftOwner } from "@alwith/module-chat/client"
 import { dispatchCollection, reportCollection } from "@/features/collection/store"
 import { client, useApp, useSession } from "@/lib/client"
 import type { ProviderSnapshot } from "@/lib/providers"
@@ -23,6 +23,7 @@ import { chatModelMenu } from "./composer/model-catalog"
 import { FilePreviewModal } from "./dialogs/file-preview-modal"
 import { DraftProjectPicker } from "./draft-project-picker"
 import { ChatDirectoryContext } from "./file-actions"
+import { type FolderChatTarget, sameChatDirectory, saveChatFolder } from "./folder-chat"
 
 export const DRAFT_SESSION_ID = "draft"
 
@@ -32,6 +33,7 @@ export function DraftChat({
   cwd,
   onCwdChange,
   onCreated,
+  folder,
   collectionId,
   onSendingChange,
   onVoiceHandoff,
@@ -49,6 +51,7 @@ export function DraftChat({
   onCwdChange: (cwd: string | null) => void
   /** Bind the precreated session to this surface without materializing a history entry. */
   onCreated: (sessionId: string) => void
+  folder?: FolderChatTarget
   collectionId?: string
   /** Keep the submitting composer mounted for receipt handling and draft recovery. */
   onSendingChange: (sessionId: string, sending: boolean) => void
@@ -212,11 +215,15 @@ export function DraftChat({
     }
     onSendingChange(target, true)
     try {
-      const receipt = await (options === undefined
+      const context =
+        folder && !sameChatDirectory(folder.cwd, folder.path)
+          ? { ...options, meta: { ...options?.meta, workspaceFolder: folder.path } }
+          : options
+      const receipt = await (context === undefined
         ? client.prompt(target, prompt)
-        : client.prompt(target, prompt, options))
+        : client.prompt(target, prompt, context))
       accept?.(receipt)
-      await inputMode?.saveForSession(target)
+      await Promise.all([folder && saveChatFolder(target, folder), inputMode?.saveForSession(target)])
       if (collectionId !== undefined)
         reportCollection(dispatchCollection({ type: "add", collectionId, sessionId: target }))
     } finally {

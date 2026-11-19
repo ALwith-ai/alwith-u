@@ -3,7 +3,7 @@ import { hasAccount, isFormElicitation, watchSessionList } from "@alwith/module-
 import type { SessionSummary } from "@alwith/module-chat/client"
 import { exportDraft, type FormAction, importDraft, setComposerDraft } from "@alwith/module-chat/conversation"
 import { commands as mobile } from "@alwith/module-mobile/commands"
-import { isTauri } from "@tauri-apps/api/core"
+import { invoke, isTauri } from "@tauri-apps/api/core"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { info } from "@tauri-apps/plugin-log"
 import { useCallback, useEffect, useRef, useState } from "react"
@@ -24,6 +24,13 @@ import { ActionCard, ElicitationFormDialog } from "@/features/chat/action-card"
 import { ChatView } from "@/features/chat/chat-view"
 import { MainInputModeProvider } from "@/features/chat/composer/input-mode"
 import { DRAFT_SESSION_ID, DraftChat } from "@/features/chat/draft-chat"
+import {
+  type FolderChatTarget,
+  latestFolderChat,
+  matchesChatFolder,
+  readChatFolders,
+  sameChatDirectory
+} from "@/features/chat/folder-chat"
 import { newChatDirectory } from "@/features/chat/new-chat-directory"
 import { ChatProjectMenu } from "@/features/chat/project-session-popover"
 import { useDeviceWindowContext } from "@/features/device/window-routing"
@@ -112,6 +119,8 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   const voiceHandoff = useVoiceHandoff(selectedId, surfaceGeneration)
   const [chatRevealRequest, setChatRevealRequest] = useState(0)
   const [lastDirectory, setLastDirectory] = useState<string | null>(initialPreferences.lastProjectDirectory)
+  const [draftFolder, setDraftFolder] = useState<FolderChatTarget | null>(null)
+  const [revealFolder, setRevealFolder] = useState<FolderChatTarget | null>(null)
   const providerSnapshot = useProviders()
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [hotkeysOpen, setHotkeysOpen] = useState(false)
@@ -220,38 +229,39 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
 
   useReadVisibleSession(selectedId, focused && view === "chat" && chatForeground)
 
+  const openSession = useCallback(
+    (sessionRow: SessionSummary) =>
+      selectSession(sessionRow, {
+        connect: async () => {
+          await client.connect()
+          if (client.state.draftSessions[sessionRow.sessionId] !== "main") await client.discardDraft("main")
+        },
+        unarchive: (id) => client.unarchive(id),
+        release: async (id) => {
+          const transfer = await releaseChatWindow(id)
+          await client.transferDraft(id, "main")
+          return transfer
+        },
+        importDraft,
+        include: (sessionRow) => client.includeSession(sessionRow),
+        open: (id, cwd) => client.open(id, cwd),
+        show: (id) => {
+          setDraftFolder(null)
+          setRevealFolder(null)
+          setSurfaceGeneration((value) => value + 1)
+          setView("chat")
+          setSelectedId(id)
+          setChatRevealRequest((value) => value + 1)
+        },
+        onOpenError: (error: unknown) => toast.error(describe(error))
+      }),
+    []
+  )
   const select = useCallback(
     (sessionRow: SessionSummary) => {
-      // Codex refuses to resume an archived session; opening one restores it first, as the
-      // official client does.
-      void operation
-        .run(() =>
-          selectSession(sessionRow, {
-            connect: async () => {
-              await client.connect()
-              if (client.state.draftSessions[sessionRow.sessionId] !== "main") await client.discardDraft("main")
-            },
-            unarchive: (id) => client.unarchive(id),
-            release: async (id) => {
-              const transfer = await releaseChatWindow(id)
-              await client.transferDraft(id, "main")
-              return transfer
-            },
-            importDraft,
-            include: (sessionRow) => client.includeSession(sessionRow),
-            open: (id, cwd) => client.open(id, cwd),
-            show: (id) => {
-              setSurfaceGeneration((value) => value + 1)
-              setView("chat")
-              setSelectedId(id)
-              setChatRevealRequest((value) => value + 1)
-            },
-            onOpenError: (error: unknown) => toast.error(describe(error))
-          })
-        )
-        .catch((error: unknown) => toast.error(describe(error)))
+      void operation.run(() => openSession(sessionRow)).catch((error: unknown) => toast.error(describe(error)))
     },
-    [operation]
+    [openSession, operation]
   )
 
   const chooseDraftFolder = useCallback((directory: string | null) => {
@@ -260,6 +270,21 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   }, [])
 
   const [draftCollection, setDraftCollection] = useState<{ id: string; generation: number } | null>(null)
+  const startDraft = useCallback(
+    async (directory: string | null, collectionId?: string, folder: FolderChatTarget | null = null) => {
+      await client.discardDraft("main")
+      setDraftCollection(collectionId === undefined ? null : { id: collectionId, generation: surfaceGeneration + 1 })
+      chooseDraftFolder(directory)
+      setDraftFolder(folder)
+      setRevealFolder(null)
+      importDraft(DRAFT_SESSION_ID, null)
+      setSurfaceGeneration((value) => value + 1)
+      setChatRevealRequest((value) => value + 1)
+      setView("chat")
+      setSelectedId(null)
+    },
+    [chooseDraftFolder, surfaceGeneration]
+  )
   const newChatInDirectory = useCallback(
     (cwd?: string | null, collectionId?: string) => {
       if (operation.busy) return
@@ -269,23 +294,50 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
             cwd === undefined ? (extensionSession.current?.cwd ?? lastDirectory) : cwd,
             client.state.projectContext
           )
-          await client.discardDraft("main")
-          setDraftCollection(
-            collectionId === undefined ? null : { id: collectionId, generation: surfaceGeneration + 1 }
-          )
-          chooseDraftFolder(directory)
-          importDraft(DRAFT_SESSION_ID, null)
-          setSurfaceGeneration((value) => value + 1)
-          setChatRevealRequest((value) => value + 1)
-          setView("chat")
-          setSelectedId(null)
+          await startDraft(directory, collectionId)
         })
         .catch((error: unknown) => toast.error(describe(error)))
     },
-    [chooseDraftFolder, lastDirectory, operation, surfaceGeneration]
+    [lastDirectory, operation, startDraft]
   )
 
   const newChat = useCallback(() => newChatInDirectory(), [newChatInDirectory])
+
+  const chatInFolder = useCallback(
+    (target: FolderChatTarget) => {
+      if (operation.busy || submittingDraftId !== null) return
+      void operation
+        .run(async () => {
+          await invoke<string>("draft_directory", { cwd: target.path })
+          const active = extensionSession.current
+          const isDraft = active === null || Boolean(client.state.draftSessions[active.id])
+          const activeCwd = active?.cwd ?? lastDirectory ?? client.state.projectContext?.chatDirectory
+          const sameProject = activeCwd !== undefined && sameChatDirectory(activeCwd, target.cwd)
+          if (isDraft && sameProject) {
+            setDraftFolder(target)
+          } else {
+            const preferences = await readChatFolders()
+            if (!active || !matchesChatFolder(target, { sessionId: active.id, cwd: active.cwd }, preferences)) {
+              await client.connect()
+              // The native index filters cwd literally. Match Windows spelling variants on the returned rows.
+              const indexedCwd = /^(?:[a-z]:|[/\\]{2})/i.test(target.cwd) ? undefined : target.cwd
+              const indexes = await Promise.all([
+                client.indexSessions(indexedCwd),
+                client.indexSessions(indexedCwd, true)
+              ])
+              const previous = latestFolderChat(target, indexes.flat(), preferences)
+              if (previous === undefined) await startDraft(target.cwd, undefined, target)
+              else await openSession(previous)
+            }
+          }
+          setView("chat")
+          setChatRevealRequest((value) => value + 1)
+          setRevealFolder({ ...target })
+        })
+        .catch((error: unknown) => toast.error(describe(error)))
+    },
+    [lastDirectory, openSession, operation, startDraft, submittingDraftId]
+  )
 
   const draftCreated = useCallback((id: string) => {
     setSelectedId(id)
@@ -591,8 +643,17 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
               onNewChat={newProjectChat}
             />
           }
-          onCwdChange={chooseDraftFolder}
+          onCwdChange={(directory) => {
+            setDraftFolder((folder) =>
+              folder !== null && directory !== null && sameChatDirectory(directory, folder.cwd) ? folder : null
+            )
+            setRevealFolder((folder) =>
+              folder !== null && directory !== null && sameChatDirectory(directory, folder.cwd) ? folder : null
+            )
+            chooseDraftFolder(directory)
+          }}
           onCreated={draftCreated}
+          folder={draftFolder ?? undefined}
           onSendingChange={(id, sending) =>
             setSubmittingDraftId((current) => (sending ? id : current === id ? null : current))
           }
@@ -723,7 +784,12 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
               {!leading && actionCards}
               <WorkspaceHeaderContext.Provider value={workspaceToolbar}>
                 <WorkspaceSessionContext.Provider value={session?.id ?? null}>
-                  <FileWorkspace cwd={session?.cwd ?? lastDirectory} chatRevealRequest={chatRevealRequest}>
+                  <FileWorkspace
+                    cwd={session?.cwd ?? lastDirectory}
+                    chatRevealRequest={chatRevealRequest}
+                    onChatInFolder={chatInFolder}
+                    revealFolder={revealFolder}
+                  >
                     <DriveDeleteConfirmation />
                     <MainInputModeProvider
                       key={surfaceGeneration}
@@ -743,6 +809,8 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
                               await client.discardDraft("main")
                               flushSync(() => {
                                 chooseDraftFolder(root.localPath)
+                                setDraftFolder(null)
+                                setRevealFolder(null)
                                 importDraft(DRAFT_SESSION_ID, null)
                                 setSurfaceGeneration((value) => value + 1)
                                 setSelectedId(null)

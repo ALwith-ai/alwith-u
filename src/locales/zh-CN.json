@@ -1016,6 +1016,7 @@
     "updateReloadSuccess": "{{name}} 已更新并重新加载"
   },
   "workspace": {
+    "chatInFolder": "在这个文件夹里对话",
     "previousPane": "上一个浮板",
     "nextPane": "下一个浮板",
     "thumbnails": "页面缩略图",
