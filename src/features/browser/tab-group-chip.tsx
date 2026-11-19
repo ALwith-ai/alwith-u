@@ -21,11 +21,11 @@ const groupFill: Record<GroupColor, string> = {
   5: "bg-tab-group-5"
 }
 export const groupEdge: Record<GroupColor, string> = {
-  1: "border-tab-group-1",
-  2: "border-tab-group-2",
-  3: "border-tab-group-3",
-  4: "border-tab-group-4",
-  5: "border-tab-group-5"
+  1: "border-t-tab-group-1",
+  2: "border-t-tab-group-2",
+  3: "border-t-tab-group-3",
+  4: "border-t-tab-group-4",
+  5: "border-t-tab-group-5"
 }
 
 /** The name a group's tabs stand behind: pressed, it puts them away or brings them back. */
@@ -53,8 +53,9 @@ export function TabGroupChip({
             aria-label={t("browser.tabGroup", { title: name })}
             title={name}
             aria-expanded={!group.collapsed}
+            data-browser-tab-group={group.id}
             className={cn(
-              "mb-1.5 max-w-32 shrink-0 truncate rounded-md px-2 py-0.5 text-xs font-medium text-background",
+              "mx-1 max-w-32 shrink-0 truncate rounded-md px-2 py-0.5 text-xs font-medium text-background",
               groupFill[group.color]
             )}
             onClick={onToggle}

@@ -9,8 +9,6 @@ import {
   EllipsisVertical,
   Info,
   Lock,
-  Maximize2,
-  Minimize2,
   RotateCw,
   Square,
   Star,
@@ -159,7 +157,6 @@ export interface BrowserPaneHandle {
 
 /** The guest is composited in the normal workspace; hiding a pane retains its document. */
 export function BrowserPane({
-  maximized,
   adopted,
   request,
   onTitle,
@@ -173,11 +170,8 @@ export function BrowserPane({
   openPages = noPages,
   onSwitchTab,
   ref,
-  active,
-  onMaximize,
-  onClose
+  active
 }: {
-  maximized: boolean
   adopted?: Guest
   onGuest?: (label: string) => void
   onTitle?: (title: string) => void
@@ -198,8 +192,6 @@ export function BrowserPane({
   ref?: Ref<BrowserPaneHandle>
   request?: PreviewRequest
   active: boolean
-  onMaximize: () => void
-  onClose: () => void
 }) {
   const { t, i18n } = useTranslation()
   const [address, setAddress] = useState(adopted?.url ?? request?.url ?? initialUrl ?? "")
@@ -916,25 +908,6 @@ export function BrowserPane({
             )}
           </DropdownMenuContent>
         </DropdownMenu>
-        <span aria-hidden="true" className="mx-1 h-4 w-px shrink-0 bg-border" />
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          className="rounded-full"
-          aria-label={t(maximized ? "browser.sideBySide" : "browser.expand")}
-          onClick={onMaximize}
-        >
-          {maximized ? <Minimize2 /> : <Maximize2 />}
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          className="rounded-full"
-          aria-label={t("browser.hide")}
-          onClick={onClose}
-        >
-          <X />
-        </Button>
       </header>
       {suggestions.length > 0 && (
         <ul

@@ -17,7 +17,7 @@ vi.mock("@tauri-apps/api/event", () => ({
     return () => listeners.delete(name)
   }
 }))
-const props = { maximized: false, active: true, onMaximize: vi.fn(), onClose: vi.fn() }
+const props = { active: true }
 const emit = (payload: Record<string, unknown>) =>
   act(() => listeners.get("browser-tab-updated")!({ payload: { label: "browser-test", ...payload } }))
 async function mount(extra: Record<string, unknown> = {}) {

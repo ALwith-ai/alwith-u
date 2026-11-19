@@ -4,8 +4,8 @@ import { listen } from "@tauri-apps/api/event"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import { revealItemsInDir } from "@tauri-apps/plugin-opener"
 import i18n from "i18next"
-import { Download, Globe, Plus, Volume2, VolumeX, X } from "lucide-react"
-import { Fragment, lazy, Suspense, useEffect, useRef, useState } from "react"
+import { Download, Globe, Maximize2, Minimize2, Plus, Volume2, VolumeX, X } from "lucide-react"
+import { Fragment, lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useStore } from "zustand"
@@ -152,6 +152,49 @@ export function BrowserWorkspace({
   // The one interface zoom, kept by the desktop shell; pages follow it.
   const desktopZoom = useDesktopZoom()
   const { tabs, selected, opened, closed } = state
+  const tabList = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    const list = tabList.current
+    if (!active || !list) return
+    const reveal = () => {
+      const tab = list.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')
+      if (!tab || !list.clientWidth) return
+      const right = tab.offsetLeft + tab.offsetWidth
+      const chip = tab.previousElementSibling
+      // Keep the leading group name visible with its first tab when they fit together.
+      const left =
+        chip instanceof HTMLElement &&
+        tab.dataset.browserTabGroupMember !== undefined &&
+        chip.dataset.browserTabGroup === tab.dataset.browserTabGroupMember &&
+        right - chip.offsetLeft <= list.clientWidth
+          ? chip.offsetLeft
+          : tab.offsetLeft
+      if (left < list.scrollLeft) list.scrollLeft = left
+      else if (right > list.scrollLeft + list.clientWidth) list.scrollLeft = right - list.clientWidth
+    }
+    reveal()
+    const observer = new ResizeObserver(reveal)
+    observer.observe(list)
+    return () => observer.disconnect()
+  }, [active, selected])
+  useEffect(() => {
+    const list = tabList.current
+    if (!list) return
+    const scroll = (event: WheelEvent) => {
+      if (event.ctrlKey || event.metaKey || list.scrollWidth <= list.clientWidth) return
+      const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY
+      const unit =
+        event.deltaMode === WheelEvent.DOM_DELTA_LINE
+          ? 16
+          : event.deltaMode === WheelEvent.DOM_DELTA_PAGE
+            ? list.clientWidth
+            : 1
+      list.scrollLeft += delta * unit
+      event.preventDefault()
+    }
+    list.addEventListener("wheel", scroll, { passive: false })
+    return () => list.removeEventListener("wheel", scroll)
+  }, [])
   const groups = usedGroups(state.groups, tabs).map((group) => ({
     ...group,
     title: group.sessionId ? sessionTitles?.[group.sessionId] || group.title : group.title
@@ -580,9 +623,7 @@ export function BrowserWorkspace({
         run(command)
       }}
     >
-      {/* Scrolls sideways when the pane is narrow, with no bar of its own; never up and down, which the
-          tabs' hidden underline, placed below them, would otherwise make it do. */}
-      <div className="flex h-10 shrink-0 [scrollbar-width:none] items-end gap-1 overflow-x-auto overflow-y-hidden bg-muted px-2">
+      <header className="flex h-10 shrink-0 items-end gap-1 bg-muted px-2">
         <Tabs
           className="min-w-0 shrink"
           value={selected}
@@ -591,14 +632,18 @@ export function BrowserWorkspace({
           }}
         >
           <TabsList
+            ref={tabList}
             aria-label={t("browser.tabs")}
-            className="flex h-auto w-full min-w-0 justify-start gap-0.5 rounded-none bg-transparent p-0"
+            className="relative flex h-auto w-auto min-w-0 scrollbar-none! justify-start gap-0.5 overflow-x-auto overflow-y-hidden overscroll-x-contain rounded-none bg-transparent p-0"
           >
             {tabs.map((tab, index) => {
               const group = groups.find((entry) => entry.id === tab.group)
+              const firstInGroup = group && tabs[index - 1]?.group !== group.id
+              const groupName = group && t("browser.tabGroup", { title: group.title || t("browser.unnamedGroup") })
+              const tabTitle = tab.title || t("browser.newTab")
               return (
                 <Fragment key={tab.id}>
-                  {group && tabs[index - 1]?.group !== group.id && (
+                  {group && firstInGroup && (
                     <TabGroupChip
                       group={group}
                       onChange={(change) => setGroup(group.id, change)}
@@ -624,15 +669,19 @@ export function BrowserWorkspace({
                             value={tab.id}
                             render={<div />}
                             nativeButton={false}
-                            title={bound(tab) ? t("browser.boundTab") : tab.title || t("browser.newTab")}
+                            title={[tabTitle, groupName, bound(tab) && t("browser.boundTab")]
+                              .filter(Boolean)
+                              .join("\n")}
+                            aria-description={groupName}
+                            data-browser-tab-group-member={group?.id}
                             // A tab as a browser draws it: the one in front is a sheet joined to the toolbar below.
                             className={cn(
-                              "group/tab flex h-[34px] min-w-0 flex-none shrink items-center justify-start gap-2 rounded-t-lg rounded-b-none border-0 px-2.5 pr-1.5 text-xs font-normal text-muted-foreground shadow-none after:hidden hover:text-foreground data-active:text-foreground group-data-[variant=default]/tabs-list:data-active:shadow-none dark:data-active:border-transparent dark:data-active:bg-background",
-                              // Tabs share the strip evenly and narrow together; a pinned one is its icon.
-                              tab.pinned ? "w-auto shrink-0" : "w-52",
+                              "group/tab flex h-[34px] items-center justify-start gap-1.5 rounded-t-lg rounded-b-none border-0 px-2.5 pr-1.5 text-xs font-normal text-muted-foreground shadow-none after:hidden hover:text-foreground data-active:text-foreground group-data-[variant=default]/tabs-list:data-active:shadow-none dark:data-active:border-transparent dark:data-active:bg-background",
+                              // Regular tabs narrow together to a usable minimum before the list scrolls.
+                              tab.pinned ? "flex-none px-2.5" : "w-52 min-w-24 flex-[0_1_13rem]",
                               tab.id === selected ? "bg-background" : "hover:bg-background/50",
-                              // A grouped tab wears its group's colour along its top.
-                              group && cn("border-t-2", groupEdge[group.color])
+                              // Balance the top border so grouped titles share the strip's text baseline.
+                              group && cn("border-y-2 border-b-transparent", groupEdge[group.color])
                             )}
                             draggable={!bound(tab)}
                             // The middle button closes a tab, as in every browser; a pinned one stays.
@@ -668,14 +717,10 @@ export function BrowserWorkspace({
                             ) : (
                               <Globe aria-hidden="true" />
                             )}
-                            {!tab.pinned && (
-                              <span className="min-w-0 flex-1 truncate text-left">
-                                {tab.title || t("browser.newTab")}
-                              </span>
-                            )}
+                            {!tab.pinned && <span className="min-w-0 flex-1 truncate text-left">{tabTitle}</span>}
                             {tab.pinned && (
                               <span className="sr-only">
-                                {tab.title || t("browser.newTab")} · {t("browser.pinnedTab")}
+                                {tabTitle} · {t("browser.pinnedTab")}
                               </span>
                             )}
                             {tab.muted ? (
@@ -693,19 +738,24 @@ export function BrowserWorkspace({
                                 {controls[tab.label]!.stopping ? " · …" : " · AI"}
                               </span>
                             ) : null}
-                            {tab.private && <span aria-label={t("browser.privateTab")}> · {t("browser.private")}</span>}
+                            {tab.private && (
+                              <span aria-label={t("browser.privateTab")} className="min-w-0 truncate">
+                                {" · "}
+                                {t("browser.private")}
+                              </span>
+                            )}
                             {!tab.pinned && (
                               <Button
                                 variant="ghost"
                                 size="icon-xs"
                                 // Always there on the tab in front; on the others when the pointer or the keyboard reaches them.
                                 className={cn(
-                                  "size-5 rounded-full",
+                                  "size-5 shrink-0 rounded-full",
                                   tab.id !== selected &&
                                     "opacity-0 group-hover/tab:opacity-100 focus-visible:opacity-100"
                                 )}
                                 aria-label={t("browser.closeTab", {
-                                  title: tab.title || t("browser.newTab")
+                                  title: tabTitle
                                 })}
                                 onClick={(event) => {
                                   event.stopPropagation()
@@ -885,6 +935,7 @@ export function BrowserWorkspace({
             })
           }
         />
+        <div className="flex-1" />
         {downloads.length + downloaded.length > 0 && (
           <Popover>
             <PopoverTrigger
@@ -892,7 +943,7 @@ export function BrowserWorkspace({
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  className="mb-1 ml-auto size-7 shrink-0 rounded-full"
+                  className="mb-1 size-7 shrink-0 rounded-full"
                   aria-label={t("browser.downloadsRunning", {
                     count: downloads.length
                   })}
@@ -969,7 +1020,28 @@ export function BrowserWorkspace({
             </PopoverContent>
           </Popover>
         )}
-      </div>
+        <div className="mb-1 flex h-7 shrink-0 items-center gap-1">
+          <span aria-hidden="true" className="mx-1 h-4 w-px bg-border" />
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="size-7 rounded-full"
+            aria-label={t(maximized ? "browser.sideBySide" : "browser.expand")}
+            onClick={onMaximize}
+          >
+            {maximized ? <Minimize2 /> : <Maximize2 />}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="size-7 rounded-full"
+            aria-label={t("browser.hide")}
+            onClick={onClose}
+          >
+            <X />
+          </Button>
+        </div>
+      </header>
       <div className="relative grid min-h-0 flex-1 grid-cols-1 grid-rows-1">
         {tabs.map((tab) => (
           <div
@@ -1023,9 +1095,6 @@ export function BrowserWorkspace({
                 request={tab.request}
                 adopted={tab.adopted}
                 active={active && tab.id === selected}
-                maximized={maximized}
-                onMaximize={onMaximize}
-                onClose={onClose}
                 onTitle={(title) => {
                   if (tab.url && title && !tab.private) retitle(tab.url, title)
                   setTabs((tabs) =>

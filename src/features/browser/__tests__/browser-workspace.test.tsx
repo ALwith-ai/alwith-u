@@ -1,6 +1,6 @@
 import "./language"
 import { type DesktopCanvas, DesktopCanvasContext } from "@alwith/module-desktop-shell/react"
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { expect, test, vi } from "vitest"
 
 import { BrowserWorkspace } from "../browser-workspace"
@@ -73,6 +73,76 @@ test("ordinary browsing opens a new tab without a project or AI session", () => 
   fireEvent.click(screen.getByRole("button", { name: "新建网页标签" }))
   expect(screen.getAllByRole("tab")).toHaveLength(2)
   expect(screen.queryByLabelText("AI 会话标签")).toBeNull()
+})
+
+test("pane controls stay in the tab header as tabs are opened and the workspace expands", () => {
+  const onMaximize = vi.fn()
+  const onClose = vi.fn()
+  const view = render(<BrowserWorkspace {...props} onMaximize={onMaximize} onClose={onClose} />)
+  const tabList = screen.getByRole("tablist")
+  const header = tabList.closest("header")!
+  const expand = within(header).getByRole("button", { name: "展开网页" })
+  const close = within(header).getByRole("button", { name: "收起网页" })
+  fireEvent.click(within(header).getByRole("button", { name: "新建网页标签" }))
+  expect(tabList).not.toContainElement(expand)
+  expect(tabList).not.toContainElement(close)
+  fireEvent.click(expand)
+  expect(onMaximize).toHaveBeenCalledOnce()
+  view.rerender(<BrowserWorkspace {...props} maximized onMaximize={onMaximize} onClose={onClose} />)
+  expect(within(header).getByRole("button", { name: "并排显示网页" })).toBe(expand)
+  fireEvent.click(close)
+  expect(onClose).toHaveBeenCalledOnce()
+})
+
+test("only the tab list scrolls on overflow and selecting a clipped tab reveals it", () => {
+  render(<BrowserWorkspace {...props} />)
+  const list = screen.getByRole("tablist")
+  Object.defineProperties(list, {
+    clientWidth: { value: 220 },
+    scrollWidth: { value: 440, configurable: true }
+  })
+  fireEvent.wheel(list, { deltaX: 60 })
+  fireEvent.wheel(list, { deltaY: 40 })
+  fireEvent.wheel(list, { deltaY: 40, ctrlKey: true })
+  expect(list.scrollLeft).toBe(100)
+  fireEvent.wheel(list.closest("header")!, { deltaY: 40 })
+  expect(list.scrollLeft).toBe(100)
+
+  const first = within(list).getByRole("tab")
+  Object.defineProperties(first, { offsetLeft: { value: 0 }, offsetWidth: { value: 96 } })
+  fireEvent.click(screen.getByRole("button", { name: "新建网页标签" }))
+  fireEvent.mouseDown(first)
+  fireEvent.click(first)
+  expect(first).toHaveAttribute("aria-selected", "true")
+  expect(list.scrollLeft).toBe(0)
+  Object.defineProperty(list, "scrollWidth", { value: 220 })
+  fireEvent.wheel(list, { deltaY: 40 })
+  expect(list.scrollLeft).toBe(0)
+})
+
+test("a group identifies its tabs and reveals its chip with the selected first tab", async () => {
+  const request = { id: "grouped", url: "https://grouped.example", sessionId: "ai-group" }
+  render(<BrowserWorkspace {...props} request={request} sessionTitles={{ "ai-group": "项目资料" }} />)
+  const list = screen.getByRole("tablist")
+  const chip = within(list).getByRole("button", { name: "标签组 项目资料" })
+  const grouped = within(list).getByRole("tab", { name: /grouped.example/ })
+  expect(grouped).toHaveAccessibleDescription("标签组 项目资料")
+  fireEvent.click(screen.getByRole("button", { name: "新建网页标签" }))
+  Object.defineProperty(list, "clientWidth", { value: 220 })
+  Object.defineProperty(chip, "offsetLeft", { value: 8 })
+  Object.defineProperties(grouped, { offsetLeft: { value: 96 }, offsetWidth: { value: 96 } })
+  list.scrollLeft = 90
+  fireEvent.mouseDown(grouped)
+  fireEvent.click(grouped)
+  await waitFor(() => expect(grouped).toHaveAttribute("aria-selected", "true"))
+  expect(list.scrollLeft).toBe(8)
+
+  fireEvent.click(chip)
+  expect(chip).toHaveAttribute("aria-expanded", "false")
+  expect(within(list).getAllByRole("tab")).toHaveLength(1)
+  fireEvent.click(chip)
+  expect(chip).toHaveAttribute("aria-expanded", "true")
+  expect(within(list).getAllByRole("tab")).toHaveLength(2)
 })
 
 test("batched closes never restore a removed tab or lose the active tab", async () => {

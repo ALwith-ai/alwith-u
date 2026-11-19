@@ -10,7 +10,7 @@ const invoke = vi.hoisted(() => vi.fn())
 vi.mock("../extension-actions", () => ({ ExtensionActions: () => null }))
 vi.mock("@tauri-apps/api/core", () => ({ invoke }))
 vi.mock("@tauri-apps/api/event", () => ({ listen: async () => () => {} }))
-const props = { maximized: false, active: true, onMaximize: vi.fn(), onClose: vi.fn() }
+const props = { active: true }
 beforeEach(() => invoke.mockReset())
 
 test("mounts the live surface and releases its guest when removed", async () => {
