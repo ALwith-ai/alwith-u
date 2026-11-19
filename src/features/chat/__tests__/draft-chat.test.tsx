@@ -1,6 +1,6 @@
 import { ReadableStream, TransformStream, WritableStream } from "node:stream/web"
 
-import { type ClientOptions, CodexClient } from "@alwith/module-chat/client"
+import { type ClientOptions, CodexClient, createSession } from "@alwith/module-chat/client"
 import { drafts, importDraft } from "@alwith/module-chat/conversation"
 import * as core from "@tauri-apps/api/core"
 import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks"
@@ -21,12 +21,14 @@ import type { Preferences } from "@/lib/preferences"
 import { type ProviderSnapshot, resolveSessionModel } from "@/lib/providers"
 import { mockOf } from "@/test/mock-of"
 
+import { ChatView } from "../chat-view"
 import { navigationSoundStore } from "../codex/navigation-sound-store"
 import { DRAFT_SESSION_ID, DraftChat } from "../draft-chat"
 import * as projectPicker from "../draft-project-picker"
 import { Composer } from "./timeline-host"
 
 vi.mock("@tauri-apps/api/core", async (importOriginal) => ({ ...(await importOriginal<object>()) }))
+vi.mock("../dialogs/chat-search", () => ({ ChatSearch: () => null }))
 
 // ACP uses native Web Streams; jsdom supplies only the browser surface.
 Object.assign(globalThis, { TransformStream, ReadableStream, WritableStream })
@@ -41,6 +43,34 @@ const providers: ProviderSnapshot = {
   status: "applied",
   error: null
 }
+
+test("a restoring conversation accepts a follow-up draft before it can send", () => {
+  const initial = client.state
+  const session = { ...createSession("restoring-follow-up", "/tmp"), restoring: true }
+  client.store.setState({ connection: "ready" })
+  const chat = (restored: boolean) => (
+    <ChatView
+      session={{ ...session, restoring: !restored, attached: restored }}
+      onNewChat={() => {}}
+      onDeleted={() => {}}
+    />
+  )
+  const view = render(chat(false))
+  try {
+    expect(view.getByRole("textbox")).toBeEnabled()
+    fireEvent.change(view.getByRole("textbox"), { target: { value: "Follow-up draft" } })
+    expect(view.getByRole("button", { name: "Send" })).toBeDisabled()
+
+    view.rerender(chat(true))
+
+    expect(view.getByRole("textbox")).toHaveValue("Follow-up draft")
+    expect(view.getByRole("button", { name: "Send" })).toBeEnabled()
+  } finally {
+    view.unmount()
+    client.store.setState(initial, true)
+    drafts.delete(session.id)
+  }
+})
 
 function environment(nativeWindow = false, resolveModel?: ClientOptions["resolveModel"]) {
   return Promise.try(() => {
