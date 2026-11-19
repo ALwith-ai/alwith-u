@@ -6,6 +6,7 @@ import { isSelectOption, type PromptOptions } from "@alwith/module-chat/client"
  */
 import { type ComposerProps, useComposer } from "@alwith/module-chat/conversation"
 import { DesktopComposer } from "@alwith/module-chat/desktop"
+import { open as openFileDialog } from "@tauri-apps/plugin-dialog"
 import { useCallback, useLayoutEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useStore } from "zustand"
@@ -24,6 +25,12 @@ import { ImageInputTools } from "./composer/image-tools"
 import { useInputMode } from "./composer/input-mode"
 import { chatCatalog } from "./composer/model-catalog"
 import { predictionPreference } from "./composer/prediction-preference"
+
+async function pickChatFilePaths(): Promise<string[]> {
+  return (await openFileDialog({ multiple: true })) ?? []
+}
+
+const desktopAttachmentPicker = { pickFilePaths: pickChatFilePaths }
 
 function ComposerVoice({ voiceResume }: { voiceResume?: VoiceResume }) {
   const composer = useComposer()
@@ -151,6 +158,8 @@ export function ChatComposer({
       catalog={chatCatalog}
       shellCommands={!imageMode}
       imagesOnly={imageMode}
+      allowDirectory
+      {...desktopAttachmentPicker}
       {...props}
       disabled={
         inputDisabled || props.disabled || inputMode?.ready === false || (imageMode && !availability.canGenerate)

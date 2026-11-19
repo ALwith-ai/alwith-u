@@ -94,9 +94,9 @@ dependencies = [
 
 [[package]]
 name = "alwith-chat"
-version = "0.6.12"
+version = "0.6.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8480f549062feb4d0d05d544f4f40cc0f620b7ca40817728e2ef52c3270c93ca"
+checksum = "cf6f6ef20b2492f6ec759c2fbe11b19661d1cb3c2f1898bbdea0dd569672b3d0"
 dependencies = [
  "alwith-api",
  "alwith-native-client 0.6.2",
