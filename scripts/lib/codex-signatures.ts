@@ -3,7 +3,7 @@ import { createHash } from "node:crypto"
 import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 
-import { CODEX_WINDOWS_HELPERS, codexPlatformDirectory, codexSidecars } from "./toolchain"
+import { codexArtifact } from "@alwith/module-chat/stage"
 
 type SignatureResult = { status: number | null; stderr: string; error?: Error }
 type SignatureRunner = (args: string[]) => SignatureResult
@@ -25,41 +25,30 @@ function vendorTeam(path: string, run: SignatureRunner): string {
   return team
 }
 
+type CodexArtifact = { exe: string; files: { name: string; source: string }[] }
+
 /** Check both staging and final bundles; a valid application re-signature still violates vendor identity. */
 export function verifyCodexArtifacts(
   root: string,
   triple: string,
   executableDirectory?: string,
-  run: SignatureRunner = runCodesign
+  run: SignatureRunner = runCodesign,
+  artifact: CodexArtifact = codexArtifact(triple)
 ): void {
-  const targets: Record<string, { platform: string; exe: string }> = {
-    "aarch64-apple-darwin": { platform: "darwin-arm64", exe: "" },
-    "x86_64-pc-windows-msvc": { platform: "win32-x64", exe: ".exe" }
-  }
-  const target = targets[triple]
-  if (!target) throw new Error(`Unsupported signature verification target: ${triple}`)
-  for (const name of codexSidecars(target.exe === ".exe")) {
-    const directory = CODEX_WINDOWS_HELPERS.some((helper) => helper === name) ? "codex-resources" : "bin"
-    const original = join(
-      codexPlatformDirectory(root, target.platform),
-      "vendor",
-      triple,
-      directory,
-      `${name}${target.exe}`
-    )
+  for (const { name, source: original } of artifact.files) {
     const copies = executableDirectory
-      ? [join(executableDirectory, `${name}${target.exe}`)]
+      ? [join(executableDirectory, `${name}${artifact.exe}`)]
       : [
-          join(root, "src-tauri/binaries", `${name}-${triple}${target.exe}`),
+          join(root, "src-tauri/binaries", `${name}-${triple}${artifact.exe}`),
           ...(name === "codex-code-mode-host" && existsSync(join(root, "src-tauri/binaries", name))
             ? [join(root, "src-tauri/binaries", name)]
             : [])
         ]
     const expectedHash = hash(original)
-    const expectedTeam = target.exe ? null : vendorTeam(original, run)
+    const expectedTeam = artifact.exe ? null : vendorTeam(original, run)
     for (const copy of copies) {
       if (hash(copy) !== expectedHash) throw new Error(`${copy}: Codex vendor bytes changed during staging or bundling`)
-      if (!target.exe && vendorTeam(copy, run) !== expectedTeam)
+      if (!artifact.exe && vendorTeam(copy, run) !== expectedTeam)
         throw new Error(`${copy}: Codex vendor TeamIdentifier changed during staging or bundling`)
     }
   }

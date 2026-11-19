@@ -24,8 +24,6 @@
     "@alwith/native-kit",
     "@nyssance/cef-rs",
     "@nyssance/tauri-runtime-cef",
-    // Bundled into the app by scripts/stage.ts from the pinned package versions
-    "@openai/codex",
     // Bundled with immutable resources by scripts/lib/create-alwith-artifact.ts.
     "create-alwith",
     // invoked as `bun ts7-lint` by the fabfile.py check gate

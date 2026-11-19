@@ -4,9 +4,7 @@ import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 
 import sharedProviders from "@alwith/module-chat/assets/provider-catalog.json"
-import { chatAdapterArtifact } from "@alwith/module-chat/stage"
-
-import { codexSidecars } from "../toolchain"
+import { chatAdapterArtifact, codexSidecars } from "@alwith/module-chat/stage"
 
 // U does not support or package Anthropic; all other provider resources remain required.
 const providers = sharedProviders.filter((provider) => provider.id !== "anthropic")
@@ -37,19 +35,12 @@ test("the staged toolchain runs with explicit resources outside the executable d
 
   const suffix = process.platform === "win32" ? ".exe" : ""
   const features = Bun.spawnSync(
-    [join(import.meta.dir, `../../../src-tauri/binaries/alwith-codex-launcher-${triple}${suffix}`), "features", "list"],
-    {
-      env: {
-        ...process.env,
-        ALWITH_U_CODEX_PATH: join(import.meta.dir, `../../../src-tauri/binaries/codex-${triple}${suffix}`)
-      },
-      stdout: "pipe",
-      stderr: "pipe",
-      timeout: 10_000
-    }
+    [join(import.meta.dir, `../../../src-tauri/binaries/codex-${triple}${suffix}`), "features", "list"],
+    { stdout: "pipe", stderr: "pipe", timeout: 10_000 }
   )
   expect(features.exitCode, features.stderr.toString()).toBe(0)
-  expect(features.stdout.toString()).toMatch(/^default_mode_request_user_input\s+.*\s+true$/m)
+  // The engine entry enables this feature for each thread; the packaged Codex must still know it.
+  expect(features.stdout.toString()).toMatch(/^default_mode_request_user_input\s/m)
   for (const provider of providers) {
     if (!provider.catalog) continue
     const path = join(import.meta.dir, "../../../src-tauri/resources", provider.catalog)
@@ -103,21 +94,16 @@ test("the staged toolchain runs with explicit resources outside the executable d
       copyFileSync(source, target)
     }
     copyFileSync(entry, join(resources, "adapter/codex-acp-v2.mjs"))
+    copyFileSync(
+      join(import.meta.dir, "../../../src-tauri/resources/adapter/engine.json"),
+      join(resources, "adapter/engine.json")
+    )
     cpSync(
       join(import.meta.dir, "../../../src-tauri/resources/adapter/alwith-docs"),
       join(resources, "adapter/alwith-docs"),
       { recursive: true }
     )
-    copyFileSync(
-      join(import.meta.dir, "../../../src-tauri/resources/adapter/codex-bootstrap.mjs"),
-      join(resources, "adapter/codex-bootstrap.mjs")
-    )
-    for (const name of [
-      "bun",
-      ...codexSidecars(process.platform === "win32"),
-      "alwith-runtime",
-      "alwith-codex-launcher"
-    ]) {
+    for (const name of ["bun", ...codexSidecars(triple), "alwith-runtime"]) {
       copyFileSync(
         join(import.meta.dir, `../../../src-tauri/binaries/${name}-${triple}${suffix}`),
         join(binaries, `${name}${suffix}`)
@@ -160,7 +146,7 @@ test("the staged toolchain runs with explicit resources outside the executable d
     }
     copyFileSync(entry, join(packagedResources, "adapter/codex-acp-v2.mjs"))
     cpSync(join(resources, "adapter/alwith-docs"), join(packagedResources, "adapter/alwith-docs"), { recursive: true })
-    copyFileSync(join(resources, "adapter/codex-bootstrap.mjs"), join(packagedResources, "adapter/codex-bootstrap.mjs"))
+    copyFileSync(join(resources, "adapter/engine.json"), join(packagedResources, "adapter/engine.json"))
     const packaged = Bun.spawnSync([process.execPath, "scripts/verify-bundled-toolchain.ts", binaries], {
       cwd: join(import.meta.dir, "../../.."),
       stdout: "pipe",

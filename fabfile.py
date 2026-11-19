@@ -28,10 +28,6 @@ BUN_PLATFORM_PACKAGES = (
     "@oven/bun-darwin-aarch64",
     "@oven/bun-windows-x64-baseline",
 )
-CODEX_PLATFORM_PACKAGES = (
-    "@openai/codex-darwin-arm64",
-    "@openai/codex-win32-x64",
-)
 
 
 def update_version(root: Path, new_version: str) -> None:
@@ -86,14 +82,15 @@ def update_version(root: Path, new_version: str) -> None:
         raise
 
 
-def update_toolchain_pins(root: Path, bun_version: str, codex_version: str) -> bool:
-    """Update the bundled Bun and Codex pins only after checking the existing platform pins.
+def update_toolchain_pins(root: Path, bun_version: str) -> bool:
+    """Update the bundled Bun pins only after checking the existing platform pins.
 
     `packageManager` (the Bun that builds the app) is left alone: it changes with the developer's toolchain,
-    not with what the app ships.
+    not with what the app ships. Codex is not pinned here: it comes with the chat engine of
+    `@alwith/module-chat`, in the version its adapter was generated against.
     """
-    if not PIN_VERSION.fullmatch(bun_version) or not PIN_VERSION.fullmatch(codex_version):
-        raise ValueError("Bun and Codex version must be exact X.Y.Z versions")
+    if not PIN_VERSION.fullmatch(bun_version):
+        raise ValueError("Bun version must be an exact X.Y.Z version")
 
     package_path = root / "package.json"
     manifest = json.loads(package_path.read_text())
@@ -101,27 +98,14 @@ def update_toolchain_pins(root: Path, bun_version: str, codex_version: str) -> b
     old_bun = optional.get(BUN_PLATFORM_PACKAGES[0], "")
     if not PIN_VERSION.fullmatch(old_bun):
         raise ValueError("Bun platform pins must be an exact version")
-    dev_dependencies = manifest["devDependencies"]
-    old_codex = dev_dependencies["@openai/codex"]
-    if not PIN_VERSION.fullmatch(old_codex):
-        raise ValueError("@openai/codex must pin an exact version")
     for name in BUN_PLATFORM_PACKAGES:
         if optional.get(name) != old_bun:
             raise ValueError(f"Bun platform pin {name} does not match {old_bun}")
-    for name in CODEX_PLATFORM_PACKAGES:
-        platform = name.removeprefix("@openai/codex-")
-        expected = f"npm:@openai/codex@{old_codex}-{platform}"
-        if optional.get(name) != expected:
-            raise ValueError(f"Codex platform pin {name} does not match {expected}")
 
-    if bun_version == old_bun and codex_version == old_codex:
+    if bun_version == old_bun:
         return False
-    dev_dependencies["@openai/codex"] = codex_version
     for name in BUN_PLATFORM_PACKAGES:
         optional[name] = bun_version
-    for name in CODEX_PLATFORM_PACKAGES:
-        platform = name.removeprefix("@openai/codex-")
-        optional[name] = f"npm:@openai/codex@{codex_version}-{platform}"
     package_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n")
     return True
 
@@ -353,15 +337,13 @@ def version(_context: object) -> None:
 
 @task
 def toolchain(c: Context) -> None:
-    """Update the bundled Bun and Codex pins, then install and stage the toolchain."""
+    """Update the bundled Bun pin, then install and stage the toolchain."""
     try:
         manifest = json.loads((ROOT / "package.json").read_text())
         current_bun = manifest["optionalDependencies"][BUN_PLATFORM_PACKAGES[0]]
-        current_codex = manifest["devDependencies"]["@openai/codex"]
         bun_version = input(f"Bundled Bun version [{current_bun}]: ").strip() or current_bun
-        codex_version = input(f"Codex version [{current_codex}]: ").strip() or current_codex
         check_toolchain_prerequisites(ROOT, bun_version)
-        update_toolchain_pins(ROOT, bun_version, codex_version)
+        update_toolchain_pins(ROOT, bun_version)
         steps = [
             ("Dependency install", "bun install"),
             ("Toolchain check", "bun scripts/check-toolchain.ts"),
@@ -377,4 +359,4 @@ def toolchain(c: Context) -> None:
                 raise RuntimeError(f"{step} failed; fix the cause and rerun fab toolchain with the same versions") from error
     except (ValueError, RuntimeError, OSError) as error:
         raise Exit(f"Toolchain failed: {error}", code=1) from None
-    print(f"Toolchain pins and staged binaries verified: bundled Bun {bun_version}, Codex {codex_version}")
+    print(f"Toolchain pin and staged binaries verified: bundled Bun {bun_version}")

@@ -1,6 +1,6 @@
-#[cfg(test)]
-mod codex_launcher;
 mod power;
+mod codex_home;
+mod docs_install;
 
 #[cfg(all(test, target_os = "macos"))]
 #[path = "__tests__/dropped_file_url.rs"]
@@ -324,6 +324,8 @@ pub fn run() {
         })
         .setup(|app| {
             diagnostics::install(app.handle())?;
+            docs_install::install(app.handle())?;
+            codex_home::remove_legacy_model_cache(&codex_home::resolve(app.handle())?)?;
             #[cfg(feature = "runtime-cef")]
             if desktop_runtime::is_cef() {
                 browser_ai::start(app.handle())?;

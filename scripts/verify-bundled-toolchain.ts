@@ -4,16 +4,12 @@ import { copyFileSync, cpSync, existsSync, mkdtempSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 
-import { ProcessRuntimeClient } from "@alwith/api/node"
-import sharedProviders from "@alwith/module-chat/assets/provider-catalog.json"
+import { engineFromManifest, ProcessRuntimeClient } from "@alwith/api/node"
+import { codexArtifact, codexSidecars } from "@alwith/module-chat/stage"
 
 import manifest from "../package.json"
-import { joinModelCatalogPaths } from "./lib/model-catalog"
-import { assertVersion, codexSidecars, toolchainVersions } from "./lib/toolchain"
+import { assertVersion, toolchainVersions } from "./lib/toolchain"
 import { deadline, removeTemporaryDirectory, stopRuntime, withCleanup } from "./lib/toolchain-cleanup"
-
-// U does not support or package Anthropic; all other provider resources remain required.
-const providers = sharedProviders.filter((provider) => provider.id !== "anthropic")
 
 const argument = process.argv[2]
 if (!argument)
@@ -26,7 +22,13 @@ const resources = process.argv[3]
     ? resolve(directory, "../Resources")
     : directory
 const suffix = process.platform === "win32" ? ".exe" : ""
-const versions = toolchainVersions(manifest)
+const HOST_TRIPLES: Record<string, string | undefined> = {
+  "darwin-arm64": "aarch64-apple-darwin",
+  "win32-x64": "x86_64-pc-windows-msvc"
+}
+const triple = HOST_TRIPLES[`${process.platform}-${process.arch}`]
+if (!triple) throw new Error(`Unsupported verification host: ${process.platform}/${process.arch}`)
+const versions = { ...toolchainVersions(manifest), codex: codexArtifact(triple).version }
 const codexHome = mkdtempSync(join(tmpdir(), "alwith-u 工具链-"))
 
 function run(name: string, args: string[]): string {
@@ -45,12 +47,7 @@ function run(name: string, args: string[]): string {
 const adapterVersion = await withCleanup(
   async () => {
     // Verify sandbox helpers are packaged without provisioning the host's Windows sandbox.
-    for (const name of [
-      "bun",
-      ...codexSidecars(process.platform === "win32"),
-      "alwith-runtime",
-      "alwith-codex-launcher"
-    ]) {
+    for (const name of ["bun", ...codexSidecars(triple), "alwith-runtime"]) {
       if (!existsSync(join(directory, `${name}${suffix}`))) throw new Error(`Packaged sidecar missing: ${name}`)
     }
     assertVersion("packaged Bun", run("bun", ["--version"]), versions.bun)
@@ -87,35 +84,24 @@ const adapterVersion = await withCleanup(
     if (!/^@nyssance\/codex-acp-v2 \d+\.\d+\.\d+(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$/.test(adapterVersion)) {
       throw new Error(`Unexpected packaged adapter version: ${adapterVersion}`)
     }
-    const bootstrap = join(codexHome, "codex-bootstrap.mjs")
-    copyFileSync(join(resources, "adapter/codex-bootstrap.mjs"), bootstrap)
     cpSync(join(resources, "adapter/alwith-docs"), join(codexHome, "alwith-docs"), { recursive: true })
-    await checkInitialize(bootstrap)
+    await checkInitialize(adapter, join(resources, "adapter/engine.json"))
     return adapterVersion
   },
   () => removeTemporaryDirectory(codexHome)
 )
 console.log(`Packaged toolchain works without PATH: Bun ${versions.bun}, Codex ${versions.codex}, ${adapterVersion}`)
 
-async function checkInitialize(adapter: string): Promise<void> {
+async function checkInitialize(adapter: string, manifest: string): Promise<void> {
+  const engine = engineFromManifest(manifest, {
+    bun: join(directory, `bun${suffix}`),
+    adapter,
+    codex: join(directory, `codex${suffix}`)
+  })
   const runtime = new ProcessRuntimeClient({
     binary: join(directory, `alwith-runtime${suffix}`),
     engines: {
-      codex: {
-        command: join(directory, `bun${suffix}`),
-        args: ["--no-install", adapter],
-        env: {
-          CODEX_PATH: join(directory, `alwith-codex-launcher${suffix}`),
-          ALWITH_U_CODEX_PATH: join(directory, `codex${suffix}`),
-          CODEX_ACP_MODEL_CATALOGS: joinModelCatalogPaths([
-            ...providers.map((provider) => join(resources, provider.catalog)),
-            join(resources, "custom/models.json")
-          ]),
-          TMPDIR: codexHome,
-          TEMP: codexHome,
-          TMP: codexHome
-        }
-      }
+      codex: { ...engine, env: { ...engine.env, TMPDIR: codexHome, TEMP: codexHome, TMP: codexHome } }
     },
     journalRoot: join(codexHome, "journal"),
     env: {

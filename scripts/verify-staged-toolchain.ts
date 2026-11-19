@@ -4,7 +4,8 @@ import { copyFileSync, mkdtempSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 
-import { codexSidecars } from "./lib/toolchain"
+import { codexSidecars } from "@alwith/module-chat/stage"
+
 import { removeTemporaryDirectory, withCleanup } from "./lib/toolchain-cleanup"
 
 const targets: Partial<Record<`${NodeJS.Platform}-${string}`, string>> = {
@@ -20,12 +21,7 @@ const directory = mkdtempSync(join(tmpdir(), "alwith-u staged toolchain-"))
 
 await withCleanup(
   () => {
-    for (const name of [
-      "bun",
-      ...codexSidecars(process.platform === "win32"),
-      "alwith-runtime",
-      "alwith-codex-launcher"
-    ]) {
+    for (const name of ["bun", ...codexSidecars(triple), "alwith-runtime"]) {
       copyFileSync(join(root, "src-tauri/binaries", `${name}-${triple}${suffix}`), join(directory, `${name}${suffix}`))
     }
     const result = spawnSync(

@@ -1,15 +1,12 @@
 import { expect, test } from "bun:test"
 
-import codexPackage from "@openai/codex/package.json"
-
 import manifest from "../../../package.json"
 import { assertVersion, toolchainVersions } from "../toolchain"
 
-test("Codex uses the installed CLI version", () => {
+test("the manifest pins both Bun versions", () => {
   expect(toolchainVersions(manifest)).toEqual({
     buildBun: manifest.packageManager.slice("bun@".length),
-    bun: manifest.optionalDependencies["@oven/bun-darwin-aarch64"],
-    codex: codexPackage.version
+    bun: manifest.optionalDependencies["@oven/bun-darwin-aarch64"]
   })
 })
 
@@ -25,9 +22,16 @@ test("rejects floating toolchain versions and mismatched platform pins", () => {
   const bunMismatch = structuredClone(manifest)
   bunMismatch.optionalDependencies["@oven/bun-windows-x64-baseline"] = "0.0.0"
   expect(() => toolchainVersions(bunMismatch)).toThrow("@oven/bun-windows-x64-baseline: expected")
-  const codexMismatch = structuredClone(manifest)
-  codexMismatch.devDependencies["@openai/codex"] = "0.170.0"
-  expect(() => toolchainVersions(codexMismatch)).toThrow("@openai/codex must use latest")
+})
+
+test("Codex is never declared by the application", () => {
+  const declared = { ...manifest, devDependencies: { ...manifest.devDependencies, "@openai/codex": "latest" } }
+  expect(() => toolchainVersions(declared)).toThrow("Codex comes with @alwith/module-chat")
+  const platform = {
+    ...manifest,
+    optionalDependencies: { ...manifest.optionalDependencies, "@openai/codex-darwin-arm64": "0.170.0" }
+  }
+  expect(() => toolchainVersions(platform)).toThrow("Codex comes with @alwith/module-chat")
 })
 
 test("rejects missing or stale installed artifacts", () => {

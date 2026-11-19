@@ -59,7 +59,7 @@ Always answer the user in Chinese.
 
 ## Bundled Codex CLI
 
-- Use the stable npm tag `latest` for `@openai/codex`. Never pin its version in the application manifest or declare separate Codex platform aliases. Resolve native binaries through the installed CLI package and commit the Bun lockfile for reproducible builds.
+- The chat engine comes whole from `@alwith/module-chat`: `stageChatEngine` stages the ACP adapter, the Codex build that adapter was generated against, and `resources/adapter/engine.json`, which says how the Runtime starts them. Never declare `@openai/codex` or its platform packages in the application manifest, and never write the engine entry by hand: `engines_table` reads the manifest with `alwith_api::engine_from_manifest`, scripts with `engineFromManifest`. Commit the Bun lockfile for reproducible builds. Origin: user decision (2026-11-19).
 
 ## Code
 

@@ -2,10 +2,9 @@
 /**
  * Stages the sidecars Tauri bundles (`bundle.externalBin`):
  *   binaries/bun-<triple>                                  the pinned official @oven/bun platform package
- *   binaries/codex-<triple>, codex-code-mode-host-<triple>  the native Codex CLI from the pinned @openai/codex platform package
- *   binaries/codex-{windows-sandbox-setup,command-runner}-<triple>  Windows sandbox helpers
- *   binaries/alwith-codex-launcher-<triple>              U-owned CODEX_PATH proxy
- *   resources/adapter/codex-bootstrap.mjs                U-owned local catalog startup
+ *   binaries/codex-<triple>, codex-code-mode-host-<triple>  the Codex build of the chat engine (@alwith/module-chat)
+ *   binaries/codex-{windows-sandbox-setup,command-runner}-<triple>  its Windows sandbox helpers
+ *   resources/adapter/engine.json                          how the Runtime starts the chat engine
  *   resources/adapter/codex-acp-v2.mjs                     the adapter's self-contained JS bundle, run by bundled Bun
  *   binaries/alwith-runtime-<triple>                        the closed ALwith Runtime binary from the @alwith/runtime platform package (explicit local override)
  * plus the licence notices shipped under resources/licenses.
@@ -16,7 +15,7 @@ import { chmodSync, copyFileSync, existsSync, mkdirSync, readdirSync, readFileSy
 import { join, resolve } from "node:path"
 
 import { stageChromeBridge } from "@alwith/module-browser/stage"
-import { stageChatAdapter } from "@alwith/module-chat/stage"
+import { stageChatEngine } from "@alwith/module-chat/stage"
 import { stageNativeModule } from "@alwith/module-desktop-shell/stage"
 import { stageTerminal } from "@alwith/module-terminal/stage"
 import { stageNative as stageNativeEnterprise } from "@alwith/native-enterprise/stage"
@@ -26,10 +25,10 @@ import { $ } from "bun"
 import manifest from "../package.json"
 import { verifyCodexArtifacts } from "./lib/codex-signatures"
 import { stageComputer } from "./lib/computer-artifact"
+import { stageCreateAlwith } from "./lib/create-alwith-artifact"
 import { stageDocs } from "./lib/docs-artifact"
 import { runtimeBuildArtifact, runtimeSource, stageTarget } from "./lib/runtime-artifact"
-import { assertVersion, BUN_PACKAGES, CODEX_WINDOWS_HELPERS, codexPlatformDirectory, codexSidecars, toolchainVersions } from "./lib/toolchain"
-import { stageCreateAlwith } from "./lib/create-alwith-artifact"
+import { assertVersion, BUN_PACKAGES, toolchainVersions } from "./lib/toolchain"
 import { stageBrowser } from "./stage-browser"
 
 const root = resolve(import.meta.dirname, "..")
@@ -149,29 +148,17 @@ if (triple.endsWith("apple-darwin") && process.env.APPLE_SIGNING_IDENTITY) {
 }
 for (const file of staged) if (file.signing === "resign") console.log(`native module -> ${file.path}`)
 
-const codexPackage = JSON.parse(readFileSync(join(root, "node_modules/@openai/codex/package.json"), "utf8")) as {
-  version: string
-}
-const codexVersion = codexPackage.version
-assertVersion("installed Codex package", codexVersion, versions.codex)
-const platformPackage = codexPlatformDirectory(root, target.npm)
-const codexPlatformPackage = JSON.parse(readFileSync(join(platformPackage, "package.json"), "utf8")) as {
-  version: string
-}
-assertVersion("installed Codex platform package", codexPlatformPackage.version, `${codexVersion}-${target.npm}`)
-const vendorTriple = triple
-// Codex spawns `codex-code-mode-host` from its own directory; Tauri drops every sidecar
-// next to the app executable. Windows sandbox setup and command-runner helpers
-// also support this sibling layout (their package sources live in codex-resources).
-for (const name of codexSidecars(target.exe === ".exe")) {
-  const directory = CODEX_WINDOWS_HELPERS.some((helper) => helper === name) ? "codex-resources" : "bin"
-  const source = join(platformPackage, "vendor", vendorTriple, directory, `${name}${target.exe}`)
-  if (!existsSync(source)) throw new Error(`Codex binary not found at ${source}`)
-  const destination = join(binaries, `${name}-${triple}${target.exe}`)
-  copyFileSync(source, destination)
-  if (!target.exe) chmodSync(destination, 0o755)
-  console.log(`${name} ${codexVersion} -> ${destination}`)
-}
+// The chat engine: the adapter, the Codex build it was generated against, and the engine manifest.
+// Codex spawns `codex-code-mode-host` from its own directory; Tauri drops every sidecar next to the
+// app executable, and the Windows sandbox helpers support the same sibling layout.
+const engine = stageChatEngine({
+  triple,
+  adapter: join(root, "src-tauri/resources/adapter"),
+  binaries,
+  licenses
+})
+const codexVersion = engine.codex.version
+for (const sidecar of engine.codex.sidecars) console.log(`${sidecar.name} ${codexVersion} -> ${sidecar.path}`)
 if (triple === nativeTriple) {
   // Live checks execute the suffixed CLI directly, before Tauri strips target suffixes.
   copyFileSync(
@@ -184,27 +171,8 @@ if (triple === nativeTriple) {
 }
 verifyCodexArtifacts(root, triple)
 
-const adapterDirectory = join(root, "src-tauri/resources/adapter")
-const adapterPackage = stageChatAdapter(adapterDirectory, licenses)
+const adapterPackage = engine.adapter
 const adapterDestination = adapterPackage.entry
-const bootstrapBuild = await Bun.build({
-  entrypoints: [join(root, "scripts/codex-bootstrap.ts")],
-  target: "bun",
-  format: "esm"
-})
-if (!bootstrapBuild.success) throw new AggregateError(bootstrapBuild.logs, "Codex bootstrap bundling failed")
-await Bun.write(join(adapterDirectory, "codex-bootstrap.mjs"), bootstrapBuild.outputs[0])
-
-// A small std-only proxy avoids bundling another copy of the Bun runtime.
-const launcherDestination = join(binaries, `alwith-codex-launcher-${triple}${target.exe}`)
-await $`rustc --edition=2024 --crate-name alwith_codex_launcher --target ${triple} -C opt-level=s -C strip=symbols ${join(root, "src-tauri/src/codex_launcher.rs")} -o ${launcherDestination}`
-if (triple.endsWith("apple-darwin")) {
-  const identity = process.env.APPLE_SIGNING_IDENTITY
-  if (identity) await $`codesign --force --timestamp --options runtime --sign ${identity} ${launcherDestination}`
-  else await $`codesign --force --sign - ${launcherDestination}`
-  await $`codesign --verify --strict ${launcherDestination}`
-}
-console.log(`alwith-codex-launcher -> ${launcherDestination}`)
 if (triple === nativeTriple) {
   assertVersion(
     "staged ACP adapter",

@@ -176,20 +176,24 @@ pub async fn codex_version() -> Result<String, String> {
 
 fn engines_table(app: &AppHandle, native_network_endpoint: Option<&str>) -> Result<String, String> {
     #[cfg(debug_assertions)]
-    let resources = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources");
+    let resources = {
+        let _ = app;
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources")
+    };
     #[cfg(not(debug_assertions))]
     let resources = app.path().resource_dir().map_err(|error| error.to_string())?;
-    let adapter = resources.join("adapter/codex-bootstrap.mjs");
-    if !adapter.is_file() {
-        return Err(format!("ACP adapter missing at {}", adapter.display()));
-    }
-    let catalogs =
-        std::env::join_paths(alwith_chat::bundled_model_catalogs(app)?).map_err(|error| error.to_string())?;
-    let mut engines = json!({"codex": {
-        "command": sidecar_path("bun")?,
-        "args": ["--no-install", adapter],
-        "env": {"CODEX_PATH": sidecar_path("alwith-codex-launcher")?, "ALWITH_U_CODEX_PATH": sidecar_path("codex")?, "CODEX_ACP_MODEL_CATALOGS": catalogs.to_string_lossy()}
-    }});
+    // The chat engine was staged with its own manifest: how the Runtime starts it belongs to the engine.
+    let adapter = resources.join("adapter");
+    let engine = alwith_api::engine_from_manifest(
+        &adapter.join("engine.json"),
+        &[
+            ("bun", &sidecar_path("bun")?),
+            ("adapter", &adapter.join("codex-acp-v2.mjs")),
+            ("codex", &sidecar_path("codex")?),
+        ],
+    )
+    .map_err(|error| error.to_string())?;
+    let mut engines = json!({ "codex": engine });
     if let Some(endpoint) = native_network_endpoint {
         engines["codex"]["env"]["CODEX_ACP_NATIVE_NETWORK_ENDPOINT"] = json!(endpoint);
     }

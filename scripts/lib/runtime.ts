@@ -1,10 +1,8 @@
 // Resolve the staged Runtime and engine files; test process ownership lives in @alwith/api/node.
 import { existsSync } from "node:fs"
-import { resolve } from "node:path"
+import { join, resolve } from "node:path"
 
-import providerCatalog from "@alwith/module-chat/assets/provider-catalog.json"
-
-import { joinModelCatalogPaths } from "./model-catalog"
+import { engineFromManifest, type RuntimeEngineSpec } from "@alwith/api/node"
 
 const root = resolve(import.meta.dirname, "../..")
 const HOST_TARGETS: Record<string, { triple: string; suffix: string }> = {
@@ -20,27 +18,13 @@ export function staged(name: string): string {
   return binary
 }
 
-export function stagedCodexEngine(): {
-  command: string
-  args: string[]
-  env: { CODEX_PATH: string; ALWITH_U_CODEX_PATH: string; CODEX_ACP_MODEL_CATALOGS: string }
-} {
-  const adapter = resolve(root, "src-tauri/resources/adapter/codex-bootstrap.mjs")
-  if (!existsSync(adapter)) throw new Error("No staged ACP adapter; run `bun run stage`")
-  const catalogs = [
-    ...providerCatalog
-      .filter((provider) => provider.id !== "anthropic")
-      .flatMap((provider) => (provider.catalog ? [resolve(root, "src-tauri/resources", provider.catalog)] : [])),
-    resolve(root, "src-tauri/resources/custom/models.json")
-  ]
-  for (const file of catalogs) if (!existsSync(file)) throw new Error(`No staged model catalog at ${file}`)
-  return {
-    command: staged("bun"),
-    args: ["--no-install", adapter],
-    env: {
-      CODEX_PATH: staged("alwith-codex-launcher"),
-      ALWITH_U_CODEX_PATH: staged("codex"),
-      CODEX_ACP_MODEL_CATALOGS: joinModelCatalogPaths(catalogs)
-    }
-  }
+/** The chat engine as the application starts it: `engines_table` in src-tauri/src/runtime.rs. */
+export function stagedCodexEngine(): RuntimeEngineSpec {
+  const adapter = resolve(root, "src-tauri/resources/adapter")
+  if (!existsSync(join(adapter, "engine.json"))) throw new Error("No staged chat engine; run `bun run stage`")
+  return engineFromManifest(join(adapter, "engine.json"), {
+    bun: staged("bun"),
+    adapter: join(adapter, "codex-acp-v2.mjs"),
+    codex: staged("codex")
+  })
 }
