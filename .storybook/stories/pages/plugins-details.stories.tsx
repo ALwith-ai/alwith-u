@@ -243,7 +243,8 @@ export const CatalogLayout: Story = {
         .querySelector("[data-slot=scroll-area] .toolbox-content")!
         .getBoundingClientRect().left + 48
     ).toBeCloseTo(left, 0)
-    const description = await ui.findByText("Find sources and turn your research into useful documents.")
+    // The summary under the title; once the plugin's details load, its full description repeats the text.
+    const [description] = await ui.findAllByText("Find sources and turn your research into useful documents.")
     await expect(description).toBeVisible()
     await expect(sidebar).toBeVisible()
   }
