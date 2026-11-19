@@ -1,4 +1,4 @@
-Source: https://github.com/oven-sh/bun/blob/bun-v1.4.4/LICENSE.md
+Source: https://github.com/oven-sh/bun/blob/bun-v1.4.5/LICENSE.md
 
 Bun itself is MIT-licensed.
 
