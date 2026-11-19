@@ -1,6 +1,5 @@
 import type { PluginDetail, PluginSummary } from "@alwith/module-chat/client"
 import type { Meta, StoryObj } from "@storybook/react-vite"
-import { mockIPC } from "@tauri-apps/api/mocks"
 import { useEffect, useLayoutEffect } from "react"
 import { expect, waitFor, within } from "storybook/test"
 
@@ -9,8 +8,9 @@ import { pluginsStore } from "../../../src/features/plugins/instance"
 import { PluginDetailPage } from "../../../src/features/plugins/plugin-detail-page"
 import { PluginIconDefinitions } from "../../../src/features/plugins/plugin-icon"
 import { PluginsPage } from "../../../src/features/plugins/plugins-page"
+import { skillDocuments } from "../../../src/features/plugins/request-cache"
 import { client } from "../../../src/lib/client"
-import { handleNativeRequest } from "../../fixtures/native"
+import { virtualFiles } from "../../fixtures/filesystem"
 
 const summary: PluginSummary = {
   id: "example-plugin",
@@ -114,20 +114,12 @@ export const SourceUnavailable: Story = { name: "插件来源不可用", args: {
 export const SkillMarkdown: Story = {
   name: "技能文档预览",
   beforeEach: () => {
-    mockIPC(
-      (command, payload) => {
-        if (command === "plugin:alwith-fs|workspace_open") return "/example/research"
-        if (command === "plugin:alwith-fs|workspace_read_file")
-          return [
-            ...new TextEncoder().encode(
-              `---\nname: Research\n---\n# Research instructions\n\nUse **primary sources** and compare the evidence.\n\n## Deliverable\n\n- Cite each source.\n- Explain uncertainty.\n${"\n\nEvidence and implementation details for the research report.\n".repeat(
-                60
-              )}`
-            )
-          ]
-        return handleNativeRequest(command, payload)
-      },
-      { shouldMockEvents: true }
+    skillDocuments.clear()
+    virtualFiles.set(
+      "/example/research/SKILL.md",
+      new TextEncoder().encode(
+        `---\nname: Research\n---\n# Research instructions\n\nUse **primary sources** and compare the evidence.\n\n## Deliverable\n\n- Cite each source.\n- Explain uncertainty.\n${"\n\nEvidence and implementation details for the research report.\n".repeat(60)}`
+      )
     )
     const skill = detail.skills[0]
     const previous = { ...skill }
@@ -136,11 +128,14 @@ export const SkillMarkdown: Story = {
       "Research and summarize primary source documents, compare detailed evidence, identify uncertainty, and prepare a complete report with citations for every claim."
     return () => {
       Object.assign(skill, previous)
+      virtualFiles.delete("/example/research/SKILL.md")
+      skillDocuments.clear()
     }
   },
   play: async ({ canvasElement, userEvent }) => {
     await userEvent.click(await within(canvasElement).findByRole("button", { name: /research Research/ }))
-    const heading = await within(document.body).findByRole("heading", { name: "Research instructions" })
+    const previewDialog = await within(document.body).findByRole("dialog")
+    const heading = await within(previewDialog).findByRole("heading", { name: "Research instructions" })
     await waitFor(async () => {
       await expect(heading).toBeVisible()
     })

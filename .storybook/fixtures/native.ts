@@ -1,6 +1,6 @@
 import type { ComputerStatus_Serialize as ComputerStatus } from "@alwith/module-computer/commands"
 import { emit } from "@tauri-apps/api/event"
-import { mockIPC, mockWindows } from "@tauri-apps/api/mocks"
+import { mockConvertFileSrc, mockIPC, mockWindows } from "@tauri-apps/api/mocks"
 
 import { version } from "../../package.json"
 import type { ProviderSnapshot } from "../../src/lib/providers"
@@ -61,6 +61,7 @@ export function resetNative(
   resetUpdater()
   resetGamepad()
   nativeCalls.length = 0
+  fileTokens.clear()
   providers = { revision: 1, appliedRevision: 1, providers: {}, customProviders: [], status: "applied", error: null }
   if (kind !== "ready") providers.providers = { deepseek: { configured: true, region: null, base_url: null } }
   if (kind === "custom")
@@ -101,6 +102,18 @@ export function setComputerStatus(patch: Partial<ComputerStatus>): void {
   computerStatus = { ...computerStatus, ...patch }
 }
 
+const fileTokens = new Map<string, { root: string; path: string }>()
+const browserFetch = globalThis.fetch.bind(globalThis)
+globalThis.fetch = Object.assign(async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
+  const url = new URL(input instanceof Request ? input.url : String(input), location.href)
+  if (url.origin !== "http://alwith-file.localhost") return browserFetch(input, init)
+  const token = decodeURIComponent(url.pathname.split("/")[1])
+  const file = fileTokens.get(token)
+  if (!file) return new Response("Unknown or revoked file token", { status: 404 })
+  const bytes = fileRequest({ operation: "readFile", ...file }) as number[]
+  return new Response(new Uint8Array(bytes))
+}, globalThis.fetch)
+
 export function installNativeMock(os: "macos" | "windows" | "linux" = "macos"): void {
   Object.defineProperty(navigator, "platform", {
     configurable: true,
@@ -114,6 +127,7 @@ export function installNativeMock(os: "macos" | "windows" | "linux" = "macos"): 
       brands: [{ brand: "Chromium", version: navigator.userAgent.match(/Chrome\/(\d+)/)?.[1] ?? "150" }]
     }
   })
+  mockConvertFileSrc("windows")
   mockWindows("main", "settings", "gamepad", "guide", "chat")
   Object.assign(window, {
     isTauri: true,
@@ -206,6 +220,15 @@ export function handleNativeRequest(command: string, payload?: unknown): unknown
   if (command === "draft_directory") return args.cwd ?? QUICK_DIRECTORY
   if (command === "workspace_open" || command === "plugin:alwith-fs|workspace_open")
     return args.path ?? PROJECT_DIRECTORY
+  if (command === "plugin:alwith-fs|workspace_create_url") {
+    const token = crypto.randomUUID()
+    fileTokens.set(token, { root: String(args.root), path: String(args.path) })
+    return token
+  }
+  if (command === "plugin:alwith-fs|workspace_revoke_url") {
+    if (!fileTokens.delete(String(args.token))) throw new Error("Unknown file token")
+    return
+  }
   // The file system module asks for each operation by a command of its own.
   const operation = fileOperations[command]
   if (operation) return fileRequest({ ...(args as Omit<NativeRequest, "operation">), operation }) ?? null
