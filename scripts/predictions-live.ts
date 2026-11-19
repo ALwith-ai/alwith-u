@@ -4,9 +4,8 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 
 import { ProcessRuntimeClient } from "@alwith/api/node"
-import { promptSuggestion } from "@alwith/module-chat/client"
+import { CodexClient, promptSuggestion } from "@alwith/module-chat/client"
 
-import { CodexClient } from "@alwith/module-chat/client"
 import { staged, stagedCodexEngine } from "./lib/runtime"
 
 const cwd = await realpath(await mkdtemp(join(tmpdir(), "alwith-predictions-")))
@@ -82,7 +81,11 @@ try {
   await snapshot("restarted")
   await writeFile(
     join(cwd, "evidence.json"),
-    JSON.stringify({ evidence, suggestion, transcriptUnchanged: true, leakedSessionCount: leakedSessions.size }, null, 2)
+    JSON.stringify(
+      { evidence, suggestion, transcriptUnchanged: true, leakedSessionCount: leakedSessions.size },
+      null,
+      2
+    )
   )
   console.log(`Prompt suggestion received; transcript unchanged; evidence: ${join(cwd, "evidence.json")}`)
 } finally {

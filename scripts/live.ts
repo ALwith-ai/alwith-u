@@ -13,6 +13,7 @@ import {
   questionReplyEnvelope
 } from "@alwith/module-chat/async-question-card"
 import {
+  CodexClient,
   codexTurnId,
   codexTurnStartedAt,
   isBooleanOption,
@@ -25,7 +26,6 @@ import {
 
 import metadata from "../guide/catalog.json"
 import manifest from "../package.json"
-import { CodexClient } from "@alwith/module-chat/client"
 import { createDocsTools } from "../src/agent/docs-tools"
 import { parseGuide } from "../src/core/docs"
 import { computerRuntimeEnv } from "../src/features/computer/runtime-config"

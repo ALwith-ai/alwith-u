@@ -73,12 +73,6 @@
       "resources/chrome-bridge": "chrome-bridge",
       "resources/licenses": "licenses",
       "resources/native": "native",
-      "resources/deepseek": "deepseek",
-      "resources/alwith": "alwith",
-      "resources/qwen": "qwen",
-      "resources/openrouter": "openrouter",
-      "resources/xai": "xai",
-      "resources/custom": "custom",
       "resources/extensions": "extensions",
       "resources/create-alwith": "create-alwith"
     },

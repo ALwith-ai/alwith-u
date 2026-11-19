@@ -165,7 +165,16 @@ test("account-managed models keep their own group and can be selected explicitly
 })
 
 test("account-sourced providers and Anthropic are excluded from manual key configuration", () => {
-  expect(PROVIDERS.map((provider) => provider.id)).toEqual(["deepseek", "openrouter", "qwen", "xai"])
+  expect(PROVIDERS.map((provider) => provider.id)).toEqual([
+    "deepseek",
+    "qwen",
+    "xai",
+    "zhipu",
+    "minimax",
+    "kimi",
+    "doubao",
+    "doubao-coding"
+  ])
   expect(
     providerGroups({
       revision: 0,

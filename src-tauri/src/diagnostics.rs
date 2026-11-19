@@ -543,7 +543,7 @@ impl Event {
                 .all(|value| value.as_deref().is_none_or(hash))
             && context.operation.as_deref().is_none_or(|value| operation(value) == Some(value))
             && context.provider.as_deref().is_none_or(|value| {
-                matches!(value, "openai" | "deepseek" | "litellm" | "openrouter" | "qwen" | "xai" | "custom")
+                value == "custom" || REPORTED_PROVIDERS.contains(&value)
             })
             && context
                 .config
@@ -919,15 +919,15 @@ pub fn computer_observer() -> alwith_computer::Observer {
     })
 }
 
+/// The providers a report names; a provider the user defined is reported as `custom`.
+const REPORTED_PROVIDERS: [&str; 10] =
+    ["openai", "litellm", "deepseek", "doubao", "doubao-coding", "kimi", "minimax", "qwen", "xai", "zhipu"];
+
 fn model_context(model: &str, context: &mut Context) {
     context.model_ref = Some(reference(model));
     let provider = model.strip_prefix("gateway:").and_then(|value| value.split(':').next()).unwrap_or("openai");
     context.provider = Some(
-        match provider {
-            "openai" | "deepseek" | "litellm" | "openrouter" | "qwen" | "xai" => provider,
-            _ => "custom",
-        }
-        .into(),
+        if REPORTED_PROVIDERS.contains(&provider) { provider } else { "custom" }.into(),
     );
 }
 

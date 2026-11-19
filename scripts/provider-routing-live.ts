@@ -4,9 +4,8 @@ import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 
 import { ProcessRuntimeClient, startTestRuntime } from "@alwith/api/node"
-import { isGroupedSelect, isSelectOption } from "@alwith/module-chat/client"
+import { CodexClient, isGroupedSelect, isSelectOption } from "@alwith/module-chat/client"
 
-import { CodexClient } from "@alwith/module-chat/client"
 import { staged, stagedCodexEngine } from "./lib/runtime"
 
 const key = (await Bun.stdin.text()).trim()
@@ -77,7 +76,10 @@ async function configure() {
         mode: "catalog",
         bearerToken: key,
         config: {
-          model_catalog_json: resolve(import.meta.dirname, "../src-tauri/resources/deepseek/models.json")
+          model_catalog_json: resolve(
+            import.meta.dirname,
+            "../node_modules/@alwith/module-chat/assets/catalogs/deepseek/models.json"
+          )
         }
       },
       alwith: { models: [{ id: "deepseek-flash", label: "DeepSeek" }] }

@@ -4,10 +4,9 @@ import { readFile, writeFile } from "node:fs/promises"
 import { resolve } from "node:path"
 
 import { startTestRuntime } from "@alwith/api/node"
-import { isGroupedSelect, isSelectOption, isText } from "@alwith/module-chat/client"
+import catalog from "@alwith/module-chat/assets/catalogs/custom/models.json"
+import { CodexClient, isGroupedSelect, isSelectOption, isText } from "@alwith/module-chat/client"
 
-import catalog from "../src-tauri/resources/custom/models.json"
-import { CodexClient } from "@alwith/module-chat/client"
 import { staged, stagedCodexEngine } from "./lib/runtime"
 
 interface SavedProvider {
@@ -155,7 +154,7 @@ try {
             bearerToken: provider.apiKey,
             config: {
               model_reasoning_summary: "none",
-              model_catalog_json: resolve("src-tauri/resources/custom/models.json")
+              model_catalog_json: resolve("node_modules/@alwith/module-chat/assets/catalogs/custom/models.json")
             }
           },
           alwith: {

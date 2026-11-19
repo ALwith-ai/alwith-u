@@ -44,7 +44,7 @@
     "@alwith/enterprise-client": "^0.6.5",
     "@alwith/module-auth": "^0.6.7",
     "@alwith/module-browser": "^0.6.0",
-    "@alwith/module-chat": "^0.6.33",
+    "@alwith/module-chat": "^0.6.34",
     "@alwith/module-collection": "^0.5.0",
     "@alwith/module-computer": "^0.6.7",
     "@alwith/module-desktop-shell": "^0.6.10",

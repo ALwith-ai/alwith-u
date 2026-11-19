@@ -76,7 +76,9 @@ const client = new CodexClient(() => Promise.resolve(runtime.client), {
 })
 const ids: string[] = []
 const catalog = resolve(runtime.workspace, "models.json")
-const source = (await Bun.file(resolve(import.meta.dirname, "../src-tauri/resources/deepseek/models.json")).json()) as {
+const source = (await Bun.file(
+  resolve(import.meta.dirname, "../node_modules/@alwith/module-chat/assets/catalogs/deepseek/models.json")
+).json()) as {
   models: Record<string, unknown>[]
 }
 await Bun.write(

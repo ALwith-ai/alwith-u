@@ -43,7 +43,7 @@ test("the staged toolchain runs with explicit resources outside the executable d
   expect(features.stdout.toString()).toMatch(/^default_mode_request_user_input\s/m)
   for (const provider of providers) {
     if (!provider.catalog) continue
-    const path = join(import.meta.dir, "../../../src-tauri/resources", provider.catalog)
+    const path = join(import.meta.dir, "../../../node_modules/@alwith/module-chat/assets/catalogs", provider.catalog)
     const catalog = Bun.spawnSync(
       [
         join(import.meta.dir, `../../../src-tauri/binaries/codex-${triple}${suffix}`),
@@ -84,11 +84,15 @@ test("the staged toolchain runs with explicit resources outside the executable d
       recursive: true
     })
     copyFileSync(
-      join(import.meta.dir, "../../../src-tauri/resources/custom/models.json"),
+      join(import.meta.dir, "../../../node_modules/@alwith/module-chat/assets/catalogs/custom/models.json"),
       join(resources, "custom/models.json")
     )
     for (const provider of providers) {
-      const source = join(import.meta.dir, "../../../src-tauri/resources", provider.catalog)
+      const source = join(
+        import.meta.dir,
+        "../../../node_modules/@alwith/module-chat/assets/catalogs",
+        provider.catalog
+      )
       const target = join(resources, provider.catalog)
       mkdirSync(dirname(target), { recursive: true })
       copyFileSync(source, target)

@@ -65,7 +65,12 @@ try {
         name: "Startup fixture",
         mode: "catalog",
         bearerToken: "unused-test-key",
-        config: { model_catalog_json: resolve(import.meta.dirname, "../src-tauri/resources/deepseek/models.json") }
+        config: {
+          model_catalog_json: resolve(
+            import.meta.dirname,
+            "../node_modules/@alwith/module-chat/assets/catalogs/deepseek/models.json"
+          )
+        }
       },
       alwith: { models: [{ id: "deepseek-flash", label: "DeepSeek" }] }
     }
