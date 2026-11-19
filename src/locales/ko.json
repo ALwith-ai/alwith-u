@@ -634,5 +634,32 @@
     "search": "Search terminal output",
     "rename": "Terminal name",
     "moveHere": "Move terminal to this window"
+  },
+  "board": {
+    "name": "보드",
+    "note": "메모",
+    "group": "그룹",
+    "tidy": "정리",
+    "undo": "실행 취소",
+    "redo": "다시 실행",
+    "copy": "복사",
+    "paste": "붙여넣기",
+    "duplicate": "복제",
+    "groupSelected": "선택 항목 그룹화",
+    "search": "보드 검색",
+    "close": "보드 닫기",
+    "card": "카드",
+    "link": "연결",
+    "text": "텍스트(Markdown)",
+    "file": "프로젝트 내 파일 경로",
+    "subpath": "파일의 일부(예: #제목)",
+    "url": "링크 주소",
+    "label": "그룹 이름",
+    "reason": "관련된 이유",
+    "color": "색상",
+    "noColor": "색상 없음",
+    "openSource": "열기",
+    "remove": "삭제",
+    "empty": "더블클릭으로 메모를 붙이고, 붙여넣기로 복사한 내용을 붙이거나, 대화에서 찾은 것을 여기에 펼쳐 달라고 요청하세요."
   }
 }

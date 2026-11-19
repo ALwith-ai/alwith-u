@@ -66,6 +66,7 @@ import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
 import { useTheme } from "@/components/theme-provider"
+import { BoardMenuItem, BoardPane } from "@/features/board/board-pane"
 import { ChatDirectoryContext } from "@/features/chat/file-actions"
 import { DeviceWorkspaceMenu, DeviceWorkspacePane } from "@/features/device/device-workspace"
 import { useDeviceReveal } from "@/features/device/use-device-reveal"
@@ -200,7 +201,20 @@ export function FileWorkspace({
   const [visible, setVisible] = useState(false),
     [treeVisible, setTreeVisible] = useState(true),
     [viewMode, setViewMode] = useState(false),
-    [pane, setPane] = useState<WorkspacePane>("files")
+    [pane, setPane] = useState<WorkspacePane>("files"),
+    // The canvas file the board pane shows; undefined is the project's own board.
+    [boardFile, setBoardFile] = useState<string>()
+  /** A canvas file of the open project opens as its board, not as text. */
+  const openBoard = (path: string): boolean => {
+    const project = currentCwd.current
+    if (!/\.canvas$/i.test(path) || project === null || !containsPath(project, path)) return false
+    setBoardFile(normalizePath(path).slice(normalizePath(project).length + 1))
+    setPane("board")
+    setVisible(true)
+    return true
+  }
+  const openBoardRef = useRef(openBoard)
+  openBoardRef.current = openBoard
   const terminalAvailable = useTerminalViewAvailable()
   const paneSessionId = useContext(WorkspaceSessionContext)
   const currentPaneSession = useRef(paneSessionId)
@@ -447,11 +461,13 @@ export function FileWorkspace({
           tree,
           iconTheme: saved?.iconTheme ?? "vscode-icons",
           treeOpener: createTreeOpener(tabs, (path) =>
-            prepareWorkspaceFile(path, {
-              readFile: async (target) =>
-                (containsPath(root, target) ? fs : await driveFileSystem(target)).readFile(target),
-              openTarget: (target) => routeDriveTarget.current(target)
-            })
+            openBoardRef.current(path)
+              ? Promise.resolve(null)
+              : prepareWorkspaceFile(path, {
+                  readFile: async (target) =>
+                    (containsPath(root, target) ? fs : await driveFileSystem(target)).readFile(target),
+                  openTarget: (target) => routeDriveTarget.current(target)
+                })
           )
         }
         yield* Effect.addFinalizer(() => Effect.sync(() => created.treeOpener.dispose()))
@@ -531,6 +547,7 @@ export function FileWorkspace({
         await openHtmlInBrowser(path)
         return
       }
+      if (openBoard(path)) return
       if (stat.size > maxEditorBytes && !isPdfPreview(path)) {
         await target.tree.reveal(path)
         if (generation !== requestGeneration.current || owner !== currentCwd.current) return
@@ -940,6 +957,8 @@ export function FileWorkspace({
     tooLarge: t("workspace.previewTooLarge"),
     retry: t("workspace.retry")
   }
+  // The board belongs to the project; the other panes belong to a conversation.
+  const paneReady = pane === "files" ? workspace !== null : pane === "board" ? cwd !== null : paneSessionId !== null
   return (
     <WorkspaceContext.Provider value={context}>
       {headerTarget !== null &&
@@ -961,18 +980,30 @@ export function FileWorkspace({
             <DeviceWorkspaceMenu>
               {browserEntry}
               <TerminalWorkspaceMenuItem />
+              <BoardMenuItem />
             </DeviceWorkspaceMenu>
           </div>,
           headerTarget
         )}
       <WorkspacePanels
         controlsRef={panelControls}
-        visible={visible && (pane !== "files" ? paneSessionId !== null : workspace !== null)}
-        maximized={visible && (pane !== "files" ? paneSessionId !== null : workspace !== null) && viewMode}
+        visible={visible && paneReady}
+        maximized={visible && paneReady && viewMode}
         onMaximizedChange={setViewMode}
         chat={children}
         preview={
-          pane === "background" && paneSessionId !== null ? (
+          pane === "board" && cwd !== null ? (
+            <BoardPane
+              cwd={cwd}
+              file={boardFile}
+              sessionId={paneSessionId}
+              onClose={() => {
+                setVisible(false)
+                setViewMode(false)
+                setPane("files")
+              }}
+            />
+          ) : pane === "background" && paneSessionId !== null ? (
             <BackgroundWorkspacePane
               key={paneSessionId}
               sessionId={paneSessionId}
@@ -1236,6 +1267,7 @@ export function FileWorkspace({
                 return result
               },
               open: async (path, pinned, active) => {
+                if (openBoard(path)) return
                 const match = resolveDriveRoot(path, drive.getSnapshot().snapshot?.roots ?? [])
                 const target = await ensure(match?.base ?? directory)
                 const previousActive = target.tabs.getSnapshot().activeId

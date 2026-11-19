@@ -1728,5 +1728,32 @@
     "search": "搜索终端输出",
     "rename": "终端名称",
     "moveHere": "将终端移到此窗口"
+  },
+  "board": {
+    "name": "画布",
+    "note": "便签",
+    "group": "分组",
+    "tidy": "整理",
+    "undo": "撤销",
+    "redo": "重做",
+    "copy": "复制",
+    "paste": "粘贴",
+    "duplicate": "创建副本",
+    "groupSelected": "把选中的编成一组",
+    "search": "搜索画布",
+    "close": "关闭画布",
+    "card": "卡片",
+    "link": "连线",
+    "text": "文字，支持 Markdown",
+    "file": "项目内的文件路径",
+    "subpath": "文件里的某一部分，例如 #标题",
+    "url": "链接地址",
+    "label": "分组名称",
+    "reason": "为什么有关",
+    "color": "颜色",
+    "noColor": "不用颜色",
+    "openSource": "打开",
+    "remove": "删除",
+    "empty": "双击钉一张便签，粘贴把复制的内容钉上来，或者在会话里让它把找到的东西铺到这里。"
   }
 }

@@ -1,0 +1,183 @@
+.board-pane {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  background: var(--background);
+}
+.board-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+.board-toolbar-title {
+  padding-inline: 0.375rem 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.board-canvas {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+.board-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  text-align: center;
+  pointer-events: none;
+}
+.board-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  width: 100%;
+  height: 100%;
+  padding: 0.625rem 0.75rem;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--card-foreground);
+  font-size: 0.8125rem;
+}
+.board-card[data-selected="true"] {
+  border-color: var(--ring);
+}
+.board-card-title {
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.board-card-text {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.board-card-file {
+  flex: 1;
+  min-height: 0;
+  max-height: 14rem;
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.board-card-image {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  object-fit: contain;
+}
+.board-card-source {
+  margin-top: auto;
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.board-inspector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+.board-inspector-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+.board-card[data-type="group"] {
+  border-style: dashed;
+  background: color-mix(in oklab, var(--muted) 40%, transparent);
+}
+
+/* A card's colour is content: the six presets the file format names, or the hex colour the file carries. */
+.board-pane [data-color="1"] {
+  --board-color: var(--color-red-500);
+}
+.board-pane [data-color="2"] {
+  --board-color: var(--color-orange-500);
+}
+.board-pane [data-color="3"] {
+  --board-color: var(--color-yellow-500);
+}
+.board-pane [data-color="4"] {
+  --board-color: var(--color-green-500);
+}
+.board-pane [data-color="5"] {
+  --board-color: var(--color-cyan-500);
+}
+.board-pane [data-color="6"] {
+  --board-color: var(--color-purple-500);
+}
+.board-card[data-color],
+.board-card[style*="--board-color"] {
+  border-color: var(--board-color);
+  background: color-mix(in oklab, var(--board-color) 12%, var(--card));
+}
+.board-card[data-type="group"][data-color],
+.board-card[data-type="group"][style*="--board-color"] {
+  background: color-mix(in oklab, var(--board-color) 8%, transparent);
+}
+.board-pane .react-flow__edge.board-edge-1 .react-flow__edge-path {
+  stroke: var(--color-red-500);
+}
+.board-pane .react-flow__edge.board-edge-2 .react-flow__edge-path {
+  stroke: var(--color-orange-500);
+}
+.board-pane .react-flow__edge.board-edge-3 .react-flow__edge-path {
+  stroke: var(--color-yellow-500);
+}
+.board-pane .react-flow__edge.board-edge-4 .react-flow__edge-path {
+  stroke: var(--color-green-500);
+}
+.board-pane .react-flow__edge.board-edge-5 .react-flow__edge-path {
+  stroke: var(--color-cyan-500);
+}
+.board-pane .react-flow__edge.board-edge-6 .react-flow__edge-path {
+  stroke: var(--color-purple-500);
+}
+.board-card-editor {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  resize: none;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+.board-swatches {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+.board-swatch {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 9999px;
+  background: var(--board-color);
+}
+.board-swatch[aria-pressed="true"] {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.board-search {
+  width: 9rem;
+  height: 1.75rem;
+  font-size: 0.8125rem;
+}

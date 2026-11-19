@@ -43,7 +43,9 @@ export const config = (mode = "development"): UserConfig => ({
       "@alwith/module-editor",
       "@alwith/module-tabs",
       "@alwith/module-drive",
-      "@alwith/module-auth"
+      "@alwith/module-auth",
+      // Published as TypeScript source.
+      "@nyssance/metro"
     ],
     // Prebundle CommonJS dependencies of the excluded modules, including
     // the diff enum subpath and Milkdown's lazily loaded dependency graph.

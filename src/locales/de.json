@@ -602,5 +602,32 @@
     "search": "Search terminal output",
     "rename": "Terminal name",
     "moveHere": "Move terminal to this window"
+  },
+  "board": {
+    "name": "Board",
+    "note": "Notiz",
+    "group": "Gruppe",
+    "tidy": "Aufräumen",
+    "undo": "Rückgängig",
+    "redo": "Wiederholen",
+    "copy": "Kopieren",
+    "paste": "Einfügen",
+    "duplicate": "Duplizieren",
+    "groupSelected": "Auswahl gruppieren",
+    "search": "Board durchsuchen",
+    "close": "Board schließen",
+    "card": "Karte",
+    "link": "Verbindung",
+    "text": "Text, Markdown",
+    "file": "Pfad im Projekt",
+    "subpath": "Teil der Datei, etwa #Überschrift",
+    "url": "Linkadresse",
+    "label": "Gruppenname",
+    "reason": "Warum das zusammengehört",
+    "color": "Farbe",
+    "noColor": "Keine Farbe",
+    "openSource": "Öffnen",
+    "remove": "Entfernen",
+    "empty": "Doppelklicken, um eine Notiz anzuheften, Kopiertes einfügen – oder im Chat bitten, die Funde hier auszulegen."
   }
 }

@@ -632,5 +632,32 @@
     "search": "Search terminal output",
     "rename": "Terminal name",
     "moveHere": "Move terminal to this window"
+  },
+  "board": {
+    "name": "ボード",
+    "note": "メモ",
+    "group": "グループ",
+    "tidy": "整列",
+    "undo": "元に戻す",
+    "redo": "やり直す",
+    "copy": "コピー",
+    "paste": "貼り付け",
+    "duplicate": "複製",
+    "groupSelected": "選択をグループ化",
+    "search": "ボードを検索",
+    "close": "ボードを閉じる",
+    "card": "カード",
+    "link": "リンク",
+    "text": "テキスト（Markdown）",
+    "file": "プロジェクト内のファイルパス",
+    "subpath": "ファイルの一部（例：#見出し）",
+    "url": "リンクのアドレス",
+    "label": "グループ名",
+    "reason": "関連する理由",
+    "color": "色",
+    "noColor": "色なし",
+    "openSource": "開く",
+    "remove": "削除",
+    "empty": "ダブルクリックでメモを貼り、ペーストでコピーした内容を貼れます。会話で見つけたものを並べるよう頼むこともできます。"
   }
 }

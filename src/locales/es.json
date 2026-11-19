@@ -616,5 +616,32 @@
     "search": "Search terminal output",
     "rename": "Terminal name",
     "moveHere": "Move terminal to this window"
+  },
+  "board": {
+    "name": "Tablero",
+    "note": "Nota",
+    "group": "Grupo",
+    "tidy": "Ordenar",
+    "undo": "Deshacer",
+    "redo": "Rehacer",
+    "copy": "Copiar",
+    "paste": "Pegar",
+    "duplicate": "Duplicar",
+    "groupSelected": "Agrupar la selección",
+    "search": "Buscar en el tablero",
+    "close": "Cerrar el tablero",
+    "card": "Tarjeta",
+    "link": "Vínculo",
+    "text": "Texto, Markdown",
+    "file": "Ruta dentro del proyecto",
+    "subpath": "Parte del archivo, por ejemplo #Título",
+    "url": "Dirección del enlace",
+    "label": "Nombre del grupo",
+    "reason": "Por qué están relacionados",
+    "color": "Color",
+    "noColor": "Sin color",
+    "openSource": "Abrir",
+    "remove": "Eliminar",
+    "empty": "Haz doble clic para fijar una nota, pega lo que copiaste o pide en la conversación que extienda aquí lo que encuentre."
   }
 }

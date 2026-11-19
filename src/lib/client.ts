@@ -11,7 +11,9 @@ import { invoke, isTauri } from "@tauri-apps/api/core"
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { useStore } from "zustand"
 
+import { createBoardTools } from "@/agent/board-tools"
 import { createDocsTools } from "@/agent/docs-tools"
+import { boardService } from "@/features/board/service"
 import { configureSessionInputConfig, readSessionInputMode } from "@/features/chat/composer/input-mode-config"
 import { computerRuntimeEnv } from "@/features/computer/runtime-config"
 import { hostSessionContext } from "@/features/computer/session-context"
@@ -39,6 +41,7 @@ export const client =
           applicationTools: async (selection) => [
             ...createDocsTools({ chapters: guideChapters, version: guideVersion }),
             ...createTerminalTools(terminalClient, selection.cwd),
+            ...(isTauri() ? createBoardTools(boardService(selection.cwd)) : []),
             ...(isTauri() ? await createDeviceTools(selection.cwd) : []),
             ...(isTauri() && (await runtimeCapabilities()).embeddedBrowser ? createWebAutomationTools() : [])
           ],

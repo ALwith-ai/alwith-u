@@ -1728,5 +1728,32 @@
     "search": "Search terminal output",
     "rename": "Terminal name",
     "moveHere": "Move terminal to this window"
+  },
+  "board": {
+    "name": "Board",
+    "note": "Note",
+    "group": "Group",
+    "tidy": "Tidy",
+    "undo": "Undo",
+    "redo": "Redo",
+    "copy": "Copy",
+    "paste": "Paste",
+    "duplicate": "Duplicate",
+    "groupSelected": "Group selection",
+    "search": "Search the board",
+    "close": "Close board",
+    "card": "Card",
+    "link": "Link",
+    "text": "Text, Markdown",
+    "file": "Path inside the project",
+    "subpath": "Part of the file, such as #Heading",
+    "url": "Link address",
+    "label": "Group name",
+    "reason": "Why these are related",
+    "color": "Colour",
+    "noColor": "No colour",
+    "openSource": "Open",
+    "remove": "Remove",
+    "empty": "Double-click to pin a note, paste to pin what you copied, or ask in the chat to lay out what it finds."
   }
 }

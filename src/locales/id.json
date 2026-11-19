@@ -618,5 +618,32 @@
     "search": "Search terminal output",
     "rename": "Terminal name",
     "moveHere": "Move terminal to this window"
+  },
+  "board": {
+    "name": "Papan",
+    "note": "Catatan",
+    "group": "Grup",
+    "tidy": "Rapikan",
+    "undo": "Urungkan",
+    "redo": "Ulangi",
+    "copy": "Salin",
+    "paste": "Tempel",
+    "duplicate": "Duplikat",
+    "groupSelected": "Kelompokkan pilihan",
+    "search": "Cari di papan",
+    "close": "Tutup papan",
+    "card": "Kartu",
+    "link": "Tautan",
+    "text": "Teks, Markdown",
+    "file": "Jalur di dalam proyek",
+    "subpath": "Bagian berkas, misalnya #Judul",
+    "url": "Alamat tautan",
+    "label": "Nama grup",
+    "reason": "Mengapa ini berkaitan",
+    "color": "Warna",
+    "noColor": "Tanpa warna",
+    "openSource": "Buka",
+    "remove": "Hapus",
+    "empty": "Klik dua kali untuk menempel catatan, tempel yang Anda salin, atau minta di percakapan untuk menata temuannya di sini."
   }
 }

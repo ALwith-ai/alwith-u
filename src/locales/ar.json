@@ -728,5 +728,32 @@
     "search": "Search terminal output",
     "rename": "Terminal name",
     "moveHere": "Move terminal to this window"
+  },
+  "board": {
+    "name": "اللوحة",
+    "note": "ملاحظة",
+    "group": "مجموعة",
+    "tidy": "ترتيب",
+    "undo": "تراجع",
+    "redo": "إعادة",
+    "copy": "نسخ",
+    "paste": "لصق",
+    "duplicate": "تكرار",
+    "groupSelected": "تجميع المحدد",
+    "search": "البحث في اللوحة",
+    "close": "إغلاق اللوحة",
+    "card": "بطاقة",
+    "link": "رابط",
+    "text": "نص، Markdown",
+    "file": "المسار داخل المشروع",
+    "subpath": "جزء من الملف، مثل ‎#عنوان",
+    "url": "عنوان الرابط",
+    "label": "اسم المجموعة",
+    "reason": "سبب الارتباط",
+    "color": "اللون",
+    "noColor": "بلا لون",
+    "openSource": "فتح",
+    "remove": "حذف",
+    "empty": "انقر نقرًا مزدوجًا لتثبيت ملاحظة، أو الصق ما نسخته، أو اطلب في المحادثة أن تُرتَّب هنا ما تعثر عليه."
   }
 }

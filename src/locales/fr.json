@@ -611,5 +611,32 @@
     "search": "Search terminal output",
     "rename": "Terminal name",
     "moveHere": "Move terminal to this window"
+  },
+  "board": {
+    "name": "Tableau",
+    "note": "Note",
+    "group": "Groupe",
+    "tidy": "Ranger",
+    "undo": "Annuler",
+    "redo": "Rétablir",
+    "copy": "Copier",
+    "paste": "Coller",
+    "duplicate": "Dupliquer",
+    "groupSelected": "Grouper la sélection",
+    "search": "Rechercher dans le tableau",
+    "close": "Fermer le tableau",
+    "card": "Carte",
+    "link": "Lien",
+    "text": "Texte, Markdown",
+    "file": "Chemin dans le projet",
+    "subpath": "Partie du fichier, par exemple #Titre",
+    "url": "Adresse du lien",
+    "label": "Nom du groupe",
+    "reason": "Pourquoi c’est lié",
+    "color": "Couleur",
+    "noColor": "Sans couleur",
+    "openSource": "Ouvrir",
+    "remove": "Supprimer",
+    "empty": "Double-cliquez pour épingler une note, collez ce que vous avez copié, ou demandez dans la conversation d’étaler ici ce qu’elle trouve."
   }
 }

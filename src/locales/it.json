@@ -627,5 +627,32 @@
     "search": "Search terminal output",
     "rename": "Terminal name",
     "moveHere": "Move terminal to this window"
+  },
+  "board": {
+    "name": "Bacheca",
+    "note": "Nota",
+    "group": "Gruppo",
+    "tidy": "Riordina",
+    "undo": "Annulla",
+    "redo": "Ripeti",
+    "copy": "Copia",
+    "paste": "Incolla",
+    "duplicate": "Duplica",
+    "groupSelected": "Raggruppa la selezione",
+    "search": "Cerca nella bacheca",
+    "close": "Chiudi la bacheca",
+    "card": "Scheda",
+    "link": "Collegamento",
+    "text": "Testo, Markdown",
+    "file": "Percorso nel progetto",
+    "subpath": "Parte del file, ad esempio #Titolo",
+    "url": "Indirizzo del link",
+    "label": "Nome del gruppo",
+    "reason": "Perché sono collegati",
+    "color": "Colore",
+    "noColor": "Nessun colore",
+    "openSource": "Apri",
+    "remove": "Rimuovi",
+    "empty": "Fai doppio clic per appuntare una nota, incolla ciò che hai copiato oppure chiedi nella conversazione di disporre qui ciò che trova."
   }
 }
