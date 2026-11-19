@@ -389,7 +389,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
               return null
             })
           case "markRead":
-            await markRead(action.sessionId)
+            await markRead(action.sessionId, action.version)
             return null
           case "shortcut":
             await shortcut.set(action.shortcut)

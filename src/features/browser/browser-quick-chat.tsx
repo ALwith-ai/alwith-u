@@ -247,7 +247,7 @@ export function BrowserQuickChat({ active }: { active: boolean }) {
       record?.state === "done" &&
       document.hasFocus()
     )
-      void markRead(session.id).catch((failure: unknown) => setError(String(failure)))
+      void markRead(session.id, record.version).catch((failure: unknown) => setError(String(failure)))
   }, [active, state.expanded, session?.attached, session?.restoring, session?.id, record?.state, record?.version])
   useEffect(() => {
     const cancel = () => {

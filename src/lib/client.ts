@@ -99,8 +99,10 @@ export async function watchRunStates(): Promise<() => void> {
 
 /** `done` clears only through the Runtime: a session someone looked at is read everywhere. The
  *  confirmation names the version on screen: a session that finished again since keeps its new `done`. */
-export async function markRead(sessionId: string): Promise<void> {
-  const version = client.state.runStates[sessionId]?.version ?? null
+export async function markRead(
+  sessionId: string,
+  version = client.state.runStates[sessionId]?.version ?? null
+): Promise<void> {
   const port = await runtimeClient()
   await port.markRead(sessionId, version)
 }

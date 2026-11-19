@@ -31,6 +31,7 @@ export type { VibemonSurface } from "@alwith/module-auth/vibemon/core"
 export function createVibemonSessionOwner(owner: VibemonSessionOwner) {
   let epoch = crypto.randomUUID()
   let connection = owner.state().connection
+  let lastRunStates = owner.state().runStates
   let bindingRevision = 0
   let revision = 0
   const signatures = new Map<string, string>()
@@ -45,7 +46,6 @@ export function createVibemonSessionOwner(owner: VibemonSessionOwner) {
   const promptOrders = new Map<string, number>()
   const completions = new Map<string, string>()
   const userMessages = new Map<string, string>()
-  const previousStates = new Map<string, string>()
   const attachments = new Map<string, boolean>()
   const incarnations = new Map<string, string>()
   const context = new VibemonSessionContext()
@@ -76,6 +76,9 @@ export function createVibemonSessionOwner(owner: VibemonSessionOwner) {
     const current = ++sequence
     const state = owner.state()
     const source = owner.source()
+    // Runtime notifications carry the whole registry, including unchanged snapshot entries.
+    const previousRunStates = lastRunStates
+    lastRunStates = state.runStates
     if (state.connection !== connection) {
       connection = state.connection
       epoch = crypto.randomUUID()
@@ -85,7 +88,6 @@ export function createVibemonSessionOwner(owner: VibemonSessionOwner) {
       incarnations.clear()
       attachments.clear()
       userMessages.clear()
-      previousStates.clear()
       completions.clear()
       answered.clear()
       stopping.clear()
@@ -101,17 +103,7 @@ export function createVibemonSessionOwner(owner: VibemonSessionOwner) {
       focusedSessionId = undefined
       panel = "hidden"
     }
-    for (const map of [
-      signatures,
-      bindings,
-      agents,
-      incarnations,
-      attachments,
-      userMessages,
-      previousStates,
-      completions,
-      orders
-    ])
+    for (const map of [signatures, bindings, agents, incarnations, attachments, userMessages, completions, orders])
       for (const id of map.keys()) if (!ids.has(id)) map.delete(id)
     for (const id of hidden) if (!ids.has(id)) hidden.delete(id)
     const actionIds = new Set(state.actions.map((action) => action.id))
@@ -122,24 +114,23 @@ export function createVibemonSessionOwner(owner: VibemonSessionOwner) {
       const id = choice.sessionId
       const run = state.runStates[id]
       const session: AppState["sessions"][string] | undefined = state.sessions[id]
-      const previous = previousStates.get(id)
+      const previous = previousRunStates[id]?.state
       const userId = session?.items.findLast((item) => item.kind === "user")?.id
       const newTurn = userId !== undefined && userMessages.has(id) && userMessages.get(id) !== userId
       if (userId !== undefined) userMessages.set(id, userId)
       if (!orders.has(id) || newTurn || (run.state === "running" && (previous === "idle" || previous === "done"))) {
         orders.set(id, run.since)
         hidden.delete(id)
-        completions.delete(id)
         stopped.delete(id)
       }
-      if (run.state === "done" && previous !== "done" && source === "event")
+      if (run.state !== "done") completions.delete(id)
+      else if (previous !== undefined && previous !== "done" && source === "event")
         completions.set(id, `${epoch}/${run.version}/${run.since}`)
       if (stopping.has(id) && run.state !== "running" && run.state !== "requires_action") {
         stopping.delete(id)
         stopped.add(id)
         completions.delete(id)
       }
-      previousStates.set(id, run.state)
       const attached = session?.attached ?? false
       if (attachments.has(id) && attachments.get(id) !== attached) incarnations.delete(id)
       attachments.set(id, attached)
@@ -248,9 +239,9 @@ export function createVibemonSessionOwner(owner: VibemonSessionOwner) {
       }
       const active = tasks.filter(
         (task) =>
-          (task.binding.sessionId === focusedSessionId && task.state === "idle") ||
+          (task.binding.sessionId === focusedSessionId && (task.state === "idle" || task.state === "done")) ||
           task.state === "running" ||
-          task.state === "done" ||
+          (task.state === "done" && task.completion !== undefined) ||
           (task.state === "requires_action" && state.runStates[task.binding.sessionId].interruption == null) ||
           task.prompt !== null ||
           task.stopped
@@ -345,7 +336,7 @@ export function createVibemonSessionOwner(owner: VibemonSessionOwner) {
       answered.clear()
       stopped.clear()
       orders.clear()
-      previousStates.clear()
+      lastRunStates = owner.state().runStates
       completions.clear()
       promptOrders.clear()
       incarnations.clear()

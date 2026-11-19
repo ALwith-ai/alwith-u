@@ -16,7 +16,7 @@ type SurfaceAction =
   | { type: "inspectSurface" }
   | { type: "restore" }
   | { type: "release"; sessionId: string }
-  | { type: "markRead"; sessionId: string }
+  | { type: "markRead"; sessionId: string; version: number }
   | { type: "shortcut"; shortcut: string }
   | { type: "vibemon"; view: "pull" | "equip" }
 type SurfaceRequest = { id: string; from: "main" | "chat" | "settings"; action: SurfaceAction }

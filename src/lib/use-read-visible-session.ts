@@ -4,8 +4,15 @@ import { toast } from "sonner"
 import { markRead, useApp } from "./client"
 
 /** A focused window can still be showing another screen instead of its selected chat. */
-export function useReadVisibleSession(sessionId: string | null, visible: boolean): void {
-  const state = useApp((app) => (sessionId === null ? null : app.runStates[sessionId]?.state))
+export function useReadVisibleSession(
+  sessionId: string | null,
+  visible: boolean,
+  acknowledge: (sessionId: string, version: number) => Promise<void> = markRead
+): void {
+  const doneVersion = useApp((app) => {
+    const run = sessionId === null ? undefined : app.runStates[sessionId]
+    return run?.state === "done" ? run.version : null
+  })
   const readable = useApp((app) => {
     const session = sessionId === null ? undefined : app.sessions[sessionId]
     return (
@@ -13,10 +20,10 @@ export function useReadVisibleSession(sessionId: string | null, visible: boolean
     )
   })
   useEffect(() => {
-    if (visible && readable && sessionId !== null && state === "done") {
-      void markRead(sessionId).catch((error: unknown) => {
+    if (visible && readable && sessionId !== null && doneVersion !== null) {
+      void acknowledge(sessionId, doneVersion).catch((error: unknown) => {
         toast.error(error instanceof Error ? error.message : String(error))
       })
     }
-  }, [visible, readable, sessionId, state])
+  }, [acknowledge, visible, readable, sessionId, doneVersion])
 }

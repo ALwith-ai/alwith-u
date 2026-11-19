@@ -30,9 +30,7 @@ beforeEach(() => {
     )
   })
   runtime = new FakeHubPort(() => createFakeAgent().app)
-  mark = vi
-    .spyOn(clientModule, "markRead")
-    .mockImplementation((id) => runtime.markRead(id, clientModule.client.state.runStates[id]?.version ?? null))
+  mark = vi.spyOn(clientModule, "markRead").mockImplementation((id, version) => runtime.markRead(id, version ?? null))
 })
 afterEach(() => {
   cleanup()
@@ -103,4 +101,16 @@ test("an unread session stays unread while replaying and becomes readable only a
     )
   )
   expect(runtime.marked).toEqual(["selected"])
+})
+
+test("a newer completion is acknowledged even when the visible run state is still done", async () => {
+  const done = runState("selected", "done")
+  clientModule.client.applyRunStates([done])
+  renderHook(() => useReadVisibleSession("selected", true))
+  expect(runtime.markedVersions).toEqual([1])
+
+  await act(() => Promise.try(() => clientModule.client.applyRunStates([{ ...done, version: 3 }])))
+
+  expect(runtime.marked).toEqual(["selected", "selected"])
+  expect(runtime.markedVersions).toEqual([1, 3])
 })

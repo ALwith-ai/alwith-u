@@ -513,3 +513,45 @@ test("historical interruption and reusable drafts do not become desktop tasks", 
   await f.host.refresh()
   expect(f.host.snapshot()?.taskFeed?.tasks).toEqual([])
 })
+
+test("restored completions stay out of the desktop task stack while live completions join it", async () => {
+  const f = await fixture()
+  const historical = { ...f.run(f.a.id), state: "done" as const }
+  const running = { ...f.run(f.b.id), state: "running" as const }
+  f.client.applyRunStates([historical, running], "snapshot")
+  await f.host.panel("expanded")
+  const taskIds = () => f.host.snapshot()?.taskFeed?.tasks.map((task) => task.binding.sessionId)
+  expect(taskIds()).toEqual([f.b.id])
+
+  f.client.applyRunStates([historical, { ...running, state: "done", version: 2 }])
+  await f.host.refresh()
+  expect(taskIds()).toEqual([f.b.id])
+  expect(f.host.snapshot()?.taskFeed?.tasks[0].completion).toBeDefined()
+  expect(f.client.state.runStates[f.a.id].state).toBe("done")
+  expect(f.markRead).not.toHaveBeenCalled()
+
+  await f.host.collapse(f.a.id)
+  expect(taskIds()).toEqual([f.a.id, f.b.id])
+})
+
+test("resetting the desktop host does not replay a known completion", async () => {
+  const f = await fixture()
+  const completed = { ...f.run(f.a.id), state: "done" as const }
+  f.client.applyRunStates([completed])
+  await f.host.refresh()
+  expect(f.host.snapshot()?.taskFeed?.tasks).toHaveLength(1)
+
+  f.host.invalidate()
+  await f.host.panel("expanded")
+  expect(f.host.snapshot()?.taskFeed?.tasks).toEqual([])
+})
+
+test("the first registry notification can carry historical completions before any snapshot arrives", async () => {
+  const f = await fixture()
+  f.client.applyRunStates([
+    { ...f.run("historical"), state: "done" },
+    { ...f.run(f.b.id), state: "running" }
+  ])
+  await f.host.panel("expanded")
+  expect(f.host.snapshot()?.taskFeed?.tasks.map((task) => task.binding.sessionId)).toEqual([f.b.id])
+})

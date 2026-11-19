@@ -33,6 +33,7 @@ import {
 import { client, useApp, useSession } from "@/lib/client"
 import type { Preferences } from "@/lib/preferences"
 import { useProviders } from "@/lib/use-providers"
+import { useReadVisibleSession } from "@/lib/use-read-visible-session"
 import { useSurfaceOperation } from "@/lib/use-surface-operation"
 import { cn } from "@/lib/utils"
 import { useWindowFocus } from "@/lib/window-focus"
@@ -44,6 +45,10 @@ import { WindowResizeEdges } from "./window-resize-edges"
 
 function report(error: unknown): void {
   toast.error(error instanceof Error ? error.message : String(error))
+}
+
+async function acknowledgeInMain(sessionId: string, version: number): Promise<void> {
+  await requestChatSurface("main", { type: "markRead", sessionId, version })
 }
 
 export function ChatWindow({ preferences }: { preferences: Preferences }) {
@@ -68,7 +73,6 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
   // A replacement is published before its retired id disappears and before
   // DraftChat receives the reply that binds the replacement to this surface.
   const replacingDraft = session === null && Object.values(draftSessions).includes("chat")
-  const runState = useApp((state) => (selectedId === null ? null : state.runStates[selectedId]?.state))
   const surfaceRevision = useRef(0)
   const focused = useWindowFocus()
   const providers = useProviders()
@@ -357,13 +361,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
     }
   }, [selectedId, ready, contentMounted])
 
-  const readable =
-    session !== null && !session.restoring && (session.attached || session.readOnly) && session.items.length > 0
-  useEffect(() => {
-    if (focused && readable && selectedId !== null && runState === "done") {
-      void requestChatSurface("main", { type: "markRead", sessionId: selectedId }).catch(report)
-    }
-  }, [focused, readable, selectedId, runState])
+  useReadVisibleSession(selectedId, focused && ready && contentMounted, acknowledgeInMain)
 
   useEffect(() => {
     const keydown = (event: KeyboardEvent): void => {
