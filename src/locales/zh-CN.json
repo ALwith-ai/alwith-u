@@ -1350,7 +1350,7 @@
     "recheck": "检测",
     "bringToFront": "浏览器"
   },
-  "workbuddy": {
+  "createAlwith": {
     "auth": "集成 ALwith 账号",
     "authEnabled": "包含登录、Vibémon等账号能力。",
     "authDisabled": "不集成 ALwith 账号服务。模型认证单独设置。",

@@ -1,4 +1,4 @@
-.workbuddy-studio[data-slot="dialog-content"] {
+.create-alwith-studio[data-slot="dialog-content"] {
   --creation-accent: #30c98b;
   width: min(760px, calc(100vw - 32px));
   max-width: 760px;
@@ -7,29 +7,29 @@
   padding: 32px;
   border-radius: 24px;
 }
-.workbuddy-studio-form {
+.create-alwith-studio-form {
   display: flex;
   flex-direction: column;
   gap: 28px;
 }
-.workbuddy-studio-header {
+.create-alwith-studio-header {
   gap: 12px;
 }
-.workbuddy-studio-eyebrow {
+.create-alwith-studio-eyebrow {
   font-size: 12px;
   color: var(--muted-foreground);
 }
-.workbuddy-studio-title {
+.create-alwith-studio-title {
   font-size: clamp(24px, 3vw, 32px);
   line-height: 1.3;
   letter-spacing: -0.04em;
   font-weight: 500;
 }
-.workbuddy-editions {
+.create-alwith-editions {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
-.workbuddy-edition {
+.create-alwith-edition {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -45,33 +45,33 @@
     background 160ms,
     border-color 160ms;
 }
-.workbuddy-edition[data-selected="true"] {
+.create-alwith-edition[data-selected="true"] {
   border-color: var(--creation-accent);
   background: color-mix(in oklab, var(--creation-accent) 10%, var(--background));
 }
-.workbuddy-edition:hover {
+.create-alwith-edition:hover {
   border-color: var(--creation-accent);
 }
-.workbuddy-edition:has(:focus-visible) {
+.create-alwith-edition:has(:focus-visible) {
   outline: 2px solid var(--creation-accent);
   outline-offset: 3px;
 }
-.workbuddy-edition:has([data-disabled]) {
+.create-alwith-edition:has([data-disabled]) {
   cursor: default;
   opacity: 0.6;
 }
-.workbuddy-edition-top {
+.create-alwith-edition-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
-.workbuddy-edition-title {
+.create-alwith-edition-title {
   font-size: 17px;
   line-height: 1.4;
   font-weight: 500;
 }
-.workbuddy-edition-check {
+.create-alwith-edition-check {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -80,59 +80,59 @@
   border-radius: 50%;
   border: 1px solid var(--border);
 }
-.workbuddy-edition-check svg {
+.create-alwith-edition-check svg {
   width: 14px;
   height: 14px;
   visibility: hidden;
 }
-.workbuddy-edition[data-selected="true"] .workbuddy-edition-check {
+.create-alwith-edition[data-selected="true"] .create-alwith-edition-check {
   background: var(--creation-accent);
   border-color: var(--creation-accent);
   color: var(--background);
 }
-.workbuddy-edition[data-selected="true"] .workbuddy-edition-check svg {
+.create-alwith-edition[data-selected="true"] .create-alwith-edition-check svg {
   visibility: visible;
 }
-.workbuddy-edition-description {
+.create-alwith-edition-description {
   font-size: 13px;
   line-height: 1.6;
   color: var(--muted-foreground);
 }
-.workbuddy-details[data-slot="field-group"] {
+.create-alwith-details[data-slot="field-group"] {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px;
 }
-.workbuddy-details [data-slot="field"] {
+.create-alwith-details [data-slot="field"] {
   gap: 8px;
 }
-.workbuddy-details [data-slot="field-label"] {
+.create-alwith-details [data-slot="field-label"] {
   font-size: 12px;
   color: var(--muted-foreground);
 }
-.workbuddy-studio-footer {
+.create-alwith-studio-footer {
   padding-top: 4px;
 }
 @media (max-width: 560px) {
-  .workbuddy-studio[data-slot="dialog-content"] {
+  .create-alwith-studio[data-slot="dialog-content"] {
     padding: 28px 20px 20px;
   }
-  .workbuddy-edition {
+  .create-alwith-edition {
     padding: 14px;
   }
-  .workbuddy-edition-title {
+  .create-alwith-edition-title {
     font-size: 15px;
   }
-  .workbuddy-details[data-slot="field-group"] {
+  .create-alwith-details[data-slot="field-group"] {
     grid-template-columns: 1fr;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .workbuddy-edition {
+  .create-alwith-edition {
     transition: none;
   }
 }
 
-.workbuddy-location {
+.create-alwith-location {
   grid-column: 1 / -1;
 }

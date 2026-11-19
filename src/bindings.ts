@@ -34,14 +34,14 @@ export const commands = {
   extensionInboxFailed: (args: { taskId: string; message: string; operationId: string }): Promise<null> =>
     __t3Invoke<null>("extension_inbox_failed", args),
   draftDirectory: (args: { cwd: string | null }): Promise<string> => __t3Invoke<string>("draft_directory", args),
-  workbuddyCreate: (args: {
+  createAlwith: (args: {
     parent: string
     name: string
     productName: string
     identifier: string
     auth: string
     github: string | null
-  }): Promise<string> => __t3Invoke<string>("workbuddy_create", args),
+  }): Promise<string> => __t3Invoke<string>("create_alwith", args),
   drivePathExists: (args: { path: string }): Promise<boolean> => __t3Invoke<boolean>("drive_path_exists", args),
   /**
    *  Import only the explicitly confirmed source paths; never grant their parents to the webview.
@@ -212,7 +212,7 @@ export type CommandErrors = {
   extensionInboxComplete: string
   extensionInboxFailed: string
   draftDirectory: string
-  workbuddyCreate: string
+  createAlwith: string
   drivePathExists: string
   workspaceImport: string
   workspaceDirty: string

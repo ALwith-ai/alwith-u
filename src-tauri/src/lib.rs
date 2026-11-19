@@ -63,7 +63,7 @@ mod window_state;
 mod windows_cef;
 #[cfg(target_os = "windows")]
 mod windows_frame;
-mod workbuddy;
+mod create_alwith;
 mod workspace;
 mod workspace_move;
 
@@ -592,7 +592,7 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 extension_inbox::extension_inbox_complete,
                 extension_inbox::extension_inbox_failed,
                 draft_directory::draft_directory,
-                workbuddy::workbuddy_create,
+                create_alwith::create_alwith,
                 drive::drive_path_exists,
                 workspace::workspace_import,
                 workspace::workspace_dirty,

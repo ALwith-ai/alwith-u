@@ -42,7 +42,7 @@ fn generation_result(stdout: &[u8], expected: &Path) -> Result<String, String> {
 }
 
 #[tauri3_specta::command]
-pub async fn workbuddy_create(
+pub async fn create_alwith(
     app: tauri::AppHandle, parent: PathBuf, name: String, product_name: String, identifier: String, auth: String,
     github: Option<String>,
 ) -> Result<String, String> {

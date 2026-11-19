@@ -2,12 +2,12 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { beforeEach, expect, test, vi } from "vitest"
 
 const { invoke, save } = vi.hoisted(() => ({ invoke: vi.fn(), save: vi.fn() }))
-vi.mock("@/bindings", () => ({ commands: { workbuddyCreate: invoke } }))
+vi.mock("@/bindings", () => ({ commands: { createAlwith: invoke } }))
 vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl: vi.fn() }))
 vi.mock("@tauri-apps/plugin-dialog", () => ({ save }))
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
 
-import { CreateWorkBuddy } from "../create-workbuddy"
+import { CreateAlwith } from "../create-alwith"
 
 beforeEach(() => {
   invoke.mockReset()
@@ -16,14 +16,14 @@ beforeEach(() => {
 })
 
 async function fill(onCreated = vi.fn()) {
-  render(<CreateWorkBuddy onCreated={onCreated} />)
-  fireEvent.click(screen.getByRole("button", { name: "workbuddy.create" }))
+  render(<CreateAlwith onCreated={onCreated} />)
+  fireEvent.click(screen.getByRole("button", { name: "createAlwith.create" }))
   const dialog = await screen.findByRole("dialog")
   const view = within(dialog)
-  fireEvent.change(view.getByLabelText("workbuddy.productName"), { target: { value: "My Buddy" } })
-  fireEvent.change(view.getByLabelText("workbuddy.identifier"), { target: { value: "com.example.buddy" } })
-  fireEvent.click(view.getByRole("button", { name: "workbuddy.chooseLocation" }))
-  await waitFor(() => expect(view.getByLabelText("workbuddy.location")).toHaveValue("/projects/my-buddy"))
+  fireEvent.change(view.getByLabelText("createAlwith.productName"), { target: { value: "My Buddy" } })
+  fireEvent.change(view.getByLabelText("createAlwith.identifier"), { target: { value: "com.example.buddy" } })
+  fireEvent.click(view.getByRole("button", { name: "createAlwith.chooseLocation" }))
+  await waitFor(() => expect(view.getByLabelText("createAlwith.location")).toHaveValue("/projects/my-buddy"))
   return { form: dialog.querySelector("form")!, onCreated }
 }
 
@@ -63,7 +63,7 @@ test("a generation error is displayed without another invocation or opening a pr
 test("bare chat explicitly disables ALwith integration", async () => {
   invoke.mockResolvedValue("/projects/my-buddy")
   const { form, onCreated } = await fill()
-  fireEvent.click(screen.getByRole("radio", { name: "workbuddy.bareEdition" }))
+  fireEvent.click(screen.getByRole("radio", { name: "createAlwith.bareEdition" }))
   fireEvent.submit(form)
   await waitFor(() => expect(onCreated).toHaveBeenCalledOnce())
   expect(invoke).toHaveBeenCalledWith(expect.objectContaining({ auth: "none" }))

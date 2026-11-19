@@ -5,16 +5,16 @@ import { join, resolve } from "node:path"
 
 import { validateConfig } from "@alwith/module-desktop-shell/build"
 
-import { stageWorkBuddy } from "../workbuddy-artifact"
+import { stageCreateAlwith } from "../create-alwith-artifact"
 
 // Packaging and two offline CLI invocations need a larger budget than an in-memory unit test.
 test.each(["alwith", "none"])(
   "the bundled %s generator works offline and preserves existing output",
   async (auth) => {
-    const directory = await mkdtemp(join(tmpdir(), "workbuddy 生成 "))
+    const directory = await mkdtemp(join(tmpdir(), "create-alwith 生成 "))
     try {
       const resources = join(directory, "resources")
-      await stageWorkBuddy(resolve(import.meta.dir, "../../.."), resources)
+      await stageCreateAlwith(resolve(import.meta.dir, "../../.."), resources)
       const destination = join(directory, "my-buddy")
       const args = [
         process.execPath,

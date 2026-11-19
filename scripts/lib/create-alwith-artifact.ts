@@ -21,7 +21,7 @@ function isPackageManifest(value: unknown): value is PackageManifest {
 }
 
 /** Bundle the generator with its immutable template and registry, without host node_modules. */
-export async function stageWorkBuddy(root: string, resources: string): Promise<void> {
+export async function stageCreateAlwith(root: string, resources: string): Promise<void> {
   const source = process.env.CREATE_ALWITH_PATH ?? join(root, "node_modules/create-alwith")
   const destination = join(resources, "create-alwith")
   const manifest: unknown = JSON.parse(await readFile(join(source, "package.json"), "utf8"))

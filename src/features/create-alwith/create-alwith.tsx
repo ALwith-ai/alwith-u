@@ -18,10 +18,10 @@ import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/c
 import { Input } from "@/components/ui/input"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Spinner } from "@/components/ui/spinner"
-import "./create-workbuddy.css"
+import "./create-alwith.css"
 import { save } from "@tauri-apps/plugin-dialog"
 
-export function CreateWorkBuddy({
+export function CreateAlwith({
   onCreated,
   open: controlledOpen,
   onOpenChange
@@ -56,7 +56,7 @@ export function CreateWorkBuddy({
       const separator = normalizedPath.lastIndexOf("/")
       const parent = normalizedPath.slice(0, separator + 1)
       const name = normalizedPath.slice(separator + 1)
-      directory = await commands.workbuddyCreate({
+      directory = await commands.createAlwith({
         parent,
         name,
         productName,
@@ -92,54 +92,54 @@ export function CreateWorkBuddy({
       {controlledOpen === undefined && (
         <DialogTrigger render={<NavigationItemButton className="h-8 gap-2 px-2" />}>
           <AppWindowIcon />
-          <span>{t("workbuddy.create")}</span>
+          <span>{t("createAlwith.create")}</span>
         </DialogTrigger>
       )}
-      <DialogContent className="workbuddy-studio">
+      <DialogContent className="create-alwith-studio">
         <form
           onSubmit={(event) => {
             void create(event)
           }}
-          className="workbuddy-studio-form"
+          className="create-alwith-studio-form"
         >
-          <DialogHeader className="workbuddy-studio-header">
-            <span className="workbuddy-studio-eyebrow">ALwith</span>
-            <DialogTitle className="workbuddy-studio-title">{t("workbuddy.headline")}</DialogTitle>
-            <DialogDescription className="sr-only">{t("workbuddy.description")}</DialogDescription>
+          <DialogHeader className="create-alwith-studio-header">
+            <span className="create-alwith-studio-eyebrow">ALwith</span>
+            <DialogTitle className="create-alwith-studio-title">{t("createAlwith.headline")}</DialogTitle>
+            <DialogDescription className="sr-only">{t("createAlwith.description")}</DialogDescription>
           </DialogHeader>
           <RadioGroup
-            className="workbuddy-editions"
-            aria-label={t("workbuddy.edition")}
+            className="create-alwith-editions"
+            aria-label={t("createAlwith.edition")}
             value={withAuth ? "alwith" : "none"}
             onValueChange={(value) => setWithAuth(value === "alwith")}
             disabled={busy}
           >
             {(["alwith", "none"] as const).map((mode) => (
-              <label key={mode} className="workbuddy-edition" data-selected={withAuth === (mode === "alwith")}>
+              <label key={mode} className="create-alwith-edition" data-selected={withAuth === (mode === "alwith")}>
                 <RadioGroupItem
                   className="sr-only"
                   value={mode}
-                  aria-label={t(mode === "alwith" ? "workbuddy.accountEdition" : "workbuddy.bareEdition")}
+                  aria-label={t(mode === "alwith" ? "createAlwith.accountEdition" : "createAlwith.bareEdition")}
                 />
-                <span className="workbuddy-edition-top">
-                  <span className="workbuddy-edition-title">
-                    {t(mode === "alwith" ? "workbuddy.accountEdition" : "workbuddy.bareEdition")}
+                <span className="create-alwith-edition-top">
+                  <span className="create-alwith-edition-title">
+                    {t(mode === "alwith" ? "createAlwith.accountEdition" : "createAlwith.bareEdition")}
                   </span>
-                  <span className="workbuddy-edition-check" aria-hidden="true">
+                  <span className="create-alwith-edition-check" aria-hidden="true">
                     <CheckIcon />
                   </span>
                 </span>
-                <span className="workbuddy-edition-description">
-                  {t(mode === "alwith" ? "workbuddy.accountCaption" : "workbuddy.bareCaption")}
+                <span className="create-alwith-edition-description">
+                  {t(mode === "alwith" ? "createAlwith.accountCaption" : "createAlwith.bareCaption")}
                 </span>
               </label>
             ))}
           </RadioGroup>
-          <FieldGroup className="workbuddy-details">
+          <FieldGroup className="create-alwith-details">
             <Field>
-              <FieldLabel htmlFor="workbuddy-product">{t("workbuddy.productName")}</FieldLabel>
+              <FieldLabel htmlFor="create-alwith-product">{t("createAlwith.productName")}</FieldLabel>
               <Input
-                id="workbuddy-product"
+                id="create-alwith-product"
                 required
                 value={productName}
                 disabled={busy}
@@ -147,9 +147,9 @@ export function CreateWorkBuddy({
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="workbuddy-identifier">{t("workbuddy.identifier")}</FieldLabel>
+              <FieldLabel htmlFor="create-alwith-identifier">{t("createAlwith.identifier")}</FieldLabel>
               <Input
-                id="workbuddy-identifier"
+                id="create-alwith-identifier"
                 required
                 pattern="[A-Za-z][A-Za-z0-9\-]*(\.[A-Za-z][A-Za-z0-9\-]*){2,}"
                 placeholder="com.example.myapp"
@@ -159,22 +159,22 @@ export function CreateWorkBuddy({
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="workbuddy-github">{t("workbuddy.github")}</FieldLabel>
+              <FieldLabel htmlFor="create-alwith-github">{t("createAlwith.github")}</FieldLabel>
               <Input
-                id="workbuddy-github"
+                id="create-alwith-github"
                 pattern="[A-Za-z0-9]([A-Za-z0-9\-]{0,37}[A-Za-z0-9])?/[A-Za-z0-9_.\-]{1,100}"
                 placeholder="owner/repo"
                 value={github}
                 disabled={busy}
                 onChange={(event) => setGithub(event.target.value)}
               />
-              <FieldDescription>{t("workbuddy.githubHelp")}</FieldDescription>
+              <FieldDescription>{t("createAlwith.githubHelp")}</FieldDescription>
             </Field>
-            <Field className="workbuddy-location">
-              <FieldLabel htmlFor="workbuddy-location">{t("workbuddy.location")}</FieldLabel>
+            <Field className="create-alwith-location">
+              <FieldLabel htmlFor="create-alwith-location">{t("createAlwith.location")}</FieldLabel>
               <div className="flex items-center gap-2">
                 <Input
-                  id="workbuddy-location"
+                  id="create-alwith-location"
                   required
                   value={projectPath}
                   disabled={busy}
@@ -185,14 +185,14 @@ export function CreateWorkBuddy({
                   variant="outline"
                   size="icon"
                   disabled={busy}
-                  aria-label={t("workbuddy.chooseLocation")}
+                  aria-label={t("createAlwith.chooseLocation")}
                   onClick={() => {
                     const suggested = productName
                       .toLowerCase()
                       .replaceAll(/[^a-z0-9]+/g, "-")
                       .replaceAll(/^-+|-+$/g, "")
                     void save({
-                      title: t("workbuddy.chooseLocation"),
+                      title: t("createAlwith.chooseLocation"),
                       defaultPath: projectPath || (/^[a-z]/.test(suggested) ? suggested : "my-alwith")
                     })
                       .then((value) => {
@@ -207,13 +207,13 @@ export function CreateWorkBuddy({
             </Field>
           </FieldGroup>
           {error && <FieldError>{error}</FieldError>}
-          <DialogFooter className="workbuddy-studio-footer">
+          <DialogFooter className="create-alwith-studio-footer">
             <Button type="button" variant="outline" disabled={busy} onClick={() => setOpen(false)}>
               {t("actions.cancel")}
             </Button>
             <Button type="submit" disabled={busy || !projectPath}>
               {busy && <Spinner data-icon="inline-start" />}
-              {t(busy ? "workbuddy.creating" : "workbuddy.create")}
+              {t(busy ? "createAlwith.creating" : "createAlwith.create")}
             </Button>
           </DialogFooter>
         </form>

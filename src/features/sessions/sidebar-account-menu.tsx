@@ -13,7 +13,7 @@ import { toast } from "sonner"
 import { ShortcutKey } from "@/components/alwith-ui/shortcut-hint"
 import { logoutPlatform, usePlatformAuth } from "@/features/auth/store"
 import { useVibemonControl } from "@/features/vibemon/use-vibemon-control"
-import { CreateWorkBuddy } from "@/features/workbuddy/create-workbuddy"
+import { CreateAlwith } from "@/features/create-alwith/create-alwith"
 import { LANGUAGES } from "@/lib/i18n"
 import { savePreference } from "@/lib/preferences"
 import { openGamepadWindow, openSettingsWindow } from "@/lib/window-manager"
@@ -35,7 +35,7 @@ export function SidebarAccountMenu({
   if (!user) return null
   return (
     <>
-      <CreateWorkBuddy open={createOpen} onOpenChange={setCreateOpen} onCreated={onCreated} />
+      <CreateAlwith open={createOpen} onOpenChange={setCreateOpen} onCreated={onCreated} />
       <AccountMenu
         user={{ name: user.nickname || user.login_email, email: user.login_email, avatar: user.avatar }}
         onSignOut={logoutPlatform}
@@ -43,7 +43,7 @@ export function SidebarAccountMenu({
         <AccountMenuGroup>
           <AccountMenuItem onClick={() => setCreateOpen(true)}>
             <AppWindowIcon />
-            {t("workbuddy.create")}
+            {t("createAlwith.create")}
           </AccountMenuItem>
         </AccountMenuGroup>
         <AccountMenuSeparator />

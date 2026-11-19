@@ -1350,7 +1350,7 @@
     "recheck": "Check",
     "bringToFront": "Browser"
   },
-  "workbuddy": {
+  "createAlwith": {
     "auth": "Include ALwith account",
     "authEnabled": "Login, vibemon and account features.",
     "authDisabled": "No ALwith account services. Model provider authentication is separate.",

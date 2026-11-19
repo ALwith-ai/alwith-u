@@ -29,7 +29,7 @@ import { stageComputer } from "./lib/computer-artifact"
 import { stageDocs } from "./lib/docs-artifact"
 import { runtimeBuildArtifact, runtimeSource, stageTarget } from "./lib/runtime-artifact"
 import { assertVersion, BUN_PACKAGES, CODEX_WINDOWS_HELPERS, codexPlatformDirectory, codexSidecars, toolchainVersions } from "./lib/toolchain"
-import { stageWorkBuddy } from "./lib/workbuddy-artifact"
+import { stageCreateAlwith } from "./lib/create-alwith-artifact"
 import { stageBrowser } from "./stage-browser"
 
 const root = resolve(import.meta.dirname, "..")
@@ -255,6 +255,6 @@ console.log(`licences -> ${licenses}`)
 
 await stageChromeBridge(join(root, "src-tauri/resources/chrome-bridge"))
 
-await stageWorkBuddy(root, join(root, "src-tauri/resources"))
+await stageCreateAlwith(root, join(root, "src-tauri/resources"))
 
 await stageBrowser(root)
