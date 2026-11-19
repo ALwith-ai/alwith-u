@@ -53,7 +53,7 @@ function Conversation({
   const { t } = useTranslation()
   const inputMode = useInputMode()
   const host = useChatHost(session.id)
-  const timeline = useTimelineSlots()
+  const timeline = useTimelineSlots(session.readOnly ? undefined : session.id)
   const lastNativeItem = session.items.findLast((item) => nativeTurnId(item) !== null)
   return (
     <ConversationView

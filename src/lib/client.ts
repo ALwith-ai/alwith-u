@@ -19,6 +19,7 @@ import { computerRuntimeEnv } from "@/features/computer/runtime-config"
 import { hostSessionContext } from "@/features/computer/session-context"
 import { createDeviceTools } from "@/features/device/application-tools"
 import { guideChapters, guideVersion } from "@/features/guide/content"
+import { generatedImageStorage } from "@/features/images/generated-image-storage"
 import { useImagePreferences } from "@/features/images/preferences"
 import { createTerminalTools } from "@/features/terminal/tools"
 import { closeConversationTerminals } from "@/features/terminal/view-preferences"
@@ -48,7 +49,8 @@ export const client =
           imageService: {
             inputMode: readSessionInputMode,
             selection: () => useImagePreferences.getState().selection,
-            generateExternal: generateImage
+            generateExternal: generateImage,
+            storage: generatedImageStorage
           },
           projectPaths: isMac() ? macProjectPaths : undefined,
           resolveModel: async (model, purpose) => {

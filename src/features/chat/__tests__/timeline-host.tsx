@@ -29,18 +29,18 @@ export function runningSession(id: string, cwd: string, items: Session["items"])
   return { ...createSession(id, cwd), state: "running", items }
 }
 
-function Stream({ session }: { session: Session }) {
+function Stream({ session, imageMenu }: { session: Session; imageMenu?: boolean }) {
   const host = useChatHost()
-  const slots = useTimelineSlots()
+  const slots = useTimelineSlots(imageMenu ? session.id : undefined)
   return <SessionTimeline {...slots} session={session} client={client} host={host} />
 }
 
 /** U's conversation stream: the package timeline with U's host, Pane, sounds and fork actions. */
-export function ChatTimeline({ session }: { session: Session }) {
+export function ChatTimeline({ session, imageMenu }: { session: Session; imageMenu?: boolean }) {
   // Relative links and image paths resolve against the session's directory.
   return (
     <ChatDirectoryContext value={session.cwd}>
-      <Stream session={session} />
+      <Stream session={session} imageMenu={imageMenu} />
     </ChatDirectoryContext>
   )
 }
@@ -50,10 +50,10 @@ function Body({ session }: { session: Session }) {
   return <ConversationBody session={session} timeline={slots} />
 }
 
-export function renderTimeline(session: Session, extra?: ReactNode) {
+export function renderTimeline(session: Session, extra?: ReactNode, imageMenu?: boolean) {
   return render(
     <ThemeProvider>
-      <ChatTimeline session={session} />
+      <ChatTimeline session={session} imageMenu={imageMenu} />
       {extra}
     </ThemeProvider>
   )

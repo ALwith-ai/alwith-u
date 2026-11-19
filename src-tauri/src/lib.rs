@@ -39,6 +39,7 @@ mod extension_capabilities;
 mod extension_inbox;
 mod extension_wire;
 mod gamepad;
+mod generated_images;
 mod html_preview;
 mod legacy_extensions;
 mod menu;
@@ -390,6 +391,8 @@ pub fn run() {
                 device_window::device_window_selection,
                 settings::settings_request,
                 window_state::main_window_hidden,
+                generated_images::save_generated_images,
+                generated_images::read_generated_image,
                 desktop_runtime::runtime_capabilities,
                 desktop_runtime::runtime_restart
             ];
@@ -505,6 +508,8 @@ pub fn run() {
                         | "device_window_selection"
                         | "settings_request"
                         | "main_window_hidden"
+                        | "save_generated_images"
+                        | "read_generated_image"
                         | "runtime_capabilities"
                         | "runtime_restart"
                 ) {

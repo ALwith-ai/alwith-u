@@ -37,7 +37,7 @@ const BrowserConversation = memo(function BrowserConversation({
 }) {
   const { t } = useTranslation()
   const host = useChatHost(session.id)
-  const timeline = useTimelineSlots()
+  const timeline = useTimelineSlots(session.readOnly ? undefined : session.id)
   return (
     <MainInputModeProvider sessionId={session.id} draft={false}>
       <ChatBranchProvider session={session}>

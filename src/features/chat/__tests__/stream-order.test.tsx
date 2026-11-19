@@ -1,20 +1,25 @@
 import { acknowledgePrompt, addPrompt, applyUpdate, createSession, type Session } from "@alwith/module-chat/client"
-import { ConversationBody } from "@alwith/module-chat/conversation"
-import { cleanup, fireEvent, render } from "@testing-library/react"
-import { afterEach, expect, test } from "vitest"
+import { commands as chatCommands } from "@alwith/module-chat/commands"
+import { ConversationBody, drafts } from "@alwith/module-chat/conversation"
+import { cleanup, fireEvent, render, waitFor } from "@testing-library/react"
+import { afterEach, expect, test, vi } from "vitest"
 
 import { ThemeProvider } from "@/components/theme-provider"
+import { generatedImageStorage } from "@/features/images/generated-image-storage"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
 
 import { ChatHostProvider } from "../chat-host"
-import { renderTimeline } from "./timeline-host"
+import { Composer, renderTimeline } from "./timeline-host"
 
 await initI18n("en")
 const initial = client.state
 afterEach(() => {
   cleanup()
   client.store.setState(initial, true)
+  drafts.clear()
+  vi.unstubAllGlobals()
+  vi.restoreAllMocks()
 })
 function feed(session: Session, ...updates: unknown[]) {
   return updates.reduce<Session>((state, update) => applyUpdate(state, update as never), session)
@@ -105,6 +110,113 @@ test("a generated tool image keeps its position before a later final message", (
   expect(image).not.toBeNull()
   precedes(image!, view.getByText("Explanation after image"))
 })
+
+test("saved MCP images render during the turn and after replay, with original bytes for download", async () => {
+  const reference = "generated_images/image-history/alwith-exec-image-1.png"
+  const data = "aGVsbG8="
+  const read = vi.spyOn(generatedImageStorage, "read").mockResolvedValue({ mimeType: "image/png", data })
+  const save = vi.spyOn(chatCommands, "saveFile").mockResolvedValue(true)
+  const session = feed(
+    { ...createSession("image-history", "/tmp"), state: "running" },
+    user("u1", "Generate", "t1"),
+    {
+      sessionUpdate: "tool_call_update",
+      toolCallId: "exec-image",
+      title: "mcp.alwith.generate_image",
+      kind: "execute",
+      status: "completed",
+      _meta: { codex: { turnId: "t1" } },
+      rawInput: { server: "alwith", tool: "generate_image", arguments: { prompt: "Generate" } },
+      rawOutput: {
+        result: {
+          content: [
+            { type: "text", text: JSON.stringify({ kind: "alwith.image", images: [{ reference: "exec-image:1" }] }) },
+            { type: "resource_link", uri: `alwith-generated-image:${reference}`, name: "alwith-exec-image-1.png" }
+          ]
+        },
+        error: null
+      }
+    },
+    answer("a1", `![Generated](exec-image:1)\n\n![Generated again](alwith-generated-image:${reference})`, "t1")
+  )
+  const live = renderTimeline(session)
+  await live.findByRole("button", { name: "Download alwith-exec-image-1.png" })
+  expect(live.container.querySelector(".codex-reply-artifacts img")).toHaveAttribute(
+    "src",
+    `data:image/png;base64,${data}`
+  )
+  expect(live.container.querySelectorAll("img")).toHaveLength(1)
+  expect(live.queryByText("Generated again")).not.toBeInTheDocument()
+  live.unmount()
+
+  const replayed = renderTimeline({ ...(JSON.parse(JSON.stringify(session)) as Session), state: "idle" })
+  fireEvent.click(await replayed.findByRole("button", { name: "Download alwith-exec-image-1.png" }))
+  await waitFor(() => expect(save).toHaveBeenCalledWith({ name: "alwith-exec-image-1.png", data }))
+  expect(read.mock.calls).toEqual([[reference], [reference]])
+})
+
+test.each(["image block", "local Markdown image", "Markdown table image"])(
+  "the shared context menu attaches a generated %s without sending",
+  async (kind) => {
+    vi.stubGlobal("createImageBitmap", async () => ({ close() {} }))
+    const id = "image-draft-owner"
+    const image = { type: "image", mimeType: "image/png", data: "aGVsbG8=" }
+    const promptImage = { ...image, data: "dXNlcg==" }
+    const markdown = kind !== "image block"
+    const reference = "![Generated image](/tmp/generated.png)"
+    if (markdown) {
+      vi.spyOn(chatCommands, "previewFile").mockResolvedValue({
+        kind: "image",
+        mimeType: image.mimeType,
+        data: image.data
+      })
+    }
+    const session = feed(
+      { ...createSession(id, "/tmp"), attached: true },
+      { ...user("u1", "Draw", "t1"), content: [promptImage, { type: "text", text: "Draw" }] },
+      {
+        ...answer("a1", "Generated", "t1"),
+        content: markdown
+          ? [
+              {
+                type: "text",
+                text: kind === "Markdown table image" ? `| Image |\n| --- |\n| ${reference} |` : reference
+              }
+            ]
+          : [image]
+      }
+    )
+    client.store.setState({ connection: "ready", sessions: { [id]: session } })
+    const submit = vi.fn(async () => {})
+    const view = renderTimeline(session, <Composer session={session} onSubmit={submit} />, true)
+    const input = view.getByRole("textbox")
+    fireEvent.change(input, { target: { value: "Use this as reference" } })
+    const otherDraft = { text: "Another chat", attachments: [], mentions: [], modelId: null }
+    drafts.set("other-chat", otherDraft)
+
+    const userImage = view.container.querySelector<HTMLImageElement>(
+      `img[src="data:image/png;base64,${promptImage.data}"]`
+    )!
+    expect(fireEvent.contextMenu(userImage)).toBe(true)
+    expect(view.queryByRole("menuitem")).toBeNull()
+
+    const generatedImage =
+      kind === "Markdown table image"
+        ? await view.findByAltText("Generated image")
+        : (await view.findByRole("button", { name: "View image" })).querySelector("img")!
+    expect(fireEvent.contextMenu(generatedImage, { clientX: 80, clientY: 100 })).toBe(false)
+    const item = await view.findByRole("menuitem", { name: "Add image to chat" })
+    expect(item).toHaveAttribute("data-slot", "context-menu-item")
+    fireEvent.click(item)
+    expect(view.getByRole("button", { name: "Remove attachment" })).toBeInTheDocument()
+    expect(drafts.get("other-chat")).toEqual(otherDraft)
+    expect(input).toHaveValue("Use this as reference")
+    expect(submit).not.toHaveBeenCalled()
+
+    fireEvent.click(view.getByRole("button", { name: "Send" }))
+    await waitFor(() => expect(submit).toHaveBeenCalledWith([{ type: "text", text: "Use this as reference" }, image]))
+  }
+)
 
 test("subagent details stay at delegation rather than after later parent commentary", () => {
   const parent = feed(

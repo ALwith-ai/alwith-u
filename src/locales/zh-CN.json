@@ -240,6 +240,7 @@
       "next": "下一个"
     },
     "image": {
+      "addToChat": "添加图片到聊天",
       "edit": {
         "moveToolbar": "拖动工具栏 · 方向键移动，Home 复位",
         "comment": "添加评论",

@@ -7,6 +7,10 @@ use tauri::Manager;
 
 /// `CODEX_HOME` when set, otherwise `~/.codex`: the same rule Codex applies.
 pub fn resolve(app: &tauri::AppHandle) -> Result<PathBuf, tauri::Error> {
+    #[cfg(feature = "dev-backends")]
+    if let Some(home) = crate::development_instance::codex_home(&app.config().identifier, &app.path().app_data_dir()?) {
+        return Ok(home);
+    }
     match std::env::var_os("CODEX_HOME").filter(|value| !value.is_empty()) {
         Some(path) => Ok(path.into()),
         None => Ok(app.path().home_dir()?.join(".codex")),

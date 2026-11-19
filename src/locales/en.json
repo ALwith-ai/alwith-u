@@ -240,6 +240,7 @@
       "next": "Next match"
     },
     "image": {
+      "addToChat": "Add image to chat",
       "edit": {
         "moveToolbar": "Drag toolbar · Arrow keys to move, Home to reset",
         "comment": "Add comment",

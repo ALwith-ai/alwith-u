@@ -12,7 +12,6 @@ import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useStore } from "zustand"
 
-import { Pane } from "@/components/alwith-ui/pane"
 import { CodexFileIcon } from "@/components/icons/codex/file-icon"
 import { useTheme } from "@/components/theme-provider"
 import { computerActionKey, privateComputerAction } from "@/features/computer/action-label"
@@ -28,6 +27,7 @@ import {
   preloadTimelineUserMessageNavigationInstrument
 } from "./codex/navigation-audio"
 import { navigationSoundStore } from "./codex/navigation-sound-store"
+import { TimelineViewport } from "./codex/timeline-viewport"
 import { UndoActions } from "./undo-actions"
 
 function reportError(error: unknown) {
@@ -81,19 +81,6 @@ export function ChatHostProvider({ children }: { children: ReactNode }) {
   )
 }
 
-function PaneViewport({ viewportRef, viewportProps, children }: TimelineViewportProps) {
-  return (
-    <Pane
-      nativeScroll
-      viewportRef={viewportRef}
-      viewportClassName="overflow-x-hidden overscroll-none"
-      viewportProps={viewportProps}
-    >
-      {children}
-    </Pane>
-  )
-}
-
 function useNavigationAudio(): NavigationRailAudio {
   const instrument = useStore(navigationSoundStore, (state) => state.instrument)
   const soundMode = useStore(navigationSoundStore, (state) => state.soundMode)
@@ -112,16 +99,20 @@ function useNavigationAudio(): NavigationRailAudio {
 }
 
 /** U's timeline slots: fork lineage and actions, the Pane scroller and navigation sounds. */
-export function useTimelineSlots(): TimelineSlots {
+export function useTimelineSlots(sessionId?: string): TimelineSlots {
   const audio = useNavigationAudio()
+  const Viewport = useMemo(
+    () => (props: TimelineViewportProps) => <TimelineViewport {...props} sessionId={sessionId} />,
+    [sessionId]
+  )
   return useMemo(
     () => ({
       leading: <ForkOriginDivider />,
       afterTurn: (turn) => <ForkOriginDivider turn={turn} />,
       answerActions: (turn) => <ForkTurnButton turnId={codexTurnId(turn.final.at(-1)?._meta)} />,
       navigation: { audio },
-      Viewport: PaneViewport
+      Viewport
     }),
-    [audio]
+    [audio, Viewport]
   )
 }

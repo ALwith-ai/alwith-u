@@ -269,14 +269,12 @@ pub async fn runtime_start(
     #[cfg(not(windows))]
     let native_network_endpoint = None;
     let mut command = tokio::process::Command::new(sidecar_path("alwith-runtime")?);
-    #[cfg(feature = "dev-backends")]
-    if let Some(home) = crate::development_instance::codex_home(&app.config().identifier, &data) {
-        std::fs::create_dir_all(&home).map_err(|error| error.to_string())?;
-        command.env("CODEX_HOME", home);
-    }
+    let codex_home = crate::codex_home::resolve(&app).map_err(|error| error.to_string())?;
+    std::fs::create_dir_all(&codex_home).map_err(|error| error.to_string())?;
     configure_runtime_storage(&mut command, &cache, &data);
     command
         .args(["--listen", "stdio://"])
+        .env("CODEX_HOME", codex_home)
         .env("ALWITH_RUNTIME_ENGINES", engines_table(&app, native_network_endpoint)?)
         .env("ALWITH_RUNTIME_PARENT_PID", std::process::id().to_string())
         .env("RUST_LOG", "info")

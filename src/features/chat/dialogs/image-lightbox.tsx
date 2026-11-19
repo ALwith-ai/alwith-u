@@ -12,7 +12,7 @@ import {
   LoaderCircleIcon,
   XIcon
 } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { type PointerEvent, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { create } from "zustand"
@@ -72,6 +72,10 @@ function localPath(uri: string | undefined): string | null {
 }
 
 type SendImageEdit = (prompt: acp.ContentBlock[]) => Promise<void>
+
+function isPreviewBackground(target: EventTarget | null): boolean {
+  return target instanceof Element && target.hasAttribute("data-preview-background")
+}
 
 function ImagePreview({
   image,
@@ -152,7 +156,7 @@ function ImagePreview({
   }
   return (
     <>
-      <header className="flex w-full shrink-0 items-center justify-end gap-3 px-4 py-3">
+      <header data-preview-background className="flex w-full shrink-0 items-center justify-end gap-3 px-4 py-3">
         <DialogTitle className="sr-only">{t("chat.image.view")}</DialogTitle>
         <div className="flex shrink-0 items-center gap-2" role="toolbar" aria-label={t("chat.image.tools")}>
           <DropdownMenu>
@@ -168,7 +172,7 @@ function ImagePreview({
                 onValueChange={(value) => setZoom(value === "fit" ? null : Number(value))}
               >
                 <DropdownMenuRadioItem value="fit">{t("chat.image.fit")}</DropdownMenuRadioItem>
-                {[0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4].map((value) => (
+                {[0.25, 0.5, 1, 1.5, 2].map((value) => (
                   <DropdownMenuRadioItem key={value} value={String(value)}>
                     {value * 100}%
                   </DropdownMenuRadioItem>
@@ -235,8 +239,8 @@ function ImagePreview({
           </DialogClose>
         </div>
       </header>
-      <div ref={viewport} className="min-h-0 w-full flex-1 overflow-auto">
-        <div className="grid min-h-full w-max min-w-full place-items-center p-6">
+      <div ref={viewport} data-preview-background className="min-h-0 w-full flex-1 overflow-auto">
+        <div data-preview-background className="grid min-h-full w-max min-w-full place-items-center p-6">
           {failed ? (
             <p role="alert">{t("chat.image.unavailable")}</p>
           ) : (
@@ -294,11 +298,46 @@ export function ImageLightbox({ sessionId, onSend }: { sessionId?: string; onSen
   const { t } = useTranslation()
   const { images, index, sessionId: owner } = useLightbox()
   const image = owner === sessionId ? images[index] : undefined
+  const backgroundPress = useRef<{ pointerId: number; x: number; y: number; released: boolean } | null>(null)
+  const checkBackgroundPress = (event: PointerEvent): void => {
+    const press = backgroundPress.current
+    if (!press || press.pointerId !== event.pointerId) return
+    const released = event.type === "pointerup"
+    if (
+      Math.hypot(event.clientX - press.x, event.clientY - press.y) > 5 ||
+      (released && !isPreviewBackground(event.target))
+    ) {
+      backgroundPress.current = null
+    } else if (released) {
+      press.released = true
+    }
+  }
   return (
-    <Dialog open={image !== undefined} onOpenChange={(open) => !open && closeLightbox()}>
+    <Dialog open={image !== undefined} disablePointerDismissal onOpenChange={(open) => !open && closeLightbox()}>
       <DialogContent
         showCloseButton={false}
         aria-label={t("chat.image.view")}
+        data-image-lightbox
+        data-preview-background
+        onPointerDownCapture={(event) => {
+          if (!event.isPrimary) return
+          backgroundPress.current =
+            event.button === 0 && isPreviewBackground(event.target)
+              ? { pointerId: event.pointerId, x: event.clientX, y: event.clientY, released: false }
+              : null
+        }}
+        onPointerMoveCapture={checkBackgroundPress}
+        onPointerUpCapture={checkBackgroundPress}
+        onPointerCancelCapture={(event) => {
+          if (backgroundPress.current?.pointerId === event.pointerId) backgroundPress.current = null
+        }}
+        onClick={(event) => {
+          const press = backgroundPress.current
+          backgroundPress.current = null
+          if (press?.released && event.detail > 0 && !event.defaultPrevented && isPreviewBackground(event.target)) {
+            closeLightbox()
+          }
+        }}
         onKeyDown={(event) => {
           if (
             (event.key === "ArrowLeft" || event.key === "ArrowRight") &&
@@ -309,7 +348,7 @@ export function ImageLightbox({ sessionId, onSend }: { sessionId?: string; onSen
             moveImage(event.key === "ArrowLeft" ? -1 : 1)
           }
         }}
-        className="fixed inset-0 flex h-dvh w-screen max-w-none translate-x-0 translate-y-0 flex-col gap-0 rounded-none bg-background/90 p-0 ring-0 backdrop-blur-md sm:max-w-none data-open:zoom-in-100 data-closed:zoom-out-100"
+        className="fixed inset-0 flex h-dvh w-screen max-w-none translate-x-0 translate-y-0 flex-col gap-0 rounded-none bg-transparent p-0 ring-0 sm:max-w-none data-open:zoom-in-100 data-closed:zoom-out-100"
       >
         {image && (
           <ImagePreview

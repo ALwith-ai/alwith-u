@@ -319,7 +319,10 @@ export function ImageEditToolbar({ editor }: { editor: ImageEditor }) {
     </Button>
   )
   return (
-    <footer className="relative flex w-full shrink-0 flex-col items-center gap-3 px-4 pt-2 pb-4">
+    <footer
+      data-preview-background
+      className="relative flex w-full shrink-0 flex-col items-center gap-3 px-4 pt-2 pb-4"
+    >
       {editor.error && (
         <p role="alert" className="max-w-xl rounded-xl border bg-background px-4 py-2 text-sm text-destructive">
           {editor.error}

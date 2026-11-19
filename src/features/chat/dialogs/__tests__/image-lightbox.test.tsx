@@ -53,6 +53,40 @@ test("image previews expose a visible close button and still close with Escape",
   await waitFor(() => expect(view.queryByRole("dialog")).toBeNull())
 }, 15_000)
 
+test("only a primary click on empty preview space dismisses the lightbox", async () => {
+  const view = render(<ImageLightbox />)
+  mounted.push(view)
+  act(() => openImageLightbox("data:image/png;base64,test", "Portrait"))
+  const dialog = view.getByRole("dialog")
+  const image = within(dialog).getByRole("img", { name: "Portrait" })
+  const background = image.closest("[data-preview-background]")!
+  const toolbar = within(dialog).getByRole("toolbar")
+  const press = { isPrimary: true, pointerId: 1, button: 0, clientX: 10, clientY: 10 }
+
+  fireEvent.pointerDown(image, press)
+  fireEvent.pointerUp(image, press)
+  fireEvent.click(image, { detail: 1 })
+  fireEvent.pointerDown(toolbar, press)
+  fireEvent.pointerUp(toolbar, press)
+  fireEvent.click(toolbar, { detail: 1 })
+  fireEvent.pointerDown(background, press)
+  fireEvent.pointerUp(image, press)
+  fireEvent.click(background, { detail: 1 })
+  fireEvent.pointerDown(background, press)
+  fireEvent.pointerMove(background, { ...press, clientX: 35 })
+  fireEvent.pointerUp(background, press)
+  fireEvent.click(background, { detail: 1 })
+  fireEvent.pointerDown(background, press)
+  fireEvent.pointerCancel(background, press)
+  fireEvent.click(background, { detail: 1 })
+  expect(view.getByRole("dialog")).toBe(dialog)
+
+  fireEvent.pointerDown(background, press)
+  fireEvent.pointerUp(background, press)
+  fireEvent.click(background, { detail: 1 })
+  await waitFor(() => expect(view.queryByRole("dialog")).toBeNull())
+})
+
 test("preview toolbar hides the filename and side-panel action while retaining local file actions", async () => {
   const download = vi.spyOn(files, "downloadChatFile").mockResolvedValue(true)
   vi.mocked(openPathInApp).mockResolvedValue(undefined)
@@ -66,6 +100,9 @@ test("preview toolbar hides the filename and side-panel action while retaining l
   act(() => openImageLightbox("data:image/png;base64,aGVsbG8=", "Portrait", "/tmp/portrait.png"))
   const dialog = view.getByRole("dialog")
   fireEvent.click(within(dialog).getByRole("button", { name: "Zoom" }))
+  const zoomOptions = view.getAllByRole("menuitemradio")
+  expect(zoomOptions.map((option) => option.textContent)).toEqual(["Fit", "25%", "50%", "100%", "150%", "200%"])
+  expect(zoomOptions[0]).toHaveAttribute("aria-checked", "true")
   fireEvent.click(view.getByRole("menuitemradio", { name: "200%" }))
   const image = dialog.querySelector("img") as HTMLImageElement
   Object.defineProperties(image, { naturalWidth: { value: 600 }, naturalHeight: { value: 400 } })
@@ -147,7 +184,7 @@ test("image editing stays scoped to the source session when another conversation
   await waitFor(() => expect(view.queryByRole("dialog")).toBeNull())
 })
 
-test("pending image edits block keyboard navigation and Escape until acceptance", async () => {
+test("pending image edits block navigation and dismissal until acceptance", async () => {
   const pending = Promise.withResolvers<void>()
   const send = vi.fn(() => pending.promise)
   const view = render(<ImageLightbox sessionId="source" onSend={send} />)
@@ -166,6 +203,10 @@ test("pending image edits block keyboard navigation and Escape until acceptance"
   const dialog = view.getByRole("dialog")
   fireEvent.keyDown(dialog, { key: "ArrowRight" })
   fireEvent.keyDown(dialog, { key: "Escape" })
+  const press = { isPrimary: true, pointerId: 1, button: 0 }
+  fireEvent.pointerDown(dialog, press)
+  fireEvent.pointerUp(dialog, press)
+  fireEvent.click(dialog, { detail: 1 })
   expect(view.getByRole("img", { name: "First" })).toBeDefined()
   act(() => openImageLightbox("data:image/png;base64,bmV4dA==", "Replacement", undefined, "source"))
   expect(view.getByRole("img", { name: "First" })).toBeDefined()

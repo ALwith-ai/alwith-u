@@ -5,6 +5,7 @@ import { useContext, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
+import { generatedImageStorage } from "@/features/images/generated-image-storage"
 import { copyText } from "@/lib/clipboard"
 
 import { openImageGallery, openImageLightbox } from "../dialogs/image-lightbox"
@@ -31,6 +32,7 @@ export function useChatActivityHost(sessionId?: string): ActivityHost {
         openImage: (src) => openImageLightbox(src, "", undefined, sessionId),
         openImageGallery: (images, index) => openImageGallery(images, index, sessionId),
         loadImage: desktopLoadImage,
+        loadGeneratedImage: (reference) => generatedImageStorage.read(reference),
         ...(openSession === null ? {} : { openSession }),
         expandToolOutput: true
       }) satisfies ActivityHost,
