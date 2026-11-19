@@ -215,9 +215,9 @@ dependencies = [
 
 [[package]]
 name = "alwith-editor"
-version = "0.6.1"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bcc4603f833ac1ef753973d7dd44390798f2701b3956c29e9959b19af68677ee"
+checksum = "2e4e30df5006f79911188af213691191664a4ab47085a2f52ab7536ebfe2f084"
 dependencies = [
  "alwith-fs",
  "alwith-native-client 0.6.2",
@@ -259,9 +259,9 @@ dependencies = [
 
 [[package]]
 name = "alwith-fs"
-version = "0.6.2"
+version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e75de91af03dbc8de11629b9c0e8903fe54f34fe209b590d27182384c4705b65"
+checksum = "40d05e14e528bc7f78c4e788283205cfd28eb688e23312ac712055d77177b2f3"
 dependencies = [
  "alwith-native-client 0.6.2",
  "mime_guess",
@@ -587,7 +587,7 @@ version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "40c48f72fd53cd289104fc64099abca73db4166ad86ea0b4341abe65af83dadc"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -598,7 +598,7 @@ checksum = "291e6a250ff86cd4a820112fb8898808a366d8f9f58ce16d1f538353ad55747d"
 dependencies = [
  "anstyle",
  "once_cell_polyfill",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -4295,7 +4295,7 @@ dependencies = [
  "png 0.18.1",
  "serde",
  "thiserror 2.0.21",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -6570,7 +6570,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3d1e2c7f27f8d4cb10542a02c49005dbd6e93095799d6f3be745fae9f8fedd4"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -7230,9 +7230,9 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-hasgard"
-version = "0.6.9"
+version = "0.6.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "71784b9681c498dad3093cf06e80c0479168b2fb385630584a8f09292e49877a"
+checksum = "e228b3deda6443491075e3cf4059651c85c55806e39895844faaabdaaedf463f"
 dependencies = [
  "base64 0.23.1",
  "block2",
@@ -8123,7 +8123,7 @@ dependencies = [
  "png 0.18.1",
  "serde",
  "thiserror 2.0.21",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -8201,7 +8201,7 @@ checksum = "f2f6fb2847f6742cd76af783a2a2c49e9375d0a111c7bef6f71cd9e738c72d6e"
 dependencies = [
  "memoffset",
  "tempfile",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -8778,7 +8778,7 @@ dependencies = [
  "objc2-foundation",
  "objc2-quartz-core",
  "raw-window-handle",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
  "windows-version",
 ]
 
@@ -9815,9 +9815,9 @@ dependencies = [
 
 [[package]]
 name = "zip"
-version = "9.7.2"
+version = "9.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "18d355ef4ea6fc9eaad04cae82d07c1329f643a5f94d10f35fc55b265f577829"
+checksum = "63e50f7b2212e4635244be3c363b53273d159f2523eb7db3096c1d2861c1b603"
 dependencies = [
  "constant_time_eq",
  "crc32fast",
@@ -9828,7 +9828,7 @@ dependencies = [
  "memchr",
  "nix 0.32.0",
  "typed-path",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
  "zeroize",
 ]
 

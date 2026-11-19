@@ -132,12 +132,12 @@ beforeEach(async () => {
           showHidden: required(args.showHidden),
           showIgnored: required(args.showIgnored)
         })
-      case "workspace_link": {
+      case "workspace_create_url": {
         const token = `token-${links.size + 1}`
         links.set(token, required(args.path))
         return token
       }
-      case "workspace_unlink":
+      case "workspace_revoke_url":
         return null
       case "workspace_move":
         return adapter.move(required(args.path), required(args.to))

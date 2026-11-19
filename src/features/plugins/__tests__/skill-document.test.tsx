@@ -32,8 +32,8 @@ afterEach(() => {
 test("reads the actual skill file through the shared filesystem plugin", async () => {
   const invoke = vi.mocked(core.invoke).mockImplementation((command) => {
     if (command === "plugin:alwith-fs|workspace_open") return Promise.resolve("/skills/research")
-    if (command === "plugin:alwith-fs|workspace_link") return Promise.resolve("token")
-    if (command === "plugin:alwith-fs|workspace_unlink") return Promise.resolve(null)
+    if (command === "plugin:alwith-fs|workspace_create_url") return Promise.resolve("token")
+    if (command === "plugin:alwith-fs|workspace_revoke_url") return Promise.resolve(null)
     return Promise.reject(new Error("Unexpected command"))
   })
   // The file is read by fetching the address the plugin gave it, then the address is given back.
@@ -41,12 +41,12 @@ test("reads the actual skill file through the shared filesystem plugin", async (
   vi.stubGlobal("fetch", fetched)
   expect(await readSkillDocument("/skills/research/SKILL.md")).toBe("# Instructions\nUse evidence.")
   expect(invoke).toHaveBeenCalledWith("plugin:alwith-fs|workspace_open", { path: "/skills/research" })
-  expect(invoke).toHaveBeenCalledWith("plugin:alwith-fs|workspace_link", {
+  expect(invoke).toHaveBeenCalledWith("plugin:alwith-fs|workspace_create_url", {
     root: "/skills/research",
     path: "/skills/research/SKILL.md"
   })
   expect(fetched.mock.calls[0]![0]).toContain("token/SKILL.md")
-  expect(invoke).toHaveBeenCalledWith("plugin:alwith-fs|workspace_unlink", { token: "token" })
+  expect(invoke).toHaveBeenCalledWith("plugin:alwith-fs|workspace_revoke_url", { token: "token" })
 })
 
 test("removes only leading frontmatter, preserving Markdown separators and fenced code", () => {
@@ -61,7 +61,7 @@ test("shows read errors and retries into rendered Markdown", async () => {
   vi.mocked(core.invoke).mockImplementation((command) => {
     if (failed) return Promise.reject(new Error("File unavailable"))
     if (command === "plugin:alwith-fs|workspace_open") return Promise.resolve("/skills")
-    if (command === "plugin:alwith-fs|workspace_link") return Promise.resolve("token")
+    if (command === "plugin:alwith-fs|workspace_create_url") return Promise.resolve("token")
     return Promise.resolve(null)
   })
   serve("---\nname: hidden-metadata\n---\n# Instructions\n\nUse **evidence**.")
@@ -77,7 +77,7 @@ test("shows read errors and retries into rendered Markdown", async () => {
 test("reopening a skill uses the cached document and invalidation reloads its content", async () => {
   const invoke = vi.mocked(core.invoke).mockImplementation((command) => {
     if (command === "plugin:alwith-fs|workspace_open") return Promise.resolve("/skills/research")
-    if (command === "plugin:alwith-fs|workspace_link") return Promise.resolve("token")
+    if (command === "plugin:alwith-fs|workspace_create_url") return Promise.resolve("token")
     return Promise.resolve(null)
   })
   serve("# Cached instructions")
