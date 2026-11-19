@@ -516,33 +516,32 @@ async function check(transport: "stdio" | "ws") {
 async function verifyUserInput(client: CodexClient, directory: string): Promise<void> {
   const id = await client.newSession(directory)
   try {
-    await client.setConfig(id, "collaboration_mode", "default")
+    await client.setConfig(id, "collaboration_mode", "plan")
     await client.prompt(id, [
       {
         type: "text",
-        text: 'UI integration test: use the request_user_input tool now, in Default mode. Ask exactly one question with id "choice", header "Scope", question "Which implementation should be used?", and two options labelled "Alpha" and "Beta" with short descriptions. Do not write the question as a prose message. Wait for my answer, then reply with exactly CHOICE_BETA if I chose Beta. Do not use other tools or change files.'
+        text: 'UI integration test: use the request_user_input tool now, in Plan mode. Ask exactly one question with id "choice", header "Scope", question "Which implementation should be used?", and two options labelled "Alpha" and "Beta" with short descriptions. Do not write the question as a prose message. Wait for my answer, then reply with exactly CHOICE_BETA if I chose Beta. Do not use other tools or change files.'
       }
     ])
     await until(
       () => client.state.actions.some((action) => action.sessionId === id),
       120_000,
-      "Default-mode structured question"
+      "Plan-mode structured question"
     )
     const action = client.state.actions.find((action) => action.sessionId === id)
     if (action?.kind !== "elicitation" || !isFormElicitation(action.params))
-      throw new Error(`Expected a structured question in Default mode, received: ${assistantText(client.session(id))}`)
+      throw new Error(`Expected a structured question in Plan mode, received: ${assistantText(client.session(id))}`)
     const choice = action.params.requestedSchema.properties?.choice
     if (!choice || !isStringProperty(choice) || !choice.oneOf?.some((option) => option.const === "Beta"))
       throw new Error("The structured question is missing its selectable Beta answer")
-    // Default-mode questions may be non-blocking; the pending request owns the form,
-    // independently of whether Runtime keeps the turn running while awaiting input.
+    // Plan-mode questions wait for an explicit answer before the turn continues.
     client.respond(action.id, { action: "accept", content: { choice: "Beta" } })
     await until(
       () => client.session(id).state === "idle" && assistantText(client.session(id)).includes("CHOICE_BETA"),
       120_000,
       "structured answer completion"
     )
-    console.log("question: Default mode emits an ACP form and receives the selected answer")
+    console.log("question: Plan mode emits an ACP form and receives the selected answer")
   } finally {
     await client.delete(id)
   }
@@ -551,6 +550,7 @@ async function verifyUserInput(client: CodexClient, directory: string): Promise<
 async function verifyAsyncUserInput(client: CodexClient, directory: string): Promise<void> {
   const id = await client.newSession(directory)
   try {
+    await client.setConfig(id, "collaboration_mode", "default")
     await client.prompt(id, [
       {
         type: "text",
