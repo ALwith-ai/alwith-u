@@ -7,6 +7,7 @@ import { defineConfig } from "vitest/config"
 export default defineConfig({
   test: {
     environment: "node",
+    pool: "threads",
     include: ["tests/contracts/**/*.contract.ts"],
     fileParallelism: false,
     bail: 1,

@@ -9,6 +9,7 @@ export default mergeConfig(
   defineConfig({
     test: {
       globals: true,
+      pool: "threads",
       // Leave CPU headroom for jsdom so concurrent component suites keep responsive timers.
       maxWorkers: "50%",
       // Browser storage belongs to each jsdom window, not Node's process-global Web Storage.
