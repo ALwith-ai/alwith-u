@@ -1038,6 +1038,7 @@
     "retry": "重试",
     "loadFailed": "文件加载失败",
     "previewTooLarge": "此文件过大，无法预览。你仍可在文件管理器中显示，或用系统应用打开。",
+    "openAnyway": "仍然打开",
     "iconTheme": "文件图标主题",
     "editorSettings": "编辑器设置",
     "fontSize": "字号",

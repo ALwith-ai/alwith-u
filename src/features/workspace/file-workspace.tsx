@@ -955,6 +955,7 @@ export function FileWorkspace({
     loading: t("workspace.loading"),
     loadFailed: t("workspace.loadFailed"),
     tooLarge: t("workspace.previewTooLarge"),
+    openAnyway: t("workspace.openAnyway"),
     retry: t("workspace.retry")
   }
   // The board belongs to the project; the other panes belong to a conversation.

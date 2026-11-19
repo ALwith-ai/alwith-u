@@ -376,7 +376,8 @@
     "emptyNewTab": "新しいタブ",
     "more": "その他の操作",
     "ignored": "Git で無視されたファイルを表示",
-    "previewTooLarge": "ファイルが大きすぎるためプレビューできません。PDF は 40 MiB まで対応しています。"
+    "previewTooLarge": "ファイルが大きすぎるためプレビューできません。",
+    "openAnyway": "このまま開く"
   },
   "vibemon": {
     "retry": "再試行",

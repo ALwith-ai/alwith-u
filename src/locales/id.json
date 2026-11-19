@@ -362,7 +362,8 @@
     "emptyNewTab": "Tab baru",
     "more": "Tindakan lainnya",
     "ignored": "Tampilkan file yang diabaikan Git",
-    "previewTooLarge": "File ini terlalu besar untuk dipratinjau. Pratinjau PDF mendukung file hingga 40 MiB."
+    "previewTooLarge": "File ini terlalu besar untuk dipratinjau.",
+    "openAnyway": "Tetap buka"
   },
   "vibemon": {
     "retry": "Coba lagi",
