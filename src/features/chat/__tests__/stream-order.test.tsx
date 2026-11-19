@@ -60,6 +60,46 @@ function precedes(before: Element, after: Element) {
   expect(before.compareDocumentPosition(after) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 }
 
+test.each([false, true])("a landed stop instruction precedes its streamed reply (early receipt: %s)", (early) => {
+  const turnId = "running-turn"
+  const opening = feed(
+    { ...createSession("stop-order", "/tmp"), state: "running" },
+    user("initial", "Check the implementation", turnId),
+    answer("previous", "Previous output", turnId)
+  )
+  let session = addPrompt(opening, [{ type: "text", text: "Stop making changes" }], "local-stop")
+  if (early) session = acknowledgePrompt(session, "local-stop", "stop")
+  session = feed(session, {
+    sessionUpdate: "user_message_chunk",
+    messageId: "stop",
+    content: { type: "text", text: "Stop making changes" },
+    _meta: { codex: { turnId } }
+  })
+  if (!early) session = acknowledgePrompt(session, "local-stop", "stop")
+  session = feed(
+    session,
+    {
+      ...answer("stopped", "", turnId),
+      _meta: { codex: { turnId, phase: "final_answer" } }
+    },
+    {
+      sessionUpdate: "agent_message_chunk",
+      messageId: "stopped",
+      content: { type: "text", text: "Changes stopped" },
+      _meta: { codex: { turnId, phase: "final_answer" } }
+    },
+    answer("stopped", "Changes stopped", turnId),
+    { sessionUpdate: "state_update", state: "idle", stopReason: "end_turn" },
+    user("follow-up", "Continue with the next change", "next-turn")
+  )
+  const view = renderTimeline(session)
+  const stop = view.getByText("Stop making changes")
+  const reply = view.getByText("Changes stopped")
+  precedes(view.getByText("Previous output"), stop)
+  precedes(stop, reply)
+  precedes(reply, view.getByText("Continue with the next change"))
+})
+
 test.each([false, true])(
   "manual compaction keeps its position after another question (history indexed: %s)",
   (indexed) => {
