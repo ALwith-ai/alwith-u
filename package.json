@@ -155,7 +155,7 @@
     "@types/semver": "^7.8.0",
     "@types/utif": "^3.0.6",
     "@vitejs/plugin-react": "^6.3.0",
-    "@vitest/browser-playwright": "^5.1.1",
+    "@vitest/browser-playwright": "5.1.0",
     "codemirror": "5.65.21",
     "embla-carousel": "^8.6.0",
     "jsdom": "^31.0.1",
@@ -165,7 +165,7 @@
     "storybook": "^10.6.7",
     "tailwindcss": "^4.3.5",
     "vite": "^8.3.8",
-    "vitest": "^5.1.1"
+    "vitest": "5.1.0"
   },
   "optionalDependencies": {
     "@oven/bun-darwin-aarch64": "1.4.4",
