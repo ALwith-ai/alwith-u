@@ -1,6 +1,7 @@
 import { requestVibemonView } from "@alwith/module-auth/vibemon/core"
 import { importDraft } from "@alwith/module-chat/conversation"
 
+import { resolveDriveFileLink } from "../../src/features/drive/files"
 import type { ChatTransfer } from "../../src/lib/chat-window"
 import type { Preferences } from "../../src/lib/preferences"
 import { PROJECT_DIRECTORY } from "./catalog"
@@ -37,6 +38,10 @@ export function serveChatSurface(callback: NonNullable<typeof handler>) {
     handler = null
   })
 }
+export const resolveChatDriveFile: typeof import("../../src/lib/chat-window").resolveChatDriveFile = (
+  _sessionId,
+  path
+) => resolveDriveFileLink(path)
 export async function announceChatReady() {
   const previous = initial.sessionId ? client.state.sessions[initial.sessionId] : null
   // Present successfully first, then reproduce a connection lost while the window is open.
