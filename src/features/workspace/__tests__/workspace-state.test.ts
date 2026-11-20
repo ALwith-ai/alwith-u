@@ -24,9 +24,19 @@ test("restores project tabs and tree preferences without persisting document bod
   expect(localStorage.getItem("workspace:/a")).not.toContain("text")
 })
 
-test("rejects stored paths outside the project and malformed preferences", async () => {
-  localStorage.setItem("workspace:/a", JSON.stringify({ tabs: [{ path: "/b/private.txt", pinned: true }] }))
-  await expect(createWorkspaceStateStore().load("/a")).rejects.toThrow()
+test("restores outside preview tabs while keeping expanded directories within the project", async () => {
+  const store = createWorkspaceStateStore()
+  const state = {
+    tabs: [{ path: "/b/preview.txt", pinned: true }],
+    tabLayout: { tabs: [{ kind: "file" as const, path: "/b/preview.txt" }], activeIndex: 0 },
+    activePath: "/b/preview.txt",
+    expanded: ["/a", "/a/docs"],
+    showIgnored: false,
+    iconTheme: "vscode-icons" as const
+  }
+  await store.save("/a", state)
+  expect(await store.load("/a")).toEqual(state)
+  await expect(store.save("/a", { ...state, expanded: ["/a", "/b"] })).rejects.toThrow("Invalid workspace preferences")
 })
 
 test("retired per-project hidden visibility cannot override the global preference", async () => {
@@ -62,7 +72,7 @@ test("propagates failed persistence and allows a later save", async () => {
   write.mockRestore()
 })
 
-test("rejects malformed mixed-tab state and paths escaping the workspace", async () => {
+test("rejects malformed mixed-tab state and relative file tabs", async () => {
   const state = {
     tabs: [],
     activePath: null,
@@ -71,7 +81,7 @@ test("rejects malformed mixed-tab state and paths escaping the workspace", async
     iconTheme: "vscode-icons"
   }
   for (const tabLayout of [
-    { tabs: [{ kind: "file", path: "/b/secret.txt" }], activeIndex: 0 },
+    { tabs: [{ kind: "file", path: "../b/secret.txt" }], activeIndex: 0 },
     { tabs: [{ kind: "new" }], activeIndex: 1 },
     { tabs: [{ kind: "new" }], activeIndex: -1 },
     { tabs: [{ kind: "unknown" }], activeIndex: 0 },

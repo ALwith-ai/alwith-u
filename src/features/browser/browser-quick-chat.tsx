@@ -1,5 +1,6 @@
 import { type Session } from "@alwith/module-chat/client"
 import { ConversationView } from "@alwith/module-chat/conversation"
+import { RUN_STATE_COLOR } from "@alwith/module-chat/session-list"
 import { ChevronDown, GripVertical, MessageCircle, Plus } from "lucide-react"
 import { memo, type PointerEvent as ReactPointerEvent, useEffect, useLayoutEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -12,8 +13,10 @@ import { ChatComposer } from "@/features/chat/composer"
 import { MainInputModeProvider } from "@/features/chat/composer/input-mode"
 import { FilePreviewModal } from "@/features/chat/dialogs/file-preview-modal"
 import { ChatDirectoryContext } from "@/features/chat/file-actions"
-import { client, markRead, useApp, useSession } from "@/lib/client"
+import { client, useApp, useSession } from "@/lib/client"
+import { useReadVisibleSession } from "@/lib/use-read-visible-session"
 import { cn } from "@/lib/utils"
+import { useWindowFocus } from "@/lib/window-focus"
 
 import {
   nearestQuickChatCorner,
@@ -82,6 +85,8 @@ export function BrowserQuickChat({ active }: { active: boolean }) {
   const session = useSession(state.sessionId)
   const connection = useApp((s) => s.connection)
   const record = useApp((s) => (state.sessionId === null ? undefined : s.runStates[state.sessionId]))
+  const focused = useWindowFocus()
+  useReadVisibleSession(state.sessionId, active && state.expanded && focused)
   const root = useRef<HTMLDivElement>(null)
   const surface = useRef<HTMLDivElement>(null)
   const panel = useRef<HTMLDivElement>(null)
@@ -238,17 +243,6 @@ export function BrowserQuickChat({ active }: { active: boolean }) {
     if (!active || !state.expanded || busy || !session?.attached || session.restoring) return
     surface.current?.querySelector<HTMLElement>('[contenteditable="true"], textarea')?.focus({ preventScroll: true })
   }, [active, state.expanded, busy, session?.id, session?.attached, session?.restoring])
-  useEffect(() => {
-    if (
-      active &&
-      state.expanded &&
-      session?.attached &&
-      !session.restoring &&
-      record?.state === "done" &&
-      document.hasFocus()
-    )
-      void markRead(session.id, record.version).catch((failure: unknown) => setError(String(failure)))
-  }, [active, state.expanded, session?.attached, session?.restoring, session?.id, record?.state, record?.version])
   useEffect(() => {
     const cancel = () => {
       const g = gesture.current
@@ -590,12 +584,8 @@ export function BrowserQuickChat({ active }: { active: boolean }) {
             <span
               aria-label={t(`browser.quickChat.${record.state}`)}
               className={cn(
-                "absolute top-0 right-0 size-2.5 rounded-full border border-background",
-                record.state === "requires_action"
-                  ? "bg-red-500"
-                  : record.state === "running"
-                    ? "bg-yellow-500"
-                    : "bg-primary"
+                "absolute inset-e-[5px] top-[5px] size-2.5 rounded-full border border-background",
+                RUN_STATE_COLOR[record.state]
               )}
             />
           )}

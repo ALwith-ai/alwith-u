@@ -16,6 +16,36 @@ export interface WorkspaceFileHost {
   readFile: (path: string) => Promise<Uint8Array>
   openTarget: (path: string) => Promise<void>
 }
+interface WorkspaceFileOptions {
+  keepLargeFiles?: boolean
+  openWeb?: (url: string) => Promise<void>
+}
+export type DriveFileDestination = { type: "file"; path: string } | { type: "web"; url: string }
+
+export function isDriveFileLink(path: string): boolean {
+  return /\.yupcloud$/i.test(path) || isYuplinkName(path)
+}
+
+export async function resolveDriveFileLink(path: string): Promise<DriveFileDestination | null> {
+  if (!isDriveFileLink(path)) throw new Error("Expected a Drive file link")
+  let destination: DriveFileDestination | null = null
+  const file = await prepareWorkspaceFile(
+    path,
+    {
+      readFile: async (target) => (await driveFileSystem(target)).readFile(target),
+      openTarget: async (target) => {
+        destination = { type: "file", path: target }
+      }
+    },
+    {
+      keepLargeFiles: true,
+      openWeb: async (url) => {
+        destination = { type: "web", url }
+      }
+    }
+  )
+  return file === null ? destination : { type: "file", path: file }
+}
 
 export function safeDriveWebUrl(raw: string): string {
   const url = new URL(raw)
@@ -26,7 +56,11 @@ export function safeDriveWebUrl(raw: string): string {
 }
 
 /** Resolve shortcut identity from the native index; shortcut names and stored URLs may be stale. */
-export async function prepareWorkspaceFile(path: string, host?: WorkspaceFileHost): Promise<string | null> {
+export async function prepareWorkspaceFile(
+  path: string,
+  host?: WorkspaceFileHost,
+  options: WorkspaceFileOptions = {}
+): Promise<string | null> {
   const generation = drive.getSnapshot().snapshot?.generation
   const checkProfile = (): void => {
     if (drive.getSnapshot().snapshot?.generation !== generation) {
@@ -53,7 +87,7 @@ export async function prepareWorkspaceFile(path: string, host?: WorkspaceFileHos
       const stat = await fs.stat(path)
       checkProfile()
       if (stat?.kind === "file") {
-        if (stat.size > maxEditorBytes && !isPdfPreview(path)) {
+        if (!options.keepLargeFiles && stat.size > maxEditorBytes && !isPdfPreview(path)) {
           await openExternal(path)
           return null
         }
@@ -64,10 +98,10 @@ export async function prepareWorkspaceFile(path: string, host?: WorkspaceFileHos
       ? path
       : await prepareDriveFile(drive, path, {
           maxEditorBytes,
-          openLargeFilesExternally: !isPdfPreview(path),
+          openLargeFilesExternally: !options.keepLargeFiles && !isPdfPreview(path),
           confirmDownload: async (name, bytes) => {
             const accepted = await confirm(
-              `Download ${name} (${bytes} bytes)?${isPdfPreview(path) ? "" : " Files larger than 16 MiB open in the system application."}`,
+              `Download ${name} (${bytes} bytes)?${options.keepLargeFiles || isPdfPreview(path) ? "" : " Files larger than 16 MiB open in the system application."}`,
               {
                 title: "Drive"
               }
@@ -127,7 +161,7 @@ export async function prepareWorkspaceFile(path: string, host?: WorkspaceFileHos
         ? "Drive lookup is unavailable; opening the file on the web"
         : "This file is not available locally; opening it on the web"
     )
-    await openExternal(safe)
+    await (options.openWeb ?? openExternal)(safe)
     return null
   }
   throw new Error("Drive shortcut chain exceeds the limit")

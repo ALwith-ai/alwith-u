@@ -3,7 +3,10 @@ import { createSession, type MessageItem } from "@alwith/module-chat/client"
 
 import { client } from "@/lib/client"
 
-export function installQuickChatFixture() {
+export function installQuickChatFixture({
+  cwd = "/tmp/browser-chat-fixture",
+  reply = "浏览器聊天已连接。"
+}: { cwd?: string; reply?: string } = {}) {
   client.session = (id) => {
     const session = client.state.sessions[id]
     if (!session) throw Error(`Unknown fixture conversation ${id}`)
@@ -14,14 +17,14 @@ export function installQuickChatFixture() {
     client.store.setState({ connection: "ready" })
   }
   client.refreshProjectContext = async () => ({
-    homeDirectory: "/tmp/browser-chat-fixture",
-    codexChatDirectory: "/tmp/browser-chat-fixture",
-    chatDirectory: "/tmp/browser-chat-fixture",
+    homeDirectory: cwd,
+    codexChatDirectory: cwd,
+    chatDirectory: cwd,
     projects: []
   })
   client.newSession = async () => {
     const id = `browser-fixture-${crypto.randomUUID()}`
-    const session = { ...createSession(id, "/tmp/browser-chat-fixture"), attached: true }
+    const session = { ...createSession(id, cwd), attached: true }
     client.store.setState((state) => ({ sessions: { ...state.sessions, [id]: session } }))
     return id
   }
@@ -61,7 +64,7 @@ export function installQuickChatFixture() {
       {
         id: crypto.randomUUID(),
         kind: "assistant",
-        content: [{ type: "text", text: "浏览器聊天已连接。" }],
+        content: [{ type: "text", text: reply }],
         at: 0,
         replayed: false,
         _meta: null,

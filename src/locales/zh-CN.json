@@ -1437,6 +1437,7 @@
     "print": "打印…"
   },
   "browser": {
+    "embeddedUnavailable": "当前后端不支持内嵌浏览器。",
     "permission": {
       "Camera": "摄像头",
       "Microphone": "麦克风",

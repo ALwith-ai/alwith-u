@@ -127,6 +127,8 @@ function initialState(request?: PreviewRequest): State {
 /** Each tab keeps its real CEF surface mounted; selection changes only visibility. */
 export function BrowserWorkspace({
   request,
+  chatLinks,
+  onConsumeChatLinks,
   sessionTitles,
   revealRequest = 0,
   active,
@@ -135,6 +137,8 @@ export function BrowserWorkspace({
   onClose
 }: {
   request?: PreviewRequest
+  chatLinks?: readonly { id: string; url: string }[]
+  onConsumeChatLinks?: (ids: readonly string[]) => void
   sessionTitles?: Readonly<Record<string, string | null | undefined>>
   revealRequest?: number
   active: boolean
@@ -323,6 +327,17 @@ export function BrowserWorkspace({
     lastRequest.current = request.id
     add({ id: request.id, title: new URL(request.url).hostname, request })
   }, [request])
+  useEffect(() => {
+    if (!chatLinks?.length) return
+    setState((state) => {
+      const tabs = chatLinks
+        .filter((link) => !state.tabs.some((tab) => tab.id === link.id))
+        .map(({ id, url }): Tab => ({ id, url, initialUrl: url, title: new URL(url).hostname }))
+      const last = tabs.at(-1)
+      return last ? select({ ...state, tabs: [...state.tabs, ...tabs] }, last.id) : state
+    })
+    onConsumeChatLinks?.(chatLinks.map((link) => link.id))
+  }, [chatLinks, onConsumeChatLinks])
   const close = (match: { id?: string; label?: string }) =>
     setState((state) => {
       const index = state.tabs.findIndex((tab) => (match.id ? tab.id === match.id : tab.label === match.label))

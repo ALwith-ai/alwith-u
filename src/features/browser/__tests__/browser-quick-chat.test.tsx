@@ -1,13 +1,34 @@
 import { mockOf } from "@/test/mock-of"
 import "./language"
+import type { SessionRunState } from "@alwith/api"
+import { applyUpdate, createSession } from "@alwith/module-chat/client"
 import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
+
+import { ThemeProvider } from "@/components/theme-provider"
+import * as clientModule from "@/lib/client"
 
 import { BrowserQuickChat } from "../browser-quick-chat"
 import { useBrowserQuickChat } from "../quick-chat-state"
 
 vi.mock("../quick-chat-session", () => ({ prepareBrowserChat: vi.fn(async () => {}) }))
+vi.mock("@/features/chat/codex/navigation-audio", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/features/chat/codex/navigation-audio")>()),
+  preloadTimelineUserMessageNavigationInstrument: vi.fn()
+}))
+const windowFocus = vi.hoisted(() => ({ onChange: (_event: { payload: boolean }) => {} }))
+vi.mock("@tauri-apps/api/webviewWindow", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@tauri-apps/api/webviewWindow")>()),
+  getCurrentWebviewWindow: () => ({
+    isFocused: async () => false,
+    onFocusChanged: async (callback: typeof windowFocus.onChange) => {
+      windowFocus.onChange = callback
+      return () => {}
+    }
+  })
+}))
 const original = useBrowserQuickChat.getState()
+const originalClient = clientModule.client.state
 class Pointer extends MouseEvent {
   readonly pointerId: number
   constructor(type: string, options: PointerEventInit = {}) {
@@ -47,6 +68,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   useBrowserQuickChat.setState(original, true)
+  clientModule.client.store.setState(originalClient, true)
   vi.useRealTimers()
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
@@ -140,6 +162,59 @@ test("opening the browser starts collapsed without changing its conversation", a
   view.rerender(<BrowserQuickChat active />)
   expect(useBrowserQuickChat.getState().expanded).toBe(false)
   expect(view.getByRole("button", { name: "展开浏览器聊天" })).toBeEnabled()
+})
+
+test("a completed browser chat stays blue until its response is visible in the focused window", async () => {
+  const sessionId = "browser"
+  const session = applyUpdate(
+    { ...createSession(sessionId, "/tmp"), attached: true },
+    {
+      sessionUpdate: "agent_message",
+      messageId: "reply",
+      content: [{ type: "text", text: "Browser reply" }]
+    }
+  )
+  const done: SessionRunState = {
+    sessionId,
+    state: "done",
+    version: 7,
+    reusableDraft: false,
+    owner: "",
+    cwd: session.cwd,
+    title: "Browser chat",
+    since: 0,
+    lastActivityAt: 0,
+    interruption: null,
+    tasks: [],
+    listeningPorts: [],
+    executionId: null,
+    executionRole: null
+  }
+  const markRead = vi.spyOn(clientModule, "markRead").mockResolvedValue()
+  vi.spyOn(document, "hasFocus").mockReturnValue(false)
+  clientModule.client.store.setState({ sessions: { [sessionId]: session } })
+  clientModule.client.applyRunStates([done])
+  useBrowserQuickChat.setState({ sessionId, cwd: session.cwd })
+  const view = render(<BrowserQuickChat active />, { wrapper: ThemeProvider })
+  const launch = view.getByRole("button", { name: "展开浏览器聊天" })
+  expect(view.getByLabelText("未读回复")).toHaveClass("bg-blue-500")
+  act(() => windowFocus.onChange({ payload: true }))
+  expect(markRead).not.toHaveBeenCalled()
+
+  act(() => windowFocus.onChange({ payload: false }))
+  fireEvent.click(launch)
+  await waitFor(() => expect(view.container.querySelector('[aria-busy="true"]')).toBeNull())
+  expect(markRead).not.toHaveBeenCalled()
+
+  act(() => windowFocus.onChange({ payload: true }))
+  expect(markRead).toHaveBeenCalledExactlyOnceWith(sessionId, 7)
+  expect(clientModule.client.state.runStates[sessionId]?.state).toBe("done")
+
+  act(() => clientModule.client.applyRunStates([{ ...done, state: "running", version: 8 }]))
+  act(() => clientModule.client.applyRunStates([{ ...done, version: 9 }]))
+  expect(markRead.mock.calls).toEqual([[sessionId, 7], [sessionId, 9]])
+  act(() => clientModule.client.applyRunStates([{ ...done, state: "idle", version: 10 }]))
+  expect(view.queryByLabelText("未读回复")).toBeNull()
 })
 
 test("Escape cancels queued drag frames without saving a different anchor", async () => {

@@ -1,19 +1,19 @@
 import { commands as chatCommands } from "@alwith/module-chat/commands"
-import { containsPath, dirname } from "@alwith/module-fs"
-import { commands as fsCommands } from "@alwith/module-fs/commands"
 import { createContext, useCallback, useContext } from "react"
 import { toast } from "sonner"
 
-import { useWorkspace } from "@/features/workspace/context"
-import { fileLocationPath, openExternal, openExternalEntry, openHtmlInBrowser, openLocalPath } from "@/lib/open"
+import { type FilePosition, useWorkspace } from "@/features/workspace/context"
+import { fileLocationPath, openExternal, openLocalPath } from "@/lib/open"
 import { isMac } from "@/lib/platform"
-
-import { openFilePreview } from "./dialogs/file-preview-modal"
 
 // Scope relative file references to their owning session, including inactive chats.
 export const ChatDirectoryContext = createContext<string | null>(null)
 /** Opens another session of the current agent in this surface, such as a subagent named in the chat. */
 export const ChatOpenSessionContext = createContext<((sessionId: string, title: string) => void) | null>(null)
+export const ChatOpenWebLinkContext = createContext<((url: string) => Promise<void>) | null>(null)
+export const ChatOpenLocalLinkContext = createContext<
+  ((path: string, position?: FilePosition) => Promise<void>) | null
+>(null)
 
 export function resolveChatLink(target: string, cwd: string | null): string {
   const relativeLocation = /^[^/\\:]+:\d+(?::\d+)?(?:[-–]\d+(?::\d+)?)?$/.test(target)
@@ -32,6 +32,8 @@ export function resolveChatLink(target: string, cwd: string | null): string {
 export function useOpenChatLink(): (target: string) => void {
   const cwd = useContext(ChatDirectoryContext)
   const workspace = useWorkspace()
+  const openWeb = useContext(ChatOpenWebLinkContext)
+  const openLocal = useContext(ChatOpenLocalLinkContext)
   return useCallback(
     (target: string): void => {
       void (async () => {
@@ -60,21 +62,14 @@ export function useOpenChatLink(): (target: string) => void {
                   column: Math.max(1, Number(location[2] ?? location[4] ?? 1))
                 }
           const target = fileLocationPath(value)
-          if (isMac() && /\.app\/?$/i.test(target)) await openExternal(url)
-          else if (cwd === null || !containsPath(cwd, target)) await openExternalEntry(target)
-          else if (workspace !== null) await workspace.openFile(target, cwd, position)
-          else {
-            const root = await fsCommands.workspaceOpen({ path: dirname(target) })
-            const stat = await fsCommands.workspaceStat({ root, path: target })
-            if (stat === null) throw new Error(`Path does not exist: ${target}`)
-            if (stat.kind === "directory") await openLocalPath(target)
-            else if (/\.html?$/i.test(target)) await openHtmlInBrowser(target)
-            else openFilePreview(target, position)
-          }
-        } else await openExternal(url)
+          if (openLocal !== null) await openLocal(target, position)
+          else if (workspace === null || (isMac() && /\.app\/?$/i.test(target))) await openLocalPath(target)
+          else await (workspace.openChatFile ?? workspace.openFile)(target, cwd, position)
+        } else if (openWeb !== null && /^https?:\/\//i.test(url)) await openWeb(url)
+        else await openExternal(url)
       })().catch((error: unknown) => toast.error(error instanceof Error ? error.message : String(error)))
     },
-    [cwd, workspace]
+    [cwd, workspace, openWeb, openLocal]
   )
 }
 

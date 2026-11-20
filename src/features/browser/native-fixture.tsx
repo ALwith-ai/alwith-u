@@ -64,9 +64,29 @@ function Fixture() {
 }
 // The contract scripts ask for controls by their Chinese names.
 await initI18n("zh-CN")
-const workspaceDirectory = new URLSearchParams(location.search).get("html-preview-workspace")
+const parameters = new URLSearchParams(location.search)
+const workspaceDirectory = parameters.get("html-preview-workspace")
+const linksDirectory = parameters.get("chat-links-workspace")
 let content
-if (workspaceDirectory === null) {
+if (linksDirectory !== null) {
+  const { ChatLinksFixture } = await import("../workspace/chat-links-fixture")
+  const outside = parameters.get("outside")
+  const web = parameters.get("web")
+  if (!outside || !web) throw new Error("The chat link fixture needs outside and remote targets")
+  if (parameters.get("browser-quick-links") === "1") {
+    const next = new URL(web)
+    next.searchParams.set("surface", "quick-chat")
+    installQuickChatFixture({
+      cwd: outside,
+      reply: [
+        `[Quick project file](file://${encodeURI(linksDirectory)}/folder/inside.txt#L2)`,
+        "[Quick outside file](outside.txt:2:1)",
+        `[Quick web link](${next.href})`
+      ].join("\n\n")
+    })
+  }
+  content = <ChatLinksFixture directory={linksDirectory} outside={outside} web={web} />
+} else if (workspaceDirectory === null) {
   installQuickChatFixture()
   content = <Fixture />
 } else {

@@ -59,7 +59,7 @@ export const FolderContextMenu: Story = {
     const target = await canvas.findByRole("treeitem", { name: /assets/ })
     const rect = target.getBoundingClientRect()
     await userEvent.pointer({ keys: "[MouseRight]", target, coords: { clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2 } })
-    await within(canvasElement.ownerDocument.body).findByRole("menuitem", { name: "新建文件夹" })
+    await within(canvasElement.ownerDocument.body).findByRole("menuitem", { name: "在这个文件夹里对话" })
   }
 }
 export const FileContextMenu: Story = {

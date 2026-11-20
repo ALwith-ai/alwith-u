@@ -8,32 +8,34 @@ import { afterEach, expect, test, vi } from "vitest"
 import { WorkspaceContext } from "@/features/workspace/context"
 import * as platform from "@/lib/platform"
 
-import * as preview from "../dialogs/file-preview-modal"
-import { ChatDirectoryContext, useOpenChatLink } from "../file-actions"
+import { ChatDirectoryContext, ChatOpenWebLinkContext, useOpenChatLink } from "../file-actions"
 
 vi.mock("@tauri-apps/plugin-opener", async (original) => ({ ...(await original<object>()) }))
 vi.mock("@/lib/platform", async (original) => ({ ...(await original<object>()) }))
-vi.mock("../dialogs/file-preview-modal", () => ({ openFilePreview: vi.fn() }))
 
 afterEach(() => vi.restoreAllMocks())
 
 function setup() {
   vi.spyOn(platform, "isMac").mockReturnValue(true)
   const open = vi.spyOn(opener, "openPath").mockResolvedValue()
-  vi.spyOn(fsCommands, "workspaceOpen").mockImplementation(async ({ path }) => path)
-  vi.spyOn(fsCommands, "workspaceStat").mockResolvedValue({ kind: "file", size: 100, version: "1" })
-  const reveal = vi.spyOn(opener, "revealItemsInDir").mockResolvedValue()
   const openFile = vi.fn().mockResolvedValue(undefined)
   const wrapper = ({ children }: PropsWithChildren) => (
     <ChatDirectoryContext value="/repo">
       <WorkspaceContext
-        value={{ visible: false, toggle: vi.fn(), openFile, openProject: vi.fn(), revealEntry: vi.fn() }}
+        value={{
+          visible: false,
+          toggle: vi.fn(),
+          openFile: vi.fn(),
+          openChatFile: openFile,
+          openProject: vi.fn(),
+          revealEntry: vi.fn()
+        }}
       >
         {children}
       </WorkspaceContext>
     </ChatDirectoryContext>
   )
-  return { ...renderHook(useOpenChatLink, { wrapper }), open, openFile, reveal }
+  return { ...renderHook(useOpenChatLink, { wrapper }), open, openFile }
 }
 
 test.each([
@@ -46,7 +48,6 @@ test.each([
   act(() => result.current(link))
   await waitFor(() => expect(open).toHaveBeenCalledExactlyOnceWith("/repo/build/ALwith U Dev.app"))
   expect(openFile).not.toHaveBeenCalled()
-  expect(preview.openFilePreview).not.toHaveBeenCalled()
 })
 
 test("files inside an application bundle still open in the editor with their line position", async () => {
@@ -62,24 +63,16 @@ test("files inside an application bundle still open in the editor with their lin
 })
 
 test.each(["/outside/report.txt:9:4", "file:///outside/report.txt#L9C4", "FILE:///outside/report.txt#L9C4"])(
-  "outside files reveal in the system file manager without changing the project: %s",
+  "the main chat passes outside files and their position to the workspace: %s",
   async (link) => {
-    const { result, openFile, open, reveal } = setup()
+    const { result, openFile, open } = setup()
     act(() => result.current(link))
-    await waitFor(() => expect(reveal).toHaveBeenCalledExactlyOnceWith("/outside/report.txt"))
-    expect(openFile).not.toHaveBeenCalled()
+    await waitFor(() =>
+      expect(openFile).toHaveBeenCalledExactlyOnceWith("/outside/report.txt", "/repo", { lineNumber: 9, column: 4 })
+    )
     expect(open).not.toHaveBeenCalled()
-    expect(preview.openFilePreview).not.toHaveBeenCalled()
   }
 )
-
-test("outside directories use the system file manager even with an HTML extension", async () => {
-  const { result, openFile, open } = setup()
-  vi.mocked(fsCommands.workspaceStat).mockResolvedValue({ kind: "directory", size: 0, version: "1" })
-  act(() => result.current("/outside/directory.html"))
-  await waitFor(() => expect(open).toHaveBeenCalledExactlyOnceWith("/outside/directory.html"))
-  expect(openFile).not.toHaveBeenCalled()
-})
 
 test.each([
   "http://localhost:5173/",
@@ -113,30 +106,37 @@ test.each([
   expect(open).not.toHaveBeenCalled()
 })
 
-test("surfaces without a file workspace still classify directories before opening", async () => {
-  const root = vi.spyOn(fsCommands, "workspaceOpen").mockResolvedValue("/repo")
-  const stat = vi.spyOn(fsCommands, "workspaceStat").mockResolvedValue({ kind: "directory", size: 0, version: "1" })
-  const open = vi.spyOn(opener, "openPath").mockResolvedValue()
+test.each(["folder", "report.html", "report.pdf", "archive.zip", "source.ts:9:4"])(
+  "the floating chat delegates %s to the system without opening a workspace",
+  async (link) => {
+    const root = vi.spyOn(fsCommands, "workspaceOpen")
+    const open = vi.spyOn(opener, "openPath").mockResolvedValue()
+    const wrapper = ({ children }: PropsWithChildren) => (
+      <ChatDirectoryContext value="/repo">{children}</ChatDirectoryContext>
+    )
+    const { result } = renderHook(useOpenChatLink, { wrapper })
+    act(() => result.current(link))
+    await waitFor(() => expect(open).toHaveBeenCalledExactlyOnceWith(`/repo/${link.split(":")[0]}`))
+    expect(root).not.toHaveBeenCalled()
+  }
+)
+
+test("the main chat opens an HTTP link through the embedded browser host", async () => {
+  const openWeb = vi.fn().mockResolvedValue(undefined)
+  const os = vi.spyOn(opener, "openUrl").mockResolvedValue()
   const wrapper = ({ children }: PropsWithChildren) => (
-    <ChatDirectoryContext value="/repo">{children}</ChatDirectoryContext>
+    <ChatOpenWebLinkContext value={openWeb}>{children}</ChatOpenWebLinkContext>
   )
   const { result } = renderHook(useOpenChatLink, { wrapper })
-  act(() => result.current("/repo/folder"))
-  await waitFor(() => expect(open).toHaveBeenCalledExactlyOnceWith("/repo/folder"))
-  expect(root).toHaveBeenCalledWith({ path: "/repo" })
-  expect(stat).toHaveBeenCalledWith({ root: "/repo", path: "/repo/folder" })
-  expect(preview.openFilePreview).not.toHaveBeenCalled()
+  act(() => result.current("www.example.com/report.pdf"))
+  await waitFor(() => expect(openWeb).toHaveBeenCalledExactlyOnceWith("https://www.example.com/report.pdf"))
+  expect(os).not.toHaveBeenCalled()
 })
 
-test("missing paths report their resolved location without opening a preview", async () => {
-  vi.spyOn(fsCommands, "workspaceOpen").mockResolvedValue("/repo")
-  vi.spyOn(fsCommands, "workspaceStat").mockResolvedValue(null)
+test("the floating chat reports a system open failure", async () => {
+  vi.spyOn(opener, "openPath").mockRejectedValue(new Error("File does not exist"))
   const error = vi.spyOn(toast, "error").mockImplementation(() => "error")
-  const wrapper = ({ children }: PropsWithChildren) => (
-    <ChatDirectoryContext value="/repo">{children}</ChatDirectoryContext>
-  )
-  const { result } = renderHook(useOpenChatLink, { wrapper })
-  act(() => result.current("missing.txt"))
-  await waitFor(() => expect(error).toHaveBeenCalledExactlyOnceWith("Path does not exist: /repo/missing.txt"))
-  expect(preview.openFilePreview).not.toHaveBeenCalled()
+  const { result } = renderHook(useOpenChatLink)
+  act(() => result.current("/repo/missing.txt"))
+  await waitFor(() => expect(error).toHaveBeenCalledExactlyOnceWith("File does not exist"))
 })

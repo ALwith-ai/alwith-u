@@ -114,6 +114,21 @@ beforeEach(() => {
   commands.length = 0
 })
 
+test("chat web links become ordinary browser tabs and are consumed together", () => {
+  const links = [
+    { id: "chat-1", url: "https://one.example/" },
+    { id: "chat-2", url: "https://two.example/report.pdf" }
+  ]
+  const consume = vi.fn()
+  const view = render(<BrowserWorkspace {...props} chatLinks={links} onConsumeChatLinks={consume} />)
+  expect(consume).toHaveBeenCalledExactlyOnceWith(["chat-1", "chat-2"])
+  expect(screen.getByRole("tab", { name: "two.example" })).toHaveAttribute("aria-selected", "true")
+  expect(panes()).toContain("https://two.example/report.pdf")
+  view.rerender(<BrowserWorkspace {...props} chatLinks={[]} onConsumeChatLinks={consume} />)
+  expect(screen.getAllByRole("tab", { name: "one.example" })).toHaveLength(1)
+  expect(screen.getAllByRole("tab", { name: "two.example" })).toHaveLength(1)
+})
+
 test("released AI pages retain their mounted pane and provenance group", async () => {
   render(
     <BrowserWorkspace {...props} request={{ id: "ai-release", url: "https://release.example/", sessionId: "a" }} />

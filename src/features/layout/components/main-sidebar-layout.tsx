@@ -13,14 +13,19 @@ import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { BrowserWorkspace } from "@/features/browser/browser-workspace"
 import { usePreviewRequest } from "@/features/browser/preview-request"
 import { useBrowserQuickChat } from "@/features/browser/quick-chat-state"
+import { ChatOpenLocalLinkContext, ChatOpenWebLinkContext } from "@/features/chat/file-actions"
 import { WorkspaceBrowserEntryContext } from "@/features/workspace/context"
 import { useRuntimeCapabilities } from "@/lib/runtime-capabilities"
 import "@nyssance/atlas/styles.css"
-import { type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react"
+import { type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
-import { type PreviewPane, PreviewPaneContext } from "@/features/workspace/preview-pane-context"
+import {
+  type OpenWorkspaceChatFile,
+  type PreviewPane,
+  PreviewPaneContext
+} from "@/features/workspace/preview-pane-context"
 import { openExternal } from "@/lib/open"
 import { savePreference } from "@/lib/preferences"
 import { useThreeFingerSwipeEnabled } from "@/lib/trackpad-preference"
@@ -77,6 +82,19 @@ export function MainSidebarLayout({
   const showBrowser = useCallback(() => {
     setBrowser((state) => ({ ...state, visited: true, hidden: false, revealRequest: state.revealRequest + 1 }))
   }, [])
+  const [chatLinks, setChatLinks] = useState<readonly { id: string; url: string }[]>([])
+  const openChatLink = useCallback(
+    async (url: string) => {
+      if (!capabilities?.embeddedBrowser) throw new Error(t("browser.embeddedUnavailable"))
+      const destination = new URL(url).href
+      setChatLinks((links) => [...links, { id: crypto.randomUUID(), url: destination }])
+      showBrowser()
+    },
+    [capabilities?.embeddedBrowser, showBrowser, t]
+  )
+  const consumeChatLinks = useCallback((ids: readonly string[]) => {
+    setChatLinks((links) => links.filter((link) => !ids.includes(link.id)))
+  }, [])
   const browserChatRequested = useBrowserQuickChat((state) => state.revealSessionId)
   useEffect(() => {
     if (browserChatRequested && capabilities?.embeddedBrowser) showBrowser()
@@ -97,7 +115,22 @@ export function MainSidebarLayout({
     setDetach(() => handler)
     return () => setDetach((current) => (current === handler ? undefined : current))
   }, [])
-  const previewPane = useMemo(() => ({ slot: previewSlot, show, registerDetach }), [previewSlot, show, registerDetach])
+  const workspaceChatFile = useRef<OpenWorkspaceChatFile | null>(null)
+  const registerOpenChatFile = useCallback((handler: OpenWorkspaceChatFile) => {
+    workspaceChatFile.current = handler
+    return () => {
+      if (workspaceChatFile.current === handler) workspaceChatFile.current = null
+    }
+  }, [])
+  const openBrowserChatFile = useCallback<OpenWorkspaceChatFile>(async (path, position) => {
+    const open = workspaceChatFile.current
+    if (!open) throw new Error("The main workspace is unavailable")
+    await open(path, position)
+  }, [])
+  const previewPane = useMemo(
+    () => ({ slot: previewSlot, show, registerDetach, registerOpenChatFile }),
+    [previewSlot, show, registerDetach, registerOpenChatFile]
+  )
   const labels = useMemo(
     () => ({
       pin: t("sidebar.pin"),
@@ -137,7 +170,13 @@ export function MainSidebarLayout({
           navigation={<NavigationOverlayBridge>{sidebar}</NavigationOverlayBridge>}
           leading={leading}
           panes={[
-            { id: "chat", title: t("chat.timeline"), children: main, min: 420, movable: true },
+            {
+              id: "chat",
+              title: t("chat.timeline"),
+              children: <ChatOpenWebLinkContext.Provider value={openChatLink}>{main}</ChatOpenWebLinkContext.Provider>,
+              min: 420,
+              movable: true
+            },
             {
               id: "preview",
               onDetach: detach,
@@ -160,20 +199,26 @@ export function MainSidebarLayout({
                     resizable: true,
                     movable: true,
                     children: browser.visited ? (
-                      <BrowserWorkspace
-                        request={previewRequest}
-                        sessionTitles={browserSessionTitles}
-                        revealRequest={browser.revealRequest}
-                        active={!browser.hidden}
-                        maximized={browser.maximized}
-                        onMaximize={() =>
-                          setBrowser((state) => ({
-                            ...state,
-                            maximized: !state.maximized
-                          }))
-                        }
-                        onClose={() => setBrowser((state) => ({ ...state, hidden: true }))}
-                      />
+                      <ChatOpenWebLinkContext.Provider value={openChatLink}>
+                        <ChatOpenLocalLinkContext.Provider value={openBrowserChatFile}>
+                          <BrowserWorkspace
+                            request={previewRequest}
+                            chatLinks={chatLinks}
+                            onConsumeChatLinks={consumeChatLinks}
+                            sessionTitles={browserSessionTitles}
+                            revealRequest={browser.revealRequest}
+                            active={!browser.hidden}
+                            maximized={browser.maximized}
+                            onMaximize={() =>
+                              setBrowser((state) => ({
+                                ...state,
+                                maximized: !state.maximized
+                              }))
+                            }
+                            onClose={() => setBrowser((state) => ({ ...state, hidden: true }))}
+                          />
+                        </ChatOpenLocalLinkContext.Provider>
+                      </ChatOpenWebLinkContext.Provider>
                     ) : null
                   }
                 ]

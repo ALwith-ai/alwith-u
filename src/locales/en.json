@@ -1437,6 +1437,7 @@
     "print": "Print…"
   },
   "browser": {
+    "embeddedUnavailable": "The embedded browser is unavailable on this backend.",
     "permission": {
       "Camera": "Camera",
       "Microphone": "Microphone",

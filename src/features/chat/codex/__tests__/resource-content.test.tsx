@@ -1,18 +1,16 @@
 import { addPrompt, createSession, type ToolItem } from "@alwith/module-chat/client"
 import { formatMentionUri } from "@alwith/module-chat/conversation"
 import { ResourceContent } from "@alwith/module-chat/resource-content"
-import { commands as fsCommands } from "@alwith/module-fs/commands"
 import * as core from "@tauri-apps/api/core"
 import * as opener from "@tauri-apps/plugin-opener"
 import { fireEvent, render, waitFor } from "@testing-library/react"
 import { toast } from "sonner"
-import { afterEach, beforeEach, expect, test, vi } from "vitest"
+import { afterEach, expect, test, vi } from "vitest"
 
 import { WorkspaceContext } from "@/features/workspace/context"
 import { initI18n } from "@/lib/i18n"
 
 import { ChatTimelineHost, renderTimeline, runningSession } from "../../__tests__/timeline-host"
-import * as preview from "../../dialogs/file-preview-modal"
 import { ImageLightbox } from "../../dialogs/image-lightbox"
 import { ChatDirectoryContext } from "../../file-actions"
 
@@ -22,12 +20,6 @@ vi.mock("@tauri-apps/plugin-opener", async (importOriginal) => ({ ...(await impo
 
 await initI18n("en")
 const mocks: Array<{ mockRestore(): void }> = []
-beforeEach(() => {
-  mocks.push(
-    vi.spyOn(fsCommands, "workspaceOpen").mockImplementation(async ({ path }) => path),
-    vi.spyOn(fsCommands, "workspaceStat").mockResolvedValue({ kind: "file", size: 100, version: "1" })
-  )
-})
 afterEach(() => {
   for (const mock of mocks.splice(0)) mock.mockRestore()
 })
@@ -51,9 +43,8 @@ test("generated images use a preview card and an icon download without size cont
 })
 
 test("file references preserve encoded names, bare line locations and reserved filename characters", async () => {
-  const path = vi.spyOn(preview, "openFilePreview").mockImplementation(() => {})
-  const reveal = vi.spyOn(opener, "revealItemsInDir").mockResolvedValue()
-  mocks.push(path, reveal)
+  const path = vi.spyOn(opener, "openPath").mockResolvedValue()
+  mocks.push(path)
   const refs = [
     "README.md:12",
     "100%.pdf",
@@ -73,13 +64,13 @@ test("file references preserve encoded names, bare line locations and reserved f
   for (const uri of refs) fireEvent.click(view.getByRole("button", { name: uri }))
   await waitFor(() =>
     expect(path.mock.calls).toEqual([
-      ["/tmp/project%20/README.md", { lineNumber: 12, column: 1 }],
-      ["/tmp/project%20/100%.pdf", undefined],
-      ["/tmp/project%20/reports/report one.pdf", undefined],
-      ["/tmp/project%20/reports/报告.pdf", undefined]
+      ["/tmp/project%20/README.md"],
+      ["/tmp/project%20/100%.pdf"],
+      ["/tmp/project%20/reports/report one.pdf"],
+      ["/tmp/project%20/reports/报告.pdf"],
+      ["/tmp/a#b?c.pdf"]
     ])
   )
-  await waitFor(() => expect(reveal).toHaveBeenCalledWith("/tmp/a#b?c.pdf"))
 })
 
 test("download passes the exact payload to the native save dialog and reports failure", async () => {
@@ -121,7 +112,7 @@ test("Blob images open the lightbox and undecodable images retain the download a
 })
 
 test("user references are clickable and resolve against their own thread directory", async () => {
-  const path = vi.spyOn(preview, "openFilePreview").mockImplementation(() => {})
+  const path = vi.spyOn(opener, "openPath").mockResolvedValue()
   const error = vi.spyOn(toast, "error").mockImplementation(() => "error")
   mocks.push(path, error)
   const session = addPrompt(
@@ -131,12 +122,12 @@ test("user references are clickable and resolve against their own thread directo
   )
   const view = renderTimeline(session)
   fireEvent.click(await view.findByRole("button", { name: "result.pdf" }))
-  await waitFor(() => expect(path).toHaveBeenCalledWith("/tmp/owner/reports/result.pdf", undefined))
+  await waitFor(() => expect(path).toHaveBeenCalledWith("/tmp/owner/reports/result.pdf"))
   expect(view.container.querySelector("img")?.getAttribute("src")).toBe("data:image/png;base64,aGVsbG8=")
 })
 
 test("tool resources expose Blob previews, file links and downloads", async () => {
-  const path = vi.spyOn(preview, "openFilePreview").mockImplementation(() => {})
+  const path = vi.spyOn(opener, "openPath").mockResolvedValue()
   mocks.push(path)
   const item: ToolItem = {
     id: "files",
@@ -170,7 +161,7 @@ test("tool resources expose Blob previews, file links and downloads", async () =
   expect(view.getAllByRole("button", { name: "Download movie.mp4" })).not.toHaveLength(0)
   expect(view.container.querySelector("video")).toBeNull()
   fireEvent.click(view.getAllByRole("button", { name: "report.pdf" })[0])
-  await waitFor(() => expect(path).toHaveBeenCalledWith("/tmp/report.pdf", undefined))
+  await waitFor(() => expect(path).toHaveBeenCalledWith("/tmp/report.pdf"))
 })
 
 test("file links deliver the decoded path and line/column to the workspace", async () => {
@@ -223,11 +214,10 @@ test("replayed user images render thumbnails above the body without attachment p
   expect(view.getByRole("dialog").querySelector("img")?.getAttribute("src")).toBe("data:image/png;base64,aGVsbG8=")
 })
 
-test("external file links reveal in the system file manager", async () => {
+test("outside resource links keep their position when opened by the main chat", async () => {
   const openFile = vi.fn().mockResolvedValue(undefined)
-  const openPreview = vi.spyOn(preview, "openFilePreview").mockImplementation(() => {})
-  const reveal = vi.spyOn(opener, "revealItemsInDir").mockResolvedValue()
-  mocks.push(openPreview, reveal)
+  const systemOpen = vi.spyOn(opener, "openPath").mockResolvedValue()
+  mocks.push(systemOpen)
   const view = render(
     <WorkspaceContext value={{ visible: true, toggle: vi.fn(), openFile, openProject: vi.fn(), revealEntry: vi.fn() }}>
       <ChatDirectoryContext value="/tmp/project">
@@ -244,9 +234,10 @@ test("external file links reveal in the system file manager", async () => {
     </WorkspaceContext>
   )
   fireEvent.click(view.getByRole("button", { name: "External file" }))
-  await waitFor(() => expect(reveal).toHaveBeenCalledWith("/tmp/outside/中文 #1.txt"))
-  expect(openPreview).not.toHaveBeenCalled()
-  expect(openFile).not.toHaveBeenCalled()
+  await waitFor(() =>
+    expect(openFile).toHaveBeenCalledWith("/tmp/outside/中文 #1.txt", "/tmp/project", { lineNumber: 2, column: 3 })
+  )
+  expect(systemOpen).not.toHaveBeenCalled()
 })
 
 test.each([false, true])("questionnaire replies hide metadata (local receipt: %s)", async (receipt) => {

@@ -3,6 +3,7 @@ import { emitTo } from "@tauri-apps/api/event"
 import { getCurrentWebviewWindow, WebviewWindow } from "@tauri-apps/api/webviewWindow"
 
 import { commands } from "@/bindings"
+import type { DriveFileDestination } from "@/features/drive/files"
 
 import { type ChatWindowSurface, useChatWindowSurface, useMainWindowSurface } from "./chat-window-state"
 import { client } from "./client"
@@ -19,8 +20,10 @@ type SurfaceAction =
   | { type: "markRead"; sessionId: string; version: number }
   | { type: "shortcut"; shortcut: string }
   | { type: "vibemon"; view: "pull" | "equip" }
-type SurfaceRequest = { id: string; from: "main" | "chat" | "settings"; action: SurfaceAction }
-type SurfaceResponse = { id: string; value: ChatTransfer | null; error: string | null }
+type DriveLinkRequest = { type: "resolveDriveFile"; sessionId: string | null; path: string }
+type SurfaceValue = ChatTransfer | DriveFileDestination | null
+type SurfaceRequest = { id: string; from: "main" | "chat" | "settings"; action: SurfaceAction | DriveLinkRequest }
+type SurfaceResponse<T = SurfaceValue> = { id: string; value: T; error: string | null }
 const REQUEST = "chat:surface-request"
 const RESPONSE = "chat:surface-response"
 const READY = "chat:surface-ready"
@@ -31,15 +34,29 @@ export function setChatWindowHostReady(ready: Promise<unknown>): void {
 }
 
 export async function requestChatSurface(target: "main" | "chat", action: SurfaceAction): Promise<ChatTransfer | null> {
+  return requestSurface<ChatTransfer | null>(target, action)
+}
+
+export async function resolveChatDriveFile(
+  sessionId: string | null,
+  path: string
+): Promise<DriveFileDestination | null> {
+  return requestSurface<DriveFileDestination | null>("main", { type: "resolveDriveFile", sessionId, path })
+}
+
+async function requestSurface<T extends SurfaceValue>(
+  target: "main" | "chat",
+  action: SurfaceRequest["action"]
+): Promise<T> {
   const id = crypto.randomUUID()
   const current = getCurrentWebviewWindow()
-  let settle!: (value: SurfaceResponse) => void
+  let settle!: (value: SurfaceResponse<T>) => void
   let fail!: (error: Error) => void
-  const response = new Promise<SurfaceResponse>((resolve, reject) => {
+  const response = new Promise<SurfaceResponse<T>>((resolve, reject) => {
     settle = resolve
     fail = reject
   })
-  const stop = await current.listen<SurfaceResponse>(RESPONSE, ({ payload }) => {
+  const stop = await current.listen<SurfaceResponse<T>>(RESPONSE, ({ payload }) => {
     if (payload.id === id) settle(payload)
   })
   const timer = setTimeout(() => fail(new Error("Chat window did not respond")), 60_000)
@@ -57,7 +74,8 @@ export async function requestChatSurface(target: "main" | "chat", action: Surfac
 }
 
 export async function serveChatSurface(
-  handler: (action: SurfaceAction) => Promise<ChatTransfer | null>
+  handler: (action: SurfaceAction) => Promise<ChatTransfer | null>,
+  resolveDriveFile?: (path: string) => Promise<DriveFileDestination | null>
 ): Promise<() => void> {
   const window = getCurrentWebviewWindow()
   const stop = await window.listen<SurfaceRequest>(
@@ -66,7 +84,7 @@ export async function serveChatSurface(
       void (async () => {
         if (!["main", "chat", "settings"].includes(payload.from)) return
         try {
-          let value: ChatTransfer | null = null
+          let value: SurfaceValue = null
           const action = payload.action
           if (action.type === "surface") {
             if (window.label !== "main" || payload.from !== "chat") throw new Error("Invalid chat surface sender")
@@ -98,6 +116,15 @@ export async function serveChatSurface(
             if (window.label !== "chat" || payload.from !== "main") throw new Error("Invalid chat surface inspection")
             const visible = (await window.isVisible()) && !(await window.isMinimized())
             await publishChatWindowSurface(useChatWindowSurface.getState().sessionId, visible)
+          } else if (action.type === "resolveDriveFile") {
+            if (window.label !== "main" || payload.from !== "chat" || !resolveDriveFile)
+              throw new Error("Invalid Drive file link sender")
+            if (
+              typeof action.path !== "string" ||
+              (action.sessionId !== null && client.state.sessionWindows[action.sessionId] !== "chat")
+            )
+              throw new Error("Invalid Drive file link")
+            value = await resolveDriveFile(action.path)
           } else value = await handler(action)
           await emitTo(payload.from, RESPONSE, { id: payload.id, value, error: null } satisfies SurfaceResponse)
         } catch (error) {

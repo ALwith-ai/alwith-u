@@ -13,6 +13,7 @@ import { usePlatformAuth } from "@/features/auth/store"
 import { ChatView } from "@/features/chat/chat-view"
 import { DRAFT_SESSION_ID, DraftChat } from "@/features/chat/draft-chat"
 import { chooseFolder } from "@/features/chat/draft-project-picker"
+import { ChatOpenLocalLinkContext } from "@/features/chat/file-actions"
 import { newChatDirectory } from "@/features/chat/new-chat-directory"
 import { ChatProjectMenu } from "@/features/chat/project-session-popover"
 import { ChatWindowVibemonButton } from "@/features/vibemon/chat-window-vibemon-button"
@@ -40,6 +41,7 @@ import { useWindowFocus } from "@/lib/window-focus"
 import { openSettingsWindow } from "@/lib/window-manager"
 
 import { chatWindowTransparency } from "./transparency-preference"
+import { openChatWindowFile } from "./file-links"
 import { useChatWindowBackdrop } from "./use-chat-window-backdrop"
 import { WindowResizeEdges } from "./window-resize-edges"
 
@@ -67,6 +69,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
   const [headerTarget, setHeaderTarget] = useState<HTMLDivElement | null>(null)
   const current = useRef({ selectedId, cwd })
   current.current = { selectedId, cwd }
+  const openFileLink = useCallback((path: string) => openChatWindowFile(path, current.current.selectedId), [])
   const connection = useApp((state) => state.connection)
   const session = useSession(selectedId)
   const draftSessions = useApp((state) => state.draftSessions)
@@ -408,55 +411,62 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
           </div>
         )}
       <div className="min-h-0 flex-1">
-        {ready &&
-          contentMounted &&
-          (selectedId === null ||
-          replacingDraft ||
-          draftSessions[selectedId] === "chat" ||
-          submittingDraftId === selectedId ? (
-            <DraftChat
-              owner="chat"
-              inputDisabled={busy}
-              headerTarget={headerTarget}
-              projectMenu={
-                <ChatProjectMenu cwd={cwd} currentSessionId={selectedId} onSelect={selectSession} onNewChat={newChat} />
-              }
-              onNewChat={newChat}
-              onNewProject={newProject}
-              onReturnToMain={returnToMain}
-              key={`draft-${generation}`}
-              cwd={cwd}
-              onCwdChange={setCwd}
-              onCreated={setSelectedId}
-              onVoiceHandoff={voiceHandoff.accept}
-              onSendingChange={(id, sending) =>
-                setSubmittingDraftId((current) => (sending ? id : current === id ? null : current))
-              }
-              onAuthRequired={() => void openSettingsWindow("provider")}
-              providerSnapshot={providers}
-            />
-          ) : session !== null ? (
-            <ChatView
-              key={`${session.id}-${generation}`}
-              session={session}
-              inputDisabled={busy}
-              voiceResume={voiceHandoff.resume}
-              headerTarget={headerTarget}
-              projectMenu={
-                <ChatProjectMenu
-                  cwd={session.cwd}
-                  currentSessionId={session.id}
-                  onSelect={selectSession}
-                  onNewChat={newChat}
-                />
-              }
-              onNewChat={newChat}
-              onNewProject={newProject}
-              onReturnToMain={returnToMain}
-              onSelectSession={selectSession}
-              onDeleted={deleted}
-            />
-          ) : null)}
+        <ChatOpenLocalLinkContext.Provider value={openFileLink}>
+          {ready &&
+            contentMounted &&
+            (selectedId === null ||
+            replacingDraft ||
+            draftSessions[selectedId] === "chat" ||
+            submittingDraftId === selectedId ? (
+              <DraftChat
+                owner="chat"
+                inputDisabled={busy}
+                headerTarget={headerTarget}
+                projectMenu={
+                  <ChatProjectMenu
+                    cwd={cwd}
+                    currentSessionId={selectedId}
+                    onSelect={selectSession}
+                    onNewChat={newChat}
+                  />
+                }
+                onNewChat={newChat}
+                onNewProject={newProject}
+                onReturnToMain={returnToMain}
+                key={`draft-${generation}`}
+                cwd={cwd}
+                onCwdChange={setCwd}
+                onCreated={setSelectedId}
+                onVoiceHandoff={voiceHandoff.accept}
+                onSendingChange={(id, sending) =>
+                  setSubmittingDraftId((current) => (sending ? id : current === id ? null : current))
+                }
+                onAuthRequired={() => void openSettingsWindow("provider")}
+                providerSnapshot={providers}
+              />
+            ) : session !== null ? (
+              <ChatView
+                key={`${session.id}-${generation}`}
+                session={session}
+                inputDisabled={busy}
+                voiceResume={voiceHandoff.resume}
+                headerTarget={headerTarget}
+                projectMenu={
+                  <ChatProjectMenu
+                    cwd={session.cwd}
+                    currentSessionId={session.id}
+                    onSelect={selectSession}
+                    onNewChat={newChat}
+                  />
+                }
+                onNewChat={newChat}
+                onNewProject={newProject}
+                onReturnToMain={returnToMain}
+                onSelectSession={selectSession}
+                onDeleted={deleted}
+              />
+            ) : null)}
+        </ChatOpenLocalLinkContext.Provider>
       </div>
     </main>
   )

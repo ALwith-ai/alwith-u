@@ -16,6 +16,7 @@ export interface WorkspaceActions {
   toggle: () => void
   /** Open project entries in this workspace; entries outside the owning project use system applications. */
   openFile: (path: string, root: string | null, position?: FilePosition) => Promise<void>
+  openChatFile?: (path: string, root: string | null, position?: FilePosition) => Promise<void>
   openProject: (path: string) => Promise<void>
   revealEntry: (path: string, root: string) => Promise<void>
 }

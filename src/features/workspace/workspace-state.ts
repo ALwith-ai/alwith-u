@@ -22,7 +22,9 @@ function decodeState(root: string, raw: string): WorkspaceState {
   const value: unknown = JSON.parse(raw)
   if (typeof value !== "object" || value === null) throw new Error("Invalid workspace preferences")
   const state = value as Record<string, unknown>
-  const validPath = (path: unknown): path is string => typeof path === "string" && containsPath(root, path)
+  const projectPath = (path: unknown): path is string => typeof path === "string" && containsPath(root, path)
+  const filePath = (path: unknown): path is string =>
+    typeof path === "string" && !path.includes("\0") && /^(?:\/|[A-Za-z]:[\\/]|\\\\)/.test(path)
   if (
     !Array.isArray(state.tabs) ||
     !(state.tabs as unknown[]).every(
@@ -30,13 +32,13 @@ function decodeState(root: string, raw: string): WorkspaceState {
         typeof tab === "object" &&
         tab !== null &&
         "path" in tab &&
-        validPath(tab.path) &&
+        filePath(tab.path) &&
         "pinned" in tab &&
         typeof tab.pinned === "boolean"
     ) ||
     !Array.isArray(state.expanded) ||
-    !state.expanded.every(validPath) ||
-    (state.activePath !== null && !validPath(state.activePath)) ||
+    !state.expanded.every(projectPath) ||
+    (state.activePath !== null && !filePath(state.activePath)) ||
     typeof state.showIgnored !== "boolean" ||
     !iconThemes.includes(state.iconTheme as IconTheme)
   )
@@ -50,7 +52,7 @@ function decodeState(root: string, raw: string): WorkspaceState {
         (tab) =>
           typeof tab === "object" &&
           tab !== null &&
-          (tab.kind === "new" || (tab.kind === "file" && validPath(tab.path)))
+          (tab.kind === "new" || (tab.kind === "file" && filePath(tab.path)))
       ) ||
       (layout.activeIndex !== null &&
         (typeof layout.activeIndex !== "number" ||

@@ -36,6 +36,7 @@ import { ChatProjectMenu } from "@/features/chat/project-session-popover"
 import { useDeviceWindowContext } from "@/features/device/window-routing"
 import { useDriveArchive } from "@/features/drive/archive-runtime"
 import { DriveDeleteConfirmation, DrivePage, DriveStatus, useDriveConnection } from "@/features/drive/drive"
+import { resolveDriveFileLink } from "@/features/drive/files"
 import { useDrivePluginBridge } from "@/features/drive/plugin-bridge-hook"
 import { sendExtensionMessage, setExtensionDraft } from "@/features/extensions/chat/chat"
 import { connectExtensionNavigation } from "@/features/extensions/chat/navigation"
@@ -397,7 +398,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           default:
             throw new Error("Unsupported main window action")
         }
-      })
+      }, resolveDriveFileLink)
       if (disposed) {
         stopClient()
         stopSurface()

@@ -366,7 +366,7 @@ export function ProductPreview({
               main={
                 <SidebarInset className="main-chat-surface main-workspace-surface flex min-h-0 flex-col">
                   <WorkspaceHeaderContext value={toolbar}>
-                    <FileWorkspace cwd={session?.cwd ?? cwd}>
+                    <FileWorkspace cwd={session?.cwd ?? cwd} onChatInFolder={({ cwd }) => newChat(cwd)}>
                       <OpenFixtureFile file={file} />
                       {!leading && actionCards.length > 0 && (
                         <div className="mx-auto w-full max-w-3xl px-6 pt-12">{actionCards}</div>

@@ -1,22 +1,21 @@
 import { createSession } from "@alwith/module-chat/client"
 import { commands } from "@alwith/module-chat/commands"
 import { drafts, exportDraft, importDraft, isPastedTextAttachment } from "@alwith/module-chat/conversation"
-import { commands as fsCommands } from "@alwith/module-fs/commands"
+import * as opener from "@tauri-apps/plugin-opener"
 import { act, createEvent, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
 import { initI18n } from "@/lib/i18n"
 
 import { Composer } from "../../__tests__/timeline-host"
-import * as preview from "../../dialogs/file-preview-modal"
+
+vi.mock("@tauri-apps/plugin-opener", async (original) => ({ ...(await original<object>()) }))
 
 await initI18n("en")
 const session = (id = "paste-session") => ({ ...createSession(id, "/tmp"), attached: true })
 const longText = "中文".repeat(2500)
 
 beforeEach(() => {
-  vi.spyOn(fsCommands, "workspaceOpen").mockImplementation(async ({ path }) => path)
-  vi.spyOn(fsCommands, "workspaceStat").mockResolvedValue({ kind: "file", size: 100, version: "1" })
   vi.spyOn(commands, "writeTextAttachment").mockResolvedValue("/tmp/paste #1?.txt")
 })
 afterEach(() => {
@@ -140,7 +139,7 @@ test("waits for native writes when transferring a prepared draft to another wind
 })
 
 test("retries failed writes and opens the attachment as a file without changing the input", async () => {
-  const openPreview = vi.spyOn(preview, "openFilePreview").mockImplementation(() => {})
+  const openFile = vi.spyOn(opener, "openPath").mockResolvedValue()
   vi.mocked(commands.writeTextAttachment).mockRejectedValueOnce(new Error("disk full"))
   render(<Composer session={session()} />)
   paste(longText)
@@ -151,7 +150,7 @@ test("retries failed writes and opens the attachment as a file without changing 
   const input = screen.getByRole("textbox")
   fireEvent.change(input, { target: { value: "read this file" } })
   fireEvent.click(screen.getByRole("button", { name: /Pasted text.txt/ }))
-  await waitFor(() => expect(openPreview).toHaveBeenCalledWith("/tmp/paste #1?.txt", undefined))
+  await waitFor(() => expect(openFile).toHaveBeenCalledWith("/tmp/paste #1?.txt"))
   expect(input).toHaveValue("read this file")
   expect(screen.queryByRole("button", { name: "Show in text field" })).not.toBeInTheDocument()
   expect(screen.getByRole("button", { name: "Remove pasted text attachment" })).toBeInTheDocument()

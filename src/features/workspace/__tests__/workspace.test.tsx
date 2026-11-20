@@ -350,6 +350,51 @@ function NavigationProbe() {
   )
 }
 
+test("a chat link opens an outside tab while preserving the project tree selection", async () => {
+  const errors = vi.spyOn(toast, "error")
+  function Open() {
+    const workspace = required(useWorkspace())
+    return (
+      <button onClick={() => void workspace.openChatFile?.("/b/two.txt", "/a")}>Open outside chat file</button>
+    )
+  }
+  const view = render(<Surface cwd="/a"><NavigationProbe /><Open /></Surface>)
+  fireEvent.click(screen.getByRole("button", { name: "Open linked file" }))
+  const projectFile = await screen.findByRole("treeitem", { name: "one.txt" })
+  expect(projectFile).toHaveAttribute("aria-selected", "true")
+  fireEvent.click(screen.getByRole("button", { name: "Open outside chat file" }))
+  expect(await screen.findByRole("tab", { name: "two.txt" })).toHaveAttribute("aria-selected", "true")
+  expect(await screen.findByDisplayValue("second")).toBeVisible()
+  expect(projectFile).toHaveAttribute("aria-selected", "true")
+  expect(screen.queryByRole("treeitem", { name: "two.txt" })).toBeNull()
+  expect(native.invoke).toHaveBeenCalledWith(`${FS}workspace_open`, { path: "/b" })
+  await waitFor(() => {
+    const saved = JSON.parse(required(localStorage.getItem("workspace:/a")))
+    expect(saved.activePath).toBe("/b/two.txt")
+    expect(saved.tabLayout.tabs).toContainEqual({ kind: "file", path: "/b/two.txt" })
+  })
+  view.unmount()
+  render(<Surface cwd="/a" />)
+  fireEvent.click(screen.getByRole("button", { name: "Open workspace" }))
+  expect(await screen.findByRole("tab", { name: "two.txt" })).toHaveAttribute("aria-selected", "true")
+  expect(await screen.findByDisplayValue("second")).toBeVisible()
+  expect(screen.queryByRole("treeitem", { name: "two.txt" })).toBeNull()
+  expect(errors).not.toHaveBeenCalled()
+})
+
+test("a chat directory link expands the folder in the current project tree", async () => {
+  adapter = createMemoryAdapter({ "/a/first.txt": "first", "/a/sub/child.txt": "child" })
+  function Open() {
+    const workspace = required(useWorkspace())
+    return <button onClick={() => void workspace.openChatFile?.("/a/sub", "/a")}>Open chat directory</button>
+  }
+  render(<Surface cwd="/a"><Open /></Surface>)
+  fireEvent.click(screen.getByRole("button", { name: "Open chat directory" }))
+  expect(await screen.findByRole("treeitem", { name: "child.txt" })).toBeVisible()
+  expect(screen.getByRole("treeitem", { name: "sub" })).toHaveAttribute("aria-selected", "true")
+  expect(screen.getByRole("treeitem", { name: "first.txt" })).toBeVisible()
+})
+
 test.each(["Open other project"])("%s opens the target directory without an editor tab", async (action) => {
   render(
     <Surface cwd="/a">
@@ -759,7 +804,14 @@ test("chat in folder is available on directory rows and reveals the selected dir
   await waitFor(() => expect(screen.queryByRole("menu")).toBeNull())
 
   fireEvent.contextMenu(screen.getByRole("treeitem", { name: "reports" }))
-  fireEvent.click(await screen.findByRole("menuitem", { name: "Chat in this folder" }))
+  const action = await screen.findByRole("menuitem", { name: "Chat in this folder" })
+  const menu = within(screen.getByRole("menu"))
+  const [first, second] = menu.getAllByRole("menuitem")
+  expect(first).toBe(action)
+  expect(action.className).toBe(second.className)
+  expect(action.nextElementSibling).toBe(menu.getAllByRole("separator")[0])
+  expect(action.querySelector("svg")).toBeNull()
+  fireEvent.click(action)
   expect(onChatInFolder).toHaveBeenCalledWith({ cwd: "/a/reports", path: "/a/reports" })
   view.rerender(
     <Surface

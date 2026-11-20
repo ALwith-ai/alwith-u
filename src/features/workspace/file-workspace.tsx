@@ -20,13 +20,19 @@ import {
   type FileTreeController,
   type FileTreeLabels
 } from "@alwith/module-file-tree"
-import { containsPath, createFileSystem, dirname, type FileSystem, normalizePath } from "@alwith/module-fs"
+import {
+  containsPath,
+  createFileSystem,
+  dirname,
+  type FileSystem,
+  type FsTransaction,
+  normalizePath
+} from "@alwith/module-fs"
 import { commands as fsCommands } from "@alwith/module-fs/commands"
 import { createTauriAdapter } from "@alwith/module-fs/tauri"
 import { writeText } from "@tauri-apps/plugin-clipboard-manager"
 import { confirm } from "@tauri-apps/plugin-dialog"
 import { Effect } from "effect"
-import { MessageSquareIcon } from "lucide-react"
 
 import { ContextMenuItem } from "@/components/ui/context-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -43,6 +49,7 @@ import { rebaseDrivePins } from "@/features/drive/pinned"
 import { DriveTreeActions } from "@/features/drive/tree-actions"
 import { client } from "@/lib/client"
 import { openExternal, openExternalEntry, openHtmlInBrowser, openLocalPath, revealInFileManager } from "@/lib/open"
+import { isMac } from "@/lib/platform"
 import "@alwith/module-file-tree/styles.css"
 import "@alwith/module-editor/styles.css"
 import { DesktopCanvasContext as CanvasContext } from "@alwith/module-desktop-shell/react"
@@ -58,6 +65,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -69,7 +77,7 @@ import { toast } from "sonner"
 
 import { useTheme } from "@/components/theme-provider"
 import { BoardMenuItem, BoardPane } from "@/features/board/board-pane"
-import { ChatDirectoryContext } from "@/features/chat/file-actions"
+import { ChatDirectoryContext, ChatOpenWebLinkContext } from "@/features/chat/file-actions"
 import { DeviceWorkspaceMenu, DeviceWorkspacePane } from "@/features/device/device-workspace"
 import { useDeviceReveal } from "@/features/device/use-device-reveal"
 import { BackgroundWorkspacePane } from "@/features/terminal/background-workspace"
@@ -91,6 +99,7 @@ import {
 import { connectExplorerSettings } from "./explorer-settings"
 import { useHostDialog } from "./host-dialog"
 import type { PanelControls } from "./panel-controls-context"
+import { PreviewPaneContext } from "./preview-pane-context"
 import { PreviewSurface } from "./preview-surface"
 import { WorkspaceButton } from "./workspace-button"
 import { WorkspaceEditor } from "./workspace-editor"
@@ -119,6 +128,7 @@ interface Workspace {
   treeOpener: ReturnType<typeof createTreeOpener>
   iconTheme: IconTheme
 }
+type PreviewFiles = Pick<Workspace, "root" | "fs">
 const emptyEditorSnapshot = (): null => null
 const noEditorSubscription = (): (() => void) => () => {}
 function report(error: unknown): void {
@@ -146,10 +156,26 @@ export function FileWorkspace({
     }
   }, [])
   const { resolvedTheme } = useTheme()
+  const openChatWeb = useContext(ChatOpenWebLinkContext)
+  const registerOpenChatFile = useContext(PreviewPaneContext)?.registerOpenChatFile
   const { t, i18n } = useTranslation(),
     { ask, dialog } = useHostDialog()
   const workspaces = useRef(new Map<string, Workspace>()),
     opening = useRef(new Map<string, Promise<Workspace>>())
+  const outsideFiles = useRef(new Map<string, Promise<PreviewFiles>>())
+  const previewFiles = useCallback((workspace: PreviewFiles | null, path: string): Promise<PreviewFiles> => {
+    if (workspace && containsPath(workspace.root, path)) return Promise.resolve(workspace)
+    const directory = dirname(path)
+    const existing = outsideFiles.current.get(directory)
+    if (existing) return existing
+    const opened = fsCommands.workspaceOpen({ path: directory }).then((root) => ({
+      root,
+      fs: createFileSystem({ adapter: createTauriAdapter({ root, watch: false }), reportError: report })
+    }))
+    outsideFiles.current.set(directory, opened)
+    void opened.catch(() => outsideFiles.current.delete(directory))
+    return opened
+  }, [])
   const saveDriveDocument = useCallback(async (path: string): Promise<void> => {
     for (const owner of workspaces.current.values()) {
       const document = owner.editor.getSnapshot().documents.find((document) => document.path === path)
@@ -246,6 +272,10 @@ export function FileWorkspace({
     workspace ? workspace.tabs.getSnapshot : emptyEditorSnapshot
   )
   const activeDocument = editorSnapshot?.documents.find((document) => document.id === tabSnapshot?.activeId)
+  const statPreviewFile = useCallback(
+    async (path: string) => (await previewFiles(workspace, path)).fs.stat(path),
+    [previewFiles, workspace]
+  )
   const activeCollaborationOwner = useCollaborationOwner(activeDocument?.path)
   const driveState = useDriveSelector(
     drive,
@@ -286,9 +316,21 @@ export function FileWorkspace({
       },
       ...localPreviewProviders(
         {
-          htmlPreview: createHtmlPreviewHost(workspace.root, workspace.fs, invoke),
+          htmlPreview: {
+            open: async (path, source) => {
+              const { root, fs } = await previewFiles(workspace, path)
+              return createHtmlPreviewHost(root, fs, invoke).open(path, source)
+            },
+            subscribe: async (path, onChange, onError) => {
+              const { root, fs } = await previewFiles(workspace, path)
+              return createHtmlPreviewHost(root, fs, invoke).subscribe(path, onChange, onError)
+            }
+          },
           openLink: openExternal,
-          resolveResource: (path, reference) => resolvePreviewResource(workspace.fs, workspace.root, path, reference),
+          resolveResource: async (path, reference) => {
+            const { root, fs } = await previewFiles(workspace, path)
+            return resolvePreviewResource(fs, root, path, reference)
+          },
           openExternal,
           allowRemoteResources: true,
           autoSaveDelay: 800,
@@ -319,7 +361,7 @@ export function FileWorkspace({
         contentHost
       )
     ]
-  }, [workspace, t, contentHost])
+  }, [workspace, t, contentHost, previewFiles])
   const reportedDirty = useRef(false)
   const requestGeneration = useRef(0),
     currentCwd = useRef(cwd)
@@ -365,10 +407,27 @@ export function FileWorkspace({
           adapter: createTauriAdapter({ root, collaborationOwner }),
           reportError: report
         })
+        const editorFiles = (transaction: FsTransaction): FsTransaction => ({
+          ...transaction,
+          stat: async (path) =>
+            containsPath(root, path) ? transaction.stat(path) : (await previewFiles({ root, fs }, path)).fs.stat(path),
+          readFile: async (path) =>
+            containsPath(root, path)
+              ? transaction.readFile(path)
+              : (await previewFiles({ root, fs }, path)).fs.readFile(path),
+          createUrl: async (path) =>
+            containsPath(root, path)
+              ? transaction.createUrl(path)
+              : (await previewFiles({ root, fs }, path)).fs.createUrl(path)
+        })
         const editor = yield* Effect.acquireRelease(
           Effect.sync(() =>
             createEditorController({
-              fs,
+              fs: {
+                ...fs,
+                ...editorFiles(fs),
+                transaction: (work) => fs.transaction((transaction) => work(editorFiles(transaction)))
+              },
               reportError: report,
               confirmClose: async (document) => {
                 const result = await ask({
@@ -519,8 +578,75 @@ export function FileWorkspace({
         if (opening.current.get(requested) === promise) opening.current.delete(requested)
       }
     },
-    [ask, t, stateStore]
+    [ask, t, stateStore, previewFiles]
   )
+  const openChatFile = useCallback(
+    async (path: string, root: string | null, position?: FilePosition): Promise<void> => {
+      const generation = ++requestGeneration.current
+      const owner = currentCwd.current
+      const current = () => generation === requestGeneration.current && owner === currentCwd.current
+      const inside = root !== null && containsPath(root, path)
+      const project = inside ? await ensure(root) : workspace
+      const source = await previewFiles(project, path)
+      const stat = await source.fs.stat(path)
+      if (!current()) return
+      if (stat === null) throw new Error(`Path does not exist: ${path}`)
+      if (stat.kind === "directory") {
+        if (!inside || project === null) return openLocalPath(path)
+        await project.tree.reveal(path)
+        if (!current()) return
+        const node = project.tree.getSnapshot().rows.find((node) => node.path === path)
+        if (node && !node.expanded) await project.tree.toggle(path)
+        if (!current()) return
+        project.tree.select(path)
+        setWorkspace(project)
+        setTreeVisible(true)
+        setPane("files")
+        setVisible(true)
+        navigateCanvas?.("preview")
+        return
+      }
+      if (inside && openBoardRef.current(path)) {
+        navigateCanvas?.("preview")
+        return
+      }
+      let redirected: string | undefined
+      const destination = await prepareWorkspaceFile(
+        path,
+        {
+          readFile: async (value) => (await previewFiles(project, value)).fs.readFile(value),
+          openTarget: async (target) => {
+            redirected = target
+          }
+        },
+        { keepLargeFiles: true, openWeb: openChatWeb ?? openExternal }
+      )
+      const file = destination ?? redirected
+      if (file === undefined || !current()) return
+      const target = project ?? (await ensure(root))
+      if (!current()) return
+      await target.tabs.openFile(file, true)
+      if (!current()) return
+      if (inside && containsPath(target.root, file)) {
+        await target.tree.reveal(file)
+        if (!current()) return
+        target.tree.select(file)
+        setTreeVisible(true)
+      }
+      setWorkspace(target)
+      setNavigation(position ? { path: file, position } : null)
+      setPane("files")
+      setVisible(true)
+      navigateCanvas?.("preview")
+    },
+    [ensure, workspace, previewFiles, openChatWeb, navigateCanvas]
+  )
+  useLayoutEffect(() => {
+    return registerOpenChatFile?.((path, position) => {
+      if (isMac() && /\.app\/?$/i.test(path)) return openLocalPath(path)
+      return openChatFile(path, workspace?.root ?? currentCwd.current, position)
+    })
+  }, [openChatFile, registerOpenChatFile, workspace?.root])
   const openFile = useCallback(
     async (path: string, root: string | null, position?: FilePosition): Promise<void> => {
       const generation = ++requestGeneration.current,
@@ -950,8 +1076,19 @@ export function FileWorkspace({
     return () => window.removeEventListener("keydown", onKeyDown, true)
   }, [terminalAvailable, paneSessionId, openPane])
   const context = useMemo(
-    () => ({ visible, viewMode, pane, openPane, toggle, openFile, openProject, revealEntry, registerFileReference }),
-    [visible, viewMode, pane, openPane, toggle, openFile, openProject, revealEntry, registerFileReference]
+    () => ({
+      visible,
+      viewMode,
+      pane,
+      openPane,
+      toggle,
+      openFile,
+      openChatFile,
+      openProject,
+      revealEntry,
+      registerFileReference
+    }),
+    [visible, viewMode, pane, openPane, toggle, openFile, openChatFile, openProject, revealEntry, registerFileReference]
   )
   const treeLabels: FileTreeLabels = {
     files: t("workspace.files"),
@@ -1086,10 +1223,20 @@ export function FileWorkspace({
                     collapsed={!treeVisible}
                     isDark={resolvedTheme === "dark"}
                     iconTheme={iconTheme ?? workspace.iconTheme}
-                    activePath={activeDocument ? activeDocument.path : null}
+                    activePath={
+                      activeDocument && containsPath(workspace.root, activeDocument.path) ? activeDocument.path : null
+                    }
                     labels={treeLabels}
                     onError={report}
                     onOpenFile={(path) => workspace.treeOpener.open(path)}
+                    getLeadingAction={({ kind, path }) => {
+                      if (kind !== "directory" || !onChatInFolder) return null
+                      const cwd = resolveDriveRoot(path, driveState?.roots ?? [])?.root.localPath ?? path
+                      return {
+                        label: t("workspace.chatInFolder"),
+                        onSelect: () => onChatInFolder({ cwd, path })
+                      }
+                    }}
                     renderActions={(paths) => {
                       const path = paths[0]
                       if (
@@ -1105,37 +1252,29 @@ export function FileWorkspace({
                             {t("workspace.publishTo")}
                           </ContextMenuItem>
                         )
-                      if (paths.length !== 1 || path === undefined) return null
+                      if (
+                        paths.length !== 1 ||
+                        path === undefined ||
+                        !driveState?.running ||
+                        !driveState.roots.some((root) => containsPath(root.localPath, path))
+                      )
+                        return null
                       const isDirectory = workspace.tree
                         .getSnapshot()
                         .rows.some((row) => row.path === path && row.kind === "directory")
-                      const driveRoot = resolveDriveRoot(path, driveState?.roots ?? [])?.root
                       return (
-                        <>
-                          {isDirectory && onChatInFolder && (
-                            <ContextMenuItem
-                              onClick={() => onChatInFolder({ cwd: driveRoot?.localPath ?? path, path })}
-                            >
-                              <MessageSquareIcon />
-                              {t("workspace.chatInFolder")}
-                            </ContextMenuItem>
-                          )}
-                          {driveState?.running &&
-                            driveState.roots.some((root) => containsPath(root.localPath, path)) && (
-                              <DriveTreeActions
-                                path={path}
-                                isDirectory={isDirectory}
-                                onSharing={setSharingPath}
-                                onCondense={(scope) => {
-                                  setCondenseJob(undefined)
-                                  setCondenseScope(scope)
-                                }}
-                                onMove={(path, kind) => setMoveTarget({ path, kind })}
-                                onPublish={(path) => setPublishSources({ owner: workspace, paths: [path] })}
-                                saveDocument={saveDriveDocument}
-                              />
-                            )}
-                        </>
+                        <DriveTreeActions
+                          path={path}
+                          isDirectory={isDirectory}
+                          onSharing={setSharingPath}
+                          onCondense={(scope) => {
+                            setCondenseJob(undefined)
+                            setCondenseScope(scope)
+                          }}
+                          onMove={(path, kind) => setMoveTarget({ path, kind })}
+                          onPublish={(path) => setPublishSources({ owner: workspace, paths: [path] })}
+                          saveDocument={saveDriveDocument}
+                        />
                       )
                     }}
                     renderDecoration={(row) => (
@@ -1219,13 +1358,18 @@ export function FileWorkspace({
                         trailing={trailing}
                         iconTheme={iconTheme ?? workspace.iconTheme}
                         isDark={resolvedTheme === "dark"}
-                        readOnly={driveReadOnly}
+                        readOnly={
+                          driveReadOnly || Boolean(activeDocument && !containsPath(workspace.root, activeDocument.path))
+                        }
                         sourceReadOnly={driveSourceReadOnly || activeCollaborationOwner !== undefined}
                         controller={workspace.editor}
                         labels={editorLabels}
                         compactToolbar
                         rootPath={navigator.platform.includes("Win") ? normalizePath(workspace.root) : workspace.root}
-                        onRevealPath={(path) => workspace.tree.reveal(path)}
+                        onRevealPath={async (path) => {
+                          if (containsPath(workspace.root, path)) await workspace.tree.reveal(path)
+                          else await openLocalPath(path)
+                        }}
                         onReveal={(document) => revealInFileManager(document.path)}
                         onCopyPath={(document) => writeText(document.path)}
                         tabLabels={{
@@ -1238,7 +1382,8 @@ export function FileWorkspace({
                         }}
                         actionsLabel={t("workspace.more")}
                         onError={report}
-                        onOpenExternal={(document) => openExternal(document.path)}
+                        onOpenExternal={(document) => openLocalPath(document.path)}
+                        statFile={statPreviewFile}
                         previews={previews}
                         requestSaveAs={async (document) =>
                           ask({

@@ -1,5 +1,13 @@
 @import "@alwith/module-chat/styles.css";
 
+.codex-user-image,
+.codex-assistant-message img,
+.codex-generated-image-preview,
+.codex-markdown-content img {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 /* Generated images are previews; the lightbox retains the original dimensions. */
 .codex-generated-image {
   max-width: min(25rem, 100%);
