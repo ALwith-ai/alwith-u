@@ -1,10 +1,14 @@
 import { afterEach, expect, test, vi } from "vitest"
 
-import { routeFind, routeHistory, routeReplace } from "../editor-shortcuts"
+import { listenForEditHistory, routeFind, routeHistory, routeReplace } from "../editor-shortcuts"
+
+const { listen } = vi.hoisted(() => ({ listen: vi.fn<(event: string, handle: () => void) => Promise<() => void>>() }))
+vi.mock("@tauri-apps/api/webviewWindow", () => ({ getCurrentWebviewWindow: () => ({ listen }) }))
 
 afterEach(() => {
   document.body.innerHTML = ""
   vi.restoreAllMocks()
+  listen.mockReset()
 })
 test("find routes to the focused workspace editor and preserves chat search elsewhere", () => {
   document.body.innerHTML =
@@ -38,4 +42,20 @@ test("native undo reaches Monaco and uses native editable history elsewhere", ()
   routeHistory("redo")
   expect(exec).toHaveBeenCalledWith("redo")
   window.removeEventListener("workspace:editor-action", action)
+})
+
+test("native menu actions use the focused inline composer's own history", async () => {
+  document.body.innerHTML = '<div contenteditable="true" tabindex="0" data-inline-input></div>'
+  const inline = document.querySelector<HTMLElement>("[data-inline-input]")!
+  const history: string[] = []
+  inline.addEventListener("beforeinput", (event) => {
+    event.preventDefault()
+    history.push(event.inputType)
+  })
+  listen.mockResolvedValue(() => {})
+  await listenForEditHistory()
+  expect(listen.mock.calls.map(([event]) => event)).toEqual(["menu:edit-undo", "menu:edit-redo"])
+  inline.focus()
+  for (const [, handle] of listen.mock.calls) handle()
+  expect(history).toEqual(["historyUndo", "historyRedo"])
 })

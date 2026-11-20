@@ -1,4 +1,5 @@
 import type { MonacoAction } from "@alwith/module-editor/monaco"
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 
 function focusedEditor(): HTMLElement | null {
   return document.activeElement?.closest(".alwith-editor")?.querySelector<HTMLElement>("[data-code-editor]") ?? null
@@ -16,7 +17,19 @@ export function routeReplace(): void {
 export function routeHistory(action: "undo" | "redo"): void {
   if (focusedEditor()) requestEditorAction(action)
   else {
-    const richEditor = document.activeElement?.closest<HTMLElement>(".alwith-preview-markdown .ProseMirror")
+    const focused = document.activeElement
+    const inline = focused?.closest("[data-inline-input]")
+    if (inline) {
+      inline.dispatchEvent(
+        new InputEvent("beforeinput", {
+          inputType: action === "undo" ? "historyUndo" : "historyRedo",
+          bubbles: true,
+          cancelable: true
+        })
+      )
+      return
+    }
+    const richEditor = focused?.closest<HTMLElement>(".alwith-preview-markdown .ProseMirror")
     if (richEditor) {
       const mac = /Mac|iPhone|iPad/.test(navigator.platform)
       richEditor.dispatchEvent(
@@ -33,4 +46,12 @@ export function routeHistory(action: "undo" | "redo"): void {
       )
     } else document.execCommand(action)
   }
+}
+
+export async function listenForEditHistory(): Promise<void> {
+  const webview = getCurrentWebviewWindow()
+  await Promise.all([
+    webview.listen("menu:edit-undo", () => routeHistory("undo")),
+    webview.listen("menu:edit-redo", () => routeHistory("redo"))
+  ])
 }

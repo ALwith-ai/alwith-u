@@ -17,6 +17,7 @@ import { initPlatformAuth } from "@/features/auth/store"
 import { chatWindowTransparency } from "@/features/chat-window/transparency-preference"
 import { hydrateNavigationSound } from "@/features/chat/codex/navigation-sound-store"
 import { predictionPreference } from "@/features/chat/composer/prediction-preference"
+import { listenForEditHistory } from "@/features/workspace/editor-shortcuts"
 import { initializeZoom } from "@/lib/desktop-zoom"
 import { initI18n } from "@/lib/i18n"
 import { installNativeFileDropGuard } from "@/lib/native-file-drop"
@@ -44,6 +45,7 @@ export function bootstrapAuxWindow(opts: {
   async function bootstrap() {
     await bootstrapSettings()
     await attachConsole()
+    if (isTauri()) await listenForEditHistory()
     window.addEventListener("unhandledrejection", (event) => {
       const error: unknown = event.reason
       const message = error instanceof Error ? error.message : String(error)

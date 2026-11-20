@@ -105,7 +105,7 @@ import { WorkspaceButton } from "./workspace-button"
 import { WorkspaceEditor } from "./workspace-editor"
 import { WorkspacePanels } from "./workspace-panels"
 import "./workspace.css"
-import { routeHistory, routeReplace } from "./editor-shortcuts"
+import { routeReplace } from "./editor-shortcuts"
 import { createHtmlPreviewHost } from "./html-preview"
 import { localPreviewProviders } from "./local-previews"
 import { MoveToDialog } from "./move-to-dialog"
@@ -368,14 +368,9 @@ export function FileWorkspace({
   currentCwd.current = cwd
   useEffect(() => {
     if (!isTauri()) return
-    const window = getCurrentWindow()
-    const subscriptions = [
-      window.listen("menu:replace-in-file", routeReplace),
-      window.listen("menu:edit-undo", () => routeHistory("undo")),
-      window.listen("menu:edit-redo", () => routeHistory("redo"))
-    ]
+    const subscription = getCurrentWindow().listen("menu:replace-in-file", routeReplace)
     return () => {
-      for (const subscription of subscriptions) void subscription.then((stop) => stop()).catch(report)
+      void subscription.then((stop) => stop()).catch(report)
     }
   }, [])
   const ensure = useCallback(

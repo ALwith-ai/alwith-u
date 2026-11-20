@@ -24,6 +24,7 @@ import { reportExtensionError } from "@/features/extensions/runtime"
 import { startStartupImports } from "@/features/extensions/startup-import-control"
 import { initializeMobile } from "@/features/mobile/bridge"
 import { initializeVibemonMain } from "@/features/vibemon/main-host"
+import { listenForEditHistory } from "@/features/workspace/editor-shortcuts"
 import { initializeZoom } from "@/lib/desktop-zoom"
 import { initI18n } from "@/lib/i18n"
 import { installNativeFileDropGuard } from "@/lib/native-file-drop"
@@ -82,6 +83,7 @@ async function bootstrap(): Promise<void> {
   predictionPreference.setState({ enabled: preferences.composerPredictions ?? true })
   await startupStep("language", () => initI18n(preferences.language))
   if (isTauri()) {
+    await startupStep("edit history", listenForEditHistory)
     await startupStep("power listener", () =>
       listen<string>("power:error", ({ payload }) => surfaceGlobalError(payload))
     )

@@ -14,6 +14,7 @@ import i18next from "i18next"
 import { afterEach, expect, test, vi } from "vitest"
 
 import { skillIconSrc } from "@/features/plugins/skill-icon"
+import { routeHistory } from "@/features/workspace/editor-shortcuts"
 
 const translations = i18next.createInstance()
 await translations.init({ lng: "zh-CN", resources: { "zh-CN": { translation: chatLocales["zh-CN"] } } })
@@ -171,6 +172,40 @@ test.each(["plain", "inline"])(
     fireEvent.keyDown(input, { key: "Enter", altKey: true })
     expect(input).toHaveValue(editor === "inline" ? "one\ntwo\n$deploy " : "one\ntwo")
     expect(input.selectionStart).toBe(4)
+    expect(submit).not.toHaveBeenCalled()
+  }
+)
+
+test.each(["native menu", "macOS", "Windows"])(
+  "%s undo restores an inline draft edit and its selection",
+  async (origin) => {
+    const submit = vi.fn(async () => {})
+    render(<Composer session={session} onSubmit={submit} />)
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "oneXtwo" } })
+    await open()
+    fireEvent.click(screen.getByRole("option", { name: /deploy/ }))
+    const input = screen.getByRole<HTMLTextAreaElement>("textbox")
+    await waitFor(() => expect(input).toHaveValue("oneXtwo\n$deploy "))
+    input.focus()
+    input.setSelectionRange(3, 4)
+    fireEvent.keyDown(input, { key: "Enter", altKey: true })
+    expect(input).toHaveValue("one\ntwo\n$deploy ")
+    const history = (action: "undo" | "redo") => {
+      if (origin === "native menu") act(() => routeHistory(action))
+      else
+        fireEvent.keyDown(input, {
+          key: "z",
+          metaKey: origin === "macOS",
+          ctrlKey: origin === "Windows",
+          shiftKey: action === "redo"
+        })
+    }
+    history("undo")
+    expect(input).toHaveValue("oneXtwo\n$deploy ")
+    expect([input.selectionStart, input.selectionEnd]).toEqual([3, 4])
+    expect(input.querySelector('[data-inline-skill="$deploy"]')).toBeInTheDocument()
+    history("redo")
+    expect(input).toHaveValue("one\ntwo\n$deploy ")
     expect(submit).not.toHaveBeenCalled()
   }
 )
