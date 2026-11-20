@@ -1,0 +1,49 @@
+diff --git a/rust/src/cef_impl/request_handler.rs b/rust/src/cef_impl/request_handler.rs
+--- a/rust/src/cef_impl/request_handler.rs
++++ b/rust/src/cef_impl/request_handler.rs
+@@ -12,8 +12,8 @@
+ use dioxus_debug_cell::RefCell;
+ use html5ever::{LocalName, interface::QualName, namespace_url, ns};
+ use http::{
+-  HeaderMap, HeaderName, HeaderValue,
+-  header::{CONTENT_SECURITY_POLICY, CONTENT_TYPE, ORIGIN},
++  HeaderMap, HeaderName, HeaderValue, StatusCode,
++  header::{CONTENT_RANGE, CONTENT_SECURITY_POLICY, CONTENT_TYPE, ORIGIN},
+ };
+ use kuchiki::{Attribute, ExpandedName, NodeRef};
+ use tauri_runtime::{
+@@ -491,8 +491,34 @@
+           // handler is Arc<Box<UriSchemeProtocol>>, so we need to dereference to call it
+           (**handler)(&label, http_request, responder);
+         }));
++        1
++      } else {
++        0
++      }
++    }
++
++    fn skip(
++      &self,
++      bytes_to_skip: i64,
++      bytes_skipped: Option<&mut i64>,
++      _callback: Option<&mut ResourceSkipCallback>,
++    ) -> ::std::os::raw::c_int {
++      let Some(bytes_skipped) = bytes_skipped else { return 0 };
++      let response = self.response.borrow();
++      let start = response.as_ref().and_then(|response| {
++        if response.status() != StatusCode::PARTIAL_CONTENT {
++          return None;
++        }
++        let range = response.headers().get(CONTENT_RANGE)?.to_str().ok()?;
++        range.strip_prefix("bytes ")?.split_once('-')?.0.parse::<i64>().ok()
++      });
++      // Chromium asks to skip the resource prefix even when the protocol handler
++      // already returned just the requested interval. Keep the cursor at that interval's start.
++      if start == Some(bytes_to_skip) {
++        *bytes_skipped = bytes_to_skip;
+         1
+       } else {
++        *bytes_skipped = -2;
+         0
+       }
+     }
