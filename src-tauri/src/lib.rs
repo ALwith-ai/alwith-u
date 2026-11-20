@@ -179,14 +179,8 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_process::init())
-        .plugin(tauri_plugin_shell::init());
-    // The shell schedules updates but the host must register the underlying updater first.
-    let builder = if alwith_desktop_shell::updates_configured(context.config()) {
-        builder.plugin(tauri_plugin_updater::Builder::new().build())
-    } else {
-        builder
-    };
-    let builder = builder
+        .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         // Chat is created hidden before converting it to NSPanel. Restoring visibility here
         // would focus an unprepared NSWindow and break AppKit's keyboard/KVO lifecycle.
         // Settings has a fixed logical size; cached physical sizes must not override it.
