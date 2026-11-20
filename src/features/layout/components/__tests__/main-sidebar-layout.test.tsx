@@ -3,6 +3,7 @@ import {
   DesktopTitleBarContext as WindowsTitleBarContext,
   DesktopWorkspaceControlsContext as WindowsWorkspaceControlsContext
 } from "@alwith/module-desktop-shell/react"
+import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks"
 import { act, cleanup, fireEvent, render } from "@testing-library/react"
 import { useContext, useState } from "react"
 import { createPortal } from "react-dom"
@@ -100,6 +101,28 @@ function setup(initialPinned = false, initialScreen: MainScreen = "main") {
       view.container.querySelector("[data-sidebar-presentation]")?.getAttribute("data-sidebar-presentation")
   }
 }
+
+test.each([
+  ["MacIntel", null],
+  ["Win32", "deep"]
+] as const)("registers the workspace top bar drag region for %s only where needed", async (platform, region) => {
+  const platformMock = vi.spyOn(navigator, "platform", "get").mockReturnValue(platform)
+  vi.stubGlobal("isTauri", true)
+  mockWindows("main")
+  mockIPC(() => false, { shouldMockEvents: true })
+  try {
+    const { container } = setup()
+    await act(async () => {})
+    const topbar = must(container.querySelector(".main-window-titlebar"), "workspace top bar")
+    expect(topbar.getAttribute("data-tauri-drag-region")).toBe(region)
+  } finally {
+    cleanup()
+    await act(async () => {})
+    clearMocks()
+    vi.unstubAllGlobals()
+    platformMock.mockRestore()
+  }
+})
 
 async function afterCloseDelay() {
   await act(async () => {

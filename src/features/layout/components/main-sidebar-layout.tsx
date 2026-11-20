@@ -27,6 +27,7 @@ import {
   PreviewPaneContext
 } from "@/features/workspace/preview-pane-context"
 import { openExternal } from "@/lib/open"
+import { isMac } from "@/lib/platform"
 import { savePreference } from "@/lib/preferences"
 import { useThreeFingerSwipeEnabled } from "@/lib/trackpad-preference"
 
@@ -238,6 +239,7 @@ export function MainSidebarLayout({
           labels={labels}
           direction={i18n.dir()}
           trackpad={trackpad}
+          nativeTitleBarDrag={isMac()}
           zoom={zoom}
           openLink={openLink}
           onError={report}

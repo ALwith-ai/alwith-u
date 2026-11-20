@@ -350,16 +350,21 @@ version = "0.21"
 [target.'cfg(target_os = "macos")'.dependencies.embed_plist]
 version = "1.2"
 
+[target.'cfg(target_os = "macos")'.dependencies.block2]
+version = "0.6"
+
 [target.'cfg(target_os = "macos")'.dependencies.objc2-app-kit]
 version = "0.3.2"
 features = [
     "std",
     "NSApplication",
     "NSColor",
+    "NSEvent",
     "NSResponder",
     "NSView",
     "NSWindow",
     "NSImage",
+    "block2",
 ]
 default-features = false
 

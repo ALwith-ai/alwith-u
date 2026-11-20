@@ -99,7 +99,7 @@
       // https://github.com/tauri-apps/tauri/issues/2549#issuecomment-1250036908
       e.stopImmediatePropagation()
 
-      // start dragging if the element has a `tauri-drag-region` data attribute and maximize on double-clicking it
+      // On macOS this arms the native drag; AppKit distinguishes a click from a drag.
       const cmd = e.detail === 2 ? 'internal_toggle_maximize' : 'start_dragging'
       window.__TAURI_INTERNALS__.invoke('plugin:window|' + cmd)
     }

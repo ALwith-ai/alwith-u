@@ -10,6 +10,10 @@ use crate::{
   sealed::ManagerBase,
 };
 
+#[cfg(target_os = "macos")]
+#[path = "macos_drag.rs"]
+mod macos_drag;
+
 fn get_window<R: Runtime>(window: Window<R>, label: Option<String>) -> crate::Result<Window<R>> {
   match label {
     Some(l) if !l.is_empty() => window
@@ -162,7 +166,32 @@ mod desktop_commands {
   setter!(set_cursor_icon, CursorIcon);
   setter!(set_cursor_position, Position);
   setter!(set_ignore_cursor_events, bool);
+  #[cfg(not(target_os = "macos"))]
   setter!(start_dragging);
+
+  #[cfg(target_os = "macos")]
+  #[command(root = "crate")]
+  pub async fn start_dragging<R: Runtime>(
+    window: Window<R>,
+    label: Option<String>,
+  ) -> crate::Result<()> {
+    let window = get_window(window, label)?;
+    let target = window.clone();
+    let (send, receive) = tokio::sync::oneshot::channel();
+    window.run_on_main_thread(move || {
+      match target.ns_window() {
+        Ok(native) => {
+          let _ = send.send(Ok(()));
+          // This is the target's live NSWindow, accessed on the AppKit thread.
+          macos_drag::arm(unsafe { &*native.cast() });
+        }
+        Err(error) => {
+          let _ = send.send(Err(error));
+        }
+      }
+    })?;
+    receive.await.map_err(|_| crate::Error::FailedToReceiveMessage)?
+  }
   setter!(start_resize_dragging, ResizeDirection);
   setter!(set_progress_bar, ProgressBarState);
   setter!(set_badge_count, Option<i64>);
@@ -254,7 +283,11 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
     .into_string(),
   );
 
-  Builder::new("window")
+  let builder = Builder::new("window");
+  #[cfg(target_os = "macos")]
+  let builder = builder.setup(|_, _| macos_drag::install().map_err(Into::into));
+
+  builder
     .initialization_script(init_script)
     .invoke_handler(crate::generate_handler![
       #![plugin(window)]

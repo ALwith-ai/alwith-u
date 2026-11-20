@@ -7022,6 +7022,7 @@ name = "tauri"
 version = "3.0.0-alpha.6"
 dependencies = [
  "anyhow",
+ "block2",
  "bytes",
  "cookie",
  "dirs 7.0.0",
