@@ -5,7 +5,8 @@ export async function observeWindowHidden(
   window: { listen: (event: string, handler: (event: { payload: boolean }) => void) => Promise<() => void> },
   change: (hidden: boolean) => Promise<void>,
   report: (error: unknown) => void,
-  readHidden: () => Promise<boolean> = () => invoke<boolean>("main_window_hidden")
+  readHidden: () => Promise<boolean> = () => invoke<boolean>("main_window_hidden"),
+  event = "alwith:window-hidden"
 ): Promise<{ dispose: () => void; refresh: () => Promise<void> }> {
   let revision = 0
   let last: boolean | undefined
@@ -14,7 +15,7 @@ export async function observeWindowHidden(
     last = hidden
     await change(hidden)
   }
-  const stop = await window.listen("alwith:window-hidden", ({ payload }) => {
+  const stop = await window.listen(event, ({ payload }) => {
     ++revision
     void publish(payload).catch(report)
   })

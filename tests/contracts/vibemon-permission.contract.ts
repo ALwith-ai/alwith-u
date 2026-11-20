@@ -42,6 +42,12 @@ test("a backgrounded main window presents and resolves each permission in the Vi
         event: "vibemon-test:begin",
         payload: null
       })
+    const surface = (label: "main" | "chat", visible: boolean) =>
+      ipc("plugin:event|emit_to", {
+        target: { kind: "AnyLabel", label: main },
+        event: "vibemon-test:surface",
+        payload: { label, visible }
+      })
     const decision = async (kind: "allow" | "reject", optionId: string) => {
       const selector = `button[data-decision="${kind}"]`
       await waitFor(() => evaluate(bubble, `!!document.querySelector('${selector}')`), `${kind} button did not render`)
@@ -99,6 +105,18 @@ test("a backgrounded main window presents and resolves each permission in the Vi
     assert.equal(await ipc("plugin:window|is_minimized", { label: main }), false)
     await waitFor(visible, "A hidden but unminimized main window did not open its native bubble")
     await decision("allow", "allow_once")
+
+    await ipc("show_main_window")
+    await waitFor(async () => !(await ipc("main_window_hidden")), "The native main window did not restore")
+    await surface("main", false)
+    await surface("chat", true)
+    await start()
+    await waitFor(() => ui("document.querySelector('#root').dataset.pending === 'true'"), "No floating chat request")
+    assert.equal(await visible(), false, "The visible floating chat already presents the permission")
+    await surface("chat", false)
+    await waitFor(visible, "Collapsing the floating chat did not hand its permission to the pet")
+    assert.equal(await ipc("main_window_hidden"), false)
+    await decision("reject", "decline")
   } finally {
     await ipc("plugin:window|close", { label: bubble }).catch(() => {})
     await ipc("plugin:window|close", { label: pet }).catch(() => {})

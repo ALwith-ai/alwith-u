@@ -97,7 +97,16 @@ async function start() {
   })
   setMainSurface = (value) => owner.surface("main", value)
   const mainWindow = getCurrentWebviewWindow()
-  const windowState = await observeWindowHidden(mainWindow, (hidden) => owner.mainWindowHidden(hidden), report)
+  const [mainWindowState, chatWindowState] = await Promise.all([
+    observeWindowHidden(mainWindow, (hidden) => owner.windowHidden("main", hidden), report),
+    observeWindowHidden(
+      mainWindow,
+      (hidden) => owner.windowHidden("chat", hidden),
+      report,
+      () => invoke<boolean>("chat_window_hidden"),
+      "alwith:chat-window-hidden"
+    )
+  ])
   let queue: Promise<unknown> = Promise.resolve()
   const serialize = <T>(work: () => Promise<T>): Promise<T> => {
     const result = queue.then(work)
@@ -348,7 +357,7 @@ async function start() {
       case "send":
         return owner.send(payload.binding, payload.requestId, payload.text)
       case "answer":
-        await windowState.refresh()
+        await Promise.all([mainWindowState.refresh(), chatWindowState.refresh()])
         return owner.answer(payload.binding, payload.requestId, payload.token, payload.optionId)
       case "open-chat":
         return owner.openChat(payload.binding)

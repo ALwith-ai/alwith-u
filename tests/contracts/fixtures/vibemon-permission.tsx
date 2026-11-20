@@ -18,6 +18,7 @@ if (root === null) throw new Error("Vibémon test root unavailable")
 const publish = "vibemon-test:observation"
 const answer = "vibemon-test:answer"
 const begin = "vibemon-test:begin"
+const surface = "vibemon-test:surface"
 
 if (window.label === "main") {
   const fake = createFakeAgent()
@@ -66,11 +67,15 @@ if (window.label === "main") {
     for (const label of ["vibemon", "bubble-menu-vibemon"]) void emitTo(label, publish, feed ?? null)
   })
   client.store.subscribe(() => void owner.refresh())
+  await owner.surface("main", { sessionId, visible: true })
+  await listen<{ label: "main" | "chat"; visible: boolean }>(surface, ({ payload }) => {
+    void owner.surface(payload.label, { sessionId, visible: payload.visible }).catch(console.error)
+  })
   const observer = await observeWindowHidden(
     window,
     async (hidden) => {
       root.dataset.hidden = String(hidden)
-      await owner.mainWindowHidden(hidden)
+      await owner.windowHidden("main", hidden)
     },
     console.error
   )
@@ -99,7 +104,7 @@ if (window.label === "main") {
   })
 } else if (window.label === "vibemon") {
   await listen<VibemonObservation["taskFeed"]>(publish, ({ payload }) => {
-    const visible = payload?.mainMinimized === true && payload.tasks.some((task) => task.prompt?.kind === "permission")
+    const visible = payload?.tasks.some((task) => !task.surfaceVisible && task.prompt?.kind === "permission") ?? false
     void vibemonWindowCall("bubble", { visible })
   })
   await vibemonWindowCall("present")

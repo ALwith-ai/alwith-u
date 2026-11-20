@@ -155,7 +155,7 @@ test("permission answers use the original request token and options", async () =
     ]
   })
   await f.host.refresh()
-  await f.host.mainWindowHidden(true)
+  await f.host.windowHidden("main", true)
   const observation = must(f.host.snapshot(), "vibemon observation")
   expect(observation.prompt?.options).toEqual([{ id: "approve", label: "Allow once", decision: "allow" }])
   await expect(f.host.answer(observation.binding, "invalid", "permission", "invented")).rejects.toThrow(
@@ -258,7 +258,7 @@ test("a once-only vibemon answer resolves the original fake agent approval and k
     await new Promise((resolve) => setTimeout(resolve, 5))
   }
   await f.host.refresh()
-  await f.host.mainWindowHidden(true)
+  await f.host.windowHidden("main", true)
   const observation = must(f.host.snapshot(), "vibemon observation")
   const approval = must(observation.prompt, "vibemon approval")
   await f.host.answer(observation.binding, "allow-request", approval.token, "allow_once")
@@ -303,16 +303,42 @@ test("all active tasks survive surface changes and dismissal does not cancel or 
   expect(f.markRead).toHaveBeenCalledExactlyOnceWith(f.b.id)
 })
 
-test("permission visibility follows the main window state independently of the chat surface", async () => {
+test("only an exposed chat displaying the requesting session suppresses the pet approval", async () => {
   const f = await fixture()
-  await f.host.surface("main", { sessionId: f.a.id, visible: false })
-  expect(f.host.snapshot()?.taskFeed?.mainMinimized).toBe(false)
-  await f.host.mainWindowHidden(true)
-  expect(f.host.snapshot()?.taskFeed?.mainMinimized).toBe(true)
+  f.respond.mockImplementation(() => {})
+  f.client.applyRunStates([{ ...f.run(f.a.id), state: "done" }])
+  f.client.store.setState({
+    actions: [
+      {
+        id: "pending",
+        kind: "permission",
+        sessionId: f.a.id,
+        params: {
+          sessionId: f.a.id,
+          title: "Print a line",
+          options: [{ optionId: "reject", kind: "reject_once", name: "Reject" }]
+        }
+      }
+    ]
+  })
   await f.host.surface("main", { sessionId: f.b.id, visible: true })
-  expect(f.host.snapshot()?.taskFeed?.mainMinimized).toBe(true)
-  await f.host.mainWindowHidden(false)
-  expect(f.host.snapshot()?.taskFeed?.mainMinimized).toBe(false)
+  const task = () =>
+    must(f.host.snapshot()?.taskFeed?.tasks.find((item) => item.binding.sessionId === f.a.id), "pending task")
+  await f.host.surface("chat", { sessionId: f.a.id, visible: true })
+  expect(task().surfaceVisible).toBe(true)
+  await expect(f.host.answer(task().binding, "duplicate", "pending", "reject")).rejects.toThrow("expired or changed")
+  await f.host.windowHidden("chat", true)
+  expect(task().surfaceVisible).toBe(false)
+  await f.host.windowHidden("chat", false)
+  expect(task().surfaceVisible).toBe(true)
+  await f.host.surface("chat", { sessionId: f.a.id, visible: false })
+  expect(task()).toMatchObject({
+    state: "done",
+    surfaceVisible: false,
+    prompt: { kind: "permission", token: "pending" }
+  })
+  await f.host.answer(task().binding, "collapsed", "pending", "reject")
+  expect(f.respond).toHaveBeenCalledExactlyOnceWith("pending", { outcome: { outcome: "selected", optionId: "reject" } })
 })
 
 test("a failed Runtime read acknowledgement leaves the completed card available for retry", async () => {
@@ -437,7 +463,7 @@ test("an authorization is answered once while its Runtime action remains pending
       }
     ]
   })
-  await f.host.mainWindowHidden(true)
+  await f.host.windowHidden("main", true)
   const binding = must(f.host.snapshot(), "task").binding
   f.respond.mockImplementationOnce(() => {
     throw new Error("answer failed")
@@ -476,7 +502,7 @@ test("a child permission is shown and answered through its parent's vibemon bind
     ]
   }))
   await f.host.surface("main", { sessionId: f.a.id, visible: false })
-  await f.host.mainWindowHidden(true)
+  await f.host.windowHidden("main", true)
   const observation = must(f.host.snapshot(), "vibemon observation")
   expect(observation.prompt?.token).toBe("child-permission")
   f.respond.mockImplementation(() => {})

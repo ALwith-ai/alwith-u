@@ -15,7 +15,13 @@ describe("runtime panels", () => {
     )
   const ready = (window: string) =>
     waitFor(
-      () => rpc("eval", { window, script: "document.readyState === 'complete'" }).catch(() => false),
+      () =>
+        rpc("eval", {
+          window,
+          script: `document.readyState === "complete" && location.pathname === ${JSON.stringify(
+            window === "vibemon" ? "/vibemon.html" : "/vibemon-bubble.html"
+          )}`
+        }).catch(() => false),
       `${window} did not finish loading`,
       15000
     )
@@ -63,6 +69,63 @@ describe("runtime panels", () => {
           `Cycle ${cycle}: close timed out: ${label}`
         )
       }
+    }
+  })
+
+  test("the visible bubble stays in the work area as the pet moves to all four corners", async () => {
+    const pet = "vibemon"
+    const bubble = "bubble-menu-vibemon"
+    const action = <T>(window: string, action: string, payload: unknown = null): Promise<T> =>
+      rpc("ipc", { window, command: "vibemon_window", args: { action, payload } })
+    type Point = { x: number; y: number }
+    type Size = { width: number; height: number }
+    const { workArea } = (await ipc("plugin:window|current_monitor", { label: "main" })) as {
+      workArea: { position: Point; size: Size }
+    }
+    const { x: left, y: top } = workArea.position
+    const right = left + workArea.size.width
+    const bottom = top + workArea.size.height
+    const corners = [true, false].flatMap((upper) => [true, false].map((leading) => ({ upper, leading })))
+    try {
+      await action("main", "create-vibemon")
+      await action("main", "create-bubble")
+      await ready(pet)
+      await ready(bubble)
+      await action(pet, "present")
+      await action(bubble, "bubble-size", { width: 340, height: 220 })
+      await action(pet, "bubble", { visible: true })
+      await action(bubble, "bubble-blur", {
+        enabled: true,
+        radius: 0,
+        path: [
+          { kind: "move", x: 0, y: 0 },
+          { kind: "line", x: 340, y: 0 },
+          { kind: "line", x: 340, y: 220 },
+          { kind: "line", x: 0, y: 220 },
+          { kind: "close" }
+        ]
+      })
+      assert.equal(
+        await rpc("ipc", { window: bubble, command: "plugin:window|is_visible", args: { label: bubble } }),
+        true
+      )
+      const petSize = await action<Size>(pet, "size")
+      const bubbleSize = await action<Size>(bubble, "size")
+      for (const { upper, leading } of corners) {
+        await action(pet, "move", {
+          x: leading ? left : right - petSize.width,
+          y: upper ? top : bottom - petSize.height
+        })
+        await waitFor(async () => {
+          const parent = await action<Point>(pet, "position")
+          const child = await action<Point>(bubble, "position")
+          const expectedX = leading ? left : right - bubbleSize.width
+          const expectedY = upper ? parent.y + petSize.height : parent.y - bubbleSize.height
+          return Math.abs(child.x - expectedX) <= 2 && Math.abs(child.y - expectedY) <= 2
+        }, `Bubble did not follow ${capabilities.backend} pet to ${upper ? "top" : "bottom"} ${leading ? "left" : "right"}`)
+      }
+    } finally {
+      await action("main", "destroy-vibemon")
     }
   })
 })

@@ -10,6 +10,7 @@ pub async fn present_chat_window(window: WebviewWindow) -> Result<(), String> {
     }
     crate::window::ensure_open(window.app_handle())?;
     super::prepare(&window).await?;
+    crate::window_state::watch_chat(&window).await?;
     #[cfg(target_os = "macos")]
     {
         let handle = window.clone();

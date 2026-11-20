@@ -272,11 +272,11 @@ test("restoring the main window removes authorization buttons while retaining it
   await f.update({ taskFeed: { tasks: [first], panel: "expanded", mainMinimized: true } })
   const view = render(<VibemonQuickReply />)
   expect(view.getByRole("button", { name: "Allow" })).toBeInTheDocument()
-  await f.update({ taskFeed: { tasks: [first], panel: "expanded", mainMinimized: false } })
+  await f.update({ taskFeed: { tasks: [{ ...first, surfaceVisible: true }], panel: "expanded", mainMinimized: false } })
   expect(view.queryByRole("button", { name: "Allow" })).not.toBeInTheDocument()
   expect(view.getByText("Write file")).toBeInTheDocument()
   expect(f.answer).not.toHaveBeenCalled()
-  await f.update({ taskFeed: { tasks: [first], panel: "hidden", mainMinimized: true } })
+  await f.update({ taskFeed: { tasks: [first], panel: "hidden", mainMinimized: false } })
   await act(() => Promise.resolve(fireEvent.click(view.getByRole("button", { name: "Allow" }))))
   expect(f.answer).toHaveBeenCalledWith(first.binding, expect.any(String), "permission", "allow")
   await f.update({

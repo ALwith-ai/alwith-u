@@ -117,13 +117,29 @@ fn bubble_frame(parent: NSRect, size: NSSize, screen: NSRect) -> NSRect {
 
 fn layout_bubble(window: &NSWindow, parent: &NSWindow, size: NSSize) -> Result<(), String> {
     let screen = parent.screen().ok_or("Vibemon screen unavailable")?.visibleFrame();
-    window.setFrame_display(bubble_frame(parent.frame(), size, screen), true);
+    let frame = bubble_frame(parent.frame(), size, screen);
+    if window.frame() != frame {
+        window.setFrame_display(frame, true);
+    }
     Ok(())
 }
 
 /// Relayout without changing the bubble's visibility, focus, or parent relationship.
 pub(crate) fn repair_bubble_position(window: &NSWindow, parent: &NSWindow) -> Result<(), String> {
     layout_bubble(window, parent, window.frame().size)
+}
+
+pub(crate) fn follow_vibemon(app: &tauri::AppHandle) -> Result<(), String> {
+    let _main = MainThreadMarker::new().ok_or("Vibemon bubble layout requires the main thread")?;
+    let Some(parent) = app.get_webview_window("vibemon") else { return Ok(()) };
+    let Some(bubble) = app.get_webview_window("bubble-menu-vibemon") else { return Ok(()) };
+    // SAFETY: both live windows are retained on the main thread throughout layout.
+    let parent = unsafe { &*parent.ns_window().map_err(|error| error.to_string())?.cast::<NSWindow>() };
+    let bubble = unsafe { &*bubble.ns_window().map_err(|error| error.to_string())?.cast::<NSWindow>() };
+    if bubble.isVisible() && bubble.parentWindow().as_deref() == Some(parent) {
+        repair_bubble_position(bubble, parent)?;
+    }
+    Ok(())
 }
 
 pub(super) fn apply(host: &tauri::WebviewWindow, action: super::WindowAction) -> Result<(), String> {
@@ -149,7 +165,8 @@ pub(super) fn apply(host: &tauri::WebviewWindow, action: super::WindowAction) ->
             }
         }
         "forget" => {
-            backdrop::forget(action.handle);
+            // Destroy bypasses CloseRequested, so undo the AppKit panel conversion here.
+            crate::panel::before_close(host.app_handle(), host.label());
         }
         "present" => {
             crate::panel::prepare(host)?;
@@ -165,6 +182,11 @@ pub(super) fn apply(host: &tauri::WebviewWindow, action: super::WindowAction) ->
         }
         "hide" => {
             crate::panel::set_presented(host.label(), false);
+            if action.role == "bubble"
+                && let Some(parent) = window.parentWindow()
+            {
+                parent.removeChildWindow(window);
+            }
             window.orderOut(None);
         }
         "detach" => {

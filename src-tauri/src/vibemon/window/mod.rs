@@ -10,7 +10,7 @@ mod macos;
 #[cfg(target_os = "windows")]
 mod windows;
 #[cfg(target_os = "macos")]
-pub(crate) use macos::{repair_bubble_position, repair_position};
+pub(crate) use macos::{follow_vibemon, repair_bubble_position, repair_position};
 #[cfg(target_os = "macos")]
 pub(crate) fn forget_backdrop(handle: usize) {
     backdrop::forget(handle);

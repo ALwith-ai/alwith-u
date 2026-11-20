@@ -284,6 +284,18 @@ pub fn run() {
     let app = builder
         .on_window_event(|window, event| {
             #[cfg(target_os = "macos")]
+            if window.label() == "vibemon"
+                && matches!(
+                    event,
+                    tauri::WindowEvent::Moved(_)
+                        | tauri::WindowEvent::Resized(_)
+                        | tauri::WindowEvent::ScaleFactorChanged { .. }
+                )
+                && let Err(error) = vibemon::window::follow_vibemon(window.app_handle())
+            {
+                log::error!("Could not reposition Vibemon bubble: {error}");
+            }
+            #[cfg(target_os = "macos")]
             if let tauri::WindowEvent::CloseRequested { api, .. } = event
                 && !api.is_prevented()
             {
@@ -385,6 +397,7 @@ pub fn run() {
                 device_window::device_window_selection,
                 settings::settings_request,
                 window_state::main_window_hidden,
+                window_state::chat_window_hidden,
                 generated_images::save_generated_images,
                 generated_images::read_generated_image,
                 desktop_runtime::runtime_capabilities,
@@ -502,6 +515,7 @@ pub fn run() {
                         | "device_window_selection"
                         | "settings_request"
                         | "main_window_hidden"
+                        | "chat_window_hidden"
                         | "save_generated_images"
                         | "read_generated_image"
                         | "runtime_capabilities"
@@ -541,6 +555,9 @@ pub fn run() {
         tauri::RunEvent::WindowEvent { label, event: tauri::WindowEvent::Destroyed, .. } => {
             if label == "vibemon" {
                 tray::set_vibemon_checked(app, false);
+            }
+            if label == "chat" {
+                window_state::chat_closed(app);
             }
             #[cfg(target_os = "macos")]
             panel::closed(app, &label);
