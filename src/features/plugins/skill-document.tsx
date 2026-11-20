@@ -3,7 +3,6 @@ import { dirname, normalizePath } from "@alwith/module-fs"
 import { commands as fs } from "@alwith/module-fs/commands"
 import { createTauriAdapter } from "@alwith/module-fs/tauri"
 import { writeText } from "@tauri-apps/plugin-clipboard-manager"
-import { openPath, revealItemsInDir } from "@tauri-apps/plugin-opener"
 import { MoreHorizontalIcon } from "lucide-react"
 import { type ReactNode, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -14,7 +13,7 @@ import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Skeleton } from "@/components/ui/skeleton"
-import { openExternal } from "@/lib/open"
+import { openExternal, openLocalPath, revealInFileManager } from "@/lib/open"
 import { text } from "@/lib/text"
 
 import { skillDocuments } from "./request-cache"
@@ -76,10 +75,10 @@ export function SkillDocument({
           <MoreHorizontalIcon />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => report(openPath(path))}>
+          <DropdownMenuItem onClick={() => report(openLocalPath(path))}>
             {t("plugins.skills.document.open")}
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => report(revealItemsInDir(path))}>
+          <DropdownMenuItem onClick={() => report(revealInFileManager(path))}>
             {t("plugins.skills.document.reveal")}
           </DropdownMenuItem>
           <DropdownMenuItem

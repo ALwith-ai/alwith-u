@@ -63,6 +63,24 @@
         },
         {
           "path": "$HOME/.codex/generated_images/**"
+        },
+        {
+          "path": "$HOME/.codex/skills/**/SKILL.md"
+        },
+        {
+          "path": "$HOME/.codex/skills/.system/**/SKILL.md"
+        },
+        {
+          "path": "$HOME/.codex/plugins/cache/**/SKILL.md"
+        },
+        {
+          "path": "$HOME/.codex/.tmp/**/SKILL.md"
+        },
+        {
+          "path": "**/.agents/skills/**/SKILL.md"
+        },
+        {
+          "path": "$HOME/.cache/codex-runtimes/*/plugins/**/SKILL.md"
         }
       ]
     },
