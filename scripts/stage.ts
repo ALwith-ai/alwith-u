@@ -135,7 +135,15 @@ const MODULES = [
 ]
 const nativeDirectory = join(root, "src-tauri/resources/native")
 const staged = [
-  ...MODULES.flatMap((module) => stageNativeModule(import.meta.url, module, triple, nativeDirectory, licenses)),
+  ...MODULES.flatMap((module) =>
+    stageNativeModule(
+      module === "mobile" ? process.env.ALWITH_DEV1_MOBILE_FROM || import.meta.url : import.meta.url,
+      module,
+      triple,
+      nativeDirectory,
+      licenses
+    )
+  ),
   { path: stageTerminal(triple, nativeDirectory), signing: "resign" as const },
   { path: stageNativeEnterprise(triple, nativeDirectory, licenses), signing: "resign" as const }
 ]
@@ -199,6 +207,14 @@ const bootstrapBuild = await Bun.build({
 })
 if (!bootstrapBuild.success) throw new AggregateError(bootstrapBuild.logs, "Codex bootstrap bundling failed")
 await Bun.write(join(adapterDirectory, "codex-bootstrap.mjs"), bootstrapBuild.outputs[0])
+
+const historyBuild = await Bun.build({
+  entrypoints: [join(root, "src/agent/mobile-history/index.ts")],
+  target: "bun",
+  format: "esm"
+})
+if (!historyBuild.success) throw new AggregateError(historyBuild.logs, "Mobile history worker build failed")
+await Bun.write(join(adapterDirectory, "mobile-history.mjs"), historyBuild.outputs[0])
 
 // A small std-only proxy avoids bundling another copy of the Bun runtime.
 const launcherDestination = join(binaries, `alwith-codex-launcher-${triple}${target.exe}`)

@@ -2,9 +2,10 @@
 // talks frames through Tauri events and commands (`@alwith/api/tauri`).
 
 import { TauriRuntimeClient } from "@alwith/api/tauri"
+import { explainRequestError } from "@alwith/module-chat/client"
 
 import { events, type RuntimeExit } from "@/bindings"
-import { explainRequestError } from "@alwith/module-chat/client"
+import { observeActionWrite } from "@/features/mobile/reply-confirmation"
 import { logBackgroundError } from "@/lib/background-errors"
 
 /** Emitted by Rust when the alwith-runtime process ends. */
@@ -22,6 +23,12 @@ export type CodexProvider = {
 export const CODEX_AGENT_ID = "codex"
 
 class AppRuntimeClient extends TauriRuntimeClient<CodexProvider> {
+  override acpRespond(...args: Parameters<TauriRuntimeClient<CodexProvider>["acpRespond"]>): Promise<void> {
+    const write = super.acpRespond(...args)
+    observeActionWrite(args[0], args[1], args[3], write)
+    return write
+  }
+
   override async acpRequest<Result = unknown>(
     ...args: Parameters<TauriRuntimeClient<CodexProvider>["acpRequest"]>
   ): Promise<Result> {

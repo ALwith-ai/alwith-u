@@ -12,6 +12,7 @@ import { settingsStore, updateSettings } from "@/lib/settings-store"
 import { text } from "@/lib/text"
 
 import { type MobilePermission, type MobilePrompt, respondMobilePermission, sendMobilePrompt } from "./actions"
+import { initializeSessionActions } from "./session-actions"
 
 export const MOBILE_RELAY_URL = "wss://relay.alwith.ai/v1/ws"
 export function mobileEnabled(): boolean {
@@ -57,6 +58,7 @@ export async function initializeMobile(): Promise<void> {
   await listen<string>("bridge:error", ({ payload }) => {
     reportBackgroundError("mobile-bridge", new Error(payload))
   })
+  await initializeSessionActions(client)
   let previous: string[] | null = null
   let sync: Promise<unknown> = Promise.resolve()
   const publishOrder = (): void => {

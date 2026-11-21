@@ -11,6 +11,7 @@ vi.mock("@/features/sessions/activity-order", () => ({
 }))
 vi.mock("@/lib/settings-store", () => ({ settingsStore: { get: () => false }, updateSettings: vi.fn() }))
 vi.mock("@/lib/background-errors", () => ({ reportBackgroundError: vi.fn() }))
+vi.mock("../session-actions", () => ({ initializeSessionActions: vi.fn().mockResolvedValue(undefined) }))
 vi.mock("../actions", () => ({ sendMobilePrompt: vi.fn(), respondMobilePermission: vi.fn() }))
 import { useActivityOrder } from "@/features/sessions/activity-order"
 import { useChatWindowSurface, useMainWindowSurface } from "@/lib/chat-window-state"

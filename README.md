@@ -59,6 +59,10 @@ bun install
 bun run dev:tauri
 ```
 
+Dev1 builds the mobile Rust SDK and native library together from the pinned development sources.
+Keep the matching `alwith-modules` checkout next to U, or set `ALWITH_MODULES_SOURCE` to its path.
+Use `bun run dev:tauri` or `bun run build:desktop --debug` for Dev1. The first build prepares a platform-specific candidate in `src-tauri/target-dev1`.
+
 Sign in to ALwith, then configure Codex or a model provider in settings to start chatting.
 
 ## Build
