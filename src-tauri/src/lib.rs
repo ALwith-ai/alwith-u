@@ -200,7 +200,7 @@ pub fn run() {
     // Non-official plugins, sorted by name after the platform window prerequisites.
     // Decoration must precede webview creation; NSPanel supplies the application window manager.
     #[cfg(target_os = "windows")]
-    let builder = builder.plugin(tauri_plugin_decoration::init());
+    let builder = builder.plugin(tauri_plugin_window_decorations::init());
     #[cfg(target_os = "macos")]
     let builder = builder.plugin(tauri_nspanel::init());
     let builder = builder

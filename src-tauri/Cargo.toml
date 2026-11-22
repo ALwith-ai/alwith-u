@@ -108,7 +108,7 @@ objc2-core-graphics = { version = "0.3", default-features = false, features = ["
 
 [target.'cfg(target_os = "windows")'.dependencies]
 alwith-chat = { version = "0.6", default-features = false, features = ["native-network"] }
-tauri-plugin-decoration = "3"
+tauri-plugin-window-decorations = "0.1.3"
 windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_UI_Controls", "Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_HiDpi", "Win32_Media_Audio", "Win32_Devices_HumanInterfaceDevice", "Win32_UI_Input", "Win32_UI_Shell", "Win32_Security_Credentials"] }
 window-vibrancy = "0.8"
 raw-window-handle = "0.6"
@@ -116,7 +116,7 @@ raw-window-handle = "0.6"
 # Exclude third-party adaptation snapshots from our workspace to avoid formatting them; the root package joins automatically.
 [workspace]
 resolver = "3"
-exclude = ["patches/tauri", "patches/tauri-runtime-wry", "patches/tauri-nspanel", "patches/wry", "patches/tauri-plugin-decoration", "patches/tauri-plugin-single-instance"]
+exclude = ["patches/tauri", "patches/tauri-runtime-wry", "patches/tauri-nspanel", "patches/wry", "patches/tauri-plugin-single-instance"]
 
 [patch.crates-io]
 # A window that embeds further webviews keeps its WebviewWindow; see patches/tauri/PATCH.md.
@@ -132,7 +132,6 @@ alwith-api = { path = "../node_modules/@alwith/api/rust" }
 # Temporary WebKit race fix; removal is tracked in patches/wry/PATCH.md.
 wry = { path = "patches/wry" }
 tauri-plugin-single-instance = { path = "patches/tauri-plugin-single-instance" }
-tauri-plugin-decoration = { path = "patches/tauri-plugin-decoration" }
 
 [profile.dev]
 debug = "line-tables-only"

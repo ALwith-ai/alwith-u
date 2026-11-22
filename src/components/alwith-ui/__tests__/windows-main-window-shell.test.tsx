@@ -60,7 +60,7 @@ test("Windows reserves plugin controls without drawing a second button set", () 
   )
   const header = screen.getByRole("banner")
   expect(header).toHaveStyle({ height: "32px" })
-  expect(header.style.paddingRight).toBe("var(--tauri-plugin-decoration-right-clearance, 0px)")
+  expect(header.style.paddingRight).toBe("var(--tauri-plugin-window-decorations-right-clearance, 0px)")
   const logo = screen.getByRole("img", { name: "app.name" })
   expect(logo).toHaveStyle({ width: "24px", height: "24px" })
   expect(logo).toHaveAttribute("draggable", "false")
@@ -80,7 +80,7 @@ test("plugin titlebar height follows page zoom", async () => {
   )
   expect(screen.getByRole("banner")).toHaveStyle({ height: "16px" })
   expect(screen.getByRole("img", { name: "app.name" })).toHaveStyle({ width: "12px", height: "12px" })
-  expect(document.documentElement.style.getPropertyValue("--tauri-plugin-decoration-titlebar-height")).toBe("16px")
+  expect(document.documentElement.style.getPropertyValue("--tauri-plugin-window-decorations-titlebar-height")).toBe("16px")
 })
 
 test.each(["macos", "linux"])("%s keeps the original content without a custom title bar", (os) => {

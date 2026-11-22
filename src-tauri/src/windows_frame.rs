@@ -1,7 +1,7 @@
 //! Activate the third-party controls only for the main Windows webview.
 
 use tauri::Manager;
-use tauri_plugin_decoration::WebviewWindowExt;
+use tauri_plugin_window_decorations::WebviewWindowExt;
 
 pub async fn activate(window: tauri::WebviewWindow) {
     if let Err(error) = window.activate_decoration().await {

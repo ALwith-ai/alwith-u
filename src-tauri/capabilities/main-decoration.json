@@ -4,5 +4,5 @@
   "description": "Decoration plugin controls and native Snap Layout for the main window",
   "platforms": ["windows"],
   "windows": ["main"],
-  "permissions": ["decoration:default", "core:window:allow-internal-toggle-maximize"]
+  "permissions": ["window-decorations:default", "core:window:allow-internal-toggle-maximize"]
 }
