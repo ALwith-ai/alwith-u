@@ -36,7 +36,7 @@ function PlatformLogin() {
   const [error, setError] = useState("")
   const [cooldowns, setCooldowns] = useState<Record<string, number>>({})
   const [now, setNow] = useState(Date.now())
-  const cooldownKey = `${mode}:${email.trim().toLowerCase()}`
+  const cooldownKey = `${mode === "register" ? "REGISTER" : "LOGIN"}:${email.trim().toLowerCase()}`
   const seconds = Math.max(0, Math.ceil(((cooldowns[cooldownKey] ?? 0) - now) / 1000))
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000)
@@ -49,6 +49,17 @@ function PlatformLogin() {
     try {
       await (action === "sendCode" ? sendCode() : submit())
     } catch (error) {
+      if (
+        action === "sendCode" &&
+        typeof error === "object" &&
+        error !== null &&
+        "status" in error &&
+        error.status === 429
+      ) {
+        const limitedAt = Date.now()
+        setCooldowns((current) => ({ ...current, [cooldownKey]: limitedAt + 60_000 }))
+        setNow(limitedAt)
+      }
       const message = error instanceof Error ? error.message : String(error)
       setError(
         message === "WAITLISTED"
@@ -63,8 +74,6 @@ function PlatformLogin() {
   }
   async function sendCode() {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) throw new Error(t("platformAuth.invalidEmail"))
-    if (mode === "register" && (await authClient.emailExists(email.trim())).registered)
-      throw new Error(t("platformAuth.registered"))
     await authClient.sendVerificationCode(email.trim(), mode === "register" ? "REGISTER" : "LOGIN")
     const sentAt = Date.now()
     setCooldowns((current) => ({ ...current, [cooldownKey]: sentAt + 60_000 }))
