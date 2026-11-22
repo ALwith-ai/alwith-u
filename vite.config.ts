@@ -77,7 +77,7 @@ export const config = (mode = "development"): UserConfig => ({
     host: host ?? "127.0.0.1",
     hmr: host ? { protocol: "ws", host, port } : undefined,
     watch: {
-      ignored: ["**/src-tauri/**"]
+      ignored: ["**/src-tauri/**", "**/target/cef-h264-aac/**"]
     }
   },
   envPrefix: ["VITE_", "TAURI_ENV_*"],

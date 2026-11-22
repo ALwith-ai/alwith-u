@@ -43,7 +43,7 @@ const child = Bun.spawn(["bun", "tauri", ...args], {
     PATH: buildPath,
     CEF_PATH: resolve(
       cwd,
-      "target/cef-h264-aac/158.0.25",
+      "target/cef-h264-aac",
       process.platform === "darwin" ? "cef_macos_aarch64" : "cef_windows_x86_64"
     ),
     ...(development
