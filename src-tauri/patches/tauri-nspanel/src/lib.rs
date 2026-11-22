@@ -29,9 +29,7 @@ use tauri::{
     Manager, Runtime, WebviewWindow,
 };
 
-pub use builder::{
-    CollectionBehavior, PanelBuilder, PanelLevel, ResizeDirection, StyleMask, TrackingAreaOptions,
-};
+pub use builder::{CollectionBehavior, PanelBuilder, PanelLevel, ResizeDirection, StyleMask, TrackingAreaOptions};
 
 // Re-export commonly used types for convenience
 pub use objc2::runtime::AnyObject;
@@ -54,9 +52,7 @@ impl fmt::Display for StyleMaskError {
             Self::ObjectiveCException(reason) => {
                 write!(formatter, "AppKit rejected the panel style mask: {reason}")
             }
-            Self::UnknownObjectiveCException => {
-                formatter.write_str("AppKit rejected the panel style mask")
-            }
+            Self::UnknownObjectiveCException => formatter.write_str("AppKit rejected the panel style mask"),
         }
     }
 }
@@ -207,20 +203,14 @@ pub trait Panel<R: tauri::Runtime = tauri::DynRuntime>: Send + Sync {
     ///
     /// AppKit may reject structural changes to a live window. Such Objective-C exceptions are
     /// caught and returned instead of crossing into Rust and aborting the process.
-    fn set_style_mask(
-        &self,
-        style_mask: objc2_app_kit::NSWindowStyleMask,
-    ) -> Result<(), StyleMaskError>;
+    fn set_style_mask(&self, style_mask: objc2_app_kit::NSWindowStyleMask) -> Result<(), StyleMaskError>;
 
     /// Add flags to the panel's current style mask.
     ///
     /// Prefer this when enabling behavior such as
     /// [`NSWindowStyleMask::NonactivatingPanel`](objc2_app_kit::NSWindowStyleMask::NonactivatingPanel)
     /// without removing Tauri's existing structural window styles.
-    fn add_style_mask(
-        &self,
-        style_mask: objc2_app_kit::NSWindowStyleMask,
-    ) -> Result<(), StyleMaskError> {
+    fn add_style_mask(&self, style_mask: objc2_app_kit::NSWindowStyleMask) -> Result<(), StyleMaskError> {
         self.set_style_mask(self.as_panel().styleMask() | style_mask)
     }
 
@@ -249,9 +239,7 @@ pub struct Store<R: Runtime> {
 
 impl<R: Runtime> Default for Store<R> {
     fn default() -> Self {
-        Self {
-            panels: HashMap::new(),
-        }
+        Self { panels: HashMap::new() }
     }
 }
 
@@ -285,12 +273,7 @@ impl<R: Runtime, T: Manager<R>> ManagerExt<R> for T {
     }
 
     fn remove_webview_panel(&self, label: &str) -> Option<PanelHandle<R>> {
-        self.state::<self::WebviewPanelManager<R>>()
-            .0
-            .lock()
-            .unwrap()
-            .panels
-            .remove(label)
+        self.state::<self::WebviewPanelManager<R>>().0.lock().unwrap().panels.remove(label)
     }
 }
 
@@ -306,12 +289,7 @@ impl<R: Runtime> WebviewWindowExt<R> for WebviewWindow<R> {
         let arc_panel = Arc::new(panel) as PanelHandle<R>;
 
         let manager = self.state::<WebviewPanelManager<R>>();
-        manager
-            .0
-            .lock()
-            .unwrap()
-            .panels
-            .insert(label, arc_panel.clone());
+        manager.0.lock().unwrap().panels.insert(label, arc_panel.clone());
 
         Ok(arc_panel)
     }
@@ -339,21 +317,13 @@ mod tests {
     fn objective_c_exceptions_become_style_mask_errors() {
         let reason = NSString::from_str("invalid test style mask");
         let exception = unsafe {
-            NSException::exceptionWithName_reason_userInfo(
-                NSInternalInconsistencyException,
-                Some(&reason),
-                None,
-            )
+            NSException::exceptionWithName_reason_userInfo(NSInternalInconsistencyException, Some(&reason), None)
         };
-        let exception =
-            unsafe { Retained::cast_unchecked::<objc2::exception::Exception>(exception) };
+        let exception = unsafe { Retained::cast_unchecked::<objc2::exception::Exception>(exception) };
 
         let error = catch_style_mask_exception(|| objc2::exception::throw(exception))
             .expect_err("the Objective-C exception should be returned as an error");
 
-        assert_eq!(
-            error,
-            StyleMaskError::ObjectiveCException("invalid test style mask".into())
-        );
+        assert_eq!(error, StyleMaskError::ObjectiveCException("invalid test style mask".into()));
     }
 }

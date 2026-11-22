@@ -5,8 +5,7 @@ pub use objc2_app_kit::{
 
 #[doc(hidden)]
 pub fn resolve_tracking_area_options(
-    mut options: objc2_app_kit::NSTrackingAreaOptions,
-    auto_resize: bool,
+    mut options: objc2_app_kit::NSTrackingAreaOptions, auto_resize: bool,
 ) -> objc2_app_kit::NSTrackingAreaOptions {
     if auto_resize {
         options |= objc2_app_kit::NSTrackingAreaOptions::InVisibleRect;
@@ -37,8 +36,7 @@ pub fn install_text_input_client_window_level(root: &objc2_app_kit::NSView) {
 }
 
 fn install_text_input_client_window_level_in_subtree(
-    root: &objc2_app_kit::NSView,
-    text_input_client: &objc2::runtime::AnyProtocol,
+    root: &objc2_app_kit::NSView, text_input_client: &objc2::runtime::AnyProtocol,
 ) {
     use objc2_foundation::NSObjectProtocol;
 
@@ -52,9 +50,7 @@ fn install_text_input_client_window_level_in_subtree(
     }
 }
 
-fn stable_text_input_client_class(
-    runtime_class: &objc2::runtime::AnyClass,
-) -> &objc2::runtime::AnyClass {
+fn stable_text_input_client_class(runtime_class: &objc2::runtime::AnyClass) -> &objc2::runtime::AnyClass {
     let mut candidate = runtime_class;
 
     while let Some(superclass) = candidate.superclass() {
@@ -75,17 +71,12 @@ fn install_window_level_method(class: &objc2::runtime::AnyClass) -> bool {
         return false;
     }
 
-    unsafe extern "C-unwind" fn window_level(
-        view: &objc2_app_kit::NSView,
-        _selector: Sel,
-    ) -> objc2::ffi::NSInteger {
+    unsafe extern "C-unwind" fn window_level(view: &objc2_app_kit::NSView, _selector: Sel) -> objc2::ffi::NSInteger {
         view.window().map_or(0, |window| window.level())
     }
 
-    let implementation: unsafe extern "C-unwind" fn(
-        &objc2_app_kit::NSView,
-        Sel,
-    ) -> objc2::ffi::NSInteger = window_level;
+    let implementation: unsafe extern "C-unwind" fn(&objc2_app_kit::NSView, Sel) -> objc2::ffi::NSInteger =
+        window_level;
 
     // SAFETY: Objective-C method implementations erase their concrete function signature to
     // `Imp`. The `q@:` encoding below matches `(id, SEL) -> NSInteger` on 64-bit macOS.
@@ -844,9 +835,7 @@ mod tests {
     use objc2::{runtime::ClassBuilder, ClassType};
     use objc2_app_kit::{NSTrackingAreaOptions, NSView};
 
-    use super::{
-        install_window_level_method, resolve_tracking_area_options, stable_text_input_client_class,
-    };
+    use super::{install_window_level_method, resolve_tracking_area_options, stable_text_input_client_class};
 
     #[test]
     fn auto_resize_tracks_the_visible_view_rect() {
@@ -875,9 +864,7 @@ mod tests {
         let class = CLASS.get_or_init(|| {
             let name = CStr::from_bytes_with_nul(b"TauriNSPanelTextInputClientTest\0")
                 .expect("test class name must be NUL-terminated");
-            ClassBuilder::new(name, NSView::class())
-                .expect("test class should only be registered once")
-                .register()
+            ClassBuilder::new(name, NSView::class()).expect("test class should only be registered once").register()
         });
 
         assert!(install_window_level_method(class));
@@ -887,21 +874,16 @@ mod tests {
 
     #[test]
     fn window_level_method_targets_the_stable_webview_subclass() {
-        static CLASSES: OnceLock<(
-            &'static objc2::runtime::AnyClass,
-            &'static objc2::runtime::AnyClass,
-        )> = OnceLock::new();
+        static CLASSES: OnceLock<(&'static objc2::runtime::AnyClass, &'static objc2::runtime::AnyClass)> =
+            OnceLock::new();
         let (webview, notifying_webview) = CLASSES.get_or_init(|| {
             let wk_webview_name = CStr::from_bytes_with_nul(b"WKWebView\0").unwrap();
-            let wk_webview = objc2::runtime::AnyClass::get(wk_webview_name)
-                .expect("WebKit should be loaded by Tauri");
-            let webview_name =
-                CStr::from_bytes_with_nul(b"TauriNSPanelStableWebViewTest\0").unwrap();
+            let wk_webview = objc2::runtime::AnyClass::get(wk_webview_name).expect("WebKit should be loaded by Tauri");
+            let webview_name = CStr::from_bytes_with_nul(b"TauriNSPanelStableWebViewTest\0").unwrap();
             let webview = ClassBuilder::new(webview_name, wk_webview)
                 .expect("stable test webview class should only be registered once")
                 .register();
-            let notifying_name =
-                CStr::from_bytes_with_nul(b"TauriNSPanelNotifyingWebViewTest\0").unwrap();
+            let notifying_name = CStr::from_bytes_with_nul(b"TauriNSPanelNotifyingWebViewTest\0").unwrap();
             let notifying_webview = ClassBuilder::new(notifying_name, webview)
                 .expect("notifying test webview class should only be registered once")
                 .register();

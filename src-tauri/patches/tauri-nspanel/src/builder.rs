@@ -7,11 +7,8 @@ use tauri::{AppHandle, Position, Runtime, Size, WebviewUrl, WebviewWindowBuilder
 use crate::{FromWindow, Panel, WebviewWindowExt};
 
 /// Type alias for window configuration function
-type WindowConfigFn<'a, R> = Box<
-    dyn FnOnce(
-        WebviewWindowBuilder<'a, R, AppHandle<R>>,
-    ) -> WebviewWindowBuilder<'a, R, AppHandle<R>>,
->;
+type WindowConfigFn<'a, R> =
+    Box<dyn FnOnce(WebviewWindowBuilder<'a, R, AppHandle<R>>) -> WebviewWindowBuilder<'a, R, AppHandle<R>>>;
 
 /// Axes along which a resizable panel may be resized.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
@@ -36,12 +33,8 @@ impl ResizeDirection {
         };
 
         let current_size = content_view.frame().size;
-        let (min_size, max_size) = resize_constraints(
-            self,
-            current_size,
-            panel.contentMinSize(),
-            panel.contentMaxSize(),
-        );
+        let (min_size, max_size) =
+            resize_constraints(self, current_size, panel.contentMinSize(), panel.contentMaxSize());
 
         panel.setContentMinSize(min_size);
         panel.setContentMaxSize(max_size);
@@ -49,10 +42,7 @@ impl ResizeDirection {
 }
 
 fn resize_constraints(
-    direction: ResizeDirection,
-    current_size: NSSize,
-    mut min_size: NSSize,
-    mut max_size: NSSize,
+    direction: ResizeDirection, current_size: NSSize, mut min_size: NSSize, mut max_size: NSSize,
 ) -> (NSSize, NSSize) {
     match direction {
         ResizeDirection::Both => {}
@@ -965,10 +955,7 @@ impl<'a, R: Runtime + 'a, T: FromWindow<R> + 'static> PanelBuilder<'a, R, T> {
     /// ```
     pub fn with_window<F>(mut self, f: F) -> Self
     where
-        F: FnOnce(
-                WebviewWindowBuilder<'a, R, AppHandle<R>>,
-            ) -> WebviewWindowBuilder<'a, R, AppHandle<R>>
-            + 'static,
+        F: FnOnce(WebviewWindowBuilder<'a, R, AppHandle<R>>) -> WebviewWindowBuilder<'a, R, AppHandle<R>> + 'static,
     {
         self.window_fn = Some(Box::new(f) as WindowConfigFn<'a, R>);
         self
@@ -1161,8 +1148,7 @@ mod tests {
         let min = NSSize::new(200.0, 100.0);
         let max = NSSize::new(800.0, 600.0);
 
-        let constraints =
-            resize_constraints(ResizeDirection::Both, NSSize::new(500.0, 300.0), min, max);
+        let constraints = resize_constraints(ResizeDirection::Both, NSSize::new(500.0, 300.0), min, max);
 
         assert_eq!(constraints, (min, max));
     }
