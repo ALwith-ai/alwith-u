@@ -5,8 +5,6 @@ description = "An independent desktop client for the OpenAI Codex CLI"
 authors = ["alwith.ai"]
 license = "Apache-2.0"
 edition = "2024"
-# The standard library methods the code uses arrived by this release.
-rust-version = "1.100"
 
 [lib]
 name = "alwith_u_lib"
