@@ -1,5 +1,9 @@
 # ALwith U
 
+- Rust dependency requirements use the compatibility line only: `0.minor` for
+  `0.x` packages (for example `0.1`), and `major` for `1.x` or newer packages
+  (for example `1`). Do not pin a patch version or add explicit `^` or `=` operators.
+
 Always answer the user in Chinese.
 
 ## Product
