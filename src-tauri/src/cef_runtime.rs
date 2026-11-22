@@ -29,7 +29,11 @@ pub fn create() -> tauri_runtime_cef::Cef {
         // the application's language. The whole set of locale packs is staged with the framework.
         .locale(crate::desktop_runtime::browser_locale())
         // The alpha bundler does not yet package the Aperitif helper application.
-        .disable_features(["AperitifHelpers"]);
+        .disable_features(["AperitifHelpers"])
+        // FedCM's account chooser belongs to a Chrome browser window, which a tab here does not
+        // have: Chromium 158 crashes the browser process when a website asks for it. With the
+        // feature off a website finds no FedCM and uses its other sign-in flow.
+        .disable_features(["FedCm"]);
 
     // Ad-hoc development builds must not alternate cookie keys depending on
     // whether they use Vite or embedded assets. Production keeps the OS keychain.
