@@ -193,6 +193,8 @@ test.each(["idle", "running"] as const)(
   async (state) => {
     const receipt = Promise.withResolvers<void>()
     const submit = vi.fn(() => receipt.promise)
+    // No turn takes the input, so a running session falls back to the normal prompt too.
+    vi.spyOn(client, "steer").mockResolvedValue("promptRequired")
     const session = { ...completed(), state }
     const view = render(<Composer session={session} onSubmit={submit} />)
     try {

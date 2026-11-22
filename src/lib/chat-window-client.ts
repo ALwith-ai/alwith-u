@@ -39,6 +39,7 @@ const METHODS = [
   "previewHistoryTurn",
   "loadHistoryTurn",
   "prompt",
+  "steer",
   "executeShell",
   "listBackgroundTerminals",
   "stopBackgroundTerminals",
@@ -433,6 +434,9 @@ export class RemoteChatClient extends CodexClient {
   }
   override prompt(...args: Parameters<CodexClient["prompt"]>): Promise<string> {
     return this.request("prompt", args)
+  }
+  override steer(...args: Parameters<CodexClient["steer"]>): ReturnType<CodexClient["steer"]> {
+    return this.request("steer", args)
   }
   override listBackgroundTerminals(
     ...args: Parameters<CodexClient["listBackgroundTerminals"]>
