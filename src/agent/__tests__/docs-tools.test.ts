@@ -5,8 +5,8 @@ import content from "../../../guide/index.md?raw"
 import { parseGuide } from "../../core/docs"
 import { CodexClient } from "@alwith/module-chat/client"
 import { createDocsTools, docsToolSet } from "../docs-tools"
-import { createFakeAgent } from "./fake-agent"
-import { FakeHubPort } from "./fake-runtime-client"
+import { createFakeAgent } from "@alwith/module-chat/testing"
+import { FakeHubPort } from "@alwith/module-chat/testing"
 
 const chapters = parseGuide(content, metadata)
 function fixture(images = false) {

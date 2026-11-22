@@ -2,8 +2,8 @@ import { RequestError } from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { CodexClient } from "@alwith/module-chat/client"
 import { expect, test, vi } from "vitest"
 
-import { createFakeAgent } from "./fake-agent"
-import { FakeHubPort } from "./fake-runtime-client"
+import { createFakeAgent } from "@alwith/module-chat/testing"
+import { FakeHubPort } from "@alwith/module-chat/testing"
 
 const CONFIGURED_MODEL = "gateway:deepseek:test-model"
 const SECOND_MODEL = "gateway:deepseek:second-model"

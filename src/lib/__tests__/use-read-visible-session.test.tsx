@@ -3,8 +3,8 @@ import { applyUpdate, createSession } from "@alwith/module-chat/client"
 import { act, cleanup, renderHook } from "@testing-library/react"
 import { afterEach, beforeEach, expect, type MockInstance, test, vi } from "vitest"
 
-import { createFakeAgent } from "@/agent/__tests__/fake-agent"
-import { FakeHubPort } from "@/agent/__tests__/fake-runtime-client"
+import { createFakeAgent } from "@alwith/module-chat/testing"
+import { FakeHubPort } from "@alwith/module-chat/testing"
 
 import * as clientModule from "../client"
 import { useReadVisibleSession } from "../use-read-visible-session"

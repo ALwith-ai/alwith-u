@@ -1,8 +1,8 @@
 import type { SessionSummary } from "@alwith/module-chat/client"
 import { expect, test, vi } from "vitest"
 
-import { createFakeAgent } from "@/agent/__tests__/fake-agent"
-import { FakeHubPort } from "@/agent/__tests__/fake-runtime-client"
+import { createFakeAgent } from "@alwith/module-chat/testing"
+import { FakeHubPort } from "@alwith/module-chat/testing"
 import { DesktopCodexClient } from "@/lib/desktop-client"
 
 import { deleteChatFolder, latestFolderChat, readChatFolders, saveChatFolder } from "../folder-chat"

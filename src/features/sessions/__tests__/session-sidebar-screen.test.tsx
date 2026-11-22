@@ -8,7 +8,7 @@ vi.mock("@alwith/module-desktop-shell/react", async (importOriginal) => ({
   DesktopUpdateStatus: () => <button type="button">Relaunch to update</button>
 }))
 
-import { projectContext } from "@/agent/__tests__/project-context"
+import { projectContext } from "@alwith/module-chat/testing"
 import { usePlatformAuth } from "@/features/auth/store"
 import { type MainScreen, MainSidebarLayout } from "@/features/layout/components/main-sidebar-layout"
 import { client } from "@/lib/client"

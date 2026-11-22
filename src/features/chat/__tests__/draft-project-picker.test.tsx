@@ -2,7 +2,7 @@ import * as dialog from "@tauri-apps/plugin-dialog"
 import { act, fireEvent, render, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
-import { projectContext } from "@/agent/__tests__/project-context"
+import { projectContext } from "@alwith/module-chat/testing"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
 

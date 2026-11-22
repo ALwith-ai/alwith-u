@@ -1,8 +1,8 @@
 import { CodexClient, isSelectOption } from "@alwith/module-chat/client"
 import { afterEach, expect, test } from "vitest"
 
-import { createFakeAgent } from "./fake-agent"
-import { FakeHubPort } from "./fake-runtime-client"
+import { createFakeAgent } from "@alwith/module-chat/testing"
+import { FakeHubPort } from "@alwith/module-chat/testing"
 
 const clients: CodexClient[] = []
 afterEach(() => {

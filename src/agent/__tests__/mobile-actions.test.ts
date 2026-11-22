@@ -3,8 +3,8 @@ import { afterEach, expect, test, vi } from "vitest"
 import { respondMobilePermission, sendMobilePrompt } from "@/features/mobile/actions"
 
 import { CodexClient } from "@alwith/module-chat/client"
-import { createFakeAgent } from "./fake-agent"
-import { FakeHubPort } from "./fake-runtime-client"
+import { createFakeAgent } from "@alwith/module-chat/testing"
+import { FakeHubPort } from "@alwith/module-chat/testing"
 
 const clients: CodexClient[] = []
 afterEach(() => {

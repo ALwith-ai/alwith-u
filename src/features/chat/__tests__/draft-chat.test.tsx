@@ -8,9 +8,9 @@ import { act, fireEvent, render as renderView, waitFor, within } from "@testing-
 import { type ReactElement, StrictMode, useState } from "react"
 import { expect, test, vi } from "vitest"
 
-import { createFakeAgent } from "@/agent/__tests__/fake-agent"
-import { FakeHubPort } from "@/agent/__tests__/fake-runtime-client"
-import { projectContext } from "@/agent/__tests__/project-context"
+import { createFakeAgent } from "@alwith/module-chat/testing"
+import { FakeHubPort } from "@alwith/module-chat/testing"
+import { projectContext } from "@alwith/module-chat/testing"
 import { ThemeProvider } from "@/components/theme-provider"
 import { ChatWindow } from "@/features/chat-window/chat-window"
 import { must } from "@/lib/__tests__/must"

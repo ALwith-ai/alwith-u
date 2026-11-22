@@ -1,7 +1,7 @@
 import { groupSessions, isQuickChatDirectory, sessionGroup } from "@alwith/module-chat/client"
 import { expect, test } from "vitest"
 
-import { projectContext } from "./project-context"
+import { projectContext } from "@alwith/module-chat/testing"
 
 test.each([
   ["/Users/mac", "chat"],

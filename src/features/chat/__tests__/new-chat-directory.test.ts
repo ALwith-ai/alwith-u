@@ -1,6 +1,6 @@
 import { expect, test } from "vitest"
 
-import { projectContext } from "@/agent/__tests__/project-context"
+import { projectContext } from "@alwith/module-chat/testing"
 
 import { newChatDirectory } from "../new-chat-directory"
 

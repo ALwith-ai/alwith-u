@@ -5,8 +5,8 @@ import type { VibemonObservation } from "@alwith/module-auth/vibemon/core"
 import { CodexClient, createSession, isText, runStateSource } from "@alwith/module-chat/client"
 import { afterEach, expect, test, vi } from "vitest"
 
-import { createFakeAgent } from "@/agent/__tests__/fake-agent"
-import { FakeHubPort } from "@/agent/__tests__/fake-runtime-client"
+import { createFakeAgent } from "@alwith/module-chat/testing"
+import { FakeHubPort } from "@alwith/module-chat/testing"
 import { must } from "@/lib/__tests__/must"
 
 import { createVibemonSessionOwner } from "../session-host"

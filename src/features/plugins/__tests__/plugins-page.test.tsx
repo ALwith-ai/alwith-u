@@ -3,8 +3,8 @@ import { act, cleanup, fireEvent, render, waitFor, within } from "@testing-libra
 import { useState } from "react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
-import { fakeProjectContext } from "@/agent/__tests__/fake-agent"
-import { projectContext } from "@/agent/__tests__/project-context"
+import { fakeProjectContext } from "@alwith/module-chat/testing"
+import { projectContext } from "@alwith/module-chat/testing"
 import { must } from "@/lib/__tests__/must"
 import { client } from "@/lib/client"
 import i18n, { initI18n } from "@/lib/i18n"

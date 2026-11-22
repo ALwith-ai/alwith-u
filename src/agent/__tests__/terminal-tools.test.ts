@@ -4,8 +4,8 @@ import { expect, test, vi } from "vitest"
 
 import { createTerminalTools } from "@/features/terminal/tools"
 
-import { createFakeAgent } from "./fake-agent"
-import { FakeHubPort } from "./fake-runtime-client"
+import { createFakeAgent } from "@alwith/module-chat/testing"
+import { FakeHubPort } from "@alwith/module-chat/testing"
 
 test("application terminals bind native actions to the requesting chat across turns and reject foreign arguments", async () => {
   const native = vi.fn((method: string, params: Record<string, unknown>) => {

@@ -1,8 +1,8 @@
 import { act, cleanup, fireEvent, render, waitFor, within } from "@testing-library/react"
 import { afterAll, afterEach, beforeEach, expect, test, vi } from "vitest"
 
-import { fakeProjectContext } from "@/agent/__tests__/fake-agent"
-import { projectContext } from "@/agent/__tests__/project-context"
+import { fakeProjectContext } from "@alwith/module-chat/testing"
+import { projectContext } from "@alwith/module-chat/testing"
 import type { SessionSummary } from "@alwith/module-chat/client"
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { SessionSidebar } from "@/features/sessions/session-sidebar"

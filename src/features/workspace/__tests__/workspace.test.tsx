@@ -13,7 +13,7 @@ import { type ReactNode, StrictMode, useLayoutEffect, useState } from "react"
 import { toast } from "sonner"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
-import { projectContext } from "@/agent/__tests__/project-context"
+import { projectContext } from "@alwith/module-chat/testing"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { ChatHeader } from "@/features/chat/chat-header"
 import type { FolderChatTarget } from "@/features/chat/folder-chat"

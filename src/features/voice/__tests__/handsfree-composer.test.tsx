@@ -6,7 +6,7 @@ import { act, fireEvent, render as renderView, screen, waitFor } from "@testing-
 import { type ReactElement, StrictMode, useState } from "react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
-import { fakeProjectContext } from "@/agent/__tests__/fake-agent"
+import { fakeProjectContext } from "@alwith/module-chat/testing"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Composer } from "@/features/chat/__tests__/timeline-host"
 import { DraftChat } from "@/features/chat/draft-chat"

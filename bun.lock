@@ -10,7 +10,7 @@
         "@alwith/enterprise-client": "^0.6.5",
         "@alwith/module-auth": "^0.6.8",
         "@alwith/module-browser": "^0.6.0",
-        "@alwith/module-chat": "^0.6.37",
+        "@alwith/module-chat": "^0.6.39",
         "@alwith/module-collection": "^0.5.0",
         "@alwith/module-computer": "^0.6.7",
         "@alwith/module-desktop-shell": "^0.6.11",
@@ -163,7 +163,7 @@
 
     "@alwith/module-browser": ["@alwith/module-browser@0.6.0", "", { "peerDependencies": { "@tauri-apps/api": "^3.0.0-alpha.3", "react": "^19.3.1" }, "optionalPeers": ["@tauri-apps/api"] }, "sha512-ciTJgf9eoJZsx8GKvV2kTGohbOqTzxDscirrRbP2yCzY7TL+/zsJIDa4kGCNp4RHMKJ9yoYCNxY1JJdSroNudw=="],
 
-    "@alwith/module-chat": ["@alwith/module-chat@0.6.37", "", { "dependencies": { "@base-ui/react": "^1.9.0", "@dnd-kit/core": "^6.3.1", "@dnd-kit/sortable": "^10.0.0", "@dnd-kit/utilities": "^3.2.2", "@floating-ui/dom": "^1.8.0", "@modelcontextprotocol/server": "^2.4.0", "@nyssance/codex-acp-v2": "^0.7.85", "@nyssance/shadcn": "^4.23.4", "@shadcn/react": "^0.3.1", "@solar-icons/react": "^2.7.0", "ansi_up": "^6.0.6", "class-variance-authority": "^0.7.1", "cn": "^0.5.2", "date-fns": "^4.4.0", "diff2html": "^3.4.56", "entities": "^9.0.0", "frimousse": "^0.4.0", "highlight.js": "^11.12.0", "katex": "^0.19.1", "ldrs": "^1.1.9", "lucide-react": "^1.77.0", "marked": "^18.2.1", "marked-linkify-it": "^4.0.2", "mermaid": "^12.3.0", "motion": "^14.14.0", "smplr": "^1.2.0" }, "peerDependencies": { "@agentclientprotocol/sdk": "^2.9.1", "@alwith/api": "^0.6.0", "@tauri-apps/api": "^3.0.0-alpha.3", "react": "^19.3.1", "react-dom": "^19.3.1" }, "optionalPeers": ["@tauri-apps/api"] }, "sha512-erdYewMkc7NmuBk9synT9kNpRzp+R2OFyd9kCs0uIXIevKWGPOmZJyEh+zhvBaTeuFfrvIwAbwBp3m+/tU32qw=="],
+    "@alwith/module-chat": ["@alwith/module-chat@0.6.39", "", { "dependencies": { "@base-ui/react": "^1.9.0", "@dnd-kit/core": "^6.3.1", "@dnd-kit/sortable": "^10.0.0", "@dnd-kit/utilities": "^3.2.2", "@floating-ui/dom": "^1.8.0", "@modelcontextprotocol/server": "^2.4.0", "@nyssance/codex-acp-v2": "^0.7.86", "@nyssance/shadcn": "^4.23.4", "@shadcn/react": "^0.3.1", "@solar-icons/react": "^2.7.0", "ansi_up": "^6.0.6", "class-variance-authority": "^0.7.1", "cn": "^0.5.2", "date-fns": "^4.4.0", "diff2html": "^3.4.56", "entities": "^9.0.0", "frimousse": "^0.4.0", "highlight.js": "^11.12.0", "katex": "^0.19.1", "ldrs": "^1.1.9", "lucide-react": "^1.77.0", "marked": "^18.2.1", "marked-linkify-it": "^4.0.2", "mermaid": "^12.3.0", "motion": "^14.14.0", "smplr": "^1.2.0" }, "peerDependencies": { "@agentclientprotocol/sdk": "^2.9.1", "@alwith/api": "^0.6.0", "@tauri-apps/api": "^3.0.0-alpha.3", "react": "^19.3.1", "react-dom": "^19.3.1" }, "optionalPeers": ["@tauri-apps/api"] }, "sha512-207ltx1uqSexZ1X06k+u76l3YvHCPieZ96ncjqSY9Agw1v4Ua0O4CNNPCUUOhy0x1MLc7vDP5s+Qywmms7qoDw=="],
 
     "@alwith/module-collection": ["@alwith/module-collection@0.5.0", "", {}, "sha512-7QQuhJOZfLCo89VGsvpv7G+i9PPUhgb79eiZeTwsy4u9hHG+qyU7QdhUHyXIqC13s6+oIqc3HmNwd2I2WIdaEg=="],
 
@@ -479,7 +479,7 @@
 
     "@nyssance/cef-rs": ["@nyssance/cef-rs@158.0.26", "", {}, "sha512-mXEP2IheISY1Ua5aDrb4JBpyRKcSF68uTTOtXU/G2g/9UhzVXMnrU2A5djXBT5FgP8ZpyW3JNPaALOuaU9YR0A=="],
 
-    "@nyssance/codex-acp-v2": ["@nyssance/codex-acp-v2@0.7.85", "", { "dependencies": { "@agentclientprotocol/sdk": "^2.9.1", "@openai/codex": "^0.171.0", "cross-spawn": "^7.0.6", "diff": "^9.0.0", "effect": "^4.1.5", "open": "^11.0.4", "vscode-jsonrpc": "^10.0.1", "ws": "^8.23.0", "ws-transport": "npm:ws@8.23.0", "zod": "^4.6.7" }, "peerDependencies": { "@alwith/api": ">=0.5.4" }, "bin": { "codex-acp-v2": "dist/index.js" } }, "sha512-TziMu/XWNGpLhEmQPemBB1bpAN9IqUUEpEdSgH9QvQ6cMO8rFlDhACJebh78aCDebGwMFHrHPMI1nB9IdothvA=="],
+    "@nyssance/codex-acp-v2": ["@nyssance/codex-acp-v2@0.7.86", "", { "dependencies": { "@agentclientprotocol/sdk": "^2.9.1", "@openai/codex": "^0.171.0", "cross-spawn": "^7.0.6", "diff": "^9.0.0", "effect": "^4.1.5", "open": "^11.0.4", "vscode-jsonrpc": "^10.0.1", "ws": "^8.23.0", "ws-transport": "npm:ws@8.23.0", "zod": "^4.6.7" }, "peerDependencies": { "@alwith/api": ">=0.5.4" }, "bin": { "codex-acp-v2": "dist/index.js" } }, "sha512-dXUakLVFz/qSPTH6h0tPuXQqJAcco9VF3oNgme6TzvhLZ4iFAq+368/LUgoj19y1xj58nw+vDX6UlLoJZ7dwAg=="],
 
     "@nyssance/metro": ["@nyssance/metro@0.1.1", "", { "peerDependencies": { "@xyflow/react": "^13.0.2", "elkjs": "^0.12.1", "react": "^19.3.1" }, "optionalPeers": ["@xyflow/react", "elkjs", "react"] }, "sha512-mZZl/oWRFGLc3f+LDBvNHVMCmZU2CsUL30yOsqAWb7ZbnnjH1mR7gmWkXN0xoEDH2MrKMidPIXdK/bsMXU51dg=="],
 

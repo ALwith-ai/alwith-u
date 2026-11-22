@@ -1,8 +1,8 @@
 import { CodexClient } from "@alwith/module-chat/client"
 import { expect, test, vi } from "vitest"
 
-import { createFakeAgent } from "./fake-agent"
-import { FakeHubPort } from "./fake-runtime-client"
+import { createFakeAgent } from "@alwith/module-chat/testing"
+import { FakeHubPort } from "@alwith/module-chat/testing"
 
 test.each(["main", "chat"] as const)(
   "closing every activity, including %s drafts, leaves a new draft writable",

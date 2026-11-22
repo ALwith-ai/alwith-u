@@ -2,7 +2,7 @@ import type { SessionRunState } from "@alwith/api"
 import { act, cleanup, fireEvent, render, within } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 
-import { projectContext } from "@/agent/__tests__/project-context"
+import { projectContext } from "@alwith/module-chat/testing"
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
