@@ -542,9 +542,7 @@ impl Event {
                 .into_iter()
                 .all(|value| value.as_deref().is_none_or(hash))
             && context.operation.as_deref().is_none_or(|value| operation(value) == Some(value))
-            && context.provider.as_deref().is_none_or(|value| {
-                value == "custom" || REPORTED_PROVIDERS.contains(&value)
-            })
+            && context.provider.as_deref().is_none_or(|value| value == "custom" || REPORTED_PROVIDERS.contains(&value))
             && context
                 .config
                 .as_deref()
@@ -926,9 +924,7 @@ const REPORTED_PROVIDERS: [&str; 10] =
 fn model_context(model: &str, context: &mut Context) {
     context.model_ref = Some(reference(model));
     let provider = model.strip_prefix("gateway:").and_then(|value| value.split(':').next()).unwrap_or("openai");
-    context.provider = Some(
-        if REPORTED_PROVIDERS.contains(&provider) { provider } else { "custom" }.into(),
-    );
+    context.provider = Some(if REPORTED_PROVIDERS.contains(&provider) { provider } else { "custom" }.into());
 }
 
 pub struct RequestTrace {

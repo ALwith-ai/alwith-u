@@ -6,7 +6,9 @@ use base64::{Engine, engine::general_purpose::STANDARD};
 use serde_json::{Value, json};
 use std::path::{Component, PathBuf};
 use std::sync::Mutex;
-use tauri::{Emitter, LogicalSize, Manager, PhysicalPosition, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
+#[cfg(not(target_os = "windows"))]
+use tauri::PhysicalPosition;
+use tauri::{Emitter, LogicalSize, Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 use window::perform as window_action;
 
 #[derive(Default)]

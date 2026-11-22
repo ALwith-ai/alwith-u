@@ -49,6 +49,8 @@ fn real_directory(path: &Path, _private: bool) -> Result<(), String> {
         Ok(metadata) if metadata.is_dir() && !linked(&metadata) => Ok(()),
         Ok(_) => Err("Business sharing directory must not be a symbolic link".into()),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            // Only the Unix permission mode mutates the builder.
+            #[cfg_attr(not(unix), allow(unused_mut))]
             let mut builder = fs::DirBuilder::new();
             #[cfg(unix)]
             {

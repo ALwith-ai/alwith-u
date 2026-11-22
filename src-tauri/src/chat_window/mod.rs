@@ -1,5 +1,8 @@
 //! Chat window policy adapted from Desktop; extraction candidates: .docs/modules.md.
-use tauri::{Manager, WebviewWindow};
+// `run_on_main_thread` is a `Manager` method and only the macOS path calls it.
+#[cfg(target_os = "macos")]
+use tauri::Manager;
+use tauri::WebviewWindow;
 #[cfg(target_os = "macos")]
 mod ime_candidates;
 pub mod plugin;

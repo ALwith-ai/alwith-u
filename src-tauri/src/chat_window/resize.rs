@@ -1,5 +1,8 @@
 //! Atomic macOS resize, extracted from Desktop's resize_window_edge.
-use tauri::{Manager, WebviewWindow};
+// `run_on_main_thread` is a `Manager` method and only the macOS path calls it.
+#[cfg(target_os = "macos")]
+use tauri::Manager;
+use tauri::WebviewWindow;
 
 pub async fn resize(
     window: &WebviewWindow, direction: String, x: f64, y: f64, width: f64, height: f64,

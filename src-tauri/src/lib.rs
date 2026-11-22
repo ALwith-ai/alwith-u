@@ -1,6 +1,6 @@
-mod power;
 mod codex_home;
 mod docs_install;
+mod power;
 
 #[cfg(all(test, target_os = "macos"))]
 #[path = "__tests__/dropped_file_url.rs"]
@@ -55,6 +55,7 @@ mod settings_store;
 #[cfg(feature = "runtime-cef")]
 mod web_automation;
 use atlas_tauri as trackpad;
+mod create_alwith;
 mod tray;
 mod vibemon;
 mod window;
@@ -64,7 +65,6 @@ mod window_state;
 mod windows_cef;
 #[cfg(target_os = "windows")]
 mod windows_frame;
-mod create_alwith;
 mod workspace;
 mod workspace_move;
 
