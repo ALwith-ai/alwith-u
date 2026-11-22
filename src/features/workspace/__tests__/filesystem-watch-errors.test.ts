@@ -24,9 +24,10 @@ test("native watch errors invalidate the root before reporting and stop cleanly"
     notify({ payload: { root: "/repo", paths: [], error: "Watched root removed" } })
     expect(changed).toHaveBeenCalledWith(["/repo"])
     expect(error).toHaveBeenCalledWith(new Error("Watched root removed"))
+    const [registration] = watch.mock.calls[0]!
     dispose()
     expect(stop).toHaveBeenCalledOnce()
-    expect(watch).toHaveBeenLastCalledWith({ root: "/repo", enabled: false })
+    expect(watch).toHaveBeenLastCalledWith({ ...registration, enabled: false })
   } finally {
     watch.mockRestore()
   }

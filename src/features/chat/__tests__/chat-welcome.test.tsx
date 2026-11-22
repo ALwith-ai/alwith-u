@@ -56,7 +56,6 @@ test.each(["chat", "image"])("%s welcome excludes the default directory even ins
         name: "ALwith",
         roots: [{ path: current.chatDirectory }],
         metadata: {},
-        position: 0,
         createdAt: 0,
         updatedAt: 0,
         recencyAt: null

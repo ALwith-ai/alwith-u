@@ -17,7 +17,6 @@ test.each([
       name: "ALwith",
       roots: [{ path: root === "home" ? home : cwd }],
       metadata: {},
-      position: 0,
       createdAt: 0,
       updatedAt: 0,
       recencyAt: null

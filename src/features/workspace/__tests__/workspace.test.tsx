@@ -354,11 +354,14 @@ test("a chat link opens an outside tab while preserving the project tree selecti
   const errors = vi.spyOn(toast, "error")
   function Open() {
     const workspace = required(useWorkspace())
-    return (
-      <button onClick={() => void workspace.openChatFile?.("/b/two.txt", "/a")}>Open outside chat file</button>
-    )
+    return <button onClick={() => void workspace.openChatFile?.("/b/two.txt", "/a")}>Open outside chat file</button>
   }
-  const view = render(<Surface cwd="/a"><NavigationProbe /><Open /></Surface>)
+  const view = render(
+    <Surface cwd="/a">
+      <NavigationProbe />
+      <Open />
+    </Surface>
+  )
   fireEvent.click(screen.getByRole("button", { name: "Open linked file" }))
   const projectFile = await screen.findByRole("treeitem", { name: "one.txt" })
   expect(projectFile).toHaveAttribute("aria-selected", "true")
@@ -388,7 +391,11 @@ test("a chat directory link expands the folder in the current project tree", asy
     const workspace = required(useWorkspace())
     return <button onClick={() => void workspace.openChatFile?.("/a/sub", "/a")}>Open chat directory</button>
   }
-  render(<Surface cwd="/a"><Open /></Surface>)
+  render(
+    <Surface cwd="/a">
+      <Open />
+    </Surface>
+  )
   fireEvent.click(screen.getByRole("button", { name: "Open chat directory" }))
   expect(await screen.findByRole("treeitem", { name: "child.txt" })).toBeVisible()
   expect(screen.getByRole("treeitem", { name: "sub" })).toHaveAttribute("aria-selected", "true")
@@ -1180,14 +1187,22 @@ test("unmount releases a watch that finishes after workspace creation is cancell
     </StrictMode>
   )
   fireEvent.click(screen.getByRole("button", { name: "Open workspace" }))
-  await waitFor(() => expect(native.invoke).toHaveBeenCalledWith(`${FS}workspace_watch`, { root: "/a", enabled: true }))
+  await waitFor(() =>
+    expect(native.invoke).toHaveBeenCalledWith(
+      `${FS}workspace_watch`,
+      expect.objectContaining({ root: "/a", enabled: true })
+    )
+  )
   view.unmount()
   await act(async () => {
     required(completeWatch)()
     await pendingWatch
   })
   await waitFor(() =>
-    expect(native.invoke).toHaveBeenCalledWith(`${FS}workspace_watch`, { root: "/a", enabled: false })
+    expect(native.invoke).toHaveBeenCalledWith(
+      `${FS}workspace_watch`,
+      expect.objectContaining({ root: "/a", enabled: false })
+    )
   )
   expect(localStorage.getItem("workspace:/a")).toBeNull()
   expect(native.invoke.mock.calls.filter(([command]) => command === "workspace_dirty")).toHaveLength(0)
