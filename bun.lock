@@ -105,7 +105,7 @@
         "@babel/parser": "^8.1.3",
         "@codemirror/view": "^6.43.15",
         "@nyssance/cef-rs": "158.0.26",
-        "@nyssance/tauri-runtime-cef": "158.1.2",
+        "@nyssance/tauri-runtime-cef": "158.1.3",
         "@nyssance/ts7-lint": "^0.1.3",
         "@nyssance/tsconfig": "^0.1.2",
         "@storybook/addon-a11y": "^10.6.8",
@@ -143,7 +143,6 @@
     },
   },
   "patchedDependencies": {
-    "@nyssance/tauri-runtime-cef@158.1.2": "patches/@nyssance%2Ftauri-runtime-cef@158.1.2.patch",
     "@nyssance/cef-rs@158.0.26": "patches/@nyssance%2Fcef-rs@158.0.26.patch",
     "vite@8.3.8": "patches/vite@8.3.8.patch",
   },
@@ -487,7 +486,7 @@
 
     "@nyssance/shadcn": ["@nyssance/shadcn@4.23.4", "", { "dependencies": { "@base-ui/react": "^1.9.0", "@shadcn/react": "^0.3.1", "class-variance-authority": "^0.7.1", "cmdk": "^1.1.1", "cn": "^0.5.1", "embla-carousel-react": "^8.6.0", "input-otp": "^1.5.0", "lucide-react": "^1.66.0", "next-themes": "^0.4.6", "react-day-picker": "^10.0.2", "react-resizable-panels": "^4.16.0", "recharts": "3.8.0", "shiki": "^4.5.0", "sonner": "^2.0.8" }, "peerDependencies": { "react": "^19.0.0", "react-dom": "^19.0.0", "vite": ">=8" }, "optionalPeers": ["vite"] }, "sha512-pdqPvm9SkSD6tmbyFPsnaYo+9dj/9AkabQtGnCam5b0tmABMLnAqP5jBducAV5T/iItflMFPcgrA7DE0/69yqg=="],
 
-    "@nyssance/tauri-runtime-cef": ["@nyssance/tauri-runtime-cef@158.1.2", "", {}, "sha512-7Avm9KAfNnGhZFP2vjgP7ykKVdRZdSWotwTRAgIysZZ7PzoBJ6xX+ngkHEzdWTo50xXmLjkyMuUw0i9PLIv4OQ=="],
+    "@nyssance/tauri-runtime-cef": ["@nyssance/tauri-runtime-cef@158.1.3", "", {}, "sha512-GrtfCPcaamJQGnNCPsYXVeloD3U16rYoou5cz13NmUVxi54x/BNmaQvENWlmWK4o5l8FPkNPFLhKyHBwftjXbQ=="],
 
     "@nyssance/ts7-lint": ["@nyssance/ts7-lint@0.1.3", "", { "bin": { "ts7-lint": "src/index.ts" } }, "sha512-i6lTThgMw6JoCgDB1clmlNMMgOJSj2nU62qZjZn6KhG55YYmNwkkZw889Am9YuXAnXNcJDi8qZKC23HpV+lx8Q=="],
 
