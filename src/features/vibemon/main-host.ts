@@ -113,7 +113,11 @@ async function start() {
     queue = result.catch(() => {})
     return result
   }
-  let presentedResource: { scope: string; vibemonId: string; identity: string } | null = null
+  let rendererResource: {
+    scope: string
+    vibemonId: string
+    identity: string
+  } | null = null
   const resourceRefreshes = new Map<string, Promise<void>>()
   function refreshPresentedResource(scope: string, vibemonId: string) {
     const key = JSON.stringify([scope, vibemonId])
@@ -123,11 +127,11 @@ async function start() {
       .then((resource) =>
         serialize(async () => {
           if (scope !== vibemonScope() || (await getVibemonState()).vibemon !== vibemonId) return
-          if (presentedResource?.scope !== scope || presentedResource.vibemonId !== vibemonId) return
+          if (rendererResource?.scope !== scope || rendererResource.vibemonId !== vibemonId) return
           const identity = vibemonResourceIdentity(resource)
-          if (presentedResource.identity === identity || !(await WebviewWindow.getByLabel("vibemon"))) return
+          if (rendererResource.identity === identity || !(await WebviewWindow.getByLabel("vibemon"))) return
           await command("reload", vibemonId)
-          presentedResource = { scope, vibemonId, identity }
+          rendererResource = { scope, vibemonId, identity }
         })
       )
       .catch((error) => logBackgroundError(`vibemon-refresh/${vibemonId}`, error))
@@ -158,31 +162,94 @@ async function start() {
       stop()
     }
   }
-  async function ensureVibemon(options: { trusted?: boolean; dropCenter?: { x: number; y: number } } = {}) {
+  // Preparation runs on the same queue as presentation and destruction, but the chat
+  // surface notification never waits for it. The renderer identity survives suspension.
+  let warming: { scope: string; vibemonId: string; task: Promise<void> } | null = null
+  let accountRevision = 0
+  async function prepareVibemon(scope: string, vibemonId: string, trusted: boolean) {
+    const revision = accountRevision
+    const current = async () => {
+      const selected = (await getVibemonState()).vibemon
+      if (revision !== accountRevision || scope !== currentAccount() || selected !== vibemonId)
+        throw new Error("The selected vibemon changed during preparation")
+    }
+    await current()
+    const existing = await WebviewWindow.getByLabel("vibemon")
+    if (existing && rendererResource?.scope === scope && rendererResource.vibemonId === vibemonId)
+      return { needsRefresh: true, current }
+
+    const prepared = await prepareVibemonResource(assets.assets, vibemonId)
+    const owned = assets.assets.snapshot().owned
+    if (!trusted || !owned?.some((item) => item.vibemon_uuid === vibemonId)) await assets.assets.getMyVibemons()
+    if (!assets.assets.snapshot().owned?.some((item) => item.vibemon_uuid === vibemonId))
+      throw new Error("This account does not own the selected Vibemon")
+    await current()
+    let ready!: () => void
+    let fail!: (error: Error) => void
+    const rendererReady = new Promise<void>((res, rej) => {
+      ready = res
+      fail = rej
+    })
+    const stop = await listen<{ vibemonId: string }>("vibemon:ready", ({ payload }) => {
+      if (payload.vibemonId === vibemonId) ready()
+    })
+    const timer = setTimeout(() => fail(new Error("The selected vibemon could not render")), 18_000)
+    try {
+      await Promise.all([
+        rendererReady,
+        (async () => {
+          await vibemonWindowCall("create-bubble")
+          if (existing) await command("reload", vibemonId)
+          else if (!(await vibemonWindowCall<boolean>("create-vibemon"))) ready()
+        })()
+      ])
+      await current()
+      rendererResource = {
+        scope,
+        vibemonId,
+        identity: vibemonResourceIdentity(prepared.resource)
+      }
+      return { needsRefresh: prepared.needsRefresh, current }
+    } catch (error) {
+      rendererResource = null
+      await vibemonWindowCall("destroy-vibemon")
+      throw error
+    } finally {
+      clearTimeout(timer)
+      stop()
+    }
+  }
+  async function warmChatVibemon(scope: string) {
+    if (platform() !== "macos" && platform() !== "windows") return
+    await refreshSettings()
+    const { vibemon } = await getVibemonState()
+    if (!vibemon || scope !== currentAccount()) return
+    if (warming?.scope === scope && warming.vibemonId === vibemon) return warming.task
+    const task = serialize(async () => {
+      await prepareVibemon(scope, vibemon, true)
+    })
+    warming = { scope, vibemonId: vibemon, task }
+    try {
+      await task
+    } finally {
+      if (warming?.task === task) warming = null
+    }
+  }
+
+  async function presentVibemon(
+    options: {
+      trusted?: boolean
+      dropCenter?: { x: number; y: number }
+      validate?: () => void
+    } = {}
+  ) {
     if (platform() !== "macos" && platform() !== "windows") return "unavailable" as const
     const started = performance.now()
-    const measure = (stage: string) => {
-      if (import.meta.env.DEV)
-        void info(`[vibemon-presentation] ${stage} ${Math.round(performance.now() - started)}ms`).catch(console.error)
-    }
     const scope = vibemonScope()
     await refreshSettings()
     const state = await getVibemonState()
     if (!state.vibemon) throw new Error("Select a Vibemon in the vibemon center first")
-    const existing = await WebviewWindow.getByLabel("vibemon")
-    let identity: string
-    let needsRefresh = true
-    if (existing !== null && presentedResource?.scope === scope && presentedResource.vibemonId === state.vibemon) {
-      identity = presentedResource.identity
-      measure("renderer-reused")
-    } else {
-      const prepared = await prepareVibemonResource(assets.assets, state.vibemon)
-      identity = vibemonResourceIdentity(prepared.resource)
-      needsRefresh = prepared.needsRefresh
-      measure("cache-ready")
-    }
-    if (scope !== vibemonScope() || (await getVibemonState()).vibemon !== state.vibemon)
-      throw new Error("The selected vibemon changed during presentation")
+    const prepared = await prepareVibemon(scope, state.vibemon, options.trusted === true)
     const placeVibemon = async () => {
       if (!options.dropCenter) return
       const vibemon = await WebviewWindow.getByLabel("vibemon")
@@ -208,67 +275,20 @@ async function start() {
         )
       )
     }
-    const completeOpen = async () => {
-      if (scope !== vibemonScope() || (await getVibemonState()).vibemon !== state.vibemon)
-        throw new Error("The selected vibemon changed during presentation")
-      await updateVibemonState({ enabled: true })
-      presentedResource = { scope, vibemonId: state.vibemon, identity }
-      if (needsRefresh) refreshPresentedResource(scope, state.vibemon)
-      measure("presented")
-      toast.dismiss("vibemon-startup")
-      return "shown" as const
-    }
-    if (existing !== null) {
-      if (
-        presentedResource?.scope !== scope ||
-        presentedResource.vibemonId !== state.vibemon ||
-        presentedResource.identity !== identity
-      )
-        await command("reload", state.vibemon)
-      await placeVibemon()
-      await command("present", state.vibemon)
-      return completeOpen()
-    }
-    const owned = assets.assets.snapshot().owned
-    if (!options.trusted || !owned?.some((item) => item.vibemon_uuid === state.vibemon))
-      await assets.assets.getMyVibemons()
-    if (!assets.assets.snapshot().owned?.some((item) => item.vibemon_uuid === state.vibemon))
-      throw new Error("This account does not own the selected Vibemon")
-    if (scope !== vibemonScope()) throw new Error("The vibemon account changed")
-    measure("ownership-ready")
-    let ready!: () => void
-    let fail!: (error: Error) => void
-    const prepared = new Promise<void>((res, rej) => {
-      ready = res
-      fail = rej
-    })
-    const stop = await listen<{ vibemonId: string }>("vibemon:ready", ({ payload }) => {
-      if (payload.vibemonId === state.vibemon) ready()
-    })
-    const timer = setTimeout(() => fail(new Error("The selected vibemon could not render")), 18_000)
-    try {
-      await Promise.all([
-        prepared,
-        (async () => {
-          await vibemonWindowCall("create-bubble")
-          if (!(await vibemonWindowCall<boolean>("create-vibemon"))) ready()
-        })()
-      ])
-      measure("window-ready")
-      if (scope !== vibemonScope()) throw new Error("The vibemon account changed")
-      await placeVibemon()
-      await command("present", state.vibemon)
-      return await completeOpen()
-    } catch (error) {
-      await vibemonWindowCall("destroy-vibemon")
-      throw error
-    } finally {
-      clearTimeout(timer)
-      stop()
-    }
+    await placeVibemon()
+    await prepared.current()
+    options.validate?.()
+    await command("present", state.vibemon)
+    await prepared.current()
+    await updateVibemonState({ enabled: true })
+    if (prepared.needsRefresh) refreshPresentedResource(scope, state.vibemon)
+    if (import.meta.env.DEV)
+      void info(`[vibemon-presentation] presented ${Math.round(performance.now() - started)}ms`).catch(console.error)
+    toast.dismiss("vibemon-startup")
+    return "shown" as const
   }
   async function showVibemonWithoutChat(options: { trusted?: boolean; dropCenter?: { x: number; y: number } } = {}) {
-    const result = await ensureVibemon(options)
+    const result = await presentVibemon(options)
     if (result === "shown") {
       const chat = await WebviewWindow.getByLabel("chat")
       if (chat !== null) {
@@ -310,7 +330,7 @@ async function start() {
             owner.snapshot()?.surfaceVisible !== true &&
             (await assets.assets.resources.inspect(state.vibemon))
           )
-            await ensureVibemon()
+            await presentVibemon()
         })
       )
     },
@@ -386,7 +406,13 @@ async function start() {
       case "surface": {
         if (payload.label !== request.from || !["main", "chat"].includes(payload.label))
           throw new Error("Invalid conversation surface")
-        return owner.surface(payload.label, { sessionId: payload.sessionId, visible: payload.visible })
+        await owner.surface(payload.label, {
+          sessionId: payload.sessionId,
+          visible: payload.visible
+        })
+        if (payload.label === "chat" && payload.visible)
+          void warmChatVibemon(request.scope).catch((error) => logBackgroundError("vibemon-prewarm", error))
+        return
       }
       case "open-from-lounge":
         if (request.from !== "main") throw new Error("Only main owns the lounge")
@@ -411,10 +437,11 @@ async function start() {
       case "restore-vibemon":
         return serialize(async () => {
           await refreshSettings()
-          if ((await getVibemonState()).vibemon) await ensureVibemon()
+          if ((await getVibemonState()).vibemon) await presentVibemon()
         })
       case "collapse": {
         if (request.from !== "chat") throw new Error("Only chat can collapse to a vibemon")
+        const pending = warming
         return serialize(async () => {
           const chat = await WebviewWindow.getByLabel("chat")
           if (chat === null) throw new Error("Chat window unavailable")
@@ -426,18 +453,28 @@ async function start() {
             },
             async equippedVibemon() {
               await refreshSettings()
-              return (await getVibemonState()).vibemon
+              const id = (await getVibemonState()).vibemon
+              if (pending?.scope === request.scope && pending.vibemonId === id) await pending.task
+              return id
             },
             hasVibemon: async () => (await assets.assets.getMyVibemons()).length > 0,
             async showVibemon() {
-              if ((await ensureVibemon({ trusted: true })) !== "shown")
+              if (
+                (await presentVibemon({
+                  trusted: true,
+                  validate: () => owner.requireSurface("chat", payload.sessionId)
+                })) !== "shown"
+              )
                 throw new Error("Desktop vibemon are unavailable on this platform")
             },
             bindSession: () => owner.collapse(payload.sessionId),
             async hideChat() {
               await chat.hide()
               await syncChatWindowSurface()
-              await owner.surface("chat", { sessionId: payload.sessionId, visible: false })
+              await owner.surface("chat", {
+                sessionId: payload.sessionId,
+                visible: false
+              })
               await vibemonWindowCall("focus-bubble")
             },
             restoreChat: () => openChatWindow()
@@ -480,7 +517,7 @@ async function start() {
   }
   function restoreInBackground(work: () => Promise<unknown>) {
     return runVibemonRestoration(work, currentAccount, () => {
-      void serialize(() => restoreInBackground(() => ensureVibemon()))
+      void serialize(() => restoreInBackground(() => presentVibemon()))
     })
   }
   const restore = async () => {
@@ -497,6 +534,8 @@ async function start() {
   }
   usePlatformAuth.subscribe((state, previous) => {
     if (state.user?.user_uuid !== previous.user?.user_uuid || (previous.isLoading && !state.isLoading)) {
+      accountRevision++
+      rendererResource = null
       owner.invalidate()
       observeResourceSync("idle")
       toast.dismiss("vibemon-startup")

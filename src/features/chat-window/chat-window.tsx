@@ -40,8 +40,8 @@ import { cn } from "@/lib/utils"
 import { useWindowFocus } from "@/lib/window-focus"
 import { openSettingsWindow } from "@/lib/window-manager"
 
-import { chatWindowTransparency } from "./transparency-preference"
 import { openChatWindowFile } from "./file-links"
+import { chatWindowTransparency } from "./transparency-preference"
 import { useChatWindowBackdrop } from "./use-chat-window-backdrop"
 import { WindowResizeEdges } from "./window-resize-edges"
 
@@ -282,14 +282,13 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
                 setSelectedId(transfer.sessionId)
                 setGeneration((value) => value + 1)
               }
+              if (usePlatformAuth.getState().user !== null) await suspendVibemonForChat()
               setRestoreError(null)
               setContentMounted(true)
               await presentChatWindow()
               await publishChatWindowSurface(current.current.selectedId, true)
-              if (usePlatformAuth.getState().user !== null) {
+              if (usePlatformAuth.getState().user !== null)
                 await registerVibemonSurface("chat", current.current.selectedId, true)
-                await suspendVibemonForChat()
-              }
               return null
             }
             case "release": {
