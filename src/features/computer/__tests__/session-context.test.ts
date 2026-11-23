@@ -43,7 +43,7 @@ test("all new, resumed and forked conversations receive the application grant", 
   ] as const) {
     const context = await hostSessionContext("/project", operation)
     expect(context.mcpServers).toHaveLength(1)
-    expect(context).not.toHaveProperty("revision")
+    expect(context.revision).toBe("global")
     await context.bind?.("destination")
     expect(native.bind).toHaveBeenLastCalledWith({ token: "token", sessionId: "destination" })
     expect(context.appendSystemPrompt).toContain("Workspace knowledge")
@@ -52,7 +52,7 @@ test("all new, resumed and forked conversations receive the application grant", 
     expect(context.appendSystemPrompt).toContain("do not discover computer tools")
     expect(context.appendSystemPrompt).toContain("enumerate computer resources or resource templates")
   }
-  expect(native.context.mock.calls.every((args) => args.length === 0)).toBe(true)
+  expect(native.context.mock.calls).toEqual([[{}], [{ sessionId: "a" }], [{ sessionId: "b" }], [{}]])
   expect(native.ready).not.toHaveBeenCalled()
 })
 test("an unavailable computer host does not remove the workspace context", async () => {

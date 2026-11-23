@@ -7,12 +7,21 @@ import { deviceSessionContext } from "@/features/device/session-context"
 import { driveSessionContext } from "@/features/drive/session-context"
 import { browserSessionContext } from "@/features/web-automation/session-context"
 
+// Older command clients accept the same call and ignore the optional resume hint.
+const requestConnection: (args: { sessionId?: string }) => ReturnType<typeof commands.context> = commands.context
+
+export async function hostSessionRevision(): Promise<string> {
+  if (!isTauri()) return "unavailable"
+  return commands.revision().catch(() => "unavailable")
+}
+
 /** Computer attachment failures belong to the optional tool channel, not the conversation. */
-async function computerSessionContext() {
+async function computerSessionContext(sessionId?: string) {
   try {
-    const descriptor = await commands.context()
+    const descriptor = await requestConnection(sessionId ? { sessionId } : {})
     const context = await computerContext(() => Promise.resolve(descriptor?.connection ?? null))
     return {
+      revision: descriptor?.connection.generation ?? "unavailable",
       mcpServers: context.mcpServers,
       appendSystemPrompt: context.appendSystemPrompt,
       bind: descriptor
@@ -26,14 +35,14 @@ async function computerSessionContext() {
     }
   } catch (error) {
     console.error("Cannot attach computer tools", error)
-    return { mcpServers: [], appendSystemPrompt: undefined, bind: undefined }
+    return { revision: "unavailable", mcpServers: [], appendSystemPrompt: undefined, bind: undefined }
   }
 }
 
-export const hostSessionContext: NonNullable<ClientOptions["sessionContext"]> = async (cwd) => {
+export const hostSessionContext: NonNullable<ClientOptions["sessionContext"]> = async (cwd, operation) => {
   const drive = await driveSessionContext(cwd)
-  if (!isTauri()) return drive
-  const computer = await computerSessionContext()
+  if (!isTauri()) return { ...drive, revision: "unavailable" }
+  const computer = await computerSessionContext(operation.kind === "resume" ? operation.sessionId : undefined)
   const device = await deviceSessionContext()
   const browser = await browserSessionContext()
   const appendSystemPrompt = [
@@ -47,6 +56,7 @@ export const hostSessionContext: NonNullable<ClientOptions["sessionContext"]> = 
     .join("\n\n")
   const binders = [computer.bind, browser.bind].filter((bind) => bind !== undefined)
   return {
+    revision: computer.revision,
     bind:
       binders.length > 0
         ? async (sessionId: string) => {

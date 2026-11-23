@@ -16,7 +16,7 @@ import { createDocsTools } from "@/agent/docs-tools"
 import { boardService } from "@/features/board/service"
 import { configureSessionInputConfig, readSessionInputMode } from "@/features/chat/composer/input-mode-config"
 import { computerRuntimeEnv } from "@/features/computer/runtime-config"
-import { hostSessionContext } from "@/features/computer/session-context"
+import { hostSessionContext, hostSessionRevision } from "@/features/computer/session-context"
 import { createDeviceTools } from "@/features/device/application-tools"
 import { guideChapters, guideVersion } from "@/features/guide/content"
 import { generatedImageStorage } from "@/features/images/generated-image-storage"
@@ -62,6 +62,7 @@ export const client =
               : resolveSessionModel(model, providers, purpose)
           },
           sessionContext: hostSessionContext,
+          sessionContextRevision: hostSessionRevision,
           revokeSessionAccess: async (sessionId) => {
             void computer.stopSession({ sessionId }).catch((error: unknown) => {
               console.error("Cannot release computer access", error)
