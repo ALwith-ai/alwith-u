@@ -1,3 +1,4 @@
+import { projectContext } from "@alwith/module-chat/testing"
 import {
   type DesktopCanvas,
   DesktopCanvasContext as CanvasContext,
@@ -13,7 +14,6 @@ import { type ReactNode, StrictMode, useLayoutEffect, useState } from "react"
 import { toast } from "sonner"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
-import { projectContext } from "@alwith/module-chat/testing"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { ChatHeader } from "@/features/chat/chat-header"
 import type { FolderChatTarget } from "@/features/chat/folder-chat"
@@ -1405,6 +1405,7 @@ function canvasContext(overrides: Partial<DesktopCanvas> = {}): DesktopCanvas {
     viewportWidth: 1256,
     budget: 1000,
     region: "chat",
+    visibleRegions: ["chat"],
     trailingActive: false,
     moving: false,
     navigate: vi.fn(),
@@ -1438,7 +1439,7 @@ test("choosing an open simulator from the browser returns to it instead of closi
   document.body.append(slot)
   const context = canvasContext()
   const surface = (region: DesktopCanvas["region"]) => (
-    <Unified canvas={{ ...context, region }} slot={slot}>
+    <Unified canvas={{ ...context, region, visibleRegions: [region] }} slot={slot}>
       <Surface cwd="/a">
         <NavigationProbe />
       </Surface>
@@ -1518,7 +1519,7 @@ test("titlebar actions remain available on the trailing screen and can open the 
   const slot = document.createElement("div")
   document.body.append(slot)
   const surface = (region: DesktopCanvas["region"]) => (
-    <Unified canvas={{ ...context, region }} slot={slot}>
+    <Unified canvas={{ ...context, region, visibleRegions: [region] }} slot={slot}>
       <Surface cwd="/a" />
     </Unified>
   )
@@ -1543,7 +1544,7 @@ test("workspace toolbar content leaves screen visibility to the shell and retain
   document.body.append(target, slot)
   const context = canvasContext()
   const layout = (region: DesktopCanvas["region"]) => (
-    <Unified canvas={{ ...context, region }} slot={slot}>
+    <Unified canvas={{ ...context, region, visibleRegions: [region] }} slot={slot}>
       <WindowsWorkspaceControlsContext.Provider value={target}>
         <Surface cwd="/a" />
       </WindowsWorkspaceControlsContext.Provider>

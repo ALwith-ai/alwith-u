@@ -22,6 +22,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Progress } from "@/components/ui/progress"
 import { Spinner } from "@/components/ui/spinner"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useCanvasPaneVisible } from "@/features/layout/use-canvas-pane-visible"
 import { cn } from "@/lib/utils"
 
 import { BrowserPane, type BrowserPaneHandle, type Guest } from "./browser-pane"
@@ -148,6 +149,7 @@ export function BrowserWorkspace({
 }) {
   const { t } = useTranslation()
   const [state, setState] = useState(() => initialState(request))
+  const browserOnPage = useCanvasPaneVisible("browser")
   const navigate = useDesktopCanvas()?.navigate
   // Retained panes can be open on another screen; every explicit reveal must navigate to this one.
   useEffect(() => {
@@ -1121,7 +1123,7 @@ export function BrowserWorkspace({
           </div>
         ))}
         <Suspense fallback={null}>
-          <BrowserQuickChat active={active && !pageFullscreen} />
+          <BrowserQuickChat active={active && browserOnPage && !pageFullscreen} />
         </Suspense>
       </div>
     </section>

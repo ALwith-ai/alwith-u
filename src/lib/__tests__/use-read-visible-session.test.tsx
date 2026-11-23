@@ -1,12 +1,19 @@
 import type { SessionRunState } from "@alwith/api"
 import { applyUpdate, createSession } from "@alwith/module-chat/client"
-import { act, cleanup, renderHook } from "@testing-library/react"
+import { createFakeAgent, FakeHubPort } from "@alwith/module-chat/testing"
+import { DesktopCanvasContext } from "@alwith/module-desktop-shell/react"
+import { act, cleanup, render, renderHook } from "@testing-library/react"
 import { afterEach, beforeEach, expect, type MockInstance, test, vi } from "vitest"
 
-import { createFakeAgent } from "@alwith/module-chat/testing"
-import { FakeHubPort } from "@alwith/module-chat/testing"
+import { MainChatPresence } from "@/features/layout/components/main-chat-presence"
 
 import * as clientModule from "../client"
+
+vi.mock("@/features/vibemon/main-host", () => ({ updateMainVibemonSurface: vi.fn() }))
+vi.mock("@tauri-apps/api/webviewWindow", async (original) => ({
+  ...(await original<object>()),
+  getCurrentWebviewWindow: () => ({ isVisible: async () => true, isMinimized: async () => false })
+}))
 import { useReadVisibleSession } from "../use-read-visible-session"
 
 const originalState = clientModule.client.state
@@ -113,4 +120,39 @@ test("a newer completion is acknowledged even when the visible run state is stil
 
   expect(runtime.marked).toEqual(["selected", "selected"])
   expect(runtime.markedVersions).toEqual([1, 3])
+})
+
+test("a restored chat on a shared canvas page is read when its pane is visible", async () => {
+  const done = runState("selected", "done")
+  clientModule.client.applyRunStates([done])
+  const restored = clientModule.client.state.sessions.selected
+  clientModule.client.store.setState({ sessions: { selected: { ...restored, restoring: true, attached: false } } })
+  const show = (visibleRegions: string[], focused = true) => (
+    <DesktopCanvasContext.Provider
+      value={{
+        region: "preview",
+        visibleRegions,
+        viewportWidth: 1680,
+        budget: 1400,
+        trailingActive: false,
+        moving: false,
+        navigate: vi.fn(),
+        movePane: vi.fn()
+      }}
+    >
+      <MainChatPresence sessionId="selected" chatView focused={focused} />
+    </DesktopCanvasContext.Provider>
+  )
+  const view = render(show(["preview", "chat"]))
+  expect(runtime.marked).toEqual([])
+  view.rerender(show(["preview", "chat"], false))
+  await act(() => clientModule.client.store.setState({ sessions: { selected: restored } }))
+  expect(runtime.marked).toEqual([])
+  view.rerender(show(["preview", "chat"]))
+  expect(runtime.markedVersions).toEqual([1])
+  view.rerender(show(["preview"]))
+  await act(() => clientModule.client.applyRunStates([{ ...done, version: 2 }]))
+  expect(runtime.markedVersions).toEqual([1])
+  view.rerender(show(["chat", "preview"]))
+  expect(runtime.markedVersions).toEqual([1, 2])
 })

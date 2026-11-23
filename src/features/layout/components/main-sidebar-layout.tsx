@@ -1,6 +1,5 @@
 import { SidebarOverlayContext } from "@alwith/module-chat/session-list"
 import {
-  type DesktopCanvasRegion,
   DesktopNavigationOverlayContext,
   type DesktopScreen,
   DesktopWorkspace,
@@ -50,7 +49,6 @@ export function MainSidebarLayout({
   initialPaneOrder,
   screen,
   onScreenChange,
-  onRegionChange,
   sidebar,
   leading,
   main,
@@ -65,8 +63,6 @@ export function MainSidebarLayout({
   initialPaneOrder?: readonly string[]
   screen: MainScreen
   onScreenChange?: (screen: MainScreen) => void
-  /** The canvas's foreground region; chat collapsed beside a maximized preview is not it. */
-  onRegionChange?: (region: DesktopCanvasRegion) => void
   sidebar: ReactNode
   leading: ReactNode
   main: ReactNode
@@ -146,15 +142,6 @@ export function MainSidebarLayout({
   const persistPinned = useCallback((pinned: boolean) => savePreference("sidebarPinned", pinned), [])
   const persistPaneOrder = useCallback((order: string[]) => savePreference("paneOrder", order), [])
   const openLink = useCallback((url: string) => void openExternal(url).catch(report), [])
-  const regionChanged = useCallback(
-    (region: DesktopCanvasRegion) => {
-      // Overview exits settle instantly and do not emit the animated screen-change event.
-      const next = region === "leading" ? "leading" : "main"
-      if (next !== screen) onScreenChange?.(next)
-      onRegionChange?.(region)
-    },
-    [screen, onScreenChange, onRegionChange]
-  )
   return (
     <PreviewPaneContext.Provider value={previewPane}>
       <WorkspaceBrowserEntryContext.Provider
@@ -231,7 +218,6 @@ export function MainSidebarLayout({
           overlays={children}
           screen={screen}
           onScreenChange={onScreenChange}
-          onRegionChange={regionChanged}
           initialNavigationPinned={initialPinned}
           onNavigationPinnedChange={persistPinned}
           initialPaneOrder={initialPaneOrder}

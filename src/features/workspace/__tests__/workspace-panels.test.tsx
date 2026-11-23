@@ -18,6 +18,7 @@ test("in the main window the layout's preview pane holds the preview and the she
     viewportWidth: 1256,
     budget: 1000,
     region: "chat",
+    visibleRegions: ["chat"],
     trailingActive: false,
     moving: false,
     navigate: vi.fn(),

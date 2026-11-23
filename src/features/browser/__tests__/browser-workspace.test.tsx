@@ -4,7 +4,9 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { expect, test, vi } from "vitest"
 
 import { BrowserWorkspace } from "../browser-workspace"
-vi.mock("../browser-quick-chat", () => ({ BrowserQuickChat: () => null }))
+vi.mock("../browser-quick-chat", () => ({
+  BrowserQuickChat: ({ active }: { active: boolean }) => <div data-testid="quick-chat" data-active={active} />
+}))
 vi.mock("@tauri-apps/api/window", () => ({ getCurrentWindow: () => ({ onFocusChanged: async () => () => {} }) }))
 vi.mock("../browser-pane", () => ({
   BrowserPane: ({ request, active }: { request?: { url: string }; active: boolean }) => (
@@ -15,24 +17,28 @@ vi.mock("../browser-pane", () => ({
 }))
 const props = { active: true, maximized: false, onMaximize: vi.fn(), onClose: vi.fn() }
 
-test("revealing an open browser returns to its canvas region without recreating its page", () => {
+test("revealing an open browser returns to its canvas region without recreating its page", async () => {
   const navigate = vi.fn()
   const canvas: DesktopCanvas = {
     viewportWidth: 1256,
     budget: 1000,
     region: "preview",
+    visibleRegions: ["preview"],
     trailingActive: false,
     moving: false,
     movePane: vi.fn(() => false),
     navigate
   }
-  const surface = (revealRequest: number, region = "preview", active = true) => (
-    <DesktopCanvasContext.Provider value={{ ...canvas, region }}>
+  const surface = (revealRequest: number, region = "preview", active = true, visibleRegions = [region]) => (
+    <DesktopCanvasContext.Provider value={{ ...canvas, region, visibleRegions }}>
       <BrowserWorkspace {...props} active={active} revealRequest={revealRequest} />
     </DesktopCanvasContext.Provider>
   )
   const view = render(surface(1))
   expect(navigate).toHaveBeenLastCalledWith("browser")
+  expect(await screen.findByTestId("quick-chat")).toHaveAttribute("data-active", "false")
+  view.rerender(surface(1, "preview", true, ["preview", "browser"]))
+  expect(screen.getByTestId("quick-chat")).toHaveAttribute("data-active", "true")
   const draft = screen.getByRole("textbox", { name: "manual draft" })
   fireEvent.change(draft, { target: { value: "retained page" } })
   navigate.mockClear()

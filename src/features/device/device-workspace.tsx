@@ -1,5 +1,5 @@
 import { appendComposerDraft, updateDraftAttachments } from "@alwith/module-chat/conversation"
-import { DetachedPaneGrip, useDesktopCanvas } from "@alwith/module-desktop-shell/react"
+import { DetachedPaneGrip } from "@alwith/module-desktop-shell/react"
 import { DevicePanel } from "@alwith/module-device/preview"
 import { deviceBridge, openCaptureWindow } from "@alwith/module-device/tauri"
 import { invoke, isTauri } from "@tauri-apps/api/core"
@@ -21,6 +21,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu"
+import { useCanvasPaneVisible } from "@/features/layout/use-canvas-pane-visible"
 import { useWorkspace } from "@/features/workspace/context"
 import { PanelControlsContext } from "@/features/workspace/panel-controls-context"
 import { PreviewPaneContext } from "@/features/workspace/preview-pane-context"
@@ -31,14 +32,11 @@ import { deviceSelections } from "./window-routing"
 /** Keep device controls behind a compact workspace overflow menu. */
 export function DeviceWorkspaceMenu({ children }: { children?: ReactNode }) {
   const workspace = useWorkspace()
-  const canvas = useDesktopCanvas()
+  const previewOnPage = useCanvasPaneVisible("preview")
   const { t } = useTranslation()
   if (workspace?.openPane === undefined || !isTauri()) return null
   const openPane = workspace.openPane
-  const active =
-    workspace.visible &&
-    workspace.pane === "simulator" &&
-    (!canvas || canvas.region === "chat" || canvas.region === "preview")
+  const active = workspace.visible && workspace.pane === "simulator" && previewOnPage
   return (
     <DropdownMenu>
       <DropdownMenuTrigger

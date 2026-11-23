@@ -47,6 +47,7 @@ import { isPdfPreview, maxEditorBytes, prepareWorkspaceFile } from "@/features/d
 import { driveFileSystem } from "@/features/drive/filesystem"
 import { rebaseDrivePins } from "@/features/drive/pinned"
 import { DriveTreeActions } from "@/features/drive/tree-actions"
+import { useCanvasPaneVisible } from "@/features/layout/use-canvas-pane-visible"
 import { client } from "@/lib/client"
 import { openExternal, openExternalEntry, openHtmlInBrowser, openLocalPath, revealInFileManager } from "@/lib/open"
 import { isMac } from "@/lib/platform"
@@ -251,6 +252,7 @@ export function FileWorkspace({
   const paneSessionId = useContext(WorkspaceSessionContext)
   const currentPaneSession = useRef(paneSessionId)
   currentPaneSession.current = paneSessionId
+  const previewOnPage = useCanvasPaneVisible("preview")
   const canvas = useContext(CanvasContext)
   const navigateCanvas = canvas?.navigate
   const previousChatRevealRequest = useRef(chatRevealRequest)
@@ -1007,7 +1009,7 @@ export function FileWorkspace({
       }
       requestGeneration.current++
       // Selecting a retained pane from another screen reveals it instead of closing it.
-      if (visible && pane === next && (!canvas || canvas.region === "chat" || canvas.region === "preview")) {
+      if (visible && pane === next && previewOnPage) {
         setVisible(false)
         setViewMode(false)
         setPane("files")
@@ -1031,7 +1033,7 @@ export function FileWorkspace({
       setVisible(true)
       navigateCanvas?.("preview")
     },
-    [visible, pane, toggle, navigateCanvas, canvas, terminalAvailable, paneSessionId]
+    [visible, pane, toggle, navigateCanvas, previewOnPage, terminalAvailable, paneSessionId]
   )
   const revealDevice = useCallback(() => {
     requestGeneration.current++

@@ -49,6 +49,7 @@ import { reportExtensionError } from "@/features/extensions/runtime"
 import { useExtensions } from "@/features/extensions/use-extensions"
 import { AppStatusBar } from "@/features/layout/components/app-status-bar"
 import { LeadingNavigation } from "@/features/layout/components/leading-navigation"
+import { MainChatPresence } from "@/features/layout/components/main-chat-presence"
 import { MainSidebarLayout } from "@/features/layout/components/main-sidebar-layout"
 import { TrailingBoard } from "@/features/layout/components/trailing-board"
 import { CommandPalette } from "@/features/palette/command-palette"
@@ -59,7 +60,6 @@ import { selectSession } from "@/features/sessions/select-session"
 import { SessionSidebar } from "@/features/sessions/session-sidebar"
 import { HotkeysDialog } from "@/features/settings/hotkeys-dialog"
 import { StoryPage } from "@/features/story/story-page"
-import { updateMainVibemonSurface } from "@/features/vibemon/main-host"
 import { VibemonCenter } from "@/features/vibemon/vibemon-center"
 import { useVoiceHandoff } from "@/features/voice/use-voice-handoff"
 import { WorkspaceHeaderContext, WorkspaceSessionContext } from "@/features/workspace/context"
@@ -82,7 +82,6 @@ import { applyProvidersWhenIdle } from "@/lib/providers"
 import { onHubExit } from "@/lib/runtime"
 import { serveSettingsBridge } from "@/lib/settings-bridge"
 import { useProviders } from "@/lib/use-providers"
-import { useReadVisibleSession } from "@/lib/use-read-visible-session"
 import { useSurfaceOperation } from "@/lib/use-surface-operation"
 import { useWindowFocus } from "@/lib/window-focus"
 import { openSettingsWindow } from "@/lib/window-manager"
@@ -208,27 +207,8 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       setDraft: (id, text, required, check) => setExtensionDraft(id, text, required, { ...dependencies, check })
     })
   }, [openExtension, operation])
-  const [mainVisible, setMainVisible] = useState(false)
-  // Chat is in the foreground only while the canvas shows it; collapsed beside a maximized preview it is background.
-  const [chatForeground, setChatForeground] = useState(true)
+  const mainVisible = useMainWindowSurface((surface) => surface.visible && surface.sessionId === selectedId)
   const focused = useWindowFocus()
-  useEffect(() => {
-    let cancelled = false
-    void (async () => {
-      const window = getCurrentWebviewWindow()
-      const visible = (focused || (await window.isVisible())) && !(await window.isMinimized())
-      if (!cancelled) {
-        setMainVisible(visible)
-        useMainWindowSurface.setState({ sessionId: selectedId, visible: visible && view === "chat" && chatForeground })
-        await updateMainVibemonSurface(selectedId, visible && view === "chat" && chatForeground)
-      }
-    })().catch((error) => toast.error(describe(error)))
-    return () => {
-      cancelled = true
-    }
-  }, [selectedId, focused, view, chatForeground])
-
-  useReadVisibleSession(selectedId, focused && view === "chat" && chatForeground)
 
   const openSession = useCallback(
     (sessionRow: SessionSummary) =>
@@ -690,7 +670,6 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
             if (screen === "main") setView("chat")
             else openLeading()
           }}
-          onRegionChange={(region) => setChatForeground(region === "chat")}
           sidebar={
             <SessionSidebar
               screen={leading ? "leading" : "main"}
@@ -782,6 +761,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
           }
           main={
             <SidebarInset className="main-chat-surface main-workspace-surface flex min-h-0 flex-col">
+              <MainChatPresence sessionId={selectedId} chatView={view === "chat"} focused={focused} />
               {!leading && actionCards}
               <WorkspaceHeaderContext.Provider value={workspaceToolbar}>
                 <WorkspaceSessionContext.Provider value={session?.id ?? null}>

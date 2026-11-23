@@ -46,8 +46,8 @@ test("showing a shared preview then resizing keeps chat; completed navigation is
       navigation={null}
       initialNavigationPinned
       panes={[
-        { id: "chat", title: "Chat", children: <Chat />, min: 420, hidden: maximized },
-        { id: "preview", title: "Preview", children: null, min: 320, resizable: true, maximized }
+        { id: "chat", title: "Chat", children: <Chat />, min: 420, movable: true, hidden: maximized },
+        { id: "preview", title: "Preview", children: null, min: 320, movable: true, resizable: true, maximized }
       ]}
     />
   )
@@ -68,10 +68,15 @@ test("showing a shared preview then resizing keeps chat; completed navigation is
     })
   navigate("preview")
   expect(api.getState().activeRegion).toBe("chat")
+  expect(canvas!.visibleRegions).toEqual(api.getState().visibleRegions)
+  expect(canvas!.visibleRegions).toContain("preview")
+  expect(canvas!.visibleRegions).toContain("chat")
   resize(700)
   expect(api.getState().activeRegion).toBe("chat")
   navigate("preview")
   expect(api.getState().activeRegion).toBe("preview")
+  expect(canvas!.visibleRegions).toContain("preview")
+  expect(canvas!.visibleRegions).not.toContain("chat")
   navigate("chat")
   resize(710)
   expect(api.getState().activeRegion).toBe("chat")
@@ -83,4 +88,15 @@ test("showing a shared preview then resizing keeps chat; completed navigation is
   expect(api.getState().activeRegion).toBe("chat")
   resize(720)
   expect(api.getState().activeRegion).toBe("chat")
+  resize(1200)
+  act(() => {
+    canvas!.movePane("preview", -1)
+  })
+  navigate("chat")
+  expect(canvas!.region).toBe("preview")
+  expect(canvas!.visibleRegions.filter((id) => id === "preview" || id === "chat")).toEqual(["preview", "chat"])
+  resize(700)
+  navigate("preview")
+  expect(canvas!.region).toBe("preview")
+  expect(canvas!.visibleRegions).not.toContain("chat")
 })

@@ -13,6 +13,7 @@ const activeStation: DesktopCanvas = {
   viewportWidth: desktopDefaults.trailingWidth,
   budget: desktopDefaults.trailingWidth,
   region: "trailing",
+  visibleRegions: ["trailing"],
   trailingActive: true,
   moving: false,
   movePane: () => false,
