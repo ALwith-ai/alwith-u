@@ -276,7 +276,7 @@ def upgrade(context: Context) -> None:
         # --depth 1 limits the report without dropping the path dependencies and local patches the
         # resolution needs; --root-deps-only and --ignore-external-rel would drop them and fall back
         # to the crates.io Tauri 2 plugins.
-        if not context.run("command -v cargo-outdated", warn=True, hide=True).ok:
+        if shutil.which("cargo-outdated") is None:
             context.run("cargo install cargo-outdated")
         context.run("cargo outdated --depth 1 --workspace", warn=True)
     # Compare the final installed JavaScript packages with the updated Cargo lockfile.
