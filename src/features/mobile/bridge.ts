@@ -1,3 +1,4 @@
+import { ConfigStaleError } from "@alwith/module-chat/client"
 import { commands as mobile } from "@alwith/module-mobile/commands"
 import { isTauri } from "@tauri-apps/api/core"
 import { listen } from "@tauri-apps/api/event"
@@ -12,6 +13,8 @@ import { settingsStore, updateSettings } from "@/lib/settings-store"
 import { text } from "@/lib/text"
 
 import { type MobilePermission, type MobilePrompt, respondMobilePermission, sendMobilePrompt } from "./actions"
+import { MobileQuestions, QuestionUnavailable } from "./questions"
+import { initializeSessionActions } from "./session-actions"
 
 export const MOBILE_RELAY_URL = "wss://relay.alwith.ai/v1/ws"
 export function mobileEnabled(): boolean {
@@ -26,25 +29,81 @@ export async function setMobileEnabled(enabled: boolean): Promise<void> {
 /** Main is the sole Codex owner, including sessions shown in the floating chat window. */
 export async function initializeMobile(): Promise<void> {
   if (!isTauri()) return
+  const questions = new MobileQuestions()
+  let previous: string | null = null
+  let sync: Promise<unknown> = Promise.resolve()
+  const publishOrder = (): Promise<unknown> => {
+    const sessionIds = displayedActivityIds(
+      useActivityOrder.getState().ids,
+      useMainWindowSurface.getState(),
+      useChatWindowSurface.getState()
+    )
+    const questionTokens = questions.project(client.state, sessionIds)
+    const signature = JSON.stringify([sessionIds, questionTokens])
+    if (signature === previous) return sync
+    previous = signature
+    sync = sync.catch(() => undefined).then(() => commands.mobileSetActivitySessions({ sessionIds, questionTokens }))
+    const publication = sync
+    void publication.catch((error: unknown) => {
+      if (sync === publication) previous = null
+      reportBackgroundError("mobile-activity", error)
+    })
+    return publication
+  }
+  const repairReceipts = (): void => {
+    void questions
+      .repairReceipts((confirmation) =>
+        mobile.bridgePromptResult({
+          ...confirmation,
+          status: "accepted",
+          error: null
+        })
+      )
+      .catch((error: unknown) => reportBackgroundError("mobile-receipt", error))
+  }
   await listen<MobilePrompt>("bridge:send-prompt", ({ payload }) => {
     void (async () => {
       let messageId: string | null = null
       let failure: string | null = null
+      let rejected = false
       try {
-        messageId = await sendMobilePrompt(client, payload)
+        if (payload.clientRequestId?.startsWith("question/")) {
+          if (payload.files?.length) throw new QuestionUnavailable("Unexpected question attachment")
+          messageId = await questions.submit(
+            client,
+            payload.sessionId,
+            payload.text,
+            payload.deviceId,
+            payload.clientRequestId
+          )
+        } else messageId = await sendMobilePrompt(client, payload)
       } catch (error: unknown) {
+        const refused = payload.clientRequestId?.startsWith("question/") && error instanceof ConfigStaleError
+        rejected = error instanceof QuestionUnavailable || Boolean(refused)
+        if (refused)
+          await publishOrder()
+            .catch(() => publishOrder())
+            .catch((syncError: unknown) => reportBackgroundError("mobile-question-sync", syncError))
         failure = text(error)
         reportBackgroundError("mobile-prompt", error)
       }
       if (payload.deviceId && payload.clientRequestId) {
-        await mobile.bridgePromptResult({
-          deviceId: payload.deviceId,
-          sessionId: payload.sessionId,
-          clientRequestId: payload.clientRequestId,
-          status: messageId ? "accepted" : "unknown",
-          messageId,
-          error: failure
-        })
+        try {
+          await mobile.bridgePromptResult({
+            deviceId: payload.deviceId,
+            sessionId: payload.sessionId,
+            clientRequestId: payload.clientRequestId,
+            status: messageId ? "accepted" : rejected ? "rejected" : "unknown",
+            messageId,
+            error: failure
+          })
+        } finally {
+          if (payload.clientRequestId.startsWith("question/") && !messageId && !rejected) {
+            questions.receiptUnknown(payload.sessionId, payload.clientRequestId)
+            void publishOrder()
+            repairReceipts()
+          }
+        }
       }
     })().catch((error: unknown) => reportBackgroundError("mobile-receipt", error))
   })
@@ -57,26 +116,19 @@ export async function initializeMobile(): Promise<void> {
   await listen<string>("bridge:error", ({ payload }) => {
     reportBackgroundError("mobile-bridge", new Error(payload))
   })
-  let previous: string[] | null = null
-  let sync: Promise<unknown> = Promise.resolve()
-  const publishOrder = (): void => {
-    const sessionIds = displayedActivityIds(
-      useActivityOrder.getState().ids,
-      useMainWindowSurface.getState(),
-      useChatWindowSurface.getState()
-    )
-    const last = previous
-    if (last?.length === sessionIds.length && sessionIds.every((id, i) => id === last[i])) return
-    previous = sessionIds
-    sync = sync
-      .catch((error: unknown) => reportBackgroundError("mobile-activity", error))
-      .then(() => commands.mobileSetActivitySessions({ sessionIds }))
-    void sync.catch((error: unknown) => reportBackgroundError("mobile-activity", error))
+  await initializeSessionActions(client)
+  client.store.subscribe((state, prior) => {
+    if (state.sessions !== prior.sessions || state.connection !== prior.connection) {
+      void publishOrder()
+      repairReceipts()
+    }
+  })
+  const onActivityChange = (): void => {
+    void publishOrder()
   }
-  useActivityOrder.subscribe(publishOrder)
-  useMainWindowSurface.subscribe(publishOrder)
-  useChatWindowSurface.subscribe(publishOrder)
-  publishOrder()
-  await sync
+  useActivityOrder.subscribe(onActivityChange)
+  useMainWindowSurface.subscribe(onActivityChange)
+  useChatWindowSurface.subscribe(onActivityChange)
+  await publishOrder()
   if (mobileEnabled()) await mobile.mobileBridgeStart({ relayUrl: MOBILE_RELAY_URL })
 }

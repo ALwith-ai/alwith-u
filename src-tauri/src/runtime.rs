@@ -20,6 +20,7 @@ const SHUTDOWN_GRACE: Duration = Duration::from_secs(3);
 #[derive(Default)]
 pub struct RuntimeState {
     connections: Mutex<HashMap<String, String>>,
+    pub mobile_actions: Mutex<crate::mobile::RuntimeActions>,
     pub admission: tokio::sync::Mutex<()>,
     client: Mutex<Option<Arc<RuntimeClient>>>,
     starting: tokio::sync::Mutex<()>,
@@ -194,6 +195,13 @@ fn engines_table(app: &AppHandle, native_network_endpoint: Option<&str>) -> Resu
     )
     .map_err(|error| error.to_string())?;
     let mut engines = json!({ "codex": engine });
+    let history = adapter.join("mobile-history.mjs");
+    // Validate this optional engine on first use; its failure must not prevent chat startup.
+    engines["u-mobile-history"] = json!({
+        "command": sidecar_path("bun")?,
+        "args": ["--no-install", history],
+        "env": {"ALWITH_HISTORY_CODEX": sidecar_path("codex")?}
+    });
     if let Some(endpoint) = native_network_endpoint {
         engines["codex"]["env"]["CODEX_ACP_NATIVE_NETWORK_ENDPOINT"] = json!(endpoint);
     }
@@ -289,6 +297,7 @@ pub async fn runtime_start(
         _ = closing => return Err("Application closed during Runtime startup".into())
     };
     let mut events = client.events();
+    let mobile_actions = state.mobile_actions.lock().unwrap().bind(&client);
     *state.client.lock().unwrap() = Some(Arc::clone(&client));
     app.state::<alwith_chat::Providers>().reset().await;
     crate::enterprise::reset(&app);
@@ -316,6 +325,7 @@ pub async fn runtime_start(
             for event in burst {
                 match event {
                     ClientEvent::Closed { reason } => {
+                        mobile_actions.lock().unwrap().close(&app);
                         crate::diagnostics::runtime_closed(&reason);
                         crate::power::sync(&app, false);
                         app.state::<crate::browser_ai::BrowserAi>().executor.release_all(&app).await;
@@ -336,6 +346,7 @@ pub async fn runtime_start(
                     }
                     // Wire diagnostics belong to the native host. Private configuration frames
                     // never enter a webview, including when using an older distributed Runtime.
+                    ClientEvent::Runtime(ref event) if crate::mobile::history_event(event) => {}
                     ClientEvent::Runtime(alwith_api::RuntimeEvent::Wire { .. }) => {}
                     ClientEvent::Runtime(alwith_api::RuntimeEvent::Outbound { ref line, .. })
                         if private_request(line) => {}
@@ -343,7 +354,7 @@ pub async fn runtime_start(
                         crate::diagnostics::runtime_event(&event);
                         alwith_chat::observe_event(&app, &event);
                         crate::enterprise::observe_event(&app, &event);
-                        crate::mobile::publish(&app, &event);
+                        crate::mobile::publish(&app, &event, &mobile_actions);
                         if matches!(&event, alwith_api::RuntimeEvent::Exit { agent_id } if agent_id == "codex") {
                             app.state::<crate::browser_ai::BrowserAi>().executor.release_all(&app).await;
                             if let Err(error) = app.state::<alwith_computer::Computer>().release().await {

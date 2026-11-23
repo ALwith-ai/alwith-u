@@ -1,11 +1,16 @@
-import { beforeEach, expect, test, vi } from "vitest"
+import { afterEach, beforeEach, expect, test, vi } from "vitest"
 import { create } from "zustand"
 
-const host = vi.hoisted(() => ({ publish: vi.fn<() => Promise<void>>().mockResolvedValue(undefined) }))
+const host = vi.hoisted(() => ({
+  publish: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+  listen: vi.fn(() => Promise.resolve(() => {}))
+}))
 vi.mock("@tauri-apps/api/core", () => ({ isTauri: () => true }))
-vi.mock("@tauri-apps/api/event", () => ({ listen: () => Promise.resolve(() => {}) }))
+vi.mock("@tauri-apps/api/event", () => ({ listen: host.listen }))
 vi.mock("@/bindings", () => ({ commands: { mobileSetActivitySessions: host.publish } }))
-vi.mock("@/lib/client", () => ({ client: {} }))
+vi.mock("@/lib/client", () => ({
+  client: { state: { actions: [], connection: "ready", sessions: {} }, store: { subscribe: vi.fn() } }
+}))
 vi.mock("@/features/sessions/activity-order", () => ({
   useActivityOrder: create(() => ({ ids: ["older", "foreground", "newer"] }))
 }))
@@ -17,22 +22,31 @@ import { useChatWindowSurface, useMainWindowSurface } from "@/lib/chat-window-st
 
 import { initializeMobile } from "../bridge"
 
-beforeEach(() => host.publish.mockClear())
+beforeEach(() => {
+  host.publish.mockClear()
+  vi.stubEnv("ALWITH_DEV1_MOBILE", undefined)
+})
+afterEach(() => vi.unstubAllEnvs())
 
-test("publishes the Activity panel's order, including surface changes and removed drafts", async () => {
+test("registers session actions and keeps the phone's Activity order in sync", async () => {
   useMainWindowSurface.setState({ sessionId: "foreground", visible: true })
   await initializeMobile()
-  expect(host.publish).toHaveBeenLastCalledWith({ sessionIds: ["foreground", "older", "newer"] })
+  expect(host.listen).toHaveBeenCalledWith("bridge:get-session-actions", expect.any(Function))
+  expect(host.listen).toHaveBeenCalledWith("bridge:action-status", expect.any(Function))
+  expect(host.listen).toHaveBeenCalledWith("bridge:action-response", expect.any(Function))
+  expect(host.publish).toHaveBeenLastCalledWith({ questionTokens: {}, sessionIds: ["foreground", "older", "newer"] })
   useChatWindowSurface.setState({ sessionId: "newer", visible: true })
   await vi.waitFor(() =>
-    expect(host.publish).toHaveBeenLastCalledWith({ sessionIds: ["foreground", "newer", "older"] })
+    expect(host.publish).toHaveBeenLastCalledWith({ questionTokens: {}, sessionIds: ["foreground", "newer", "older"] })
   )
   useMainWindowSurface.setState({ visible: false })
   await vi.waitFor(() =>
-    expect(host.publish).toHaveBeenLastCalledWith({ sessionIds: ["newer", "older", "foreground"] })
+    expect(host.publish).toHaveBeenLastCalledWith({ questionTokens: {}, sessionIds: ["newer", "older", "foreground"] })
   )
   useActivityOrder.setState({ ids: ["older", "newer"] })
-  await vi.waitFor(() => expect(host.publish).toHaveBeenLastCalledWith({ sessionIds: ["newer", "older"] }))
+  await vi.waitFor(() =>
+    expect(host.publish).toHaveBeenLastCalledWith({ questionTokens: {}, sessionIds: ["newer", "older"] })
+  )
   const count = host.publish.mock.calls.length
   useActivityOrder.setState({ ids: ["older", "newer"] })
   await Promise.resolve()

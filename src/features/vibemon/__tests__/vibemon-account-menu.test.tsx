@@ -10,9 +10,12 @@ import { SidebarAccountMenu } from "@/features/sessions/sidebar-account-menu"
 import { must } from "@/lib/__tests__/must"
 import i18n, { initI18n } from "@/lib/i18n"
 import { savePreference } from "@/lib/preferences"
-import { openGamepadWindow } from "@/lib/window-manager"
+import { openGamepadWindow, openSettingsWindow } from "@/lib/window-manager"
 
-vi.mock("@/lib/window-manager", () => ({ openGamepadWindow: vi.fn(async () => {}) }))
+vi.mock("@/lib/window-manager", () => ({
+  openGamepadWindow: vi.fn(async () => {}),
+  openSettingsWindow: vi.fn(async () => {})
+}))
 
 vi.mock("@/lib/preferences", () => ({ savePreference: vi.fn(async () => {}) }))
 
@@ -218,6 +221,14 @@ test("the Gamepad menu action opens its dedicated window", async () => {
   const view = await openMenu()
   await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitem", { name: "Gamepad" }))))
   expect(openGamepadWindow).toHaveBeenCalledOnce()
+})
+
+test("the mobile connection menu action opens mobile settings", async () => {
+  await initI18n("en")
+  fixture(false)
+  const view = await openMenu()
+  await act(() => Promise.try(() => fireEvent.click(view.getByRole("menuitem", { name: "Mobile connection" }))))
+  expect(openSettingsWindow).toHaveBeenCalledExactlyOnceWith("mobile")
 })
 
 test("the language submenu marks the current language and saves a new selection", async () => {

@@ -16,7 +16,9 @@ const debug = process.env.TAURI_ENV_DEBUG === "true"
 const port = Number(process.env.ALWITH_DEV_PORT ?? 1401)
 
 export const config = (mode = "development"): UserConfig => ({
-  define: { __ALWITH_APP_ENV__: JSON.stringify(loadAppEnv(mode)) },
+  define: {
+    __ALWITH_APP_ENV__: JSON.stringify(loadAppEnv(mode))
+  },
   // `@/x` is the app's own src/x when it exists, else the shadcn/ui registry package (style base-vega).
   plugins: [
     shadcn({ style: "vega" }),

@@ -153,8 +153,7 @@ export function SettingsPage() {
         aria-label={t("settings.title")}
         className="min-h-0 overflow-y-auto px-3 pt-5 pb-4 [&>*]:shrink-0"
       >
-        {/* Mobile connection is reached from the account menu, not listed here. */}
-        {SETTINGS_SECTIONS.filter((id) => id !== "mobile" && (id !== "drive" || driveVisible)).map((id) => {
+        {SETTINGS_SECTIONS.filter((id) => id !== "drive" || driveVisible).map((id) => {
           const Icon = ICONS[id]
           return (
             <NavigationItemButton

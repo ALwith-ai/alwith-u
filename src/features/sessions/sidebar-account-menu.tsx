@@ -12,8 +12,8 @@ import { toast } from "sonner"
 
 import { ShortcutKey } from "@/components/alwith-ui/shortcut-hint"
 import { logoutPlatform, usePlatformAuth } from "@/features/auth/store"
-import { useVibemonControl } from "@/features/vibemon/use-vibemon-control"
 import { CreateAlwith } from "@/features/create-alwith/create-alwith"
+import { useVibemonControl } from "@/features/vibemon/use-vibemon-control"
 import { LANGUAGES } from "@/lib/i18n"
 import { savePreference } from "@/lib/preferences"
 import { openGamepadWindow, openSettingsWindow } from "@/lib/window-manager"
@@ -52,9 +52,9 @@ export function SidebarAccountMenu({
             <PawPrintIcon />
             {t(vibemon.enabled ? "vibemon.hide" : "vibemon.show")}
           </AccountMenuItem>
-          <AccountMenuItem onClick={() => void openSettingsWindow("mobile")}>
+          <AccountMenuItem onClick={() => void openSettingsWindow("mobile").catch(reportError)}>
             <SmartphoneIcon />
-            {t("settings.mobile")}
+            {t("settings.mobileConnection")}
           </AccountMenuItem>
           <AccountMenuItem onClick={() => void openGamepadWindow().catch(reportError)}>
             <Gamepad2Icon />

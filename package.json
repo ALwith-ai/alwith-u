@@ -57,7 +57,7 @@
     "@alwith/module-gamepad": "^0.6.1",
     "@alwith/module-installed-apps": "^0.6.1",
     "@alwith/module-media": "^0.6.3",
-    "@alwith/module-mobile": "^0.6.0",
+    "@alwith/module-mobile": "^0.6.1",
     "@alwith/module-store": "^0.6.0",
     "@alwith/module-tabs": "^0.6.1",
     "@alwith/module-terminal": "^0.6.1",

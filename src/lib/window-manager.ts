@@ -33,9 +33,9 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
   "explorer",
   "drive",
   "voice",
+  "mobile",
   "trackpad",
   "computer",
-  "mobile",
   "extensions",
   "about"
 ]

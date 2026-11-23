@@ -168,8 +168,10 @@ export const commands = {
    *  Inspect the exact bundled CLI selected by Runtime without starting a session.
    */
   codexStatus: (): Promise<Value> => __t3Invoke<Value>("codex_status"),
-  mobileSetActivitySessions: (args: { sessionIds: string[] }): Promise<null> =>
-    __t3Invoke<null>("mobile_set_activity_sessions", args),
+  mobileSetActivitySessions: (args: {
+    sessionIds: string[]
+    questionTokens: { [key in string]: { [key in string]: string } } | null
+  }): Promise<null> => __t3Invoke<null>("mobile_set_activity_sessions", args),
   /**
    *  Configure only a newly created Gamepad agent; credentials never leave the native host.
    */

@@ -1,17 +1,16 @@
+import { asyncQuestionId, questionReplies, questionReplyEnvelope } from "@alwith/module-chat/async-question-card"
+import { CodexClient } from "@alwith/module-chat/client"
+import { createFakeAgent, FakeHubPort } from "@alwith/module-chat/testing"
 import { afterEach, expect, test, vi } from "vitest"
 
 import { respondMobilePermission, sendMobilePrompt } from "@/features/mobile/actions"
-
-import { CodexClient } from "@alwith/module-chat/client"
-import { createFakeAgent } from "@alwith/module-chat/testing"
-import { FakeHubPort } from "@alwith/module-chat/testing"
+import { MobileQuestions } from "@/features/mobile/questions"
 
 const clients: CodexClient[] = []
 afterEach(() => {
   for (const client of clients.splice(0)) client.disconnect()
 })
-async function make() {
-  const fake = createFakeAgent()
+async function make(fake = createFakeAgent()) {
   const port = new FakeHubPort(() => fake.app)
   const client = new CodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
   clients.push(client)
@@ -70,4 +69,44 @@ test("mobile resumes a Runtime session without changing the local chat slot", as
   expect(client.state.sessions[remote].attached).toBe(true)
   expect(client.state.sessions[local].attached).toBe(true)
   expect(client.state.sessionWindows).toEqual(slots)
+})
+
+test("the normal ACP prompt path acknowledges the phone reply on its original question", async () => {
+  const fake = createFakeAgent()
+  const client = await make(fake)
+  const sessionId = await client.newSession("/fixture")
+  const messageId = "question"
+  const title = "Where?"
+  await fake.pushUpdate(sessionId, {
+    sessionUpdate: "agent_message",
+    messageId,
+    content: [{ type: "text", text: title }],
+    _meta: { codex: { turnId: "turn", delivery: "async", questions: [{ title, options: ["Remote"] }] } }
+  })
+  const bridge = new MobileQuestions()
+  const id = asyncQuestionId(messageId, 0)
+  const token = await vi.waitFor(() => {
+    const value = bridge.project(client.state, [sessionId])[sessionId]?.[id]
+    if (!value) throw new Error("Waiting for the question")
+    return value
+  })
+  const request = "question/" + token + "/attempt"
+  const message = await bridge.submit(client, sessionId, "Remote", "phone", request)
+  const reply = { questionItemId: id, question: title, answer: "Remote" }
+  expect(fake.prompts).toContainEqual(
+    expect.objectContaining({
+      sessionId,
+      text: questionReplyEnvelope(reply),
+      meta: expect.objectContaining({ mobile: { deviceId: "phone", clientRequestId: request } })
+    })
+  )
+  const received = client.state.sessions[sessionId]!.items.find((item) => item.kind === "user" && item.id === message)
+  expect(received?.kind).toBe("user")
+  if (received?.kind === "user") {
+    const replies = [
+      ...questionReplies(received._meta),
+      ...received.content.flatMap((block) => questionReplies(block._meta))
+    ]
+    expect(replies).toContainEqual(reply)
+  }
 })

@@ -51,12 +51,23 @@ test("changing settings sections updates the accessible content label and curren
   expect(screen.getAllByText("Appearance")).toHaveLength(1)
 })
 
-test("mobile connections open from the account menu, not settings navigation", () => {
+test("mobile settings appear immediately before trackpad and open from navigation", () => {
+  render(<SettingsPage />)
+  const mobile = screen.getByRole("button", { name: "Mobile" })
+  const trackpad = screen.getByRole("button", { name: "Trackpad" })
+  expect(mobile.nextElementSibling).toBe(trackpad)
+  fireEvent.click(mobile)
+  expect(screen.getByRole("region", { name: "Mobile" })).toBeVisible()
+  expect(mobile).toHaveAttribute("aria-current", "page")
+  expect(screen.getByRole("button", { name: "General" })).not.toHaveAttribute("aria-current")
+})
+
+test("mobile settings keep direct links and select the navigation item", () => {
   window.history.replaceState(null, "", "/settings.html?tab=mobile")
   try {
     render(<SettingsPage />)
-    expect(screen.queryByRole("button", { name: "Mobile connection" })).toBeNull()
-    expect(screen.getByRole("region", { name: "Mobile connection" })).toBeVisible()
+    expect(screen.getByRole("button", { name: "Mobile" })).toHaveAttribute("aria-current", "page")
+    expect(screen.getByRole("region", { name: "Mobile" })).toBeVisible()
   } finally {
     window.history.replaceState(null, "", "/")
   }
