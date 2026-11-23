@@ -3,6 +3,8 @@ import { asyncQuestionId, questionReplyEnvelope } from "@alwith/module-chat/asyn
 import { acknowledgePrompt, addPrompt, applyUpdate, createSession, type Session } from "@alwith/module-chat/client"
 import type { PendingAction, SessionSummary } from "@alwith/module-chat/client"
 
+import { projectTurnRetry } from "@/lib/turn-retry"
+
 import chatImage from "./chat-image.json"
 
 export const QUICK_DIRECTORY = "/Users/demo/Documents/ALwith U"
@@ -512,7 +514,12 @@ export function makeSession(kind: ChatCase, id: string = kind): Session {
       _meta: {
         codex: {
           turnId: `turn:${id}-user`,
-          error: { message: "模型当前繁忙，请稍后重试或切换模型。", category: "overloaded", retryable: true }
+          error: {
+            message: "模型当前繁忙，请稍后重试或切换模型。",
+            kind: "overloaded",
+            category: "service",
+            actions: ["retry"]
+          }
         }
       }
     })
@@ -531,22 +538,21 @@ export function makeSession(kind: ChatCase, id: string = kind): Session {
     })
   }
   if (kind === "errorRetrying") {
-    return {
-      ...applyUpdate(session, {
-        sessionUpdate: "agent_message",
-        messageId: `codex-error:${id}`,
-        content: [{ type: "text", text: "模型当前繁忙，正在自动重试。" }],
-        _meta: {
-          codex: {
+    session = { ...session, state: "running" }
+    const warning: acp.SessionUpdate = {
+      sessionUpdate: "session_info_update",
+      _meta: {
+        codex: {
+          error: {
             turnId: `turn:${id}-user`,
-            error: { message: "模型当前繁忙，正在自动重试。", category: "overloaded", retryable: true }
+            willRetry: true,
+            message: "Reconnecting... 1/5",
+            codexErrorInfo: { responseStreamDisconnected: { httpStatusCode: 429 } }
           }
         }
-      }),
-      state: "running",
-      lastStopReason: "error",
-      _meta: { codex: { retry: { message: "Reconnecting... 2/5", codexErrorInfo: "serverOverloaded" } } }
+      }
     }
+    return projectTurnRetry(session, applyUpdate(session, warning), warning)
   }
   if (kind === "disconnectedMidTurn") {
     return {

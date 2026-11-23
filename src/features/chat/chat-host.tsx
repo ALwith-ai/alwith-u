@@ -17,6 +17,7 @@ import { useTheme } from "@/components/theme-provider"
 import { computerActionKey, privateComputerAction } from "@/features/computer/action-label"
 import { skillIconSrc } from "@/features/plugins/skill-icon"
 import { client } from "@/lib/client"
+import { turnRetryNotice } from "@/lib/turn-retry"
 import { openSettingsWindow } from "@/lib/window-manager"
 
 import { ForkOriginDivider, ForkTurnButton } from "./chat-branches"
@@ -46,6 +47,8 @@ export function useChatHost(sessionId?: string): ConversationHost {
     () => ({
       ...activity,
       theme: resolvedTheme,
+      capacityRetryMode: "manual" as const,
+      turnRetryNotice,
       skillIcon: skillIconSrc,
       // Computer-use tools are private actions; show what they did, not the tool name.
       toolBlock: (block) => {

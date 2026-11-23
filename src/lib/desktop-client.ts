@@ -1,3 +1,4 @@
+import type { SessionUpdate } from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import type {
   AppsInstalledParams,
   FuzzyFileSearchParams,
@@ -13,6 +14,7 @@ import { deleteChatFolder } from "@/features/chat/folder-chat"
 
 import { logBackgroundError } from "./background-errors"
 import { initialFileResults } from "./initial-file-results"
+import { projectTurnRetry } from "./turn-retry"
 
 /** Main owns native filesystem access; floating clients forward this method to it. */
 export class DesktopCodexClient extends CodexClient {
@@ -27,6 +29,15 @@ export class DesktopCodexClient extends CodexClient {
     super(openPort, options)
     this.terminals = terminals
   }
+  protected override onUpdate(sessionId: string, update: SessionUpdate): void {
+    const previous = this.sessions.sessions.get(sessionId)
+    super.onUpdate(sessionId, update)
+    const session = this.sessions.sessions.get(sessionId)
+    if (!previous || !session || session === previous) return
+    const projected = projectTurnRetry(previous, session, update)
+    if (projected !== session) this.publishSession(projected)
+  }
+
   override async installedApps(params?: AppsInstalledParams): ReturnType<CodexClient["installedApps"]> {
     const response = await super.installedApps(params)
     return {
