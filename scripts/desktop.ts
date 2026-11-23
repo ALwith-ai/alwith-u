@@ -41,11 +41,8 @@ const child = Bun.spawn(["bun", "tauri", ...args], {
   env: {
     ...process.env,
     PATH: buildPath,
-    CEF_PATH: resolve(
-      cwd,
-      "target/cef-h264-aac",
-      process.platform === "darwin" ? "cef_macos_aarch64" : "cef_windows_x86_64"
-    ),
+    // Match Cargo's cache root. Tauri adds the locked CEF version and target directory.
+    CEF_PATH: resolve(cwd, "target/cef-h264-aac"),
     ...(development
       ? {
           ALWITH_DEV_PORT: String(1400 + instance),
