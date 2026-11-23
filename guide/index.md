@@ -342,7 +342,6 @@ Open **Settings → Computer use**. This lets U conversations inspect the screen
 1. Check the availability and permission status shown in the settings page.
 2. On macOS, use **Request system permissions** for **Accessibility** and **Screen Recording**, then complete the operating system's prompts.
 3. Return to U and enable computer use once the required permissions are allowed.
-4. Wait for the connection status to show **Ready**.
 
 If the page reports an unsupported platform or a missing component, follow that error instead of repeatedly toggling the switch.
 
@@ -356,9 +355,9 @@ Follow the computer preview and activity in the conversation. The preview can sh
 
 Use the preview's **Stop** or **Cancel queue** action for the relevant work. To revoke computer access across U, disable it in **Settings → Computer use**.
 
-If tools disconnect, open the same settings page, read the connection and permission state, then choose **Reconnect**. Reconnection stops current computer actions and checks access again; it does not replay those actions. Once ready, send the request again, asking the assistant to inspect the current screen before continuing. Conversations from an earlier application launch may need to be reopened.
+If an action was interrupted, ask the assistant to inspect the current screen before continuing. If the computer service fails, check the reported error and system permissions in **Settings → Computer use**. When permissions are granted and the service needs recovery, choose **Reconnect**. This checks access again without replaying the interrupted action.
 
-An enabled service does not mean every conversation is connected. Check both the service status and the conversation connection counts. Expand **Diagnostics (current app session)** for details, or use [diagnostic export](alwith-docs://guide/troubleshooting).
+Expand **Diagnostics (current app session)** for details, or use [diagnostic export](alwith-docs://guide/troubleshooting).
 
 ### Devices and simulators
 
@@ -559,7 +558,7 @@ Review diagnostic files and screenshots for private content before sharing. If e
 | “Frontend failed to load” or a blank main window | Capture the exact message. If settings remain available, record the version and update status. Restart U once and check the result; if it repeats, report it with the installed version. Do not delete history or credentials as a generic fix. |
 | Conversation connection is interrupted | Wait for connection/recovery to finish, reopen the affected conversation if needed, and inspect its last activity before resending. |
 | A selected model is unavailable | Check that provider's saved configuration, model access and visible error. Select another configured model only if you intend to change the conversation's model. |
-| Computer tools are disconnected | Use Settings → Computer use → Reconnect, then inspect the current screen before repeating an action. See the computer-use chapter. |
+| Computer tools are disconnected | Check permissions and any error in Settings → Computer use. Use Reconnect if offered, then inspect the screen before continuing. See the computer-use chapter. |
 | Image or voice controls are unavailable | Check the corresponding Images or Voice settings; text-model access alone does not configure those services. |
 | A phone cannot see chats | Check device pairing, the phone-connection switch and that this U is running. Account login alone is insufficient. |
 

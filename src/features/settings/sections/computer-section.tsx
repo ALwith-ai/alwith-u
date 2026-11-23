@@ -75,31 +75,18 @@ export function ComputerSection() {
                 </Button>
               </SettingRow>
             ))}
-          {status?.available && status.permissions.supported && (
-            <SettingRow title={t("computer.connection")} desc={t(`computer.phases.${status.phase ?? "disabled"}`)}>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-9"
-                disabled={busy || !permitted}
-                onClick={() => {
-                  setPending(true)
-                  void perform(reconnectComputer).finally(() => setPending(false))
-                }}
-              >
-                {busy ? t("computer.verifying") : t("computer.reconnect")}
-              </Button>
-            </SettingRow>
-          )}
-          <p className="py-3 text-xs text-muted-foreground">{t("computer.reconnectHint")}</p>
-          {status && (
-            <div className="space-y-2 py-3 text-xs text-muted-foreground" role="status">
-              <p>{t("computer.driverHealth", { phase: t(`computer.phases.${status.driverPhase}`) })}</p>
-              <p>{t("computer.connectionHealth", status.connections)}</p>
-              {(status.connections.failed > 0 || status.connections.disconnected > 0) && (
-                <p>{t("computer.connectionRecovery")}</p>
-              )}
-            </div>
+          {status?.phase === "failed" && status.available && status.permissions.supported && permitted && (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={busy}
+              onClick={() => {
+                setPending(true)
+                void perform(reconnectComputer).finally(() => setPending(false))
+              }}
+            >
+              {pending ? t("computer.verifying") : t("computer.reconnect")}
+            </Button>
           )}
           {status?.lastError && (
             <p role="alert" className="text-sm text-destructive">

@@ -116,11 +116,14 @@ test("failed capability verification remains visible and reconnect waits for com
   await waitFor(() => expect(screen.getByRole("button", { name: "computer.reconnect" })).not.toBeDisabled())
 })
 
-test("ready driver does not hide a failed conversation connection", () => {
+test.each(["ready", "disabled"])("hides connection history and recovery controls when %s", (phase) => {
   native.enabled = true
-  native.phase = "ready"
+  native.phase = phase
   native.failedConnections = 1
   render(<ComputerSection />)
   expect(screen.getByRole("switch")).toBeChecked()
-  expect(screen.getByText("computer.connectionRecovery")).toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: "computer.reconnect" })).toBeNull()
+  expect(screen.queryByText("computer.connection")).toBeNull()
+  expect(screen.queryByText("computer.connectionHealth")).toBeNull()
+  expect(screen.queryByText("computer.connectionRecovery")).toBeNull()
 })
