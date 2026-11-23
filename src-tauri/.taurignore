@@ -2,6 +2,11 @@
 # They must not restart the concurrent Tauri development process.
 /binaries/
 /resources/adapter/
+/resources/browser/
 /resources/cef/
+/resources/chrome-bridge/
+/resources/computer/
+/resources/create-alwith/
+/resources/device/
 /resources/native/
 /resources/licenses/
