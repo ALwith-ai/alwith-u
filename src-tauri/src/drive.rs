@@ -2,6 +2,7 @@
 //! existence check and its place in the ordered exit.
 use alwith_drive::{Config, Drive, DriveService, NativeError, ServiceOptions};
 use serde_json::{Value, json};
+use std::path::PathBuf;
 use std::sync::Arc;
 use tauri::Manager;
 use tauri_plugin_opener::OpenerExt;
@@ -13,6 +14,10 @@ fn failed(error: impl std::fmt::Display) -> NativeError {
     NativeError::new("failed", error)
 }
 
+pub(crate) fn data_directory(app: &tauri::AppHandle) -> tauri::Result<PathBuf> {
+    Ok(app.path().app_data_dir()?.join("drive"))
+}
+
 /// Start Drive from U's directories; `drive:event` reaches the main and settings windows.
 pub fn plugin() -> tauri::plugin::TauriPlugin<tauri::DynRuntime> {
     alwith_drive::init(
@@ -20,7 +25,7 @@ pub fn plugin() -> tauri::plugin::TauriPlugin<tauri::DynRuntime> {
             let home = app.path().home_dir().map_err(failed)?;
             let opener = app.clone();
             let service = DriveService::new(ServiceOptions {
-                data_directory: app.path().app_data_dir().map_err(failed)?.join("drive"),
+                data_directory: data_directory(app).map_err(failed)?,
                 ownership_directory: home.join(".alwith-drive").join("owners"),
                 default_root: home.join("YUP Drive"),
                 reserved_roots: vec![],

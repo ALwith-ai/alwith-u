@@ -1114,6 +1114,11 @@ fn add_computer_logs(report: &mut ExportReport, snapshot: Result<String, String>
     report.metadata["nativeLogs"] = json!(report.logs);
 }
 
+fn add_drive_knowledge_logs(report: &mut ExportReport, directory: &Path) {
+    report.logs.add_drive_knowledge(directory);
+    report.metadata["nativeLogs"] = json!(report.logs);
+}
+
 fn add_drive_state(report: &mut ExportReport, drive: Value) {
     fn redacted(value: Value) -> Value {
         match value {
@@ -1157,6 +1162,10 @@ pub async fn diagnostics_export(
             &mut report,
             computer_diagnostics.ok_or_else(|| "Computer diagnostics were not supplied".into()),
         );
+        match crate::drive::data_directory(window.app_handle()) {
+            Ok(directory) => add_drive_knowledge_logs(&mut report, &directory),
+            Err(error) => report.metadata["driveKnowledgeLogError"] = json!(native_logs::redact(&error.to_string())),
+        }
         let drive = window.state::<alwith_drive::Drive>();
         let drive = match drive.service().and_then(|service| service.snapshot()) {
             Ok(snapshot) => crate::drive::diagnostic_snapshot(&snapshot),

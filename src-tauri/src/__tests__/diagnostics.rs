@@ -112,6 +112,38 @@ fn drive_state_and_file_open_failures_travel_in_the_same_redacted_zip() {
 }
 
 #[test]
+fn drive_knowledge_timeout_and_rotated_log_are_in_the_zip() {
+    let directory = tempfile::tempdir().unwrap();
+    let collector = Collector::new(directory.path().join("diagnostics"));
+    let drive = directory.path().join("drive");
+    fs::create_dir(&drive).unwrap();
+    let id = "b6565b44-814e-4591-ae21-d34e2b895df0";
+    let started = json!({
+        "timestampMs": 1795503760000_i64, "requestId": id, "phase": "started", "stage": "prepare", "elapsedMs": 0
+    });
+    let timeout = json!({
+        "timestampMs": 1795503770000_i64, "requestId": id, "phase": "finished", "stage": "http", "elapsedMs": 10000,
+        "path": "/api/v1/ai/search", "result": "timeout"
+    });
+    fs::write(drive.join("knowledge-search.previous.jsonl"), format!("{started}\n")).unwrap();
+    fs::write(drive.join("knowledge-search.jsonl"), format!("{timeout}\n")).unwrap();
+    let mut report = export_report(&collector, directory.path(), "ALwith U");
+    add_drive_knowledge_logs(&mut report, &drive);
+    let path = directory.path().join("drive-knowledge.zip");
+    write_report(&path, &report).unwrap();
+    let mut archive = zip::ZipArchive::new(fs::File::open(path).unwrap()).unwrap();
+    let metadata: Value = serde_json::from_reader(archive.by_name("diagnostics.json").unwrap()).unwrap();
+    for (name, expected) in [("knowledge-search.previous.jsonl", started), ("knowledge-search.jsonl", timeout)] {
+        let entry =
+            metadata["nativeLogs"]["files"].as_array().unwrap().iter().find(|file| file["name"] == name).unwrap();
+        assert!(entry["readErrorKind"].is_null());
+        let exported: Value =
+            serde_json::from_reader(archive.by_name(entry["archivePath"].as_str().unwrap()).unwrap()).unwrap();
+        assert_eq!(exported, expected);
+    }
+}
+
+#[test]
 fn missing_logs_remain_explicit_in_the_zip_manifest() {
     let directory = tempfile::tempdir().unwrap();
     let collector = Collector::new(directory.path().join("diagnostics"));

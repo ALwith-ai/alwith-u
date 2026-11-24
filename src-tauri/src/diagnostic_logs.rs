@@ -13,6 +13,8 @@ const PANIC_BYTES: u64 = 1024 * 1024;
 const ROTATED_BYTES: u64 = 512 * 1024;
 const TOTAL_BYTES: u64 = 4 * 1024 * 1024;
 const COMPUTER_BYTES: u64 = 64 * 1024;
+const DRIVE_KNOWLEDGE_BYTES: u64 = 128 * 1024;
+const DRIVE_KNOWLEDGE_FILES: [&str; 2] = ["knowledge-search.jsonl", "knowledge-search.previous.jsonl"];
 const ROTATED_COUNT: usize = 3;
 
 #[derive(Serialize)]
@@ -37,7 +39,37 @@ struct LogFile {
     content: String,
 }
 
+impl LogFile {
+    fn read(directory: &Path, name: String, max_bytes: u64) -> Self {
+        let mut entry = Self {
+            name,
+            archive_path: None,
+            original_bytes: None,
+            max_bytes,
+            truncated: false,
+            read_error_kind: None,
+            content: String::new(),
+        };
+        match read_tail(&directory.join(&entry.name), max_bytes) {
+            Ok((size, content, truncated)) => {
+                entry.archive_path = Some(format!("logs/{}", entry.name));
+                entry.original_bytes = Some(size);
+                entry.content = content;
+                entry.truncated = truncated;
+            }
+            Err(error) => entry.read_error_kind = Some(format!("{:?}", error.kind())),
+        }
+        entry
+    }
+}
+
 impl NativeLogs {
+    pub(super) fn add_drive_knowledge(&mut self, directory: &Path) {
+        self.files.extend(
+            DRIVE_KNOWLEDGE_FILES.into_iter().map(|name| LogFile::read(directory, name.into(), DRIVE_KNOWLEDGE_BYTES)),
+        );
+    }
+
     pub(super) fn add_computer(&mut self, snapshot: Result<String, String>) {
         let name = "computer.log";
         let (snapshot, error) = match snapshot {
@@ -179,28 +211,10 @@ pub(super) fn collect(directory: &Path, application_name: &str) -> NativeLogs {
     report.omitted_files = rotated.len().saturating_sub(ROTATED_COUNT);
     let mut files = vec![(format!("{application_name}.log"), APPLICATION_BYTES), ("panic.log".into(), PANIC_BYTES)];
     files.extend(rotated.into_iter().take(ROTATED_COUNT).map(|name| (name, ROTATED_BYTES)));
-    let mut remaining = TOTAL_BYTES - COMPUTER_BYTES;
+    let mut remaining = TOTAL_BYTES - COMPUTER_BYTES - DRIVE_KNOWLEDGE_BYTES * DRIVE_KNOWLEDGE_FILES.len() as u64;
     for (name, limit) in files {
-        let max_bytes = limit.min(remaining);
-        let mut entry = LogFile {
-            name,
-            archive_path: None,
-            original_bytes: None,
-            max_bytes,
-            truncated: false,
-            read_error_kind: None,
-            content: String::new(),
-        };
-        match read_tail(&directory.join(&entry.name), max_bytes) {
-            Ok((size, content, truncated)) => {
-                remaining -= content.len() as u64;
-                entry.archive_path = Some(format!("logs/{}", entry.name));
-                entry.original_bytes = Some(size);
-                entry.content = content;
-                entry.truncated = truncated;
-            }
-            Err(error) => entry.read_error_kind = Some(format!("{:?}", error.kind())),
-        }
+        let entry = LogFile::read(directory, name, limit.min(remaining));
+        remaining -= entry.content.len() as u64;
         report.files.push(entry);
     }
     report
