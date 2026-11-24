@@ -67,8 +67,8 @@ try {
   if (session.lastStopReason !== "end_turn") throw new Error("No successful source turn")
   const count = session.items.length
   // The adapter samples the session thread after the completed turn and publishes the suggestion itself.
-  await until(() => promptSuggestion(client.session(id)._meta) !== null, "prompt suggestion")
-  const suggestion = promptSuggestion(client.session(id)._meta)
+  await until(() => promptSuggestion(client.session(id).promptSuggestions) !== null, "prompt suggestion")
+  const suggestion = promptSuggestion(client.session(id).promptSuggestions)
   if (client.session(id).state !== "idle" || client.session(id).items.length !== count)
     throw new Error("Prompt suggestion mutated the conversation")
   if (leakedSessions.size) throw new Error("Suggestion sampling leaked a session into UI state")

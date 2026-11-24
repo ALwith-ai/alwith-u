@@ -258,7 +258,7 @@ async function check(transport: "stdio" | "ws") {
       throw new Error("Live assistant message changed phase between start, streaming and completion")
     console.log("chat ordering: native start reserves the message position; streamed and completed phases agree")
     // The adapter publishes the predicted follow-up prompt on its own after the completed turn.
-    await until(() => promptSuggestion(client.session(a)._meta) !== null, 75_000, "prompt suggestion")
+    await until(() => promptSuggestion(client.session(a).promptSuggestions) !== null, 75_000, "prompt suggestion")
     console.log("chat facts: live native ids, message completion and prompt suggestion verified")
     if (process.env.ALWITH_LIVE_FOCUS === "chat") return
 

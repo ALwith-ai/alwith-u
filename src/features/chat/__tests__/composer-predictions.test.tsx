@@ -42,9 +42,9 @@ function completed(id = "s1", turn = "t1"): Session {
     ]
   }
 }
-/** The agent's `promptSuggestions` session metadata; `null` is the cleared list it sends when a prompt starts. */
-function predicted(session: Session, text: string | null = "Run the tests") {
-  return { ...session, _meta: { promptSuggestions: { suggestions: text === null ? [] : [{ text }] } } }
+/** The agent's suggested prompts; `null` is the empty list it sends when a prompt starts. */
+function predicted(session: Session, text: string | null = "Run the tests"): Session {
+  return { ...session, promptSuggestions: text === null ? [] : [{ prompt: [{ type: "text", text }] }] }
 }
 /** The composer's prediction with U's preference, as the U composer wires it. */
 function usePrediction(session: Session, available: boolean, hasDraft: boolean) {
