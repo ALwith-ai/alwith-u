@@ -11,6 +11,14 @@ function isFocusMethod(value: unknown): value is HTMLElement["focus"] {
 if (!focusDescriptor || !isFocusMethod(focusDescriptor.value))
   throw new Error("HTMLElement.prototype.focus is unavailable")
 const nativeFocus = focusDescriptor.value
+const NativeIntersectionObserver = window.IntersectionObserver
+// Each checkpoint frame stands for a whole window. Observing against the frame's own viewport keeps
+// the outer diagram, which places later checkpoints beyond its edge, from hiding a page from itself.
+class CheckpointIntersectionObserver extends NativeIntersectionObserver {
+  constructor(callback: IntersectionObserverCallback, options: IntersectionObserverInit = {}) {
+    super(callback, { ...options, root: options.root ?? document })
+  }
+}
 export const playbackDelay = (ms: number) => new Promise<void>((resolve) => nativeTimeout(resolve, ms))
 interface Task {
   callback: () => void
@@ -59,6 +67,7 @@ export function installPlaybackClock() {
   HTMLElement.prototype.focus = function (options) {
     nativeFocus.call(this, { ...options, preventScroll: true })
   }
+  window.IntersectionObserver = CheckpointIntersectionObserver
   window.setTimeout = ((callback: TimerHandler, delay?: number, ...args: unknown[]) =>
     schedule(callback, delay, false, args)) as typeof window.setTimeout
   window.setInterval = ((callback: TimerHandler, delay?: number, ...args: unknown[]) =>
@@ -97,5 +106,6 @@ export function disposePlaybackClock() {
   window.setInterval = nativeInterval
   window.clearInterval = nativeClearInterval
   HTMLElement.prototype.focus = nativeFocus
+  window.IntersectionObserver = NativeIntersectionObserver
   installed = false
 }
