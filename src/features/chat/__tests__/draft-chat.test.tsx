@@ -723,7 +723,6 @@ test.each(["success", "failure", "unmount", "directory-change"] as const)(
       onCwdChange: () => {},
       onCreated: () => {},
       onSendingChange: () => {},
-      onAuthRequired: () => {},
       onNewChat: () => {},
       providerSnapshot: providers
     }
@@ -812,7 +811,6 @@ test.each(["main", "chat"] as const)("%s first send shows its message before acc
       onCwdChange={() => {}}
       onCreated={() => {}}
       onSendingChange={sending}
-      onAuthRequired={() => {}}
       onNewChat={() => {}}
       providerSnapshot={providers}
     />
@@ -906,7 +904,6 @@ test("sending after default-directory resolution keeps the submitted conversatio
           setId(value)
         }}
         onSendingChange={(value, sending) => setSendingId(sending ? value : null)}
-        onAuthRequired={() => {}}
         onNewChat={() => {}}
         providerSnapshot={providers}
       />
@@ -954,7 +951,6 @@ test("the composer stays visible while initial providers and the native draft ar
     onCwdChange: () => {},
     onCreated: () => {},
     onSendingChange: () => {},
-    onAuthRequired: () => {},
     onNewChat: () => {}
   }
   const view = render(<DraftChat {...props} providerSnapshot={null} />)
@@ -1001,7 +997,6 @@ test("initial preparation failure shows only error text and preserves composer i
       onCwdChange={() => {}}
       onCreated={() => {}}
       onSendingChange={() => {}}
-      onAuthRequired={() => {}}
       onNewChat={() => {}}
       providerSnapshot={providers}
     />
@@ -1038,9 +1033,6 @@ test("new chat prepares once under StrictMode and exposes the real model before 
           selected = id
         }}
         onSendingChange={() => {}}
-        onAuthRequired={() => {
-          throw new Error("Unexpected authentication")
-        }}
         providerSnapshot={providers}
         onNewChat={() => {
           throw new Error("Unexpected new chat")
@@ -1091,7 +1083,6 @@ test.each(["hello", ""])(
             setId(value)
           }}
           onSendingChange={(_id, sending) => setSending(sending)}
-          onAuthRequired={() => {}}
           providerSnapshot={providers}
           onNewChat={() => {}}
         />
@@ -1138,7 +1129,6 @@ test("choosing a gateway in a prepared draft preserves input and sends on a newl
         selected = id
       }}
       onSendingChange={() => {}}
-      onAuthRequired={() => {}}
       onNewChat={() => {}}
       providerSnapshot={providers}
     />
@@ -1181,7 +1171,6 @@ test("a queued directory failure retains the last successful replacement and its
     onCreated: (id: string) => {
       selected = id
     },
-    onAuthRequired: () => {},
     onSendingChange: () => {},
     providerSnapshot: providers,
     onNewChat: () => {}
@@ -1230,7 +1219,6 @@ test.each([false, true])(
         onSendingChange={(_id, sending) => {
           sendingStates.push(sending)
         }}
-        onAuthRequired={() => {}}
         providerSnapshot={providers}
         onNewChat={() => {}}
       />
@@ -1258,7 +1246,6 @@ test("a failed project change preserves the real draft and leaves the project pi
     onCreated: (id: string) => {
       selected = id
     },
-    onAuthRequired: () => {},
     onSendingChange: () => {},
     providerSnapshot: providers,
     onNewChat: () => {}
@@ -1295,7 +1282,6 @@ test("deleting a sent conversation does not resurrect startup placeholder input"
     onCwdChange: () => {},
     onCreated: () => {},
     onSendingChange: () => {},
-    onAuthRequired: () => {},
     onNewChat: () => {},
     providerSnapshot: providers
   }
@@ -1667,7 +1653,6 @@ test.each(["main", "chat"] as const)(
             selected = id
           }}
           onSendingChange={() => {}}
-          onAuthRequired={() => {}}
           onNewChat={() => {}}
           providerSnapshot={providers}
         />
@@ -1724,7 +1709,6 @@ test("a collection draft is saved only after its first send is accepted", async 
         sessionId = id
       }}
       onSendingChange={() => {}}
-      onAuthRequired={() => {}}
       onNewChat={() => {}}
       providerSnapshot={providers}
     />
@@ -1747,7 +1731,6 @@ test("unavailable account models show only the error without recovery controls",
   importDraft(DRAFT_SESSION_ID, { text: "keep this draft", mentions: [], attachments: [], modelId: null })
   const message = "The selected ALwith account model is unavailable. Select another model before sending."
   const failure = vi.spyOn(client, "prepareDraft").mockRejectedValueOnce(new Error(message))
-  const configure = vi.fn()
   const view = render(
     <DraftChat
       owner="main"
@@ -1755,7 +1738,6 @@ test("unavailable account models show only the error without recovery controls",
       onCwdChange={() => {}}
       onCreated={() => {}}
       onSendingChange={() => {}}
-      onAuthRequired={configure}
       onNewChat={() => {}}
       providerSnapshot={providers}
     />
@@ -1765,7 +1747,6 @@ test("unavailable account models show only the error without recovery controls",
     expect(within(view.getByRole("status")).queryByRole("button")).toBeNull()
     expect(view.queryByRole("button", { name: "Retry" })).toBeNull()
     expect(view.queryByRole("button", { name: "Configure provider" })).toBeNull()
-    expect(configure).not.toHaveBeenCalled()
     expect(fake.modelHints.size).toBe(0)
     expect((view.getByRole("textbox") as HTMLTextAreaElement).value).toBe("keep this draft")
   } finally {
@@ -1810,7 +1791,6 @@ test.each([false, true])(
         onCwdChange={() => {}}
         onCreated={onCreated}
         onSendingChange={() => {}}
-        onAuthRequired={() => {}}
         onNewChat={() => {}}
         providerSnapshot={snapshot}
       />

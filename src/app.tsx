@@ -639,7 +639,6 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
             setSubmittingDraftId((current) => (sending ? id : current === id ? null : current))
           }
           onVoiceHandoff={voiceHandoff.accept}
-          onAuthRequired={() => void openSettingsWindow("provider")}
           providerSnapshot={providerSnapshot}
           onOpenWindow={moveToWindow}
         />

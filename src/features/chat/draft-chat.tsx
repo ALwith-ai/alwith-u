@@ -56,7 +56,6 @@ export function DraftChat({
   /** Keep the submitting composer mounted for receipt handling and draft recovery. */
   onSendingChange: (sessionId: string, sending: boolean) => void
   onVoiceHandoff?: (sessionId: string, receipt: string) => void
-  onAuthRequired: () => void
   providerSnapshot: ProviderSnapshot | null
   onOpenWindow?: () => void
   onReturnToMain?: () => void

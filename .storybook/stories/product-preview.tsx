@@ -47,7 +47,6 @@ import { PROJECT_DIRECTORY } from "../fixtures/catalog"
 import { type ChatTransfer, openChatWindow, previewPreferences, resetChatWindow } from "../fixtures/chat-window"
 import { client, useApp, useSession } from "../fixtures/client"
 import { useExtensions } from "../fixtures/extensions"
-import { navigatePreview } from "../fixtures/native"
 import { resetMainDraft } from "../fixtures/new-chat"
 import { pluginEntry } from "../fixtures/plugins"
 import type { PreviewState } from "../fixtures/prepare"
@@ -233,7 +232,6 @@ export function ProductPreview({
           onCreated={setSelectedId}
           onCwdChange={setCwd}
           onSendingChange={() => {}}
-          onAuthRequired={() => navigatePreview("settings", "provider")}
           onNewChat={() => newChat()}
           onOpenWindow={moveToWindow}
         />

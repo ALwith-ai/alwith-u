@@ -372,9 +372,6 @@ test("the real new-chat surface supplies its receipt and resumes after materiali
         onCreated={() => {}}
         onSendingChange={(_id, pending) => setSending(pending)}
         onVoiceHandoff={handoff.accept}
-        onAuthRequired={() => {
-          throw new Error("Unexpected authentication")
-        }}
         providerSnapshot={providers}
         onNewChat={() => {
           throw new Error("Unexpected new chat")

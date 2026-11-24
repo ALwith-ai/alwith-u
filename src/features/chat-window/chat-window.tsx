@@ -440,7 +440,6 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
                 onSendingChange={(id, sending) =>
                   setSubmittingDraftId((current) => (sending ? id : current === id ? null : current))
                 }
-                onAuthRequired={() => void openSettingsWindow("provider")}
                 providerSnapshot={providers}
               />
             ) : session !== null ? (
