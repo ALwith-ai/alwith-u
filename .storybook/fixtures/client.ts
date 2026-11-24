@@ -135,19 +135,16 @@ export function resetClient(
           { type: "agent", methodId: "api-key", name: "API key" }
         ],
         capabilities: {
-          session: { fork: {} },
+          session: { fork: {}, title: {}, archive: {} },
           _meta: {
             codex: {
-              archive: true,
-              rename: true,
               account: true,
               skills: true,
               plugins: true,
               fuzzyFileSearch: true,
               sessionLineage: true,
               forkAtTurn: true,
-              sessionRetry: { version: 1 },
-              composerPredictions: true
+              sessionRetry: { version: 1 }
             }
           }
         }

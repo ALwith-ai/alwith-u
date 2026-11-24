@@ -163,18 +163,14 @@ export const preparePreview: LoaderFunction = async ({ args, globals }) => {
   for (const chatCase of new Set([state.chatCase, state.floatingChatCase])) {
     if (!chatCase || chatCase === "welcome" || chatCase === "project") continue
     let session = makeSession(chatCase)
-    if (state.composerCase === "prediction") {
-      session = { ...session, state: "idle", lastStopReason: "end_turn" }
-      client.store.setState((previous) => ({
-        agent: previous.agent && {
-          ...previous.agent,
-          capabilities: {
-            ...previous.agent.capabilities,
-            _meta: { codex: { ...(previous.agent.capabilities?._meta?.codex as object), composerPredictions: true } }
-          }
-        }
-      }))
-    }
+    // The agent's `prompt_suggestions_update` after a completed turn.
+    if (state.composerCase === "prediction")
+      session = {
+        ...session,
+        state: "idle",
+        lastStopReason: "end_turn",
+        promptSuggestions: [{ prompt: [{ type: "text", text: "请继续核对文件预览" }] }]
+      }
     if (state.chatDetail?.startsWith("usage"))
       session = {
         ...session,
