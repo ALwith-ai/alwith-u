@@ -1,5 +1,13 @@
-import type { Profile_Serialize, Request_Deserialize, Response_Serialize, Snapshot } from "@alwith/module-gamepad"
-import { emit } from "@tauri-apps/api/event"
+import type {
+  Microphone,
+  Privacy,
+  Profile_Serialize,
+  Request_Deserialize,
+  Response_Serialize,
+  ServiceEvent,
+  Snapshot
+} from "@alwith/module-gamepad"
+import type { Channel } from "@tauri-apps/api/core"
 export type GamepadCase = "disconnected" | "connected" | "running" | "error"
 let snapshot: Snapshot
 let profile: Profile_Serialize = {
@@ -16,6 +24,10 @@ let profile: Profile_Serialize = {
     overrides: []
   }
 }
+const subscribers = new Map<number, Channel<ServiceEvent>>()
+let nextSubscription = 1
+const privacy: Privacy = { authorized: true, mayPrompt: false }
+const microphones: Microphone[] = [{ name: "MacBook Pro 麦克风", default: true }]
 export function resetGamepad(kind: GamepadCase = "disconnected") {
   snapshot = {
     version: 1,
@@ -40,10 +52,10 @@ export function resetGamepad(kind: GamepadCase = "disconnected") {
     activeProfile: kind === "disconnected" ? null : "ps5",
     savedRevision: 1,
     appliedRevision: 1,
-    error: kind === "error" ? "模拟引擎连接失败" : ""
+    error: kind === "error" ? "模拟引擎连接失败" : null
   }
 }
-export async function gamepadRequest(request: Request_Deserialize): Promise<Response_Serialize> {
+function gamepadRequest(request: Request_Deserialize): Response_Serialize {
   if (request.type === "loadProfile") return { type: "profile", profile: { ...profile, id: request.id } }
   if (request.type === "saveProfile") {
     profile = {
@@ -60,7 +72,25 @@ export async function gamepadRequest(request: Request_Deserialize): Promise<Resp
   if (request.type === "selectDevice") snapshot = { ...snapshot, activeDevice: request.id ?? null }
   if (request.type === "activateProfile") snapshot = { ...snapshot, activeProfile: request.id }
   if (request.type === "snapshot") return { type: "snapshot", snapshot }
-  await emit("gamepad:event", { type: "snapshot", snapshot })
+  for (const events of subscribers.values()) events.onmessage({ type: "snapshot", snapshot })
   return { type: "ok" }
+}
+/** The `alwith-gamepad` plugin's commands; engine events reach each subscribed webview channel. */
+export function gamepadCommand(command: string, args: Record<string, unknown>): unknown {
+  if (command === "plugin:alwith-gamepad|request") return gamepadRequest(args.request as Request_Deserialize)
+  if (command === "plugin:alwith-gamepad|subscribe") {
+    const id = nextSubscription++
+    subscribers.set(id, args.events as Channel<ServiceEvent>)
+    return id
+  }
+  if (command === "plugin:alwith-gamepad|unsubscribe") {
+    if (!subscribers.delete(args.id as number)) throw new Error(`Unknown gamepad subscription: ${String(args.id)}`)
+    return null
+  }
+  if (command === "plugin:alwith-gamepad|permission_status" || command === "plugin:alwith-gamepad|request_permission")
+    return privacy
+  if (command === "plugin:alwith-gamepad|microphones") return microphones
+  if (command === "plugin:alwith-gamepad|capture_start" || command === "plugin:alwith-gamepad|capture_stop") return null
+  throw new Error(`Unimplemented Storybook gamepad boundary: ${command}`)
 }
 resetGamepad()

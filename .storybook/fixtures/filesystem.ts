@@ -73,6 +73,10 @@ export async function resetFiles(empty = false, binary = false, kind: FileCase =
     }
   }
 }
+/** Whether a file or folder exists at an absolute path of the virtual disk. */
+export function pathExists(path: string): boolean {
+  return virtualFiles.has(path) || folders.has(path)
+}
 export function fileRequest(request: NativeRequest): unknown {
   const { operation, path } = request
   const failure =
@@ -134,4 +138,66 @@ export function fileRequest(request: NativeRequest): unknown {
     return
   }
   throw new Error(`Unsupported preview filesystem operation: ${operation}`)
+}
+
+type FilePatch = { oldPath?: string | null; newPath?: string | null; patch: string }
+// One patch's hunks applied to a file's lines, as `git apply` does without fuzz: every hunk must find its
+// context where its header says. Reversing swaps what each hunk removes and adds.
+function patchLines(lines: string[], patch: string, reverse: boolean): string[] {
+  const hunks: { start: number; before: string[]; after: string[] }[] = []
+  for (const line of patch.split("\n")) {
+    const header = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/.exec(line)
+    if (header) hunks.push({ start: Number(header[reverse ? 2 : 1]), before: [], after: [] })
+    else if (hunks.length === 0 || line === "" || line === "\\ No newline at end of file") continue
+    else {
+      const hunk = hunks.at(-1)!
+      const text = line.slice(1)
+      const removed = reverse ? "+" : "-"
+      const added = reverse ? "-" : "+"
+      if (line[0] !== " " && line[0] !== removed && line[0] !== added) throw new Error(`Malformed patch line: ${line}`)
+      if (line[0] !== added) hunk.before.push(text)
+      if (line[0] !== removed) hunk.after.push(text)
+    }
+  }
+  if (hunks.length === 0) throw new Error("Missing patch content")
+  const result = [...lines]
+  for (const hunk of hunks.toReversed()) {
+    const at = hunk.before.length === 0 ? hunk.start : hunk.start - 1
+    if (hunk.before.some((text, offset) => result[at + offset] !== text))
+      throw new Error(`patch does not apply at line ${hunk.start}`)
+    result.splice(at, hunk.before.length, ...hunk.after)
+  }
+  return result
+}
+/** `workspace_apply_patches` for in-place edits: each patch is atomic, and the first failure stops the batch. */
+export function applyPatches(root: string, patches: FilePatch[], reverse: boolean) {
+  const result: { applied: number[]; failed: { index: number; message: string } | null; warning: string | null } = {
+    applied: [],
+    failed: null,
+    warning: null
+  }
+  const order = patches.map((_, index) => index)
+  for (const index of reverse ? order.toReversed() : order) {
+    const { oldPath, newPath, patch } = patches[index]
+    if (oldPath === null || oldPath === undefined || oldPath !== newPath)
+      throw new Error("Unimplemented Storybook host boundary: patches that add, delete or move a file")
+    const path = oldPath.startsWith("/") ? oldPath : `${root}/${oldPath}`
+    const bytes = virtualFiles.get(path)
+    if (!bytes) {
+      result.failed = { index, message: `${path}: No such file or directory` }
+      break
+    }
+    const text = new TextDecoder().decode(bytes)
+    const ending = text.endsWith("\n")
+    try {
+      const lines = patchLines((ending ? text.slice(0, -1) : text).split("\n"), patch, reverse)
+      virtualFiles.set(path, new TextEncoder().encode(lines.join("\n") + (ending ? "\n" : "")))
+      version++
+    } catch (error) {
+      result.failed = { index, message: `${path}: ${(error as Error).message}` }
+      break
+    }
+    result.applied.push(index)
+  }
+  return result
 }

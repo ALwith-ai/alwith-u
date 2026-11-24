@@ -37,10 +37,9 @@ export function HalfScreen(_props: Props) {
 const chrome = {
   name: "Google Chrome",
   bundle_id: "com.google.Chrome",
-  path: "/Applications/Google Chrome.app",
   icon: null
 }
-const feishu = { name: "飞书", bundle_id: "com.bytedance.macos.feishu", path: "/Applications/飞书.app", icon: null }
+const feishu = { name: "飞书", bundle_id: "com.bytedance.macos.feishu", icon: null }
 export const pageMeta = {
   args: { apps: [], windows: [], vibemonCase: "home", authenticated: true },
   loaders: [

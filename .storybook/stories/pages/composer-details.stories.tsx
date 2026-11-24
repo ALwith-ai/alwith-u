@@ -1,6 +1,5 @@
 import { createSession, type Session } from "@alwith/module-chat/client"
 import { drafts } from "@alwith/module-chat/conversation"
-import { mockIPC } from "@tauri-apps/api/mocks"
 import { type ComponentProps, type ReactNode, useState } from "react"
 import { expect, fn, waitFor } from "storybook/test"
 
@@ -8,7 +7,7 @@ import { ChatHostProvider } from "../../../src/features/chat/chat-host"
 import { ChatComposer } from "../../../src/features/chat/composer"
 import { DraftProjectPicker } from "../../../src/features/chat/draft-project-picker"
 import type { SettingsRequest } from "../../../src/lib/settings-store"
-import { handleNativeRequest } from "../../fixtures/native"
+import { handleNativeRequest, mockHost } from "../../fixtures/native"
 import preview from "../../preview"
 import type { SharedMeta } from "../page-meta"
 
@@ -65,29 +64,19 @@ export const pageMeta = {
     drafts.delete(session.id)
     let revision = Date.now()
     let values: Record<string, unknown> = { "voice.enabled": true }
-    mockIPC(
-      (command, payload) => {
-        if (command === "plugin:log|log") return
-        if (command === "draft_directory") return "/Users/demo/Documents/Codex"
-        if (command === "settings_request") {
-          if (!payload || !("input" in payload)) throw new Error("Missing settings request")
-          const input = payload.input as SettingsRequest
-          values = { ...values, ...input.changes }
-          return { revision: ++revision, values, browserMigrated: true }
-        }
-        return handleNativeRequest(command, payload)
-      },
-      { shouldMockEvents: true }
-    )
+    mockHost((command, payload) => {
+      if (command === "draft_directory") return "/Users/demo/Documents/Codex"
+      if (command === "settings_request") {
+        if (!payload || !("input" in payload)) throw new Error("Missing settings request")
+        const input = payload.input as SettingsRequest
+        values = { ...values, ...input.changes }
+        return { revision: ++revision, values, browserMigrated: true }
+      }
+      return handleNativeRequest(command, payload)
+    })
     return () => {
       drafts.delete(session.id)
-      mockIPC(
-        (command, payload) => {
-          if (command === "plugin:log|log") return
-          return handleNativeRequest(command, payload)
-        },
-        { shouldMockEvents: true }
-      )
+      mockHost()
     }
   }
 } satisfies SharedMeta<ComponentProps<typeof Composer>>

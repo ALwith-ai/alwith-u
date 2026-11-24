@@ -61,7 +61,9 @@ export const ComputerPermission = meta.story({
   args: { settingsSection: "computer", computerCase: "permissions" },
   play: async ({ canvas, userEvent }) => {
     await userEvent.click((await canvas.findAllByRole("button", { name: "打开系统设置" }))[0])
-    await waitFor(() => expect(nativeCalls.some((call) => call.command === "computer_request_permissions")).toBe(true))
+    await waitFor(() =>
+      expect(nativeCalls.some((call) => call.command === "plugin:alwith-computer|request_permissions")).toBe(true)
+    )
   }
 })
 export const Provider = meta.story({

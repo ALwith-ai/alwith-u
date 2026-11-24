@@ -1,6 +1,5 @@
 import { modelTriggerLabel, presentModelCatalog } from "@alwith/module-chat/desktop"
 import { type ChatModelOption, ModelSelect } from "@alwith/module-chat/model-select"
-import { mockIPC } from "@tauri-apps/api/mocks"
 import { ExternalLink } from "lucide-react"
 import { type ReactElement, useState } from "react"
 import type { ComponentProps } from "react"
@@ -10,7 +9,7 @@ import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 
 import { gatewayModelId } from "../../../src/lib/providers"
 import type { SettingsRequest } from "../../../src/lib/settings-store"
-import { handleNativeRequest } from "../../fixtures/native"
+import { handleNativeRequest, mockHost } from "../../fixtures/native"
 import preview from "../../preview"
 import type { SharedMeta } from "../page-meta"
 
@@ -103,28 +102,16 @@ export const pageMeta = {
     configureModels.mockClear()
     let revision = Date.now()
     let values: Record<string, unknown> = {}
-    mockIPC(
-      (command, payload) => {
-        if (command === "plugin:log|log" || command === "plugin:app|set_app_theme") return
-        if (command === "settings_request") {
-          if (!payload || !("input" in payload)) throw new Error("Missing settings request")
-          const input = payload.input as SettingsRequest
-          values = { ...values, ...input.changes }
-          return { revision: ++revision, values, browserMigrated: true }
-        }
-        return handleNativeRequest(command, payload)
-      },
-      { shouldMockEvents: true }
-    )
-    return () => {
-      mockIPC(
-        (command, payload) => {
-          if (command === "plugin:log|log" || command === "plugin:app|set_app_theme") return
-          return handleNativeRequest(command, payload)
-        },
-        { shouldMockEvents: true }
-      )
-    }
+    mockHost((command, payload) => {
+      if (command === "settings_request") {
+        if (!payload || !("input" in payload)) throw new Error("Missing settings request")
+        const input = payload.input as SettingsRequest
+        values = { ...values, ...input.changes }
+        return { revision: ++revision, values, browserMigrated: true }
+      }
+      return handleNativeRequest(command, payload)
+    })
+    return () => mockHost()
   }
 } satisfies SharedMeta<ComponentProps<typeof ModelMenuPreview>>
 

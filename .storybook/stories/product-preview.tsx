@@ -1,5 +1,6 @@
 import { VibemonQuickReply, VibemonWindow } from "@alwith/module-auth/vibemon/react"
 import { isFormElicitation } from "@alwith/module-chat/client"
+import type { SessionSummary } from "@alwith/module-chat/client"
 import { exportDraft } from "@alwith/module-chat/conversation"
 import type { FormAction } from "@alwith/module-chat/conversation"
 import { useEffect, useState } from "react"
@@ -8,7 +9,6 @@ import { toast, Toaster } from "sonner"
 
 import { SidebarInset } from "@/components/ui/sidebar"
 
-import type { SessionSummary } from "@alwith/module-chat/client"
 import { Pane } from "../../src/components/alwith-ui/pane"
 import { toolboxContentClassName } from "../../src/components/alwith-ui/toolbox-layout"
 import { WindowsMainWindowShell } from "../../src/components/alwith-ui/windows-main-window-shell"
@@ -42,11 +42,12 @@ import { SettingsPage } from "../../src/features/settings/settings-page"
 import { VibemonCenter } from "../../src/features/vibemon/vibemon-center"
 import { useWorkspace, WorkspaceHeaderContext } from "../../src/features/workspace/context"
 import { FileWorkspace } from "../../src/features/workspace/file-workspace"
+import { useProviders } from "../../src/lib/use-providers"
 import { PROJECT_DIRECTORY } from "../fixtures/catalog"
 import { type ChatTransfer, openChatWindow, previewPreferences, resetChatWindow } from "../fixtures/chat-window"
 import { client, useApp, useSession } from "../fixtures/client"
 import { useExtensions } from "../fixtures/extensions"
-import { navigatePreview, providers } from "../fixtures/native"
+import { navigatePreview } from "../fixtures/native"
 import { resetMainDraft } from "../fixtures/new-chat"
 import { pluginEntry } from "../fixtures/plugins"
 import type { PreviewState } from "../fixtures/prepare"
@@ -123,6 +124,7 @@ export function ProductPreview({
     initialDirectory === undefined ? (chatCase === "welcome" ? null : PROJECT_DIRECTORY) : initialDirectory
   )
   const [generation, setGeneration] = useState(0)
+  const providerSnapshot = useProviders()
   const [toolbar, setToolbar] = useState<HTMLDivElement | null>(null)
   const [driveTarget, setDriveTarget] = useState<HTMLDivElement | null>(null)
   const session = useSession(selectedId)
@@ -226,7 +228,7 @@ export function ProductPreview({
           key={generation}
           owner="main"
           cwd={cwd}
-          providerSnapshot={providers}
+          providerSnapshot={providerSnapshot}
           projectMenu={projectMenu}
           onCreated={setSelectedId}
           onCwdChange={setCwd}

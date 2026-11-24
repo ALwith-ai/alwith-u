@@ -5,35 +5,46 @@ export type VoiceCase =
 let mode: VoiceCase = "disabled"
 let receiver: Channel<VoiceEvent> | null = null
 let recordingId = ""
+let nextSequence = 0
 export function resetVoice(kind: VoiceCase = "disabled"): void {
   mode = kind
   receiver = null
   recordingId = ""
+  nextSequence = 0
 }
 export function voiceRequest(command: string, args: Record<string, unknown>): unknown {
-  if (command === "voice_profiles") return { vui: mode !== "unconfigured", doubao: mode !== "unconfigured" }
-  if (command === "voice_list_devices") return [{ id: "default", name: "MacBook Pro 麦克风", isDefault: true }]
-  if (command === "voice_start") {
+  if (command === "plugin:alwith-voice|profiles")
+    return { vui: mode !== "unconfigured", doubao: mode !== "unconfigured" }
+  if (command === "plugin:alwith-voice|start") {
     receiver = args.events as Channel<VoiceEvent>
     recordingId = (args.options as { recordingId: string }).recordingId
+    nextSequence = 0
     if (mode === "starting") return new Promise(() => {})
     receiver.onmessage({ type: "ready", recordingId })
-    return
+    return null
   }
-  if (command === "voice_push") return
-  if (command === "voice_control") {
+  if (command === "plugin:alwith-voice|control") {
+    if (args.recordingId !== recordingId) throw new Error(`Unknown recording: ${String(args.recordingId)}`)
     if (args.action === "finish") {
-      if (mode === "transcribing") return
+      if (mode === "transcribing") return null
       if (mode === "error")
-        receiver?.onmessage({ type: "failed", recordingId, message: "模拟语音识别服务连接失败，请重试。" })
+        receiver!.onmessage({ type: "failed", recordingId, message: "模拟语音识别服务连接失败，请重试。" })
       else
-        receiver?.onmessage({ type: "final", recordingId, text: mode === "noSpeech" ? "" : "请整理本周项目交付进度" })
+        receiver!.onmessage({ type: "final", recordingId, text: mode === "noSpeech" ? "" : "请整理本周项目交付进度" })
     }
-    if (args.action === "cancel") receiver?.onmessage({ type: "cancelled", recordingId })
-    return
+    if (args.action === "cancel") receiver!.onmessage({ type: "cancelled", recordingId })
+    return null
   }
-  if (command === "voice_delete_credential") return
-  throw new Error(`Unimplemented voice boundary: ${command}`)
+  if (command === "plugin:alwith-voice|delete_credential") return null
+  throw new Error(`Unimplemented Storybook voice boundary: ${command}`)
+}
+/** One audio chunk of the current recording, in the order the transport numbers them. */
+export function pushAudio(id: string, sequence: number, bytes: Uint8Array): null {
+  if (id !== recordingId) throw new Error(`Audio for unknown recording: ${id}`)
+  if (sequence !== nextSequence) throw new Error(`Audio chunk ${sequence} arrived, expected ${nextSequence}`)
+  if (bytes.length === 0) throw new Error("An audio chunk carries no bytes")
+  nextSequence++
+  return null
 }
 // Synthetic capture replaces microphone hardware only; the shared voice interaction remains real.
 export function prepareCapture(_options: unknown, signal: AbortSignal): Promise<AudioCapture> {
