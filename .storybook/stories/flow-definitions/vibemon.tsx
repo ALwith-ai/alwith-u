@@ -46,9 +46,9 @@ export const Equip = meta.story({
 // The pull video element stays mounted between draws; it listens for `ended` only once
 // the draw has started playback, so complete it after it starts rather than when it exists.
 async function finishPullVideo() {
-  const video = await waitFor(() => {
+  const video = await waitFor(async () => {
     const element = document.querySelector("video")
-    expect(element?.paused).toBe(false)
+    await expect(element?.paused).toBe(false)
     return element!
   })
   video.dispatchEvent(new Event("ended"))

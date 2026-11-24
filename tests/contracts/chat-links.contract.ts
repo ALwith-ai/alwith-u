@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, realpath, rm, writeFile } from "node:fs/promises"
+import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 
@@ -315,7 +315,7 @@ test("routes links in the main and floating chat window to their designated surf
     })
     expect(failures).toEqual([])
   } finally {
-    web.stop(true)
+    await web.stop(true)
     await rm(root, { recursive: true, force: true })
   }
 }, 180_000)

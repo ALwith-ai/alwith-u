@@ -110,7 +110,7 @@ test("browser quick-chat links share the main file and browser areas", async () 
     expect(await selectedTree()).toEqual([insideFile])
     expect(await ui(`[...document.querySelectorAll('[data-sonner-toast]')].map(e=>e.textContent)`)).toEqual([])
   } finally {
-    server.stop(true)
+    await server.stop(true)
     await rm(root, { recursive: true, force: true })
   }
 }, 120_000)

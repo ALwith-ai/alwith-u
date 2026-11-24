@@ -6,7 +6,7 @@ import {
 } from "@alwith/module-auth/vibemon"
 import { configureVibemon, initializeSettings, type VibemonHost } from "@alwith/module-auth/vibemon/core"
 import { VibemonCenter } from "@alwith/module-auth/vibemon/react"
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 
 import { initI18n } from "@/lib/i18n"
@@ -168,7 +168,7 @@ test("home bypasses unrequested pool resources and Wish preserves server orderin
   expect(screen.queryByRole("progressbar")).not.toBeInTheDocument()
   expect(screen.getAllByRole("tab").map((tab) => tab.getAttribute("aria-label"))).toEqual(["v2", "v1", "v4", "v3"])
   expect(screen.getByRole("tab", { name: "v2" })).toHaveAttribute("aria-selected", "true")
-  expect(resolve).toHaveBeenCalledWith("v2")
+  await waitFor(() => expect(resolve).toHaveBeenCalledWith("v2"))
   expect(decode.mock.contexts.some((image) => image.src === "https://local.test/v3/background.png")).toBe(false)
   releaseBackground()
   advanceFrames()
