@@ -115,6 +115,7 @@ export const chatCases = [
   "plan",
   "permission",
   "question",
+  "questionUnavailable",
   "questionAnswered",
   "form",
   "formQueue",
@@ -453,7 +454,7 @@ export function makeSession(kind: ChatCase, id: string = kind): Session {
   }
   if (kind === "permission" || kind === "form" || kind === "formQueue" || kind === "url")
     return { ...assistantMessage(session, "已完成检查，继续执行前需要你补充确认。"), state: "running" }
-  if (kind === "question" || kind === "questionAnswered") {
+  if (kind === "question" || kind === "questionUnavailable" || kind === "questionAnswered") {
     const questionMessageId = `${id}-question-${++questionSequence}`
     const questions = [
       { title: "交付范围", options: ["全部页面与流程", "仅核心聊天流程", "仅本周新增内容"] },
@@ -502,7 +503,8 @@ export function makeSession(kind: ChatCase, id: string = kind): Session {
         _meta: { codex: { turnId: `turn:${id}-user` } }
       })
     }
-    return { ...session, state: "running" }
+    // Not attached: this client does not hold the live session, so the question cannot be answered here.
+    return { ...session, ...(kind === "questionUnavailable" ? { attached: false } : {}), state: "running" }
   }
   if (kind === "error") {
     return applyUpdate(session, {

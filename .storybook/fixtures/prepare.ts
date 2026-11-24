@@ -207,7 +207,8 @@ export const preparePreview: LoaderFunction = async ({ args, globals }) => {
         }
       })
     client.store.setState((previous) => ({ sessions: { ...previous.sessions, [session.id]: session } }))
-    if (chatCase === "question") client.store.setState({ actions: [pendingAction("question", session.id)] })
+    if (chatCase === "question" || chatCase === "questionUnavailable")
+      client.store.setState({ actions: [pendingAction("question", session.id)] })
     if (["permission", "form", "formQueue", "url"].includes(chatCase)) {
       const actionKind = chatCase === "formQueue" ? "form" : chatCase
       const action = pendingAction(actionKind as "permission" | "form" | "url", session.id)
@@ -230,6 +231,7 @@ export const preparePreview: LoaderFunction = async ({ args, globals }) => {
         "tools",
         "plan",
         "question",
+        "questionUnavailable",
         "questionAnswered",
         "activityEdit",
         "activityRun",

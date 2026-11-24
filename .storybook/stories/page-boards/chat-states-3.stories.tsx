@@ -12,6 +12,7 @@ const meta = preview.meta({
 
 export const Permission = meta.story({ ...source.Permission.input, name: "等待操作授权" })
 export const Question = meta.story({ ...source.Question.input, name: "异步问题 · 选择与补充" })
+export const QuestionUnavailable = meta.story({ ...source.QuestionUnavailable.input, name: "异步问题 · 暂不可用" })
 export const QuestionAnswered = meta.story({ ...source.QuestionAnswered.input, name: "异步问题 · 已回答" })
 export const Form = meta.story({ ...source.Form.input, name: "表单请求 · 补充信息" })
 export const FormQueue = meta.story({ ...source.FormQueue.input, name: "表单请求 · 队列中的第 1/3 项" })

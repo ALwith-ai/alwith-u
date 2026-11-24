@@ -305,6 +305,12 @@ export const Question = meta.story({
   args: { chatCase: "question" }
 })
 
+export const QuestionUnavailable = meta.story({
+  name: "异步问题 · 暂不可用",
+  parameters: { pageStateGroup: "03 需要用户处理" },
+  args: { chatCase: "questionUnavailable" }
+})
+
 export const QuestionAnswered = meta.story({
   name: "异步问题 · 已回答",
   parameters: { pageStateGroup: "03 需要用户处理" },
