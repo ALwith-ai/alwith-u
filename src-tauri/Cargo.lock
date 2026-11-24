@@ -152,9 +152,9 @@ dependencies = [
 
 [[package]]
 name = "alwith-desktop-shell"
-version = "0.6.6"
+version = "0.6.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "07da889177e5f6ae878714fed986a8967ccf890687521dc9a8bcdc6bd41e0b91"
+checksum = "3369361c84d8787fd1c7d8031026bf180f1f70026ecbc529fd68608af783e861"
 dependencies = [
  "atlas-tauri",
  "flate2",
@@ -163,7 +163,10 @@ dependencies = [
  "objc2",
  "objc2-app-kit",
  "objc2-foundation",
+ "reqwest",
+ "reqwest-resumable",
  "rfd 0.18.0",
+ "rustls",
  "semver",
  "serde",
  "serde_json",
@@ -1450,21 +1453,20 @@ checksum = "be95d4a884358a21a199689323c29e9256b4a1b315e22f183d155422041d3a9a"
 
 [[package]]
 name = "const-random"
-version = "0.1.18"
+version = "0.1.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "87e00182fe74b066627d63b85fd550ac2998d4b0bd86bfed477a0ae4c7c71359"
+checksum = "d38d4bb3e79c716fd0330d8da84171b0135e59e01076e99f22b75a64c56e952c"
 dependencies = [
  "const-random-macro",
 ]
 
 [[package]]
 name = "const-random-macro"
-version = "0.1.16"
+version = "0.1.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9d839f2a20b0aee515dc581a6172f2321f96cab76c1a38a4c584a194955390e"
+checksum = "d66bb491e9fc48cb3fed9d57df886880a751d540d645ebc86b6d9d35b8fa8457"
 dependencies = [
- "getrandom 0.2.17",
- "once_cell",
+ "getrandom 0.4.3",
  "tiny-keccak",
 ]
 
@@ -3404,9 +3406,9 @@ dependencies = [
 
 [[package]]
 name = "hyper"
-version = "1.12.0"
+version = "1.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c3e324da4c95177d6291d4c8730197c0d1822f8a9766814a4a44fa5ab797c9c"
+checksum = "229c6ff5584df4c6becbfe00567128bac768c8cd32ebc8a8366bd81ed072e8f3"
 dependencies = [
  "atomic-waker",
  "bytes",
@@ -5938,6 +5940,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "reqwest-resumable"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "de4dbd17d90cca975309d373eb0c6981b292cda8ad6b7b6eb6bbb49cf68db5d8"
+dependencies = [
+ "httpdate",
+ "log",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "rfd"
 version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7265,15 +7281,17 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-hasgard"
-version = "0.7.2"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f42a61e56293bc6d6e8fe90e50cff871dfac3c2abaf89b3eba08d76e3b0f8b6"
+checksum = "f83c6c39da2fd1623df7277aeab61b0b96a95ded758d0cedfea6fa277b6bdefe"
 dependencies = [
+ "arboard",
  "base64 0.23.1",
  "block2",
  "core-foundation 0.10.1",
  "core-graphics",
  "enigo",
+ "futures-util",
  "image",
  "libc",
  "objc2",
