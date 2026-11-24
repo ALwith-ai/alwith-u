@@ -48,7 +48,12 @@ export type PluginsApi = {
 }
 
 /** A plugin together with the marketplace it was listed under (needed to install and read). */
-export type PluginEntry = { plugin: PluginSummary; marketplace: PluginMarketplaceEntry }
+export type PluginEntry = {
+  plugin: PluginSummary
+  marketplace: PluginMarketplaceEntry
+}
+
+type RefreshResources = "installed" | "skills" | "all"
 
 type PluginsState = {
   catalog: ReturnType<typeof createPluginCatalogStore>
@@ -87,7 +92,12 @@ type PluginsState = {
   busyMarketplaces: Record<string, true>
   refresh: (
     cwds?: string[],
-    options?: { forceRefetch?: boolean; background?: boolean; cached?: boolean; catalog?: boolean }
+    options?: {
+      forceRefetch?: boolean
+      background?: boolean
+      cached?: boolean
+      resources?: RefreshResources
+    }
   ) => Promise<void>
   invalidate: () => void
   skillsChanged: () => Promise<void>
@@ -171,7 +181,15 @@ export function createPluginsStore(api: PluginsApi, catalogApi: PluginCatalogApi
     const pluginsCache = new RequestCache<PluginListResponse>("plugins.marketplace")
     const installedCache = new RequestCache<PluginInstalledResponse>("plugins.installed")
     const details = new RequestCache<PluginDetail>("plugins.detail")
-    const flights = new Map<string, { promise: Promise<void>; force: boolean; catalog: boolean; epoch: number }>()
+    const flights = new Map<
+      string,
+      {
+        promise: Promise<void>
+        force: boolean
+        resources: RefreshResources
+        epoch: number
+      }
+    >()
     let skillView = new Set<string>()
     const projectReads = new Map<string, { epoch: number; scope: string; promise: Promise<void> }>()
     let epoch = 0
@@ -346,7 +364,10 @@ export function createPluginsStore(api: PluginsApi, catalogApi: PluginCatalogApi
             // installed set only. Re-reading the whole catalog here pulled every store's plugins
             // in the middle of chat turns.
             invalidate(false)
-            await get().refresh(undefined, { background: true, catalog: false })
+            await get().refresh(undefined, {
+              background: true,
+              resources: "skills"
+            })
           } while (notificationDirty)
         })().finally(() => {
           notification = null
@@ -358,12 +379,17 @@ export function createPluginsStore(api: PluginsApi, catalogApi: PluginCatalogApi
         const key = JSON.stringify(cwds)
         const existing = flights.get(key)
         const force = options.forceRefetch === true
-        const catalog = options.catalog !== false || force
+        const resources = options.resources ?? "all"
+        const catalog = resources === "all"
+        const skills = resources !== "installed"
         // Same-scope callers share one read. An explicit forced reload supersedes a cached read,
         // and a catalog read supersedes one that skipped the catalog.
-        const joining = existing?.epoch === epoch && (!force || existing.force) && (existing.catalog || !catalog)
+        const joining =
+          existing?.epoch === epoch &&
+          (!force || existing.force) &&
+          (existing.resources === "all" || existing.resources === resources || resources === "installed")
         if (joining && JSON.stringify(get().cwds) === key) return existing.promise
-        if (force && !joining) invalidate()
+        if (force && !joining) invalidate(catalog)
         else if (catalog && !options.cached && !options.background) catalogStore.getState().clear()
         const revision = epoch
         const current = () => revision === epoch && JSON.stringify(get().cwds) === key
@@ -385,7 +411,8 @@ export function createPluginsStore(api: PluginsApi, catalogApi: PluginCatalogApi
           skillsError: null,
           pluginsError: null,
           installedError: null,
-          skillsLoading: refresh || !haveSkills,
+          ...(skills ? { skillsLoading: refresh || !haveSkills } : {}),
+          ...(changedScope ? { loadedScope: null } : {}),
           ...(catalog ? { pluginsLoading: refresh || !cachedPlugins } : {}),
           installedLoading: refresh || !cachedInstalled,
           ...(haveSkills ? skillProjection() : changedScope ? { skills: [], skillProjects: {}, skillErrors: [] } : {}),
@@ -412,11 +439,12 @@ export function createPluginsStore(api: PluginsApi, catalogApi: PluginCatalogApi
           if (current()) set({ [field]: describe(error), [loading]: false, error: describe(error) })
         }
         const promise = Promise.all([
-          readSkills(cwds, refresh, force)
-            .then(() => {
-              if (current()) set({ ...skillProjection(), skillsLoading: false })
-            })
-            .catch((error: unknown) => fail("skillsError", "skillsLoading", error)),
+          skills &&
+            readSkills(cwds, refresh, force)
+              .then(() => {
+                if (current()) set({ ...skillProjection(), skillsLoading: false })
+              })
+              .catch((error: unknown) => fail("skillsError", "skillsLoading", error)),
           catalog &&
             pluginsCache
               .read(
@@ -451,12 +479,16 @@ export function createPluginsStore(api: PluginsApi, catalogApi: PluginCatalogApi
             .catch((error: unknown) => fail("installedError", "installedLoading", error))
         ])
           .then(() => {
-            if (current()) set({ loadedScope: get().error ? null : key, loading: false })
+            if (current() && flights.get(key)?.promise === promise)
+              set({
+                ...(catalog ? { loadedScope: get().error ? null : key } : {}),
+                loading: false
+              })
           })
           .finally(() => {
             if (flights.get(key)?.promise === promise) flights.delete(key)
           })
-        flights.set(key, { promise, force, catalog, epoch: revision })
+        flights.set(key, { promise, force, resources, epoch: revision })
         return promise
       },
 

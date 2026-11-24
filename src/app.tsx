@@ -718,7 +718,7 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
                 >
                   <PluginsPage
                     cwd={session?.cwd ?? lastDirectory}
-                    active={view === "plugins"}
+                    active={view === "plugins" || view === "extensions"}
                     onOpenCatalog={openPlugins}
                     extensions={{
                       active: leadingPage === "extensions",

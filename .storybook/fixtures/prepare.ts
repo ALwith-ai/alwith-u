@@ -140,7 +140,7 @@ export const preparePreview: LoaderFunction = async ({ args, globals }) => {
   const previewPlugins = createPluginsStore(client, pluginMarketplace)
   pluginsStore.setState(previewPlugins.getState(), true)
   stopPlugins = previewPlugins.subscribe((next) => pluginsStore.setState(next, true))
-  if (state.pluginCase !== "loading") await pluginsStore.getState().refresh()
+  if (state.page !== "extensions" && state.pluginCase !== "loading") await pluginsStore.getState().refresh()
   await resetExtensions(state.extensionCase)
   await resetAccount(state.accountSignedIn, state.accountCase)
   resetUpdater(state.updateCase)

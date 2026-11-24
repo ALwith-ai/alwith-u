@@ -1,10 +1,9 @@
 import type { PluginMarketplaceEntry, PluginSummary, SkillMetadata } from "@alwith/module-chat/client"
+import { fakeProjectContext, projectContext } from "@alwith/module-chat/testing"
 import { act, cleanup, fireEvent, render, waitFor, within } from "@testing-library/react"
 import { useState } from "react"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
 
-import { fakeProjectContext } from "@alwith/module-chat/testing"
-import { projectContext } from "@alwith/module-chat/testing"
 import { must } from "@/lib/__tests__/must"
 import { client } from "@/lib/client"
 import i18n, { initI18n } from "@/lib/i18n"
@@ -606,7 +605,7 @@ test("the current project loads first and other projects are discovered automati
     ]
   })
   const view = render(<PluginsPage cwd="/work/alwith-u" active />)
-  await waitFor(() => expect(refresh).toHaveBeenCalledWith(["/work/alwith-u"], { cached: true }))
+  await waitFor(() => expect(refresh).toHaveBeenCalledWith(["/work/alwith-u"], { cached: true, resources: "all" }))
   refresh.mockClear()
   fireEvent.click(view.getByRole("button", { name: "Skills" }))
   expect(view.queryByRole("button", { name: "Project" })).toBeNull()
@@ -625,7 +624,7 @@ test("the current project loads first and other projects are discovered automati
   )
   expect(refresh).not.toHaveBeenCalled()
   view.rerender(<PluginsPage cwd="/work/other" active />)
-  await waitFor(() => expect(refresh).toHaveBeenCalledWith(["/work/other"], { cached: true }))
+  await waitFor(() => expect(refresh).toHaveBeenCalledWith(["/work/other"], { cached: true, resources: "skills" }))
 })
 
 test("returning to a loaded catalog reuses its snapshot, including across remounts", async () => {
@@ -703,13 +702,46 @@ test("installed sidebar lists only installed plugins and switches right-hand det
   expect(sidebar).toBeVisible()
 })
 
+test("opening Customize loads installed plugins and defers both marketplaces until Plugins opens", async () => {
+  const entry = plugin("Personal plugin", true)
+  const marketplace = { name: "personal", path: "/catalog", interface: null, plugins: [entry] }
+  const installed = vi
+    .spyOn(client, "installedPlugins")
+    .mockResolvedValue({ marketplaces: [marketplace], marketplaceLoadErrors: [] })
+  const local = vi
+    .spyOn(client, "listPlugins")
+    .mockResolvedValue({ marketplaces: [], marketplaceLoadErrors: [], featuredPluginIds: [] })
+  const skills = vi.spyOn(client, "listSkills").mockResolvedValue({ data: [] })
+  const remote = vi.spyOn(pluginsStore.getState().catalog.getState(), "load")
+  pluginsStore.getState().invalidate()
+  pluginsStore.setState({ refresh: initialState.refresh })
+  const extensions = { active: true, onOpen: () => {}, content: <section>Manage extensions</section> }
+  const view = render(<PluginsPage cwd={null} active={false} extensions={extensions} />)
+  expect(installed).not.toHaveBeenCalled()
+  view.rerender(<PluginsPage cwd={null} active extensions={extensions} />)
+  expect(await view.findByRole("button", { name: "Personal plugin" })).toBeVisible()
+  expect(skills).not.toHaveBeenCalled()
+  expect(local).not.toHaveBeenCalled()
+  expect(remote).not.toHaveBeenCalled()
+  const tabs = within(view.getByRole("navigation", { name: "Manage extensions" }))
+  fireEvent.click(tabs.getByRole("button", { name: "Skills" }))
+  view.rerender(<PluginsPage cwd={null} active extensions={{ ...extensions, active: false }} />)
+  await waitFor(() => expect(skills).toHaveBeenCalledOnce())
+  expect(local).not.toHaveBeenCalled()
+  expect(remote).not.toHaveBeenCalled()
+  fireEvent.click(tabs.getByRole("button", { name: "Plugins" }))
+  await waitFor(() => expect(local).toHaveBeenCalledOnce())
+  expect(remote).toHaveBeenCalled()
+  expect(installed).toHaveBeenCalledOnce()
+})
+
 test("customization keeps extension management beside plugins and skills and returns to the selected catalog", async () => {
   function Customize() {
     const [extensionActive, setExtensionActive] = useState(false)
     return (
       <PluginsPage
         cwd={null}
-        active={!extensionActive}
+        active
         onOpenCatalog={() => setExtensionActive(false)}
         extensions={{
           active: extensionActive,

@@ -336,7 +336,7 @@ export function ProductPreview({
                     {(page === "plugins" || page === "extensions") && (
                       <PluginsPage
                         cwd={cwd}
-                        active={page === "plugins"}
+                        active
                         onOpenCatalog={() => setPage("plugins")}
                         extensions={{
                           active: page === "extensions",

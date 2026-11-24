@@ -467,13 +467,19 @@ export function PluginsPage({
     if (!ready) pluginsStore.getState().invalidate()
   }, [ready])
 
+  const resources = extensions?.active || selected ? "installed" : kind === "skills" ? "skills" : "all"
+  const skillsActive = active && resources === "skills"
+
   useEffect(() => {
     traceCatalog(`page active=${active} ready=${ready}`)
     // The screen arrow is available even before the engine has connected.
     if (!active || !ready) return
     if (pluginsStore.getState().loadedScope !== directoriesKey)
-      void refresh(JSON.parse(directoriesKey) as string[], { cached: true })
-  }, [active, ready, refresh, directoriesKey])
+      void refresh(JSON.parse(directoriesKey) as string[], {
+        cached: true,
+        resources
+      })
+  }, [active, ready, refresh, directoriesKey, resources])
 
   useEffect(() => {
     if (!ready) return
@@ -481,11 +487,11 @@ export function PluginsPage({
   }, [ready, refresh])
 
   useEffect(() => {
-    if (!active || !ready || kind !== "skills" || skillsLoading) return
+    if (!skillsActive || !ready || skillsLoading) return
     const controller = new AbortController()
     void pluginsStore.getState().discoverSkillProjects(JSON.parse(knownDirectories) as string[], controller.signal)
     return () => controller.abort()
-  }, [active, ready, kind, skillsLoading, knownDirectories, directoriesKey])
+  }, [skillsActive, ready, skillsLoading, knownDirectories, directoriesKey])
 
   const openPlugin = (entry: PluginEntry) => {
     onOpenCatalog?.()
@@ -614,7 +620,12 @@ export function PluginsPage({
                       className="text-muted-foreground"
                       aria-label={t("plugins.skills.refresh")}
                       disabled={!ready || loading}
-                      onClick={() => void refresh(undefined, { forceRefetch: true })}
+                      onClick={() =>
+                        void refresh(undefined, {
+                          forceRefetch: true,
+                          resources
+                        })
+                      }
                     >
                       {loading ? <Spinner /> : <RefreshCwIcon />}
                     </Button>
@@ -639,7 +650,7 @@ export function PluginsPage({
                         className="h-9"
                         variant="outline"
                         disabled={loading || !ready}
-                        onClick={() => void refresh()}
+                        onClick={() => void refresh(undefined, { resources })}
                       >
                         {t("plugins.loadError.retry")}
                       </Button>
