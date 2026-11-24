@@ -216,7 +216,7 @@ pub fn run() {
         .plugin(alwith_chat::init_with_account(runtime::ChatRuntime, native::development_directory()))
         .plugin(alwith_computer::init(alwith_computer::Config {
             development_directory: native::development_directory(),
-            proxy: native::development_resources().map(|resources| resources.join("computer/stdio.mjs")),
+            application_tools: true,
             observer: Some(diagnostics::computer_observer()),
             ..Default::default()
         }))

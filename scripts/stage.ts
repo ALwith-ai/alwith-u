@@ -70,9 +70,6 @@ if (triple.endsWith("apple-darwin")) {
   await $`codesign --verify --strict ${computerDestination}`
 }
 console.log(`Cua Driver -> ${computerDestination}`)
-const computerResources = join(root, "src-tauri/resources/computer")
-mkdirSync(computerResources, { recursive: true })
-copyFileSync(join(root, "node_modules/@alwith/module-computer/proxy/stdio.mjs"), join(computerResources, "stdio.mjs"))
 const deviceResources = join(root, "src-tauri/resources/device")
 mkdirSync(deviceResources, { recursive: true })
 copyFileSync(join(root, "node_modules/@alwith/module-device/proxy/stdio.mjs"), join(deviceResources, "stdio.mjs"))

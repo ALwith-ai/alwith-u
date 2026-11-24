@@ -23,6 +23,8 @@ export function computerActionKey(action: string | null): string {
   return `computer.actions.${actionKeys[action ?? ""] ?? "working"}`
 }
 export function privateComputerAction(name: string): string | null {
-  const match = /^(?:mcp__)?alwith_computer(?:__|\.)([a-z_]+)$/.exec(name)
+  const match = /^(?:(?:mcp__)?alwith_computer(?:__|\.)|(?:mcp__alwith__|(?:mcp\.)?alwith\.)?computer_)([a-z_]+)$/.exec(
+    name
+  )
   return match?.[1] ?? null
 }

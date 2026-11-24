@@ -1,107 +1,46 @@
 import { beforeEach, expect, test, vi } from "vitest"
 
-import { initI18n } from "@/lib/i18n"
 const native = vi.hoisted(() => ({
-  ready: vi.fn(),
-  context: vi.fn(),
-  revision: vi.fn(),
-  bind: vi.fn(),
   deviceContext: vi.fn(),
+  browserContext: vi.fn(),
   tauri: vi.fn(() => true)
 }))
+
 vi.mock("@tauri-apps/api/core", () => ({ isTauri: native.tauri }))
-vi.mock("@alwith/module-computer/commands", () => ({
-  commands: { ready: native.ready, context: native.context, revision: native.revision, bind: native.bind }
-}))
 vi.mock("@/features/drive/session-context", () => ({
   driveSessionContext: () => Promise.resolve({ mcpServers: [], appendSystemPrompt: "Workspace knowledge" })
 }))
-vi.mock("@/features/web-automation/session-context", () => ({
-  browserSessionContext: () => Promise.resolve({ mcpServers: [] })
-}))
+vi.mock("@/features/web-automation/session-context", () => ({ browserSessionContext: native.browserContext }))
 vi.mock("@/features/device/session-context", () => ({ deviceSessionContext: native.deviceContext }))
+
 import { hostSessionContext } from "../session-context"
-beforeEach(async () => {
-  await initI18n("en")
+
+beforeEach(() => {
   vi.clearAllMocks()
   native.tauri.mockReturnValue(true)
-  native.context.mockResolvedValue(null)
-  native.revision.mockResolvedValue("disabled")
-  native.bind.mockResolvedValue(undefined)
-  native.deviceContext.mockResolvedValue({ mcpServers: [] })
+  native.deviceContext.mockResolvedValue({ mcpServers: [], appendSystemPrompt: "Use device_control" })
+  native.browserContext.mockResolvedValue({ mcpServers: [], appendSystemPrompt: "Use browser tools" })
 })
-test("all new, resumed and forked conversations receive the application grant", async () => {
-  native.context.mockResolvedValue({
-    token: "token",
-    connection: { generation: "global", command: "/driver", args: ["mcp"], env: [] }
-  })
+
+test("new, resumed and forked conversations use computer application tools without a dedicated transport", async () => {
   for (const operation of [
     { kind: "new" },
-    { kind: "resume", sessionId: "a" },
-    { kind: "resume", sessionId: "b" },
-    { kind: "fork", sourceSessionId: "a" }
+    { kind: "resume", sessionId: "history" },
+    { kind: "fork", sourceSessionId: "history" }
   ] as const) {
     const context = await hostSessionContext("/project", operation)
-    expect(context.mcpServers).toHaveLength(1)
-    expect(context.revision).toBe("global")
-    await context.bind?.("destination")
-    expect(native.bind).toHaveBeenLastCalledWith({ token: "token", sessionId: "destination" })
-    expect(context.appendSystemPrompt).toContain("Workspace knowledge")
-    expect(context.appendSystemPrompt).not.toContain("generate_image")
-    expect(context.appendSystemPrompt).toContain("Only when the task requires computer use")
-    expect(context.appendSystemPrompt).toContain("do not discover computer tools")
-    expect(context.appendSystemPrompt).toContain("enumerate computer resources or resource templates")
-  }
-  expect(native.context.mock.calls).toEqual([[{}], [{ sessionId: "a" }], [{ sessionId: "b" }], [{}]])
-  expect(native.ready).not.toHaveBeenCalled()
-})
-test("an unavailable computer host does not remove the workspace context", async () => {
-  expect((await hostSessionContext("/project", { kind: "new" })).mcpServers).toEqual([])
-  native.context.mockRejectedValue(new Error("Computer module unavailable"))
-  const error = vi.spyOn(console, "error").mockImplementation(() => {})
-  try {
-    const context = await hostSessionContext("/project", { kind: "resume", sessionId: "history" })
     expect(context.mcpServers).toEqual([])
+    expect(context.bind).toBeUndefined()
     expect(context.appendSystemPrompt).toContain("Workspace knowledge")
-  } finally {
-    error.mockRestore()
+    expect(context.appendSystemPrompt).toContain("Use device_control")
+    expect(context.appendSystemPrompt).toContain("Use the computer_* application tools")
   }
 })
-test("browser previews never invoke native commands", async () => {
+
+test("browser previews keep workspace context without attaching native tools", async () => {
   native.tauri.mockReturnValue(false)
-  await hostSessionContext("/project", { kind: "new" })
-  expect(native.context).not.toHaveBeenCalled()
-})
-
-test("device instructions do not register an MCP server or bind a second transport", async () => {
-  native.deviceContext.mockResolvedValue({ mcpServers: [], appendSystemPrompt: "Use device_control" })
   const context = await hostSessionContext("/project", { kind: "new" })
-  expect(context.mcpServers).toEqual([])
-  expect(context.appendSystemPrompt).toContain("device_control")
-})
-
-test("computer binding can fail without rejecting history replay or checking Driver readiness", async () => {
-  native.context.mockResolvedValue({
-    token: "token",
-    connection: { generation: "broker", command: "/broker", args: [], env: [] }
-  })
-  let reject!: (error: Error) => void
-  native.bind.mockReturnValue(
-    new Promise<void>((_resolve, fail) => {
-      reject = fail
-    })
-  )
-  const error = vi.spyOn(console, "error").mockImplementation(() => {})
-  try {
-    const context = await hostSessionContext("/project", { kind: "resume", sessionId: "history" })
-    await context.bind?.("history")
-    expect(native.bind).toHaveBeenCalledWith({ token: "token", sessionId: "history" })
-    expect(native.ready).not.toHaveBeenCalled()
-    expect(native.revision).not.toHaveBeenCalled()
-    reject(new Error("Computer connection closed"))
-    await Promise.resolve()
-    expect(error).toHaveBeenCalledWith("Cannot bind computer access", expect.any(Error))
-  } finally {
-    error.mockRestore()
-  }
+  expect(context.appendSystemPrompt).toBe("Workspace knowledge")
+  expect(native.deviceContext).not.toHaveBeenCalled()
+  expect(native.browserContext).not.toHaveBeenCalled()
 })

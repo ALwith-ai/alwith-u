@@ -69,7 +69,6 @@
     "resources": {
       "resources/browser": "browser",
       "resources/adapter": "adapter",
-      "resources/computer": "computer",
       "resources/device": "device",
       "resources/chrome-bridge": "chrome-bridge",
       "resources/licenses": "licenses",

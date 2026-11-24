@@ -355,7 +355,7 @@ Follow the computer preview and activity in the conversation. The preview can sh
 
 Use the preview's **Stop** or **Cancel queue** action for the relevant work. To revoke computer access across U, disable it in **Settings → Computer use**.
 
-If an action was interrupted, ask the assistant to inspect the current screen before continuing. If the computer service fails, check the reported error and system permissions in **Settings → Computer use**. When permissions are granted and the service needs recovery, choose **Reconnect**. This checks access again without replaying the interrupted action.
+U attempts to restore the computer driver automatically when it stops unexpectedly. After an interruption, ask the assistant to inspect the current screen before continuing. If the service remains unavailable, check the reported error and system permissions in **Settings → Computer use** and choose **Reconnect** when offered. Recovery does not replay interrupted actions.
 
 Expand **Diagnostics (current app session)** for details, or use [diagnostic export](alwith-docs://guide/troubleshooting).
 

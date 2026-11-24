@@ -15,8 +15,9 @@ import { createBoardTools } from "@/agent/board-tools"
 import { createDocsTools } from "@/agent/docs-tools"
 import { boardService } from "@/features/board/service"
 import { configureSessionInputConfig, readSessionInputMode } from "@/features/chat/composer/input-mode-config"
+import { createComputerApplicationTools } from "@/features/computer/application-tools"
 import { computerRuntimeEnv } from "@/features/computer/runtime-config"
-import { hostSessionContext, hostSessionRevision } from "@/features/computer/session-context"
+import { hostSessionContext } from "@/features/computer/session-context"
 import { createDeviceTools } from "@/features/device/application-tools"
 import { guideChapters, guideVersion } from "@/features/guide/content"
 import { generatedImageStorage } from "@/features/images/generated-image-storage"
@@ -44,6 +45,7 @@ export const client =
             ...createTerminalTools(terminalClient, selection.cwd),
             ...(isTauri() ? createBoardTools(boardService(selection.cwd)) : []),
             ...(isTauri() ? await createDeviceTools(selection.cwd) : []),
+            ...(isTauri() ? await createComputerApplicationTools(selection) : []),
             ...(isTauri() && (await runtimeCapabilities()).embeddedBrowser ? createWebAutomationTools() : [])
           ],
           imageService: {
@@ -62,7 +64,6 @@ export const client =
               : resolveSessionModel(model, providers, purpose)
           },
           sessionContext: hostSessionContext,
-          sessionContextRevision: hostSessionRevision,
           revokeSessionAccess: async (sessionId) => {
             void computer.stopSession({ sessionId }).catch((error: unknown) => {
               console.error("Cannot release computer access", error)
