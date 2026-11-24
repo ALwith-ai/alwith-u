@@ -318,7 +318,10 @@ pub async fn runtime_start(
                     ClientEvent::Closed { reason } => {
                         crate::diagnostics::runtime_closed(&reason);
                         crate::power::sync(&app, false);
-                        app.state::<crate::browser_ai::BrowserAi>().executor.release_all(&app).await;
+                        #[cfg(feature = "runtime-cef")]
+                        if let Some(browser) = app.try_state::<crate::browser_ai::BrowserAi>() {
+                            browser.executor.release_all(&app).await;
+                        }
                         if let Err(error) = app.state::<alwith_computer::Computer>().release().await {
                             log::error!("Computer cleanup after Runtime exit failed: {error}");
                         }
@@ -345,7 +348,10 @@ pub async fn runtime_start(
                         crate::enterprise::observe_event(&app, &event);
                         crate::mobile::publish(&app, &event);
                         if matches!(&event, alwith_api::RuntimeEvent::Exit { agent_id } if agent_id == "codex") {
-                            app.state::<crate::browser_ai::BrowserAi>().executor.release_all(&app).await;
+                            #[cfg(feature = "runtime-cef")]
+                            if let Some(browser) = app.try_state::<crate::browser_ai::BrowserAi>() {
+                                browser.executor.release_all(&app).await;
+                            }
                             if let Err(error) = app.state::<alwith_computer::Computer>().release().await {
                                 log::error!("Computer cleanup after Codex exit failed: {error}");
                             }
@@ -368,7 +374,10 @@ pub async fn runtime_start(
                             if let Err(error) = app.state::<alwith_computer::Computer>().sync_running(&running) {
                                 log::error!("Computer lease update failed: {error}");
                             }
-                            app.state::<crate::browser_ai::BrowserAi>().executor.sync_states(&app, sessions).await;
+                            #[cfg(feature = "runtime-cef")]
+                            if let Some(browser) = app.try_state::<crate::browser_ai::BrowserAi>() {
+                                browser.executor.sync_states(&app, sessions).await;
+                            }
                         }
                         let retry = matches!(&event, alwith_api::RuntimeEvent::RunStates { .. });
                         if resets_provider_catalog(&event) {
@@ -389,7 +398,10 @@ pub async fn runtime_start(
                                     &app,
                                     crate::power::has_active_tasks(states.iter().map(|session| &session.state)),
                                 );
-                                app.state::<crate::browser_ai::BrowserAi>().executor.sync_states(&app, &states).await;
+                                #[cfg(feature = "runtime-cef")]
+                                if let Some(browser) = app.try_state::<crate::browser_ai::BrowserAi>() {
+                                    browser.executor.sync_states(&app, &states).await;
+                                }
                             }
                             Err(error) => log::error!("Cannot reconcile sleep inhibition after Runtime gap: {error}"),
                         }

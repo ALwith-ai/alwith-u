@@ -408,6 +408,10 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       await client.connect()
       // Restore choices must be checked against the applied provider catalog.
       await applyProvidersWhenIdle()
+      const selected = extensionSession.current
+      if (selected && !client.state.sessions[selected.id]?.attached) {
+        await client.open(selected.id, selected.cwd)
+      }
       void info(`connected to ${client.state.agent?.info.name} ${client.state.agent?.info.version}`)
     } catch (error) {
       if (client.state.connection === "failed" || client.state.connection === "disconnected")
@@ -415,6 +419,10 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       else reportBackgroundError("provider-startup", error)
     }
   }, [])
+
+  useEffect(() => {
+    if (connection === "disconnected") void connect()
+  }, [connection, connect])
 
   useEffect(() => {
     if (connection === "ready") return watchSessionList(client)
