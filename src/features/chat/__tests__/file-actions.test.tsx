@@ -140,3 +140,12 @@ test("the floating chat reports a system open failure", async () => {
   act(() => result.current("/repo/missing.txt"))
   await waitFor(() => expect(error).toHaveBeenCalledExactlyOnceWith("File does not exist"))
 })
+
+test("an outside Markdown link reports the native error message", async () => {
+  const { result, openFile } = setup()
+  openFile.mockRejectedValue({ code: "permissionDenied", message: "Access to the archive was denied" })
+  const error = vi.spyOn(toast, "error").mockImplementation(() => "error")
+  act(() => result.current("file:///outside/%E5%BD%92%E6%A1%A3/report.md"))
+  expect(openFile).toHaveBeenCalledExactlyOnceWith("/outside/归档/report.md", "/repo", undefined)
+  await waitFor(() => expect(error).toHaveBeenCalledExactlyOnceWith("Access to the archive was denied"))
+})

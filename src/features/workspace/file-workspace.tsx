@@ -51,6 +51,7 @@ import { useCanvasPaneVisible } from "@/features/layout/use-canvas-pane-visible"
 import { client } from "@/lib/client"
 import { openExternal, openExternalEntry, openHtmlInBrowser, openLocalPath, revealInFileManager } from "@/lib/open"
 import { isMac } from "@/lib/platform"
+import { text } from "@/lib/text"
 import "@alwith/module-file-tree/styles.css"
 import "@alwith/module-editor/styles.css"
 import { DesktopCanvasContext as CanvasContext } from "@alwith/module-desktop-shell/react"
@@ -132,7 +133,7 @@ type PreviewFiles = Pick<Workspace, "root" | "fs">
 const emptyEditorSnapshot = (): null => null
 const noEditorSubscription = (): (() => void) => () => {}
 function report(error: unknown): void {
-  toast.error(error instanceof Error ? error.message : String(error))
+  toast.error(text(error))
 }
 export function FileWorkspace({
   cwd,

@@ -28,6 +28,7 @@ import { ensureBundledExtensions } from "./bundled"
 import { createHostCapabilities } from "./capabilities"
 import { commonCapabilities } from "./capabilities/common"
 import { createLegacyHost, createPluginHost } from "./legacy/host"
+import { legacyModule } from "./legacy/module"
 import { createExtensionStartup } from "./startup-service"
 import * as extensionUi from "./ui"
 
@@ -80,7 +81,7 @@ export function getRuntime(): ExtensionRuntime {
         "@alwith/u-extension-ui": extensionUi,
         "@alwith/module-extension": sdk,
         "@alwith/module-extension/dom": dom,
-        "@alwith/module-extension/legacy": legacy,
+        "@alwith/module-extension/legacy": legacyModule,
         "@alwith/module-extension/plugin": plugin,
         "@alwith/module-extension/react": { mountReact },
         react: React,

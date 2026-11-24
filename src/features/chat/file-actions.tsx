@@ -5,6 +5,7 @@ import { toast } from "sonner"
 import { type FilePosition, useWorkspace } from "@/features/workspace/context"
 import { fileLocationPath, openExternal, openLocalPath } from "@/lib/open"
 import { isMac } from "@/lib/platform"
+import { text } from "@/lib/text"
 
 // Scope relative file references to their owning session, including inactive chats.
 export const ChatDirectoryContext = createContext<string | null>(null)
@@ -67,7 +68,7 @@ export function useOpenChatLink(): (target: string) => void {
           else await (workspace.openChatFile ?? workspace.openFile)(target, cwd, position)
         } else if (openWeb !== null && /^https?:\/\//i.test(url)) await openWeb(url)
         else await openExternal(url)
-      })().catch((error: unknown) => toast.error(error instanceof Error ? error.message : String(error)))
+      })().catch((error: unknown) => toast.error(text(error)))
     },
     [cwd, workspace, openWeb, openLocal]
   )

@@ -1,5 +1,6 @@
 import "./styles.css"
 import type { Json } from "@alwith/module-extension"
+import { nativeErrorMessage } from "@alwith/module-extension/commands"
 import type { CapabilityBinding, CapabilityProvider } from "@alwith/module-extension/host"
 import type { LegacyHost, LegacyStorage } from "@alwith/module-extension/legacy"
 import type { PluginHost } from "@alwith/module-extension/plugin"
@@ -52,8 +53,7 @@ function createHost(
   let sharing: BusinessSharing | undefined
   const business = imported && primary && (id === "bi-metrics" || id === "yup-kb")
   const reportSharing = (error: unknown): void => {
-    if (!binding.cancellation.aborted)
-      notices.show(`业务技能数据共享失败：${error instanceof Error ? error.message : String(error)}`, 8000)
+    if (!binding.cancellation.aborted) notices.show(`业务技能数据共享失败：${nativeErrorMessage(error)}`, 8000)
   }
   const historyAbort = new AbortController()
   binding.own(() => historyAbort.abort())
@@ -61,7 +61,7 @@ function createHost(
     ...(imported && id === "yup-kb"
       ? {
           presentModal: createStartupConsentPresenter(binding, (error) => {
-            if (!binding.cancellation.aborted) notices.show(String(error), 8000)
+            if (!binding.cancellation.aborted) notices.show(nativeErrorMessage(error), 8000)
           })
         }
       : {}),
