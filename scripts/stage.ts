@@ -135,7 +135,9 @@ const MODULES = [
 const nativeDirectory = join(root, "src-tauri/resources/native")
 const staged = [
   ...MODULES.flatMap((module) => stageNativeModule(import.meta.url, module, triple, nativeDirectory, licenses)),
-  { path: stageTerminal(triple, nativeDirectory), signing: "resign" as const },
+  // The terminal stages its library and, on macOS, the program that starts shells. Older releases
+  // of the module return the library alone.
+  ...[stageTerminal(triple, nativeDirectory)].flat().map((path) => ({ path, signing: "resign" as const })),
   { path: stageNativeEnterprise(triple, nativeDirectory, licenses), signing: "resign" as const }
 ]
 if (triple.endsWith("apple-darwin") && process.env.APPLE_SIGNING_IDENTITY) {
