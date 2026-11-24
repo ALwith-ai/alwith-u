@@ -39,7 +39,7 @@
     "docs:build": "bun scripts/build-docs.ts"
   },
   "dependencies": {
-    "@agentclientprotocol/sdk": "^2.9.1",
+    "@agentclientprotocol/sdk": "^2.10.0",
     "@alwith/api": "^0.6.4",
     "@alwith/enterprise-client": "^0.6.5",
     "@alwith/module-auth": "^0.6.8",
