@@ -1,9 +1,7 @@
 import { RequestError } from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { CodexClient } from "@alwith/module-chat/client"
+import { createFakeAgent, FakeHubPort } from "@alwith/module-chat/testing"
 import { expect, test, vi } from "vitest"
-
-import { createFakeAgent } from "@alwith/module-chat/testing"
-import { FakeHubPort } from "@alwith/module-chat/testing"
 
 const CONFIGURED_MODEL = "gateway:deepseek:test-model"
 const SECOND_MODEL = "gateway:deepseek:second-model"
@@ -85,7 +83,7 @@ test("revocation detaches without read-only and the next open automatically sele
     expect(f.client.state.modelRecovery.revoked).toBeUndefined()
     expect(f.requests.mock.calls.findLast((call) => call[1] === "session/resume")?.[2]).toMatchObject({
       sessionId: "revoked",
-      _meta: { alwith: { model: CONFIGURED_MODEL, accountModelSelection: true } }
+      configOptions: [{ configId: "model", type: "id", value: CONFIGURED_MODEL }]
     })
   } finally {
     f.client.disconnect()

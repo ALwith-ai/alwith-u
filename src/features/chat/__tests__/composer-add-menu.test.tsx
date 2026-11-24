@@ -288,7 +288,7 @@ test("slash shortcuts still filter and insert commands without submitting", asyn
   })
   expect(await screen.findByRole("option", { name: /review/ })).toBeInTheDocument()
   expect(screen.queryByRole("option", { name: /deploy/ })).toBeNull()
-  fireEvent.keyDown(input, { key: "Enter" })
+  fireEvent.keyDown(input, { key: "Tab" })
   await waitFor(() => expect(screen.getByRole("textbox")).toHaveValue("/review "))
   expect(submit).not.toHaveBeenCalled()
 })
@@ -305,6 +305,19 @@ async function slash(query = "/") {
   return input
 }
 
+test.each(["/", "输入框/命令", "正文/rev", "/rev", "/unmatched"])(
+  "Enter sends literal text with an open slash menu: %s",
+  async (text) => {
+    vi.spyOn(client, "installedApps").mockResolvedValue({ apps: [] })
+    const submit = vi.fn(async () => {})
+    render(<Composer session={session} onSubmit={submit} />)
+    const input = await slash(text)
+    fireEvent.keyDown(input, { key: "Enter" })
+    await waitFor(() => expect(submit).toHaveBeenCalledWith([{ type: "text", text }]))
+    expect(submit).toHaveBeenCalledTimes(1)
+  }
+)
+
 test.each(["Please /rev", "帮我/rev", "First line\n/rev"])(
   "slash completion replaces the query after prose: %s",
   async (text) => {
@@ -312,7 +325,7 @@ test.each(["Please /rev", "帮我/rev", "First line\n/rev"])(
     const submit = vi.fn(async () => {})
     render(<Composer session={session} onSubmit={submit} />)
     const input = await slash(text)
-    fireEvent.keyDown(input, { key: "Enter" })
+    fireEvent.keyDown(input, { key: "Tab" })
     await waitFor(() =>
       expect(screen.getByRole("textbox")).toHaveValue(`${text.slice(0, text.lastIndexOf("/"))}/review `)
     )
@@ -325,6 +338,7 @@ test("a skill selected after prose keeps its real invocation when switching edit
   const submit = vi.fn(async () => {})
   render(<Composer session={session} onSubmit={submit} />)
   const input = await slash("帮我/dep")
+  fireEvent.keyDown(input, { key: "ArrowDown" })
   fireEvent.keyDown(input, { key: "Enter" })
   await waitFor(() => expect(screen.getByRole("textbox")).toHaveValue("帮我$deploy "))
   expect(screen.getByRole("textbox").querySelector("[data-inline-skill]")).toHaveTextContent("deploy")
@@ -449,6 +463,8 @@ test("slash groups commands, skills and callable apps in keyboard order", async 
   expect(screen.queryByRole("option", { name: "添加附件…" })).toBeNull()
   expect(screen.queryByText("Blocked")).toBeNull()
   fireEvent.keyDown(input, { key: "ArrowDown" })
+  expect(screen.getByRole("option", { name: /review/ })).toHaveAttribute("aria-selected", "true")
+  fireEvent.keyDown(input, { key: "ArrowDown" })
   expect(screen.getByRole("option", { name: /deploy/ })).toHaveAttribute("aria-selected", "true")
   fireEvent.keyDown(input, { key: "ArrowDown" })
   expect(screen.getByRole("option", { name: "Sites" })).toHaveAttribute("aria-selected", "true")
@@ -463,7 +479,7 @@ test("slash app selection removes the query and submits the native application r
   const input = await slash("/Sit")
   expect(await screen.findByRole("option", { name: "Sites" })).toBeInTheDocument()
   expect(screen.queryByRole("option", { name: /review/ })).toBeNull()
-  fireEvent.keyDown(input, { key: "Enter" })
+  fireEvent.keyDown(input, { key: "Tab" })
   await waitFor(() => expect(drafts.get(session.id)?.apps).toMatchObject([{ id: "sites", name: "Sites" }]))
   expect(screen.getByRole("textbox")).toHaveValue("")
   expect(submit).not.toHaveBeenCalled()
@@ -483,7 +499,7 @@ test("a failed slash app catalog leaves commands usable", async () => {
   render(<Composer session={session} />)
   const input = await slash()
   expect(await screen.findByText("应用读取失败")).toBeInTheDocument()
-  fireEvent.keyDown(input, { key: "Enter" })
+  fireEvent.keyDown(input, { key: "Tab" })
   await waitFor(() => expect(screen.getByRole("textbox")).toHaveValue("/review "))
   expect(catalog).toHaveBeenCalledOnce()
 })
