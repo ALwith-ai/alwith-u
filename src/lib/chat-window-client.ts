@@ -41,8 +41,6 @@ const METHODS = [
   "prompt",
   "steer",
   "executeShell",
-  "listBackgroundTerminals",
-  "stopBackgroundTerminals",
   "retrySession",
   "cancel",
   "close",
@@ -437,16 +435,6 @@ export class RemoteChatClient extends CodexClient {
   }
   override steer(...args: Parameters<CodexClient["steer"]>): ReturnType<CodexClient["steer"]> {
     return this.request("steer", args)
-  }
-  override listBackgroundTerminals(
-    ...args: Parameters<CodexClient["listBackgroundTerminals"]>
-  ): ReturnType<CodexClient["listBackgroundTerminals"]> {
-    return this.request("listBackgroundTerminals", args)
-  }
-  override stopBackgroundTerminals(
-    ...args: Parameters<CodexClient["stopBackgroundTerminals"]>
-  ): ReturnType<CodexClient["stopBackgroundTerminals"]> {
-    return this.request("stopBackgroundTerminals", args)
   }
   override executeShell(...args: Parameters<CodexClient["executeShell"]>): ReturnType<CodexClient["executeShell"]> {
     return this.request("executeShell", args)

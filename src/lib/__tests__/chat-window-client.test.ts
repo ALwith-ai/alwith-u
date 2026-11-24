@@ -890,56 +890,6 @@ test("floating realtime forwards SDP before start acknowledgement and releases i
   }
 })
 
-test("installed background terminal methods reach the agent from main and floating clients", async () => {
-  const fake = createFakeAgent()
-  const deletion = Promise.withResolvers<void>()
-  fake.deleteSessionDelay.current = () => deletion.promise
-  const listed: string[] = [],
-    stopped: string[] = []
-  const parse = (value: unknown) => value as { sessionId: string }
-  fake.app.onRequest("_codex/terminals/list", parse, ({ params }) => {
-    listed.push(params.sessionId)
-    return [{ itemId: "tool-1", processId: "process-1", command: "bun dev" }]
-  })
-  fake.app.onRequest("_codex/terminals/stopAll", parse, ({ params }) => {
-    stopped.push(params.sessionId)
-    return { stopped: ["process-1"], failures: [] }
-  })
-  const port = new FakeHubPort(() => fake.app)
-  const owner = new DesktopCodexClient(() => Promise.resolve(port), {
-    agentId: "codex",
-    launch: { engine: "codex" }
-  })
-  const transport = eventBus()
-  const release = await serveChatClient(owner, transport)
-  const remote = new RemoteChatClient(transport)
-  try {
-    await remote.connect()
-    const mainSession = await owner.newSession("/tmp/main-terminals")
-    const floatingSession = await owner.newSession("/tmp/floating-terminals")
-    const entries = [{ itemId: "tool-1", processId: "process-1", command: "bun dev" }]
-    await expect(owner.listBackgroundTerminals(mainSession)).resolves.toEqual(entries)
-    await expect(remote.listBackgroundTerminals(floatingSession)).resolves.toEqual(entries)
-    await expect(remote.stopBackgroundTerminals(floatingSession)).resolves.toEqual({
-      stopped: ["process-1"],
-      failures: []
-    })
-    expect(listed).toEqual([mainSession, floatingSession])
-    expect(stopped).toEqual([floatingSession])
-    const retiring = owner.delete(floatingSession)
-    await vi.waitFor(() => expect(fake.deleted.has(floatingSession)).toBe(true))
-    await expect(remote.listBackgroundTerminals(floatingSession)).resolves.toEqual([])
-    expect(listed).toEqual([mainSession, floatingSession])
-    deletion.resolve()
-    await retiring
-  } finally {
-    deletion.resolve()
-    remote.disconnect()
-    release()
-    owner.disconnect()
-  }
-})
-
 test("floating shell commands execute on the main owner with an explicit session id", async () => {
   const fake = createFakeAgent()
   const port = new FakeHubPort(() => fake.app)

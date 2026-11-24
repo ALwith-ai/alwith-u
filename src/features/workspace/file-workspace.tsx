@@ -81,7 +81,6 @@ import { BoardMenuItem, BoardPane } from "@/features/board/board-pane"
 import { ChatDirectoryContext, ChatOpenWebLinkContext } from "@/features/chat/file-actions"
 import { DeviceWorkspaceMenu, DeviceWorkspacePane } from "@/features/device/device-workspace"
 import { useDeviceReveal } from "@/features/device/use-device-reveal"
-import { BackgroundWorkspacePane } from "@/features/terminal/background-workspace"
 import {
   TerminalWorkspaceMenuItem,
   TerminalWorkspacePane,
@@ -1162,16 +1161,6 @@ export function FileWorkspace({
             <BoardPane
               cwd={cwd}
               file={boardFile}
-              sessionId={paneSessionId}
-              onClose={() => {
-                setVisible(false)
-                setViewMode(false)
-                setPane("files")
-              }}
-            />
-          ) : pane === "background" && paneSessionId !== null ? (
-            <BackgroundWorkspacePane
-              key={paneSessionId}
               sessionId={paneSessionId}
               onClose={() => {
                 setVisible(false)

@@ -5,7 +5,7 @@ export interface FilePosition {
 }
 
 /** What the preview region shows: the file workspace, a device simulator, a terminal, or the project board. */
-export type WorkspacePane = "files" | "simulator" | "terminal" | "background" | "board"
+export type WorkspacePane = "files" | "simulator" | "terminal" | "board"
 export interface WorkspaceActions {
   registerFileReference?: (target: WorkspaceFileReference) => () => void
   visible: boolean
