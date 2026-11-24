@@ -7,6 +7,7 @@ test("browser instructions use application tools without launching an MCP server
   const context = await browserSessionContext()
   expect(context.mcpServers).toEqual([])
   expect(context.appendSystemPrompt).toContain("browser_* application tools")
+  expect(context.appendSystemPrompt).toContain("When verifying a local webpage, prefer U's built-in CEF browser")
   expect(context.bind).toBeUndefined()
 })
 test("Wry does not advertise embedded browser capabilities", async () => {
