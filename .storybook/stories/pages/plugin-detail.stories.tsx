@@ -1,13 +1,12 @@
-import type { Meta, StoryObj } from "@storybook/react-vite"
+import type { ComponentProps } from "react"
 
 import { preparePreview } from "../../fixtures/prepare"
+import preview from "../../preview"
+import type { SharedMeta } from "../page-meta"
 import { productPreviewArgTypes } from "../preview-options"
 import { ProductPreview } from "../product-preview"
 
-const meta = {
-  id: "页面-插件-插件详情",
-  title: "页面/负一屏/自定义/插件/插件详情",
-  component: ProductPreview,
+export const pageMeta = {
   loaders: [preparePreview],
   args: { page: "pluginDetail" },
   parameters: {
@@ -21,14 +20,21 @@ const meta = {
     }
   },
   argTypes: productPreviewArgTypes
-} satisfies Meta<typeof ProductPreview>
-export default meta
-type Story = StoryObj<typeof meta>
+} satisfies SharedMeta<ComponentProps<typeof ProductPreview>>
 
-export const Available: Story = { name: "未安装 · 详情与能力" }
+// pageMeta is shared with derived files, not a story.
+const meta = preview.meta({
+  id: "页面-插件-插件详情",
+  title: "页面/负一屏/自定义/插件/插件详情",
+  excludeStories: ["pageMeta"],
+  component: ProductPreview,
+  ...pageMeta
+})
 
-export const Installed: Story = { name: "已安装远程插件 · 卸载", args: { pluginCase: "installed" } }
+export const Available = meta.story({ name: "未安装 · 详情与能力" })
 
-export const Unavailable: Story = { name: "不可用 · 套餐限制", args: { pluginCase: "unavailable" } }
+export const Installed = meta.story({ name: "已安装远程插件 · 卸载", args: { pluginCase: "installed" } })
 
-export const Failed: Story = { name: "详情加载失败", args: { pluginCase: "detailError" } }
+export const Unavailable = meta.story({ name: "不可用 · 套餐限制", args: { pluginCase: "unavailable" } })
+
+export const Failed = meta.story({ name: "详情加载失败", args: { pluginCase: "detailError" } })

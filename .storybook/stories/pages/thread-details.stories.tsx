@@ -6,13 +6,15 @@ import {
   projectHistoryTurns,
   type Session
 } from "@alwith/module-chat/client"
-import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useRef, useState } from "react"
+import type { ComponentProps } from "react"
 import { expect, spyOn, waitFor } from "storybook/test"
 
 import { Button } from "@/components/ui/button"
 
 import { ChatTimeline } from "../../fixtures/chat-timeline"
+import preview from "../../preview"
+import type { SharedMeta } from "../page-meta"
 
 function sentPrompt(previous: Session, text: string, messageId: string): Session {
   const content = [{ type: "text" as const, text }]
@@ -35,12 +37,9 @@ const session = applyUpdate(
   { sessionUpdate: "state_update", state: "idle" } as never
 )
 
-const meta = {
-  id: "页面-聊天-滚动与错误保留",
+export const pageMeta = {
   tags: ["layout"],
   globals: { locale: "en" },
-  title: "页面/主窗聊天/滚动与错误保留",
-  component: ChatTimeline,
   args: { session },
   decorators: [
     (Story) => (
@@ -49,11 +48,18 @@ const meta = {
       </div>
     )
   ]
-} satisfies Meta<typeof ChatTimeline>
-export default meta
-type Story = StoryObj<typeof meta>
+} satisfies SharedMeta<ComponentProps<typeof ChatTimeline>>
 
-export const DirectoryListing: Story = {
+// pageMeta is shared with derived files, not a story.
+const meta = preview.meta({
+  id: "页面-聊天-滚动与错误保留",
+  title: "页面/主窗聊天/滚动与错误保留",
+  excludeStories: ["pageMeta"],
+  component: ChatTimeline,
+  ...pageMeta
+})
+
+export const DirectoryListing = meta.story({
   name: "目录列表",
   play: async ({ canvasElement, canvas, userEvent }) => {
     const viewport = canvas.getByRole("log")
@@ -109,7 +115,7 @@ export const DirectoryListing: Story = {
       writeScrollTop.mockRestore()
     }
   }
-}
+})
 
 const capacityFailure = {
   sessionUpdate: "agent_message" as const,
@@ -177,7 +183,7 @@ function ErrorHistoryTimeline() {
   )
 }
 
-export const RetainedTurnErrors: Story = {
+export const RetainedTurnErrors = meta.story({
   render: () => <ErrorHistoryTimeline />,
   play: async ({ canvas, canvasElement, userEvent }) => {
     const check = async () => {
@@ -205,7 +211,7 @@ export const RetainedTurnErrors: Story = {
       await expect(canvasElement.querySelectorAll(".codex-assistant-message")).toHaveLength(1)
     })
   }
-}
+})
 
 function ShortReplyTimeline({ initialSession = session }: { initialSession?: typeof session }) {
   const [current, setCurrent] = useState(initialSession)
@@ -255,7 +261,7 @@ function ShortReplyTimeline({ initialSession = session }: { initialSession?: typ
   )
 }
 
-export const ShortRepliesAfterSend: Story = {
+export const ShortRepliesAfterSend = meta.story({
   render: () => <ShortReplyTimeline />,
   play: async ({ canvasElement, canvas, userEvent }) => {
     const viewport = canvas.getByRole("log")
@@ -291,12 +297,12 @@ export const ShortRepliesAfterSend: Story = {
     await expect(latest).toHaveTextContent("Quick answer 2")
     await expectFlow()
   }
-}
+})
 
-export const FirstMessageAfterSend: Story = {
-  ...ShortRepliesAfterSend,
+export const FirstMessageAfterSend = meta.story({
+  ...ShortRepliesAfterSend.input,
   render: () => <ShortReplyTimeline initialSession={createSession("first-message-layout", "/storybook/project")} />
-}
+})
 
 const longSession = Array.from({ length: 60 }, (_, index) => index).reduce(
   (previous, index) => {
@@ -316,7 +322,7 @@ const longSession = Array.from({ length: 60 }, (_, index) => index).reduce(
   createSession("rapid-scroll", "/storybook/project")
 )
 
-export const RapidScroll: Story = {
+export const RapidScroll = meta.story({
   name: "快速滚动",
   args: { session: longSession },
   play: async ({ canvasElement, canvas }) => {
@@ -337,4 +343,4 @@ export const RapidScroll: Story = {
       await expect(gap).toBeLessThanOrEqual(25)
     })
   }
-}
+})

@@ -1,24 +1,32 @@
-import type { Meta, StoryObj } from "@storybook/react-vite"
+import type { Loader } from "@storybook/react-vite"
+import type { ComponentProps } from "react"
 import { expect, waitFor } from "storybook/test"
 
 import { pendingAction } from "../../fixtures/catalog"
 import { actionsTaken, client } from "../../fixtures/client"
 import { preparePreview } from "../../fixtures/prepare"
+import preview from "../../preview"
+import type { SharedMeta, SharedPlay } from "../page-meta"
 import { ProductPreview } from "../product-preview"
 
-const meta = {
-  id: "chat-request-overflow",
-  title: "页面/主窗聊天/长请求滚动",
-  component: ProductPreview,
+export const pageMeta = {
   tags: ["layout"],
   args: { page: "chat", chatCase: "permission" },
   loaders: [preparePreview],
   parameters: { layout: "fullscreen", productPage: true, a11y: { test: "todo" } }
-} satisfies Meta<typeof ProductPreview>
-export default meta
-type Story = StoryObj<typeof meta>
+} satisfies SharedMeta<ComponentProps<typeof ProductPreview>>
 
-const longRequest = (count: number, command: boolean): NonNullable<Story["loaders"]> => [
+// pageMeta is shared with derived files, not a story.
+const meta = preview.meta({
+  id: "chat-request-overflow",
+  title: "页面/主窗聊天/长请求滚动",
+  excludeStories: ["pageMeta"],
+  component: ProductPreview,
+  ...pageMeta
+})
+type Play = SharedPlay<ComponentProps<typeof ProductPreview>>
+
+const longRequest = (count: number, command: boolean): Loader<ComponentProps<typeof ProductPreview>>[] => [
   () => {
     const action = pendingAction("permission", "permission")
     if (action.kind !== "permission") throw new Error("Expected a permission request")
@@ -42,7 +50,7 @@ const longRequest = (count: number, command: boolean): NonNullable<Story["loader
   }
 ]
 
-const verifyScrolling: NonNullable<Story["play"]> = async ({ canvasElement, userEvent }) => {
+const verifyScrolling: Play = async ({ canvasElement, userEvent }) => {
   if (!import.meta.env.STORYBOOK_TEST) return
   const requests = canvasElement.querySelector<HTMLElement>("[data-session-actions]")!
   const content = canvasElement.querySelector<HTMLElement>("[data-chat-content]")!
@@ -90,18 +98,26 @@ const verifyScrolling: NonNullable<Story["play"]> = async ({ canvasElement, user
   })
 }
 
-export const LongCommand: Story = { name: "长命令授权", loaders: longRequest(1, true), play: verifyScrolling }
-export const LongExplanation: Story = { name: "长说明与命令", loaders: longRequest(1, false), play: verifyScrolling }
-export const MultipleRequests: Story = { name: "多条长请求", loaders: longRequest(3, false), play: verifyScrolling }
-export const CompactWindow: Story = {
+export const LongCommand = meta.story({ name: "长命令授权", loaders: longRequest(1, true), play: verifyScrolling })
+export const LongExplanation = meta.story({
+  name: "长说明与命令",
+  loaders: longRequest(1, false),
+  play: verifyScrolling
+})
+export const MultipleRequests = meta.story({
+  name: "多条长请求",
+  loaders: longRequest(3, false),
+  play: verifyScrolling
+})
+export const CompactWindow = meta.story({
   name: "矮窗口长命令",
   args: { height: 480, width: 760 },
   loaders: longRequest(1, true),
   play: verifyScrolling
-}
-export const CompactMultiple: Story = {
+})
+export const CompactMultiple = meta.story({
   name: "矮窗口多条请求",
   args: { height: 480, width: 760 },
   loaders: longRequest(3, false),
   play: verifyScrolling
-}
+})

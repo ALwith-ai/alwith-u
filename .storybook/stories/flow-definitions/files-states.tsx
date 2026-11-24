@@ -1,14 +1,14 @@
-import type { Meta, StoryObj } from "@storybook/react-vite"
+import type { ComponentProps } from "react"
 import { expect, within } from "storybook/test"
 
 import { typeInEditor } from "../../fixtures/editor-input"
 import { preparePreview } from "../../fixtures/prepare"
+import preview from "../../preview"
+import type { SharedMeta } from "../page-meta"
 import { productPreviewArgTypes } from "../preview-options"
 import { ProductPreview } from "../product-preview"
 
-const meta = {
-  title: "流程/文件树和预览区/文件操作弹窗",
-  component: ProductPreview,
+export const pageMeta = {
   loaders: [preparePreview],
   args: { page: "chat", chatCase: "files", file: "README.md" },
   parameters: {
@@ -17,33 +17,38 @@ const meta = {
     a11y: { test: "todo" },
     docs: {
       description: {
-        component:
-          "使用真实产品组件和独立的内存模拟数据。重新选择示例即可重置页面状态。"
+        component: "使用真实产品组件和独立的内存模拟数据。重新选择示例即可重置页面状态。"
       }
     }
   },
   argTypes: productPreviewArgTypes
-} satisfies Meta<typeof ProductPreview>
-export default meta
-type Story = StoryObj<typeof meta>
+} satisfies SharedMeta<ComponentProps<typeof ProductPreview>>
 
-export const NewFileDialog: Story = {
+// pageMeta is shared with derived files, not a story.
+const meta = preview.meta({
+  title: "流程/文件树和预览区/文件操作弹窗",
+  excludeStories: ["pageMeta"],
+  component: ProductPreview,
+  ...pageMeta
+})
+
+export const NewFileDialog = meta.story({
   name: "新建文件弹窗",
   play: async ({ canvasElement, userEvent }) => {
     const body = within(canvasElement.ownerDocument.body)
     await userEvent.click(await body.findByRole("button", { name: "新建文件" }))
     await body.findByRole("dialog")
   }
-}
-export const NewFolderDialog: Story = {
+})
+export const NewFolderDialog = meta.story({
   name: "新建文件夹弹窗",
   play: async ({ canvasElement, userEvent }) => {
     const body = within(canvasElement.ownerDocument.body)
     await userEvent.click(await body.findByRole("button", { name: "新建文件夹" }))
     await body.findByRole("dialog")
   }
-}
-export const RenameDialog: Story = {
+})
+export const RenameDialog = meta.story({
   name: "文件重命名 · 行内编辑",
   play: async ({ canvas, canvasElement, userEvent }) => {
     await userEvent.pointer({
@@ -54,8 +59,8 @@ export const RenameDialog: Story = {
     await userEvent.click(await body.findByRole("menuitem", { name: "重命名" }))
     await body.findByRole("textbox", { name: "重命名" })
   }
-}
-export const DeleteDialog: Story = {
+})
+export const DeleteDialog = meta.story({
   name: "文件删除确认弹窗",
   play: async ({ canvas, canvasElement, userEvent }) => {
     await userEvent.pointer({
@@ -66,8 +71,8 @@ export const DeleteDialog: Story = {
     await userEvent.click(await body.findByRole("menuitem", { name: "删除" }))
     await body.findByRole("dialog")
   }
-}
-export const MoveDialog: Story = {
+})
+export const MoveDialog = meta.story({
   name: "移动到 · 选择目标文件夹",
   play: async ({ canvas, canvasElement, userEvent }) => {
     await userEvent.pointer({
@@ -78,8 +83,8 @@ export const MoveDialog: Story = {
     await userEvent.click(await body.findByRole("menuitem", { name: "移动到…" }))
     await body.findByRole("dialog")
   }
-}
-export const CrossProjectMove: Story = {
+})
+export const CrossProjectMove = meta.story({
   name: "移动到 · 跨项目提示",
   play: async ({ canvas, canvasElement, userEvent }) => {
     await userEvent.pointer({
@@ -92,8 +97,8 @@ export const CrossProjectMove: Story = {
     await userEvent.click(dialog.getByRole("treeitem", { name: /品牌网站/ }))
     await expect(dialog.getByText(/跨库移动/)).toBeVisible()
   }
-}
-export const UnsavedDialog: Story = {
+})
+export const UnsavedDialog = meta.story({
   name: "未保存文件 · 保存／放弃／取消",
   args: { file: "notes.txt" },
   play: async ({ canvasElement, userEvent }) => {
@@ -104,4 +109,4 @@ export const UnsavedDialog: Story = {
     await userEvent.keyboard("{Delete}")
     await body.findByRole("dialog")
   }
-}
+})

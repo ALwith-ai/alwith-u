@@ -1,11 +1,13 @@
+import { definePreview } from "@storybook/react-vite"
 import "./fixtures/native"
 import { resetNative } from "./fixtures/native"
 import { disposePlaybackClock } from "./fixtures/playback-clock"
 import "../src/index.css"
 import "./preview.css"
+import addonA11y from "@storybook/addon-a11y"
+import addonDocs from "@storybook/addon-docs"
 import { Description, Title } from "@storybook/addon-docs/blocks"
-import { withThemeByClassName } from "@storybook/addon-themes"
-import type { Preview } from "@storybook/react-vite"
+import addonThemes, { withThemeByClassName } from "@storybook/addon-themes"
 import { I18nextProvider } from "react-i18next"
 import { configure } from "storybook/test"
 
@@ -16,7 +18,7 @@ import { settingsStore } from "../src/lib/settings-store"
 
 configure({ asyncUtilTimeout: 5000 })
 
-const preview: Preview = {
+export default definePreview({
   tags: ["!autodocs"],
   globalTypes: {
     locale: {
@@ -76,7 +78,6 @@ const preview: Preview = {
     },
     layout: "padded",
     a11y: { test: "error" }
-  }
-}
-
-export default preview
+  },
+  addons: [addonDocs(), addonA11y(), addonThemes()]
+})

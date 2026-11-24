@@ -1,12 +1,15 @@
 import { createTabController, type TabItem } from "@alwith/module-tabs/core"
 import { TabActionButton, TabStrip } from "@alwith/module-tabs/react"
+import type { ComponentProps } from "react"
+
+import preview from "../../preview"
+import type { SharedMeta } from "../page-meta"
 import "@alwith/module-tabs/styles.css"
-import type { Meta, StoryObj } from "@storybook/react-vite"
 import { Settings } from "lucide-react"
 import { useEffect, useState } from "react"
 import { expect, waitFor } from "storybook/test"
 
-function PageTabs() {
+export function PageTabs() {
   const [controller] = useState(() =>
     createTabController({
       initial: {
@@ -58,14 +61,19 @@ function PageTabs() {
     </div>
   )
 }
-const meta = {
-  title: "Shared/Tabs/Independent pages",
-  component: PageTabs,
+export const pageMeta = {
   tags: ["layout"],
   parameters: { layout: "fullscreen", a11y: { test: "off" } }
-} satisfies Meta<typeof PageTabs>
-export default meta
-export const WithoutEditor: StoryObj<typeof meta> = {
+} satisfies SharedMeta<ComponentProps<typeof PageTabs>>
+
+// pageMeta is shared with derived files, not a story.
+const meta = preview.meta({
+  title: "Shared/Tabs/Independent pages",
+  excludeStories: ["pageMeta", "PageTabs"],
+  component: PageTabs,
+  ...pageMeta
+})
+export const WithoutEditor = meta.story({
   play: async ({ canvas, canvasElement, userEvent }) => {
     const tabs = canvas.getAllByRole("tab")
     void expect(tabs).toHaveLength(3)
@@ -88,4 +96,4 @@ export const WithoutEditor: StoryObj<typeof meta> = {
     })
     void expect(canvasElement.querySelector(".alwith-tab-controls")).toHaveAttribute("data-new-tab-docked", "true")
   }
-}
+})

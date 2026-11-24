@@ -1,22 +1,28 @@
-import type { Meta, StoryObj } from "@storybook/react-vite"
+import type { ComponentProps } from "react"
 import { expect, waitFor, within } from "storybook/test"
 
 import { pluginsStore } from "../../../src/features/plugins/instance"
 import { preparePreview } from "../../fixtures/prepare"
+import preview from "../../preview"
+import type { SharedMeta } from "../page-meta"
 import { productPreviewArgTypes } from "../preview-options"
 import { ProductPreview } from "../product-preview"
 
-const meta = {
-  title: "流程/负一屏/自定义/插件/失败恢复",
-  component: ProductPreview,
+export const pageMeta = {
   loaders: [preparePreview],
   args: { page: "plugins" },
   argTypes: productPreviewArgTypes,
   parameters: { layout: "fullscreen", productPage: true, a11y: { test: "todo" } }
-} satisfies Meta<typeof ProductPreview>
-export default meta
-type Story = StoryObj<typeof meta>
-export const Install: Story = {
+} satisfies SharedMeta<ComponentProps<typeof ProductPreview>>
+
+// pageMeta is shared with derived files, not a story.
+const meta = preview.meta({
+  title: "流程/负一屏/自定义/插件/失败恢复",
+  excludeStories: ["pageMeta"],
+  component: ProductPreview,
+  ...pageMeta
+})
+export const Install = meta.story({
   name: "安装插件 → 失败 → 重试成功",
   args: { pluginOperation: "installError" },
   play: async ({ canvas, canvasElement, userEvent }) => {
@@ -28,8 +34,8 @@ export const Install: Story = {
       expect(pluginsStore.getState().installed.some((item) => item.plugin.name === "documents")).toBe(true)
     )
   }
-}
-export const Toggle: Story = {
+})
+export const Toggle = meta.story({
   name: "停用插件 → 失败回滚 → 重试成功",
   args: { pluginOperation: "toggleError" },
   play: async ({ canvas, canvasElement, userEvent }) => {
@@ -41,8 +47,8 @@ export const Toggle: Story = {
     await userEvent.click(canvas.getByRole("switch", { name: /禁用.*Spreadsheets/ }))
     await canvas.findByRole("switch", { name: /启用.*Spreadsheets/ })
   }
-}
-export const Uninstall: Story = {
+})
+export const Uninstall = meta.story({
   name: "卸载插件 → 失败保留 → 重试成功",
   args: { pluginOperation: "uninstallError" },
   play: async ({ canvas, canvasElement, userEvent }) => {
@@ -55,8 +61,8 @@ export const Uninstall: Story = {
     await userEvent.click(await body.findByRole("button", { name: /卸载/ }))
     await waitFor(() => expect(pluginsStore.getState().installed).toHaveLength(1))
   }
-}
-export const Upgrade: Story = {
+})
+export const Upgrade = meta.story({
   name: "升级目录 → 失败 → 重试成功",
   args: { pluginOperation: "upgradeError" },
   play: async ({ canvas, canvasElement, userEvent }) => {
@@ -65,4 +71,4 @@ export const Upgrade: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "升级" }))
     await waitFor(() => expect(pluginsStore.getState().upgrading).toBe(false))
   }
-}
+})

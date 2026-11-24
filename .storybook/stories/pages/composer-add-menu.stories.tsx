@@ -1,7 +1,7 @@
 import { CodexClient, createSession } from "@alwith/module-chat/client"
 import { Composer, type ConversationHost, ConversationProvider, drafts } from "@alwith/module-chat/conversation"
-import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useMemo } from "react"
+import type { ComponentProps } from "react"
 import { useTranslation } from "react-i18next"
 import { expect, within } from "storybook/test"
 
@@ -9,8 +9,10 @@ import { useTheme } from "@/components/theme-provider"
 import { skillIconSrc } from "@/features/plugins/skill-icon"
 
 import { configOptions } from "../../fixtures/catalog"
+import preview from "../../preview"
+import type { SharedMeta } from "../page-meta"
 
-function ComposerPreview({ appState = "ready" }: { appState?: "ready" | "empty" | "error" }) {
+export function ComposerPreview({ appState = "ready" }: { appState?: "ready" | "empty" | "error" }) {
   const { t, i18n } = useTranslation("alwithChat")
   const { resolvedTheme } = useTheme()
   const host: ConversationHost = {
@@ -74,10 +76,7 @@ function ComposerPreview({ appState = "ready" }: { appState?: "ready" | "empty" 
   )
 }
 
-const meta = {
-  id: "composer-add-menu-source",
-  title: "页面/主窗聊天/输入框/02 输入框功能/00 添加菜单",
-  component: ComposerPreview,
+export const pageMeta = {
   parameters: { layout: "fullscreen" },
   // The draft outlives the composer; each story starts from an empty one.
   beforeEach: () => {
@@ -86,23 +85,30 @@ const meta = {
       drafts.delete("add-menu-preview")
     }
   }
-} satisfies Meta<typeof ComposerPreview>
-export default meta
-type Story = StoryObj<typeof meta>
+} satisfies SharedMeta<ComponentProps<typeof ComposerPreview>>
 
-export const Grouped: Story = {
+const meta = preview.meta({
+  id: "composer-add-menu-source",
+  title: "页面/主窗聊天/输入框/02 输入框功能/00 添加菜单",
+  // pageMeta is shared with derived files, not a story.
+  excludeStories: ["pageMeta", "ComposerPreview"],
+  component: ComposerPreview,
+  ...pageMeta
+})
+
+export const Grouped = meta.story({
   name: "附件与命令、技能、应用",
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(await canvas.findByRole("button", { name: "添加附件、命令或应用" }))
   }
-}
-export const SlashShortcut: Story = {
+})
+export const SlashShortcut = meta.story({
   name: "快捷入口 · 命令、技能、应用",
   play: async ({ canvas, userEvent }) => {
     await userEvent.type(await canvas.findByRole("textbox", { name: "发送消息" }), "/")
   }
-}
-export const SlashParity: Story = {
+})
+export const SlashParity = meta.story({
   name: "同一菜单 · 快捷入口无附件",
   tags: ["layout"],
   play: async (context) => {
@@ -133,8 +139,8 @@ export const SlashParity: Story = {
     await expect(Math.abs(slashMenu.bottom - addMenu.bottom)).toBeLessThan(1)
     await expect(appearance(addRow)).toEqual(slashAppearance)
   }
-}
-export const SkillSelected: Story = {
+})
+export const SkillSelected = meta.story({
   name: "技能插入草稿",
   play: async (context) => {
     await Grouped.play!(context)
@@ -142,11 +148,11 @@ export const SkillSelected: Story = {
       await within(context.canvasElement.ownerDocument.body).findByRole("option", { name: /文档分析/ })
     )
   }
-}
-export const AppsEmpty: Story = { ...Grouped, name: "没有可调用的应用", args: { appState: "empty" } }
-export const AppsError: Story = { ...Grouped, name: "应用读取失败", args: { appState: "error" } }
+})
+export const AppsEmpty = meta.story({ ...Grouped.input, name: "没有可调用的应用", args: { appState: "empty" } })
+export const AppsError = meta.story({ ...Grouped.input, name: "应用读取失败", args: { appState: "error" } })
 
-export const Placement: Story = {
+export const Placement = meta.story({
   name: "与输入框等宽并覆盖项目条",
   tags: ["layout"],
   play: async (context) => {
@@ -163,9 +169,9 @@ export const Placement: Story = {
     await expect(menu.bottom).toBeGreaterThan(project.top)
     await expect(menu.top).toBeLessThan(project.bottom)
   }
-}
+})
 
-export const SlashAppSelected: Story = {
+export const SlashAppSelected = meta.story({
   name: "快捷入口 · 选择应用",
   play: async (context) => {
     await SlashShortcut.play!(context)
@@ -173,5 +179,9 @@ export const SlashAppSelected: Story = {
       await within(context.canvasElement.ownerDocument.body).findByRole("option", { name: "Figma" })
     )
   }
-}
-export const SlashAppsError: Story = { ...SlashShortcut, name: "快捷入口 · 应用读取失败", args: { appState: "error" } }
+})
+export const SlashAppsError = meta.story({
+  ...SlashShortcut.input,
+  name: "快捷入口 · 应用读取失败",
+  args: { appState: "error" }
+})

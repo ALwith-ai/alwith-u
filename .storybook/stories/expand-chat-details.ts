@@ -1,7 +1,7 @@
-import type { StoryObj } from "@storybook/react-vite"
 import { expect, waitFor } from "storybook/test"
 
-import type { ProductPreview } from "./product-preview"
+import type { SharedPlay } from "./page-meta"
+import type { ProductPreviewProps } from "./product-preview"
 
 // Only source content disclosures: never menus, permissions, dialogs, or file actions.
 const collapsedChatDetails = [
@@ -11,10 +11,7 @@ const collapsedChatDetails = [
   '.codex-edited-files-more[aria-expanded="false"]'
 ].join(",")
 
-export const expandChatDetails: NonNullable<StoryObj<typeof ProductPreview>["play"]> = async ({
-  canvasElement,
-  userEvent
-}) => {
+export const expandChatDetails: SharedPlay<ProductPreviewProps> = async ({ canvasElement, userEvent }) => {
   await waitFor(() => expect(canvasElement.querySelector("[data-chat-content]")).toBeVisible())
   const opened = new Set<HTMLButtonElement>()
   for (;;) {

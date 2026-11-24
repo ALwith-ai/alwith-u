@@ -1,14 +1,13 @@
-import type { Meta, StoryObj } from "@storybook/react-vite"
+import type { ComponentProps } from "react"
 import { within } from "storybook/test"
 
 import { preparePreview } from "../../fixtures/prepare"
+import preview from "../../preview"
+import type { SharedMeta } from "../page-meta"
 import { productPreviewArgTypes } from "../preview-options"
 import { ProductPreview } from "../product-preview"
 
-const meta = {
-  id: "页面-插件-插件列表",
-  title: "页面/负一屏/自定义/插件/插件列表",
-  component: ProductPreview,
+export const pageMeta = {
   loaders: [preparePreview],
   args: { page: "plugins" },
   parameters: {
@@ -22,32 +21,39 @@ const meta = {
     }
   },
   argTypes: productPreviewArgTypes
-} satisfies Meta<typeof ProductPreview>
-export default meta
-type Story = StoryObj<typeof meta>
+} satisfies SharedMeta<ComponentProps<typeof ProductPreview>>
 
-export const Marketplace: Story = { name: "插件市场" }
+// pageMeta is shared with derived files, not a story.
+const meta = preview.meta({
+  id: "页面-插件-插件列表",
+  title: "页面/负一屏/自定义/插件/插件列表",
+  excludeStories: ["pageMeta"],
+  component: ProductPreview,
+  ...pageMeta
+})
 
-export const Installed: Story = {
+export const Marketplace = meta.story({ name: "插件市场" })
+
+export const Installed = meta.story({
   name: "已安装插件与技能",
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(
       within(canvas.getByRole("navigation", { name: "已安装" })).getByRole("button", { name: "Spreadsheets" })
     )
   }
-}
+})
 
-export const Empty: Story = { name: "插件与技能均为空", args: { pluginCase: "empty" } }
+export const Empty = meta.story({ name: "插件与技能均为空", args: { pluginCase: "empty" } })
 
-export const Loading: Story = { name: "加载中", args: { pluginCase: "loading" } }
+export const Loading = meta.story({ name: "加载中", args: { pluginCase: "loading" } })
 
-export const Failed: Story = { name: "加载失败与重试", args: { pluginCase: "error" } }
+export const Failed = meta.story({ name: "加载失败与重试", args: { pluginCase: "error" } })
 
-export const NoResults: Story = {
+export const NoResults = meta.story({
   name: "搜索无结果",
   play: async ({ canvas, userEvent }) => {
     await userEvent.type(canvas.getByPlaceholderText(/搜索/), "no-match-plugin-937")
   }
-}
+})
 
-export const Scrolling: Story = { name: "滚动加载远程插件", args: { pluginCase: "scroll" } }
+export const Scrolling = meta.story({ name: "滚动加载远程插件", args: { pluginCase: "scroll" } })

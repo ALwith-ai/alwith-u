@@ -1,14 +1,16 @@
-import type { Meta, StoryObj } from "@storybook/react-vite"
+import type { SessionSummary } from "@alwith/module-chat/client"
+import type { ComponentProps } from "react"
 import { expect, spyOn, waitFor, within } from "storybook/test"
 
 import { SidebarInset } from "@/components/ui/sidebar"
 
-import type { SessionSummary } from "@alwith/module-chat/client"
 import { LeadingNavigation } from "../../../src/features/layout/components/leading-navigation"
 import { MainSidebarLayout } from "../../../src/features/layout/components/main-sidebar-layout"
 import { ArchivedChatsPage } from "../../../src/features/sessions/archived-chats-page"
 import { client } from "../../../src/lib/client"
 import { resetClient } from "../../fixtures/client"
+import preview from "../../preview"
+import type { SharedMeta } from "../page-meta"
 
 const chats: SessionSummary[] = [
   {
@@ -34,11 +36,8 @@ const chats: SessionSummary[] = [
   }
 ]
 
-const meta = {
-  id: "页面-聊天归档-布局细节",
+export const pageMeta = {
   tags: ["layout"],
-  title: "页面/负一屏/已归档/布局细节",
-  component: ArchivedChatsPage,
   globals: { locale: "zh-CN" },
   beforeEach: () => {
     const previous = client.state
@@ -93,11 +92,18 @@ const meta = {
       />
     </div>
   )
-} satisfies Meta<typeof ArchivedChatsPage>
-export default meta
-type Story = StoryObj<typeof meta>
+} satisfies SharedMeta<ComponentProps<typeof ArchivedChatsPage>>
 
-export const ArchiveList: Story = {
+// pageMeta is shared with derived files, not a story.
+const meta = preview.meta({
+  id: "页面-聊天归档-布局细节",
+  title: "页面/负一屏/已归档/布局细节",
+  excludeStories: ["pageMeta"],
+  component: ArchivedChatsPage,
+  ...pageMeta
+})
+
+export const ArchiveList = meta.story({
   name: "归档列表",
   // The source destructive button reports 4:1 contrast; retain the existing archive-page accessibility TODO.
   parameters: { a11y: { test: "todo" } },
@@ -144,4 +150,4 @@ export const ArchiveList: Story = {
     void expect(search.getBoundingClientRect().top).toBe(searchTop)
     client.store.setState({ archivedSessions: chats })
   }
-}
+})

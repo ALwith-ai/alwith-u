@@ -1,7 +1,7 @@
 import { DesktopCanvasContext as CanvasContext } from "@alwith/module-desktop-shell/react"
 import { desktopDefaults } from "@nyssance/atlas/layout"
-import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useContext, useRef, useState } from "react"
+import type { ComponentProps } from "react"
 import { expect, waitFor, within } from "storybook/test"
 
 import { Button } from "@/components/ui/button"
@@ -12,6 +12,8 @@ import type { PanelControls } from "../../../src/features/workspace/panel-contro
 import { PreviewSurface } from "../../../src/features/workspace/preview-surface"
 import { WorkspacePanels } from "../../../src/features/workspace/workspace-panels"
 import i18n from "../../../src/lib/i18n"
+import preview from "../../preview"
+import type { SharedMeta, SharedPlay } from "../page-meta"
 
 function ReturnToChat({ restore }: { restore: () => void }) {
   const canvas = useContext(CanvasContext)
@@ -80,18 +82,23 @@ async function nudge(userEvent: Pointer, canvas: HTMLElement, key: string, steps
   await userEvent.pointer({ target, keys: "[/MouseLeft]" })
 }
 
-const meta = {
-  id: "页面-导航与项目-画布细节",
+export const pageMeta = {
   tags: ["layout"],
   globals: { locale: "en" },
-  title: "页面/主窗整体/导航与项目/画布细节",
-  component: MainSidebarLayout,
   parameters: { layout: "fullscreen" }
-} satisfies Meta<typeof MainSidebarLayout>
-export default meta
-type Story = StoryObj<typeof meta>
+} satisfies SharedMeta<ComponentProps<typeof MainSidebarLayout>>
 
-export const Unified: Story = {
+// pageMeta is shared with derived files, not a story.
+const meta = preview.meta({
+  id: "页面-导航与项目-画布细节",
+  title: "页面/主窗整体/导航与项目/画布细节",
+  excludeStories: ["pageMeta"],
+  component: MainSidebarLayout,
+  ...pageMeta
+})
+type Play = SharedPlay<ComponentProps<typeof MainSidebarLayout>>
+
+export const Unified = meta.story({
   name: "统一布局",
   args: {
     initialPinned: true,
@@ -235,18 +242,18 @@ export const Unified: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "Toggle preview" }))
     await waitFor(() => expect(dots()[1]).toHaveAttribute("aria-current", "page"))
   }
-}
+})
 
-export const Floating: Story = {
-  ...Unified,
+export const Floating = meta.story({
+  ...Unified.input,
   name: "浮动侧栏",
-  args: { ...Unified.args, initialPinned: false }
-}
+  args: { ...Unified.input.args, initialPinned: false }
+})
 
-export const RightToLeft: Story = { ...Unified, name: "从右向左布局", globals: { locale: "ar" } }
+export const RightToLeft = meta.story({ ...Unified.input, name: "从右向左布局", globals: { locale: "ar" } })
 
-export const DirectionChange: Story = {
-  ...Unified,
+export const DirectionChange = meta.story({
+  ...Unified.input,
   name: "切换布局方向",
   globals: { locale: "en" },
   play: async ({ canvasElement, userEvent }) => {
@@ -271,10 +278,10 @@ export const DirectionChange: Story = {
       )
     }
   }
-}
+})
 
-export const ReturnFromPreview: Story = {
-  ...Unified,
+export const ReturnFromPreview = meta.story({
+  ...Unified.input,
   name: "从预览返回聊天",
   globals: { locale: "en" },
   play: async ({ canvas, canvasElement, userEvent }) => {
@@ -309,16 +316,16 @@ export const ReturnFromPreview: Story = {
       await expect(canvas.getByRole("textbox", { name: "Draft" })).toHaveValue("Preserved draft")
     }
   }
-}
+})
 
-export const ReturnFromPreviewRtl: Story = {
-  ...ReturnFromPreview,
+export const ReturnFromPreviewRtl = meta.story({
+  ...ReturnFromPreview.input,
   name: "从预览返回聊天 · 从右向左",
   globals: { locale: "ar" }
-}
+})
 
-export const ReflowWithFloatingSidebar: Story = {
-  ...Unified,
+export const ReflowWithFloatingSidebar = meta.story({
+  ...Unified.input,
   name: "浮动侧栏下的布局重排",
   globals: { locale: "en" },
   play: async ({ canvas, canvasElement, userEvent }) => {
@@ -351,10 +358,10 @@ export const ReflowWithFloatingSidebar: Story = {
       { timeout: 3000 }
     )
   }
-}
+})
 
-export const HidePinnedNavigation: Story = {
-  ...Unified,
+export const HidePinnedNavigation = meta.story({
+  ...Unified.input,
   name: "隐藏固定导航",
   globals: { locale: "en" },
   play: async ({ canvas, canvasElement, userEvent }) => {
@@ -378,10 +385,10 @@ export const HidePinnedNavigation: Story = {
       { timeout: 3000 }
     )
   }
-}
+})
 
-export const HideNavigationAfterManualSplit: Story = {
-  ...Unified,
+export const HideNavigationAfterManualSplit = meta.story({
+  ...Unified.input,
   name: "手动分栏后隐藏导航",
   globals: { locale: "en" },
   play: async ({ canvas, canvasElement, userEvent }) => {
@@ -404,10 +411,10 @@ export const HideNavigationAfterManualSplit: Story = {
     await userEvent.click(dots()[1])
     await waitFor(() => expect(dots()[1]).toHaveAttribute("aria-current", "page"))
   }
-}
+})
 
-export const OperationChain: Story = {
-  ...Unified,
+export const OperationChain = meta.story({
+  ...Unified.input,
   name: "连续操作",
   globals: { locale: "en" },
   play: async ({ canvas, canvasElement, userEvent }) => {
@@ -487,21 +494,21 @@ export const OperationChain: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "Toggle preview" }))
     await assertScreen(2)
   }
-}
+})
 
-export const OperationChainRtl: Story = {
-  ...OperationChain,
+export const OperationChainRtl = meta.story({
+  ...OperationChain.input,
   name: "连续操作 · 从右向左",
   globals: { locale: "ar" }
-}
-export const OperationChainFloating: Story = {
-  ...OperationChain,
+})
+export const OperationChainFloating = meta.story({
+  ...OperationChain.input,
   name: "连续操作 · 浮动侧栏",
-  args: { ...Unified.args, initialPinned: false }
-}
+  args: { ...Unified.input.args, initialPinned: false }
+})
 
-export const PointerSplitAndReverse: Story = {
-  ...Unified,
+export const PointerSplitAndReverse = meta.story({
+  ...Unified.input,
   name: "拖动分栏与反向调整",
   globals: { locale: "en" },
   play: async ({ canvas, canvasElement, userEvent }) => {
@@ -542,12 +549,12 @@ export const PointerSplitAndReverse: Story = {
     await expect(panels[0].getBoundingClientRect().width).toBeCloseTo(panels[1].getBoundingClientRect().width, 0)
     await expect(canvas.getByRole("textbox", { name: "Draft" })).toHaveValue("Preserved draft")
   }
-}
+})
 
-export const StableOuterGutters: Story = {
-  ...Unified,
+export const StableOuterGutters = meta.story({
+  ...Unified.input,
   name: "外侧间距保持稳定",
-  args: { ...Unified.args, initialPinned: false },
+  args: { ...Unified.input.args, initialPinned: false },
   globals: { locale: "en" },
   play: async ({ canvas, canvasElement, userEvent }) => {
     const body = canvasElement.querySelector<HTMLElement>(".main-window-body")!
@@ -590,18 +597,18 @@ export const StableOuterGutters: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "Close preview" }))
     await assertGutters(".file-workspace-chat")
   }
-}
+})
 
-export const StableOuterGuttersRtl: Story = {
-  ...StableOuterGutters,
+export const StableOuterGuttersRtl = meta.story({
+  ...StableOuterGutters.input,
   name: "外侧间距保持稳定 · 从右向左",
   globals: { locale: "ar" }
-}
+})
 
-export const NavigationDuringMotion: Story = {
-  ...Unified,
+export const NavigationDuringMotion = meta.story({
+  ...Unified.input,
   name: "动画过程中操作导航",
-  args: { ...Unified.args, initialPinned: false },
+  args: { ...Unified.input.args, initialPinned: false },
   globals: { locale: "en" },
   play: async ({ canvas, canvasElement, userEvent }) => {
     const nav = canvasElement.querySelector<HTMLElement>(".main-sidebar-panel")!
@@ -636,21 +643,21 @@ export const NavigationDuringMotion: Story = {
       await expect(nav.getBoundingClientRect().left - track.getBoundingClientRect().left).toBeCloseTo(original, 0)
     }
   }
-}
+})
 
-export const NavigationDuringMotionPinned: Story = {
-  ...NavigationDuringMotion,
+export const NavigationDuringMotionPinned = meta.story({
+  ...NavigationDuringMotion.input,
   name: "动画过程中操作导航 · 固定侧栏",
-  args: { ...Unified.args, initialPinned: true }
-}
-export const NavigationDuringMotionRtl: Story = {
-  ...NavigationDuringMotion,
+  args: { ...Unified.input.args, initialPinned: true }
+})
+export const NavigationDuringMotionRtl = meta.story({
+  ...NavigationDuringMotion.input,
   name: "动画过程中操作导航 · 从右向左",
   globals: { locale: "ar" }
-}
+})
 
-export const StablePanelGap: Story = {
-  ...Unified,
+export const StablePanelGap = meta.story({
+  ...Unified.input,
   name: "面板间距保持稳定",
   globals: { locale: "en" },
   play: async ({ canvas, canvasElement, userEvent }) => {
@@ -688,15 +695,15 @@ export const StablePanelGap: Story = {
       }
     }
   }
-}
-export const StablePanelGapRtl: Story = {
-  ...StablePanelGap,
+})
+export const StablePanelGapRtl = meta.story({
+  ...StablePanelGap.input,
   name: "面板间距保持稳定 · 从右向左",
   globals: { locale: "ar" }
-}
+})
 
-export const MainControlsOnly: Story = {
-  ...Unified,
+export const MainControlsOnly = meta.story({
+  ...Unified.input,
   name: "主区域各页都显示控制按钮",
   globals: { locale: "en" },
   play: async ({ canvas, canvasElement, userEvent }) => {
@@ -724,10 +731,10 @@ export const MainControlsOnly: Story = {
       })
     }
   }
-}
+})
 
-export const DragLeftHidesChat: Story = {
-  ...Unified,
+export const DragLeftHidesChat = meta.story({
+  ...Unified.input,
   name: "向左拖动停在聊天的最小宽度",
   globals: { locale: "en" },
   play: async ({ canvas, canvasElement, userEvent }) => {
@@ -759,15 +766,15 @@ export const DragLeftHidesChat: Story = {
     await waitFor(() => expect(chat.getBoundingClientRect().width).toBe(420))
     await expect(canvas.getByRole("textbox", { name: "Draft" })).toHaveValue("Preserved draft")
   }
-}
-export const DragLeftHidesChatRtl: Story = {
-  ...DragLeftHidesChat,
+})
+export const DragLeftHidesChatRtl = meta.story({
+  ...DragLeftHidesChat.input,
   name: "向左拖动停在聊天的最小宽度 · 从右向左",
   globals: { locale: "ar" }
-}
+})
 
 /** Both panes beside each other again, a gutter apart, with what was typed in each still there. */
-async function sideBySide(canvas: Parameters<NonNullable<Story["play"]>>[0]["canvas"], canvasElement: HTMLElement) {
+async function sideBySide(canvas: Parameters<Play>[0]["canvas"], canvasElement: HTMLElement) {
   await waitFor(
     async () => {
       await expect(canvasElement.querySelectorAll("[data-atlas-page-dots]:not([hidden]) button")).toHaveLength(0)
@@ -786,8 +793,8 @@ async function sideBySide(canvas: Parameters<NonNullable<Story["play"]>>[0]["can
   await expect(canvas.getByRole("textbox", { name: "Editor draft" })).toHaveValue("Preserved edit")
 }
 
-export const RestoreAfterDragging: Story = {
-  ...Unified,
+export const RestoreAfterDragging = meta.story({
+  ...Unified.input,
   name: "查看模式后恢复布局",
   parameters: { realPreviewControls: true },
   globals: { locale: "en" },
@@ -807,10 +814,10 @@ export const RestoreAfterDragging: Story = {
       await sideBySide(canvas, canvasElement)
     }
   }
-}
+})
 
-export const TitlebarRestoreThenClose: Story = {
-  ...Unified,
+export const TitlebarRestoreThenClose = meta.story({
+  ...Unified.input,
   name: "标题栏恢复后关闭",
   parameters: { realPreviewControls: true, titlebarToggle: true },
   globals: { locale: "en" },
@@ -838,10 +845,10 @@ export const TitlebarRestoreThenClose: Story = {
     await expect(canvas.getByRole("button", { name: "Open workspace" })).toBeVisible()
     await expect(canvas.getByRole("textbox", { name: "Draft" })).toHaveValue("Preserved draft")
   }
-}
+})
 
-export const ThreeScreenTransitions: Story = {
-  ...Unified,
+export const ThreeScreenTransitions = meta.story({
+  ...Unified.input,
   name: "三个区域之间切换",
   parameters: { realPreviewControls: true, titlebarToggle: true, externalActions: true },
   globals: { locale: "en" },
@@ -917,15 +924,15 @@ export const ThreeScreenTransitions: Story = {
       "true"
     )
   }
-}
-export const ThreeScreenTransitionsRtl: Story = {
-  ...ThreeScreenTransitions,
+})
+export const ThreeScreenTransitionsRtl = meta.story({
+  ...ThreeScreenTransitions.input,
   name: "三个区域之间切换 · 从右向左",
   globals: { locale: "ar" }
-}
+})
 
-export const SplitFromMainStaysOnMain: Story = {
-  ...Unified,
+export const SplitFromMainStaysOnMain = meta.story({
+  ...Unified.input,
   name: "从主区域分栏后保持主区域",
   globals: { locale: "en" },
   play: async ({ canvas, canvasElement, userEvent }) => {
@@ -971,9 +978,9 @@ export const SplitFromMainStaysOnMain: Story = {
     await waitFor(() => expect(dots()[1]).toHaveAttribute("aria-current", "page"))
     await expect(canvas.getByRole("heading", { name: "Preview pane" })).toBeInTheDocument()
   }
-}
-export const SplitFromMainStaysOnMainRtl: Story = {
-  ...SplitFromMainStaysOnMain,
+})
+export const SplitFromMainStaysOnMainRtl = meta.story({
+  ...SplitFromMainStaysOnMain.input,
   name: "从主区域分栏后保持主区域 · 从右向左",
   globals: { locale: "ar" }
-}
+})

@@ -1,15 +1,15 @@
-import type { Meta, StoryObj } from "@storybook/react-vite"
 import { mockIPC } from "@tauri-apps/api/mocks"
+import type { ComponentProps } from "react"
 
 import { handleNativeRequest } from "../../fixtures/native"
+import preview from "../../preview"
+import type { SharedMeta } from "../page-meta"
 import "../../../src/features/settings/settings.css"
 
 import { MobileSection } from "../../../src/features/mobile/mobile-section"
 import { type SettingsRequest, settingsStore } from "../../../src/lib/settings-store"
 
-const meta = {
-  title: "页面/设置页/手机连接",
-  component: MobileSection,
+export const pageMeta = {
   globals: { locale: "zh-CN" },
   beforeEach: () => {
     let revision = Date.now()
@@ -66,7 +66,13 @@ const meta = {
       )
     }
   }
-} satisfies Meta<typeof MobileSection>
-export default meta
-type Story = StoryObj<typeof meta>
-export const Paired: Story = { name: "已配对设备" }
+} satisfies SharedMeta<ComponentProps<typeof MobileSection>>
+
+// pageMeta is shared with derived files, not a story.
+const meta = preview.meta({
+  title: "页面/设置页/手机连接",
+  excludeStories: ["pageMeta"],
+  component: MobileSection,
+  ...pageMeta
+})
+export const Paired = meta.story({ name: "已配对设备" })

@@ -1,22 +1,28 @@
-import type { Meta, StoryObj } from "@storybook/react-vite"
+import type { ComponentProps } from "react"
 import { expect, waitFor, within } from "storybook/test"
 
 import { actionsTaken, client } from "../../fixtures/client"
 import { preparePreview } from "../../fixtures/prepare"
+import preview from "../../preview"
+import type { SharedMeta } from "../page-meta"
 import { productPreviewArgTypes } from "../preview-options"
 import { ProductPreview } from "../product-preview"
 
-const meta = {
-  title: "流程/主窗聊天/输入与确认",
-  component: ProductPreview,
+export const pageMeta = {
   loaders: [preparePreview],
   args: { page: "chat", chatCase: "conversation" },
   argTypes: productPreviewArgTypes,
   parameters: { layout: "fullscreen", productPage: true, a11y: { test: "todo" } }
-} satisfies Meta<typeof ProductPreview>
-export default meta
-type Story = StoryObj<typeof meta>
-export const PermissionMode: Story = {
+} satisfies SharedMeta<ComponentProps<typeof ProductPreview>>
+
+// pageMeta is shared with derived files, not a story.
+const meta = preview.meta({
+  title: "流程/主窗聊天/输入与确认",
+  excludeStories: ["pageMeta"],
+  component: ProductPreview,
+  ...pageMeta
+})
+export const PermissionMode = meta.story({
   name: "权限菜单 → 完全访问 → 应用",
   play: async ({ canvas, canvasElement, userEvent }) => {
     await userEvent.click(await canvas.findByRole("button", { name: /^切换权限模式/ }))
@@ -29,8 +35,8 @@ export const PermissionMode: Story = {
       ).toBe("agent-full-access")
     )
   }
-}
-export const FileMention: Story = {
+})
+export const FileMention = meta.story({
   name: "引用项目文件 → 发送上下文 → 完成",
   play: async ({ canvas, canvasElement, userEvent }) => {
     await userEvent.type(await canvas.findByRole("textbox", { name: "发送消息" }), "@README")
@@ -45,8 +51,8 @@ export const FileMention: Story = {
     )
     await canvas.findByText(/检查已完成，交付清单已更新/)
   }
-}
-export const TextAttachmentRetry: Story = {
+})
+export const TextAttachmentRetry = meta.story({
   name: "长文本 → 写入失败 → 重试 → 发送",
   args: { composerCase: "textError" },
   play: async ({ canvas, userEvent }) => {
@@ -58,8 +64,8 @@ export const TextAttachmentRetry: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "发送" }))
     await canvas.findByText(/检查已完成，交付清单已更新/)
   }
-}
-export const Prediction: Story = {
+})
+export const Prediction = meta.story({
   name: "输入建议 → Tab 接受 → 发送",
   args: { composerCase: "prediction" },
   play: async ({ canvas, userEvent }) => {
@@ -70,8 +76,8 @@ export const Prediction: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "发送" }))
     await canvas.findByText(/检查已完成，交付清单已更新/)
   }
-}
-export const GlobalForms: Story = {
+})
+export const GlobalForms = meta.story({
   name: "全局表单队列 → 取消当前 → 提交下一份",
   args: { globalAction: "multipleForms" },
   play: async ({ canvasElement, userEvent }) => {
@@ -84,4 +90,4 @@ export const GlobalForms: Story = {
     await userEvent.click(dialog.getByRole("button", { name: "提交" }))
     await waitFor(() => expect(client.state.actions).toHaveLength(0))
   }
-}
+})

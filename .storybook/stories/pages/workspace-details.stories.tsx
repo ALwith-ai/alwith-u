@@ -1,7 +1,7 @@
 import { CommentSurface, type DriveContentHost, DriveContentProvider } from "@alwith/module-drive/content"
 import { desktopDefaults } from "@nyssance/atlas/layout"
-import type { Meta, StoryObj } from "@storybook/react-vite"
 import { type ReactNode, useState } from "react"
+import type { ComponentProps } from "react"
 import { expect, waitFor } from "storybook/test"
 
 import { Button } from "@/components/ui/button"
@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button"
 import { ChatHeader } from "../../../src/features/chat/chat-header"
 import { PreviewSurface } from "../../../src/features/workspace/preview-surface"
 import { WorkspacePanels } from "../../../src/features/workspace/workspace-panels"
+import preview from "../../preview"
+import type { SharedMeta } from "../page-meta"
 
 const commentHost: DriveContentHost = {
   transport: {
@@ -47,7 +49,13 @@ const commentHost: DriveContentHost = {
   }
 }
 
-function WorkspaceExample({ width = 1200, comments = false }: { width?: number; comments?: boolean }): ReactNode {
+export function WorkspaceExample({
+  width = 1200,
+  comments = false
+}: {
+  width?: number
+  comments?: boolean
+}): ReactNode {
   const [visible, setVisible] = useState(true)
   const [maximized, setMaximized] = useState(false)
   const [treeVisible, setTreeVisible] = useState(true)
@@ -112,18 +120,22 @@ function WorkspaceExample({ width = 1200, comments = false }: { width?: number; 
   )
 }
 
-const meta = {
-  id: "页面-文件工作区-布局细节",
+export const pageMeta = {
   tags: ["layout"],
   globals: { locale: "en" },
-  title: "页面/文件树和预览区/布局细节",
-  component: WorkspaceExample,
   parameters: { layout: "fullscreen" }
-} satisfies Meta<typeof WorkspaceExample>
-export default meta
-type Story = StoryObj<typeof meta>
+} satisfies SharedMeta<ComponentProps<typeof WorkspaceExample>>
 
-export const EqualPanels: Story = {
+// pageMeta is shared with derived files, not a story.
+const meta = preview.meta({
+  id: "页面-文件工作区-布局细节",
+  title: "页面/文件树和预览区/布局细节",
+  excludeStories: ["pageMeta", "WorkspaceExample"],
+  component: WorkspaceExample,
+  ...pageMeta
+})
+
+export const EqualPanels = meta.story({
   name: "等宽面板",
   play: async ({ canvasElement, canvas, userEvent }) => {
     // Atlas owns the gaps: a docked region's edge is the shell gutter plus its half-gap; the maximized
@@ -165,9 +177,9 @@ export const EqualPanels: Story = {
     )
     await expect(canvas.getByRole("textbox", { name: "Document" })).toHaveValue("Retained draft")
   }
-}
+})
 
-export const NarrowPanels: Story = {
+export const NarrowPanels = meta.story({
   name: "窄窗口面板",
   args: { width: 650 },
   play: async ({ canvasElement, canvas }) => {
@@ -180,9 +192,9 @@ export const NarrowPanels: Story = {
       await expect(canvas.queryByRole("button", { name: "Previous pane" })).toBeNull()
     })
   }
-}
+})
 
-export const ResizeBoundaries: Story = {
+export const ResizeBoundaries = meta.story({
   name: "面板尺寸边界",
   play: async ({ canvasElement, canvas, userEvent }) => {
     const layout = canvasElement.querySelector<HTMLElement>(".file-workspace-layout")!
@@ -207,9 +219,9 @@ export const ResizeBoundaries: Story = {
       ).toBe(0)
     })
   }
-}
+})
 
-export const WindowResize: Story = {
+export const WindowResize = meta.story({
   name: "调整窗口大小",
   play: async ({ canvasElement, canvas, userEvent }) => {
     const layout = canvasElement.querySelector<HTMLElement>(".file-workspace-layout")!
@@ -230,9 +242,9 @@ export const WindowResize: Story = {
       ).toBe(layout.clientWidth - draggedWidth)
     })
   }
-}
+})
 
-export const CommentDrawerOverlay: Story = {
+export const CommentDrawerOverlay = meta.story({
   name: "评论收起占位，展开覆盖",
   args: { comments: true },
   play: async ({ canvasElement, canvas, userEvent }) => {
@@ -273,4 +285,4 @@ export const CommentDrawerOverlay: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "Hide tree" }))
     await waitFor(() => assertSeparate(canvas.getByTestId("comment-rail")))
   }
-}
+})

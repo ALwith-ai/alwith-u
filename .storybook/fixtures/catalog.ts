@@ -1,5 +1,4 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
-import { asyncQuestionId, questionReplyEnvelope } from "@alwith/module-chat/async-question-card"
 import { acknowledgePrompt, addPrompt, applyUpdate, createSession, type Session } from "@alwith/module-chat/client"
 import type { PendingAction, SessionSummary } from "@alwith/module-chat/client"
 
@@ -116,8 +115,6 @@ export const chatCases = [
   "plan",
   "permission",
   "question",
-  "questionSubmitting",
-  "questionUnavailable",
   "questionAnswered",
   "form",
   "formQueue",
@@ -456,12 +453,7 @@ export function makeSession(kind: ChatCase, id: string = kind): Session {
   }
   if (kind === "permission" || kind === "form" || kind === "formQueue" || kind === "url")
     return { ...assistantMessage(session, "已完成检查，继续执行前需要你补充确认。"), state: "running" }
-  if (
-    kind === "question" ||
-    kind === "questionSubmitting" ||
-    kind === "questionUnavailable" ||
-    kind === "questionAnswered"
-  ) {
+  if (kind === "question" || kind === "questionAnswered") {
     const questionMessageId = `${id}-question-${++questionSequence}`
     const questions = [
       { title: "交付范围", options: ["全部页面与流程", "仅核心聊天流程", "仅本周新增内容"] },
@@ -481,30 +473,36 @@ export function makeSession(kind: ChatCase, id: string = kind): Session {
       }
     })
     if (kind === "questionAnswered") {
-      const reply = {
-        questionItemId: asyncQuestionId(questionMessageId, 0),
-        question: questions[0].title,
-        answer: "全部页面与流程"
-      }
-      const replyContent = {
-        type: "text" as const,
-        text: questionReplyEnvelope(reply),
-        _meta: { codex: { questionReply: reply } }
-      }
-      const replyId = `${id}-question-reply`
-      session = acknowledgePrompt(addPrompt(session, [replyContent], `local:${replyId}`), `local:${replyId}`, replyId)
+      // What the adapter replays for an answered question: a completed interaction, no user message.
+      const replies = [
+        {
+          questionItemId: JSON.stringify(["request_user_input_async", questionMessageId, 0]),
+          question: questions[0].title,
+          answer: "全部页面与流程"
+        }
+      ]
       session = applyUpdate(session, {
-        sessionUpdate: "user_message",
-        messageId: replyId,
-        content: [replyContent],
-        _meta: { codex: { turnId: `turn:${id}-user`, questionReply: reply } }
+        sessionUpdate: "tool_call_update",
+        toolCallId: `async-question-reply:${id}`,
+        name: "request_user_input_async",
+        title: "Answered questions",
+        kind: "other",
+        status: "completed",
+        content: [
+          {
+            type: "content",
+            content: {
+              type: "text",
+              text: replies.map((reply) => `> ${reply.question}\n\n${reply.answer}`).join("\n\n")
+            }
+          }
+        ],
+        rawInput: { questions: replies.map(({ questionItemId, question }) => ({ questionItemId, question })) },
+        rawOutput: replies,
+        _meta: { codex: { turnId: `turn:${id}-user` } }
       })
     }
-    return {
-      ...session,
-      ...(kind === "questionUnavailable" ? { attached: false } : {}),
-      state: "running"
-    }
+    return { ...session, state: "running" }
   }
   if (kind === "error") {
     return applyUpdate(session, {
@@ -615,7 +613,46 @@ export function makeSession(kind: ChatCase, id: string = kind): Session {
   return session
 }
 
-export function pendingAction(kind: "permission" | "form" | "url", sessionId: string): PendingAction {
+export function pendingAction(kind: "permission" | "form" | "url" | "question", sessionId: string): PendingAction {
+  // The form the adapter opens for an async question: one field per question, a note beside a choice.
+  if (kind === "question")
+    return {
+      id: `${sessionId}-question`,
+      kind: "elicitation",
+      sessionId,
+      params: {
+        sessionId,
+        mode: "form",
+        message: "Codex keeps working while you answer. Your answer continues the conversation.",
+        requestedSchema: {
+          type: "object",
+          properties: {
+            question_0: {
+              type: "string",
+              title: "交付范围",
+              oneOf: [
+                { const: "全部页面与流程", title: "全部页面与流程" },
+                { const: "仅核心聊天流程", title: "仅核心聊天流程" },
+                { const: "仅本周新增内容", title: "仅本周新增内容" },
+                {
+                  const: "None of the above",
+                  title: "None of the above",
+                  description: "Provide a different answer in the note field."
+                }
+              ],
+              _meta: { codex: { isOther: true, isSecret: false } }
+            },
+            question_0_note: {
+              type: "string",
+              title: "Additional answer or note",
+              _meta: { codex: { questionId: "question_0", role: "user_note", isSecret: false } }
+            },
+            question_1: { type: "string", title: "补充说明", _meta: { codex: { isOther: false, isSecret: false } } }
+          }
+        },
+        _meta: { codex: { delivery: "async" } }
+      }
+    }
   if (kind === "permission")
     return {
       id: `${sessionId}-approval`,

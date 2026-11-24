@@ -1,23 +1,29 @@
-import type { Meta, StoryObj } from "@storybook/react-vite"
+import type { ComponentProps } from "react"
 import { expect, waitFor, within } from "storybook/test"
 
 import { pluginsStore } from "../../../src/features/plugins/instance"
 import { preparePreview } from "../../fixtures/prepare"
+import preview from "../../preview"
+import type { SharedMeta } from "../page-meta"
 import { productPreviewArgTypes } from "../preview-options"
 import { ProductPreview } from "../product-preview"
 
-const meta = {
-  id: "页面-插件-操作与失败恢复",
-  title: "页面/负一屏/自定义/插件/操作与失败恢复",
-  component: ProductPreview,
+export const pageMeta = {
   loaders: [preparePreview],
   args: { page: "plugins" },
   argTypes: productPreviewArgTypes,
   parameters: { layout: "fullscreen", productPage: true, a11y: { test: "todo" } }
-} satisfies Meta<typeof ProductPreview>
-export default meta
-type Story = StoryObj<typeof meta>
-export const Installing: Story = {
+} satisfies SharedMeta<ComponentProps<typeof ProductPreview>>
+
+const meta = preview.meta({
+  id: "页面-插件-操作与失败恢复",
+  title: "页面/负一屏/自定义/插件/操作与失败恢复",
+  // pageMeta is shared with derived files, not a story.
+  excludeStories: ["pageMeta"],
+  component: ProductPreview,
+  ...pageMeta
+})
+export const Installing = meta.story({
   name: "安装处理中",
   args: { pluginOperation: "installing" },
   play: async ({ canvas, userEvent }) => {
@@ -25,9 +31,9 @@ export const Installing: Story = {
     await userEvent.click(await canvas.findByRole("button", { name: /^安装/ }))
     await waitFor(() => expect(Object.values(pluginsStore.getState().busyIds)).toContain("installing"))
   }
-}
-export const InstallError: Story = {
-  ...Installing,
+})
+export const InstallError = meta.story({
+  ...Installing.input,
   name: "安装失败",
   args: { pluginOperation: "installError" },
   play: async ({ canvas, canvasElement, userEvent }) => {
@@ -36,9 +42,9 @@ export const InstallError: Story = {
     await within(canvasElement.ownerDocument.body).findByText(/模拟插件操作失败/)
     await expect(pluginsStore.getState().installed.some((item) => item.plugin.name === "documents")).toBe(false)
   }
-}
-export const InstallRetry: Story = {
-  ...InstallError,
+})
+export const InstallRetry = meta.story({
+  ...InstallError.input,
   name: "安装失败 → 重试成功",
   play: async (context) => {
     await InstallError.play!(context)
@@ -47,8 +53,8 @@ export const InstallRetry: Story = {
       expect(pluginsStore.getState().installed.some((item) => item.plugin.name === "documents")).toBe(true)
     )
   }
-}
-export const Toggling: Story = {
+})
+export const Toggling = meta.story({
   name: "启停处理中",
   args: { pluginOperation: "toggling" },
   play: async ({ canvas, userEvent }) => {
@@ -58,9 +64,9 @@ export const Toggling: Story = {
     await userEvent.click(await canvas.findByRole("switch", { name: /禁用.*Spreadsheets/ }))
     await waitFor(() => expect(Object.values(pluginsStore.getState().busyIds)).toContain("toggling"))
   }
-}
-export const ToggleError: Story = {
-  ...Toggling,
+})
+export const ToggleError = meta.story({
+  ...Toggling.input,
   name: "启停失败 · 回滚状态",
   args: { pluginOperation: "toggleError" },
   play: async ({ canvas, canvasElement, userEvent }) => {
@@ -73,8 +79,8 @@ export const ToggleError: Story = {
       pluginsStore.getState().installed.find((item) => item.plugin.name === "spreadsheets")?.plugin.enabled
     ).toBe(true)
   }
-}
-export const Uninstalling: Story = {
+})
+export const Uninstalling = meta.story({
   name: "卸载处理中",
   args: { pluginOperation: "uninstalling" },
   play: async ({ canvas, canvasElement, userEvent }) => {
@@ -84,9 +90,9 @@ export const Uninstalling: Story = {
     await userEvent.click(await within(canvasElement.ownerDocument.body).findByRole("button", { name: /卸载/ }))
     await waitFor(() => expect(Object.values(pluginsStore.getState().busyIds)).toContain("uninstalling"))
   }
-}
-export const UninstallError: Story = {
-  ...Uninstalling,
+})
+export const UninstallError = meta.story({
+  ...Uninstalling.input,
   name: "卸载失败 · 保留插件",
   args: { pluginOperation: "uninstallError" },
   play: async ({ canvas, canvasElement, userEvent }) => {
@@ -97,9 +103,9 @@ export const UninstallError: Story = {
     await within(canvasElement.ownerDocument.body).findByText(/模拟插件操作失败/)
     await expect(pluginsStore.getState().installed).toHaveLength(2)
   }
-}
-export const UninstallRetry: Story = {
-  ...UninstallError,
+})
+export const UninstallRetry = meta.story({
+  ...UninstallError.input,
   name: "卸载失败 → 重试成功",
   play: async (context) => {
     await UninstallError.play!(context)
@@ -108,17 +114,17 @@ export const UninstallRetry: Story = {
     )
     await waitFor(() => expect(pluginsStore.getState().installed).toHaveLength(1))
   }
-}
-export const Upgrading: Story = {
+})
+export const Upgrading = meta.story({
   name: "升级处理中",
   args: { pluginOperation: "upgrading" },
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(await canvas.findByRole("button", { name: "升级" }))
     await waitFor(() => expect(pluginsStore.getState().upgrading).toBe(true))
   }
-}
-export const UpgradeError: Story = {
-  ...Upgrading,
+})
+export const UpgradeError = meta.story({
+  ...Upgrading.input,
   name: "升级失败",
   args: { pluginOperation: "upgradeError" },
   play: async ({ canvas, canvasElement, userEvent }) => {
@@ -126,17 +132,17 @@ export const UpgradeError: Story = {
     await within(canvasElement.ownerDocument.body).findByText(/模拟插件操作失败/)
     await expect(pluginsStore.getState().upgrading).toBe(false)
   }
-}
-export const UpgradeRetry: Story = {
-  ...UpgradeError,
+})
+export const UpgradeRetry = meta.story({
+  ...UpgradeError.input,
   name: "升级失败 → 重试成功",
   play: async (context) => {
     await UpgradeError.play!(context)
     await context.userEvent.click(within(context.canvasElement).getByRole("button", { name: "升级" }))
     await waitFor(() => expect(pluginsStore.getState().upgrading).toBe(false))
   }
-}
-export const SkillError: Story = {
+})
+export const SkillError = meta.story({
   name: "技能启停失败",
   args: { pluginOperation: "skillError" },
   play: async ({ canvas, canvasElement, userEvent }) => {
@@ -146,4 +152,4 @@ export const SkillError: Story = {
     await within(canvasElement.ownerDocument.body).findByText(/模拟技能启停失败/)
     await expect(pluginsStore.getState().skills.find((skill) => skill.name === "project-review")?.enabled).toBe(true)
   }
-}
+})

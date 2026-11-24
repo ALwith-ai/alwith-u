@@ -1,5 +1,5 @@
-import type { StoryObj } from "@storybook/react-vite"
-import type { LoaderFunction, Parameters } from "storybook/internal/types"
+import type { ReactStory, ReactTypes } from "@storybook/react-vite"
+import type { LoaderFunction, Parameters, StoryAnnotations } from "storybook/internal/types"
 import { expect, waitFor, within } from "storybook/test"
 
 import {
@@ -9,9 +9,6 @@ import {
   playbackDelay
 } from "../fixtures/playback-clock"
 import { preparePreview } from "../fixtures/prepare"
-import type { ProductPreview } from "./product-preview"
-
-export type WorkflowStory = StoryObj<typeof ProductPreview>
 export interface WorkflowConfig {
   labels: string[]
   target: number | null
@@ -84,11 +81,16 @@ export async function workflowAction(_label: string, action: () => unknown) {
   await action()
   await checkpoint?.()
 }
-export function workflowStory(source: WorkflowStory, config: WorkflowConfig): WorkflowStory {
+/** Derives the workflow diagram story from a source interaction story of another meta. */
+export function workflowStory<T extends ReactTypes, TInput extends StoryAnnotations<T, T["args"]>>(
+  source: ReactStory<T, TInput>,
+  config: WorkflowConfig
+): StoryAnnotations<T, T["args"]> {
+  const play = source.input.play
   return {
-    ...source,
+    ...source.input,
     name: "完整流程图",
-    parameters: { ...source.parameters, workflow: config },
+    parameters: { ...source.input.parameters, workflow: config },
     play: async (context) => {
       const target = workflowTarget(config)
       if (target === null) {
@@ -110,7 +112,7 @@ export function workflowStory(source: WorkflowStory, config: WorkflowConfig): Wo
         // Exercise each journey once with its complete assertions. Diagram layout and
         // iframe checkpoint isolation are covered by verify-player.mjs against the build.
         const page = context.canvasElement.querySelector<HTMLElement>("#workflow-page")!
-        await source.play?.({ ...context, canvasElement: page, canvas: within(page) })
+        await play?.({ ...context, canvasElement: page, canvas: within(page) })
         return
       }
       const currentGeneration = generation
@@ -152,8 +154,8 @@ export function workflowStory(source: WorkflowStory, config: WorkflowConfig): Wo
       })
       try {
         const page = context.canvasElement.querySelector<HTMLElement>("#workflow-page")!
-        if (source.play)
-          await source.play({
+        if (play)
+          await play({
             ...context,
             canvasElement: page,
             canvas: within(page),

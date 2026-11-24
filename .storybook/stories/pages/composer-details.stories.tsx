@@ -1,6 +1,5 @@
 import { createSession, type Session } from "@alwith/module-chat/client"
 import { drafts } from "@alwith/module-chat/conversation"
-import type { Meta, StoryObj } from "@storybook/react-vite"
 import { mockIPC } from "@tauri-apps/api/mocks"
 import { type ComponentProps, type ReactNode, useState } from "react"
 import { expect, fn, waitFor } from "storybook/test"
@@ -10,6 +9,8 @@ import { ChatComposer } from "../../../src/features/chat/composer"
 import { DraftProjectPicker } from "../../../src/features/chat/draft-project-picker"
 import type { SettingsRequest } from "../../../src/lib/settings-store"
 import { handleNativeRequest } from "../../fixtures/native"
+import preview from "../../preview"
+import type { SharedMeta } from "../page-meta"
 
 const session: Session = {
   ...createSession("composer-preview", "/Projects/alwith"),
@@ -44,7 +45,7 @@ const session: Session = {
 }
 
 /** U's composer with U's host, as the conversation view mounts it. */
-function Composer(props: ComponentProps<typeof ChatComposer>) {
+export function Composer(props: ComponentProps<typeof ChatComposer>) {
   return (
     <ChatHostProvider>
       <ChatComposer {...props} />
@@ -52,11 +53,8 @@ function Composer(props: ComponentProps<typeof ChatComposer>) {
   )
 }
 
-const meta = {
-  id: "页面-聊天-输入框细节",
+export const pageMeta = {
   tags: ["layout"],
-  title: "页面/主窗聊天/输入框细节",
-  component: Composer,
   globals: { locale: "zh-CN" },
   args: {
     session,
@@ -92,11 +90,18 @@ const meta = {
       )
     }
   }
-} satisfies Meta<typeof Composer>
-export default meta
-type Story = StoryObj<typeof meta>
+} satisfies SharedMeta<ComponentProps<typeof Composer>>
 
-export const Project: Story = {
+// pageMeta is shared with derived files, not a story.
+const meta = preview.meta({
+  id: "页面-聊天-输入框细节",
+  title: "页面/主窗聊天/输入框细节",
+  excludeStories: ["pageMeta", "Composer"],
+  component: Composer,
+  ...pageMeta
+})
+
+export const Project = meta.story({
   name: "已选择项目",
   play: async ({ canvasElement, canvas, userEvent, args }) => {
     const surface = canvasElement.querySelector<HTMLElement>(".codex-composer-surface")!
@@ -120,14 +125,14 @@ export const Project: Story = {
       await expect(canvas.getByRole("textbox")).toHaveAttribute("data-empty", "true")
     })
   }
-}
+})
 
-export const NoProject: Story = {
+export const NoProject = meta.story({
   name: "未选择项目",
   args: { inputHeader: <DraftProjectPicker cwd={null} recentProjects={[]} onChange={fn()} /> }
-}
+})
 
-export const Narrow: Story = {
+export const Narrow = meta.story({
   name: "窄窗口",
   decorators: [
     (Story) => (
@@ -143,9 +148,9 @@ export const Narrow: Story = {
       await expect(button.getBoundingClientRect().right).toBeLessThanOrEqual(surface.getBoundingClientRect().right)
     }
   }
-}
+})
 
-export const LongDraft: Story = {
+export const LongDraft = meta.story({
   name: "长草稿",
   play: async ({ canvasElement, canvas, userEvent }) => {
     const surface = canvasElement.querySelector<HTMLElement>(".codex-composer-surface")!
@@ -159,14 +164,14 @@ export const LongDraft: Story = {
     await expect(textarea.scrollTop).toBeGreaterThan(0)
     await expect(canvas.getByRole("button", { name: "发送" })).toBeVisible()
   }
-}
+})
 
 function ProjectPickerPreview(): ReactNode {
   const [cwd, setCwd] = useState<string | null>("/Projects/alwith")
   return <DraftProjectPicker cwd={cwd} recentProjects={[]} onChange={setCwd} />
 }
 
-export const ExitProject: Story = {
+export const ExitProject = meta.story({
   name: "退出项目",
   play: async ({ canvas, userEvent }) => {
     const clear = canvas.getByRole("button", { name: "不在项目中工作" })
@@ -176,4 +181,4 @@ export const ExitProject: Story = {
     await expect(canvas.getByRole("button", { name: "选择项目" })).toBeVisible()
     await expect(canvas.queryByRole("menu")).toBeNull()
   }
-}
+})

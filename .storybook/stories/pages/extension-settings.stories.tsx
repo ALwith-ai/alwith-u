@@ -1,12 +1,14 @@
 import { Setting } from "@alwith/module-extension/plugin"
-import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useEffect, useState } from "react"
+import type { ComponentProps } from "react"
 
 import { ExtensionSettingsControls } from "../../../src/features/extensions/extension-settings-controls"
+import preview from "../../preview"
+import type { SharedMeta } from "../page-meta"
 import "../../../src/features/settings/settings.css"
 import "../../../src/features/extensions/legacy/styles.css"
 
-function ExtensionSettingsPreview() {
+export function ExtensionSettingsPreview() {
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
   useEffect(() => {
     if (!container) return
@@ -48,8 +50,13 @@ function ExtensionSettingsPreview() {
     </section>
   )
 }
-const meta = { title: "页面/设置页/扩展控件", component: ExtensionSettingsPreview } satisfies Meta<
-  typeof ExtensionSettingsPreview
->
-export default meta
-export const Default: StoryObj<typeof ExtensionSettingsPreview> = { name: "默认控件" }
+export const pageMeta = {} satisfies SharedMeta<ComponentProps<typeof ExtensionSettingsPreview>>
+
+// pageMeta is shared with derived files, not a story.
+const meta = preview.meta({
+  title: "页面/设置页/扩展控件",
+  excludeStories: ["pageMeta", "ExtensionSettingsPreview"],
+  component: ExtensionSettingsPreview,
+  ...pageMeta
+})
+export const Default = meta.story({ name: "默认控件" })

@@ -1,12 +1,14 @@
 import { createEditorController } from "@alwith/module-editor"
 import { Plus } from "lucide-react"
+import type { ComponentProps } from "react"
 
 import { Button as SidebarButton } from "../../../src/components/alwith-ui/button"
+import preview from "../../preview"
+import type { SharedMeta, SharedPlay } from "../page-meta"
 import "@alwith/module-editor/styles.css"
 import { createFileTabs } from "@alwith/module-editor/tabs/core"
 import { createFileSystem } from "@alwith/module-fs"
 import { createMemoryAdapter } from "@alwith/module-fs/testing"
-import type { Meta, StoryObj } from "@storybook/react-vite"
 import { type ReactNode, useEffect, useState } from "react"
 import { expect, waitFor } from "storybook/test"
 
@@ -19,7 +21,7 @@ function filePath(index: number, longNames: boolean): string {
   return `/${index}${longNames && index < 2 ? "-long-file-name".repeat(8) : ""}.txt`
 }
 
-function TabsExample({
+export function TabsExample({
   direction = "ltr",
   count = 3,
   controls = false,
@@ -120,17 +122,22 @@ function pointer(target: EventTarget, type: string, x: number, y: number): void 
   )
 }
 
-const meta = {
-  title: "页面/文件树和预览区/标签拖动",
+export const pageMeta = {
   tags: ["layout"],
-  component: TabsExample,
   globals: { locale: "en" },
   parameters: { layout: "fullscreen", a11y: { test: "off" } }
-} satisfies Meta<typeof TabsExample>
-export default meta
-type Story = StoryObj<typeof meta>
+} satisfies SharedMeta<ComponentProps<typeof TabsExample>>
 
-const followsPointer: NonNullable<Story["play"]> = async ({ canvas, canvasElement, parameters }) => {
+// pageMeta is shared with derived files, not a story.
+const meta = preview.meta({
+  title: "页面/文件树和预览区/标签拖动",
+  excludeStories: ["pageMeta", "TabsExample"],
+  component: TabsExample,
+  ...pageMeta
+})
+type Play = SharedPlay<ComponentProps<typeof TabsExample>>
+
+const followsPointer: Play = async ({ canvas, canvasElement, parameters }) => {
   await waitFor(() => expect(canvas.getAllByRole("tab")).toHaveLength(3))
   const reverse = Boolean(parameters.reverse)
   const source = canvas.getByRole("tab", { name: reverse ? "2.txt" : "0.txt" })
@@ -156,9 +163,9 @@ const followsPointer: NonNullable<Story["play"]> = async ({ canvas, canvasElemen
       const overlay = document.querySelector<HTMLElement>(".alwith-tab-drag-overlay")!
       void expect(overlay.getBoundingClientRect().left).toBeCloseTo(target.left, 0)
       void expect(overlay.getBoundingClientRect().top).toBeCloseTo(start.top, 0)
-      void expect(Math.abs(neighbor.closest("[data-tab-id]")!.getBoundingClientRect().left - before.left)).toBeGreaterThan(
-        start.width - 2
-      )
+      void expect(
+        Math.abs(neighbor.closest("[data-tab-id]")!.getBoundingClientRect().left - before.left)
+      ).toBeGreaterThan(start.width - 2)
     })
     pointer(document, "pointerup", x + dx, y + 20)
     await waitFor(() => {
@@ -173,12 +180,16 @@ const followsPointer: NonNullable<Story["play"]> = async ({ canvas, canvasElemen
   }
 }
 
-export const MoveRight: Story = { play: followsPointer }
-export const MoveLeft: Story = { parameters: { reverse: true }, play: followsPointer }
-export const MoveRtl: Story = { args: { direction: "rtl" }, play: followsPointer }
-export const MoveBackRtl: Story = { args: { direction: "rtl" }, parameters: { reverse: true }, play: followsPointer }
+export const MoveRight = meta.story({ play: followsPointer })
+export const MoveLeft = meta.story({ parameters: { reverse: true }, play: followsPointer })
+export const MoveRtl = meta.story({ args: { direction: "rtl" }, play: followsPointer })
+export const MoveBackRtl = meta.story({
+  args: { direction: "rtl" },
+  parameters: { reverse: true },
+  play: followsPointer
+})
 
-export const Cancel: Story = {
+export const Cancel = meta.story({
   play: async ({ canvas }) => {
     await waitFor(() => expect(canvas.getAllByRole("tab")).toHaveLength(3))
     const source = canvas.getByRole("tab", { name: "0.txt" })
@@ -199,9 +210,9 @@ export const Cancel: Story = {
       pointer(document, "pointercancel", x, y)
     }
   }
-}
+})
 
-const scrollsAtEdge: NonNullable<Story["play"]> = async ({ canvas, canvasElement, args }) => {
+const scrollsAtEdge: Play = async ({ canvas, canvasElement, args }) => {
   await waitFor(() => expect(canvas.getAllByRole("tab")).toHaveLength(12))
   const scroll = canvasElement.querySelector<HTMLElement>(".alwith-workspace-tab-scroll")!
   await waitFor(() => expect(scroll.scrollLeft).toBe(0))
@@ -225,10 +236,10 @@ const scrollsAtEdge: NonNullable<Story["play"]> = async ({ canvas, canvasElement
   }
 }
 
-export const Overflow: Story = { args: { count: 12 }, play: scrollsAtEdge }
-export const OverflowRtl: Story = { args: { count: 12, direction: "rtl" }, play: scrollsAtEdge }
+export const Overflow = meta.story({ args: { count: 12 }, play: scrollsAtEdge })
+export const OverflowRtl = meta.story({ args: { count: 12, direction: "rtl" }, play: scrollsAtEdge })
 
-export const HeaderControls: Story = {
+export const HeaderControls = meta.story({
   args: { controls: true },
   loaders: [() => initI18n("en")],
   play: async ({ canvas, canvasElement }) => {
@@ -281,14 +292,16 @@ export const HeaderControls: Story = {
           )
           void expect(tooltip).toBeDefined()
           void expect(tooltip).toHaveAttribute("data-side", "bottom")
-          void expect(tooltip!.getBoundingClientRect().top).toBeGreaterThanOrEqual(button.getBoundingClientRect().bottom)
+          void expect(tooltip!.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+            button.getBoundingClientRect().bottom
+          )
         })
       }
     }
   }
-}
+})
 
-export const FileNameTruncation: Story = {
+export const FileNameTruncation = meta.story({
   args: { longNames: true },
   play: async ({ canvas, userEvent }) => {
     await waitFor(() => expect(canvas.getAllByRole("tab")).toHaveLength(3))
@@ -314,9 +327,9 @@ export const FileNameTruncation: Story = {
       void expect(firstTitle.clientWidth - secondTitle.clientWidth).toBe(25)
     })
   }
-}
+})
 
-export const WorkspaceHeaderLayout: Story = {
+export const WorkspaceHeaderLayout = meta.story({
   args: { controls: true, count: 10 },
   loaders: [() => initI18n("en")],
   play: async ({ canvas, canvasElement, userEvent }) => {
@@ -355,9 +368,9 @@ export const WorkspaceHeaderLayout: Story = {
     })
     void expect(canvas.getByRole("button", { name: "Close workspace" })).toBeVisible()
   }
-}
+})
 
-export const CloseTitleFade: Story = {
+export const CloseTitleFade = meta.story({
   args: { longNames: true },
   play: async ({ canvas, canvasElement }) => {
     await waitFor(() => expect(canvas.getAllByRole("tab")).toHaveLength(3))
@@ -385,9 +398,9 @@ export const CloseTitleFade: Story = {
     )
     void expect(canvasElement.querySelectorAll(".alwith-workspace-tab")).toHaveLength(3)
   }
-}
+})
 
-export const NewTabDockDivider: Story = {
+export const NewTabDockDivider = meta.story({
   args: { controls: true, count: 1 },
   loaders: [() => initI18n("en")],
   play: async ({ canvas, canvasElement }) => {
@@ -404,9 +417,9 @@ export const NewTabDockDivider: Story = {
     await waitFor(() => expect(controls).toHaveAttribute("data-new-tab-docked", "false"))
     void expect(getComputedStyle(controls, "::before").content).toBe("none")
   }
-}
+})
 
-export const SidebarIconParity: Story = {
+export const SidebarIconParity = meta.story({
   loaders: [() => initI18n("en")],
   render: () => (
     <>
@@ -464,9 +477,9 @@ export const SidebarIconParity: Story = {
       void expect(icon.getScreenCTM()!.d).toBe(reference.getScreenCTM()!.d)
     }
   }
-}
+})
 
-export const DragBounds: Story = {
+export const DragBounds = meta.story({
   play: async ({ canvas, canvasElement }) => {
     await waitFor(() => expect(canvas.getAllByRole("tab")).toHaveLength(3))
     const source = canvas.getByRole("tab", { name: "1.txt" })
@@ -496,5 +509,5 @@ export const DragBounds: Story = {
       pointer(document, "pointercancel", x, y)
     }
   }
-}
-export const DragBoundsRtl: Story = { ...DragBounds, args: { direction: "rtl" } }
+})
+export const DragBoundsRtl = meta.story({ ...DragBounds.input, args: { direction: "rtl" } })

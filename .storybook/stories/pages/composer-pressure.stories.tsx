@@ -1,14 +1,15 @@
 import type { Session } from "@alwith/module-chat/client"
 import { drafts } from "@alwith/module-chat/conversation"
-import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useEffect, useRef, useState } from "react"
+import type { ComponentProps } from "react"
 
-import base from "./composer-details.stories"
+import preview from "../../preview"
+import type { SharedMeta } from "../page-meta"
+import { Composer, pageMeta as base } from "./composer-details.stories"
 
 const session = base.args.session
-const Composer = base.component
 
-function PressureComposer() {
+export function PressureComposer() {
   const [current, setCurrent] = useState<Session>(() => ({
     ...session,
     id: "composer-pressure",
@@ -91,17 +92,21 @@ function PressureComposer() {
   )
 }
 
-const meta = {
+export const pageMeta = {
   ...base,
-  id: "页面-聊天-输入压力",
   tags: [],
-  title: "页面/主窗聊天/输入压力",
-  component: PressureComposer,
   args: {}
-} satisfies Meta<typeof PressureComposer>
-export default meta
-type Story = StoryObj<typeof meta>
+} satisfies SharedMeta<ComponentProps<typeof PressureComposer>>
 
-export const TypingPressure: Story = {
+// pageMeta is shared with derived files, not a story.
+const meta = preview.meta({
+  id: "页面-聊天-输入压力",
+  title: "页面/主窗聊天/输入压力",
+  excludeStories: ["pageMeta", "PressureComposer"],
+  component: PressureComposer,
+  ...pageMeta
+})
+
+export const TypingPressure = meta.story({
   name: "输入压力：长会话与持续更新"
-}
+})

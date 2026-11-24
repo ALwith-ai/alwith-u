@@ -3,9 +3,9 @@ import { createFileTabs } from "@alwith/module-editor/tabs/core"
 import { createFileTreeController, FileTree } from "@alwith/module-file-tree"
 import { createFileSystem } from "@alwith/module-fs"
 import { createMemoryAdapter } from "@alwith/module-fs/testing"
-import type { Meta, StoryObj } from "@storybook/react-vite"
 import { FolderTree } from "lucide-react"
 import { type ReactNode, useEffect, useState } from "react"
+import type { ComponentProps } from "react"
 import { expect, waitFor } from "storybook/test"
 
 import { Button } from "@/components/ui/button"
@@ -14,11 +14,13 @@ import { useTheme } from "../../../src/components/theme-provider"
 import { PreviewSurface } from "../../../src/features/workspace/preview-surface"
 import { createTreeOpener } from "../../../src/features/workspace/tree-opener"
 import { WorkspaceEditor } from "../../../src/features/workspace/workspace-editor"
+import preview from "../../preview"
+import type { SharedMeta } from "../page-meta"
 import "@alwith/module-file-tree/styles.css"
 import "@alwith/module-editor/styles.css"
 import "../../../src/features/workspace/workspace.css"
 
-function PreviewExample(): ReactNode {
+export function PreviewExample(): ReactNode {
   const { resolvedTheme } = useTheme()
   const [error, setError] = useState("")
   const [treeVisible, setTreeVisible] = useState(true)
@@ -104,17 +106,21 @@ function PreviewExample(): ReactNode {
     </div>
   )
 }
-const meta = {
-  id: "页面-文件工作区-预览区细节",
+export const pageMeta = {
   globals: { locale: "en" },
-  title: "页面/文件树和预览区/预览区细节",
-  component: PreviewExample,
   parameters: { layout: "fullscreen" }
-} satisfies Meta<typeof PreviewExample>
-export default meta
-type Story = StoryObj<typeof meta>
-export const NewTab: Story = { name: "新建标签页" }
-export const TabInteractions: Story = {
+} satisfies SharedMeta<ComponentProps<typeof PreviewExample>>
+
+// pageMeta is shared with derived files, not a story.
+const meta = preview.meta({
+  id: "页面-文件工作区-预览区细节",
+  title: "页面/文件树和预览区/预览区细节",
+  excludeStories: ["pageMeta", "PreviewExample"],
+  component: PreviewExample,
+  ...pageMeta
+})
+export const NewTab = meta.story({ name: "新建标签页" })
+export const TabInteractions = meta.story({
   name: "标签页交互",
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(await canvas.findByRole("treeitem", { name: "summary.txt" }))
@@ -132,4 +138,4 @@ export const TabInteractions: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "Reopen preview" }))
     void expect(canvas.getByRole("tab", { name: "summary.txt" })).toHaveAttribute("aria-selected", "true")
   }
-}
+})

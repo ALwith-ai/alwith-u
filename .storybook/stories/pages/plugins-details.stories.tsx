@@ -1,6 +1,6 @@
 import type { PluginDetail, PluginSummary } from "@alwith/module-chat/client"
-import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useEffect, useLayoutEffect } from "react"
+import type { ComponentProps } from "react"
 import { expect, waitFor, within } from "storybook/test"
 
 import { LeadingNavigation } from "../../../src/features/layout/components/leading-navigation"
@@ -11,6 +11,8 @@ import { PluginsPage } from "../../../src/features/plugins/plugins-page"
 import { skillDocuments } from "../../../src/features/plugins/request-cache"
 import { client } from "../../../src/lib/client"
 import { virtualFiles } from "../../fixtures/filesystem"
+import preview from "../../preview"
+import type { SharedMeta } from "../page-meta"
 
 const summary: PluginSummary = {
   id: "example-plugin",
@@ -80,7 +82,7 @@ const detail: PluginDetail = {
   ]
 }
 
-function DetailPreview({ failed = false }: { failed?: boolean }) {
+export function DetailPreview({ failed = false }: { failed?: boolean }) {
   useEffect(() => {
     const previous = pluginsStore.getState()
     pluginsStore.setState({
@@ -98,20 +100,24 @@ function DetailPreview({ failed = false }: { failed?: boolean }) {
   )
 }
 
-const meta = {
-  id: "页面-插件-详情细节",
+export const pageMeta = {
   tags: ["layout"],
   globals: { locale: "en" },
-  title: "页面/负一屏/自定义/插件/详情细节",
-  component: DetailPreview,
   parameters: { layout: "fullscreen" }
-} satisfies Meta<typeof DetailPreview>
-export default meta
-type Story = StoryObj<typeof meta>
-export const SourceDetails: Story = { name: "插件来源详情" }
-export const SourceUnavailable: Story = { name: "插件来源不可用", args: { failed: true } }
+} satisfies SharedMeta<ComponentProps<typeof DetailPreview>>
 
-export const SkillMarkdown: Story = {
+// pageMeta is shared with derived files, not a story.
+const meta = preview.meta({
+  id: "页面-插件-详情细节",
+  title: "页面/负一屏/自定义/插件/详情细节",
+  excludeStories: ["pageMeta", "DetailPreview"],
+  component: DetailPreview,
+  ...pageMeta
+})
+export const SourceDetails = meta.story({ name: "插件来源详情" })
+export const SourceUnavailable = meta.story({ name: "插件来源不可用", args: { failed: true } })
+
+export const SkillMarkdown = meta.story({
   name: "技能文档预览",
   beforeEach: () => {
     skillDocuments.clear()
@@ -152,7 +158,7 @@ export const SkillMarkdown: Story = {
     await expect(header.getBoundingClientRect().top).toBe(top)
     await expect(getComputedStyle(dialog).overflowY).toBe("hidden")
   }
-}
+})
 
 function CatalogPreview() {
   useLayoutEffect(() => {
@@ -197,7 +203,7 @@ function CatalogPreview() {
   )
 }
 
-export const CatalogLayout: Story = {
+export const CatalogLayout = meta.story({
   name: "插件目录布局",
   globals: { locale: "en" },
   render: () => <CatalogPreview />,
@@ -243,4 +249,4 @@ export const CatalogLayout: Story = {
     await expect(description).toBeVisible()
     await expect(sidebar).toBeVisible()
   }
-}
+})

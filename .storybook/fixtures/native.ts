@@ -370,6 +370,16 @@ export function handleNativeRequest(command: string, payload?: unknown): unknown
     return { operationId: "storybook-inbox", tasks: [], errors: [] }
   if (command === "plugin:extension|dispatch" || command === "plugin:alwith-extension|dispatch")
     return extensionRequest(args.request as Parameters<typeof extensionRequest>[0])
+  if (command === "plugin:alwith-terminal|request") {
+    // Storybook has no terminals: nothing is running in any session, and nothing can be started here.
+    const method = args.method
+    if (method === "capabilities") return { version: 1, headless: false, interactiveView: false }
+    if (method === "list") return []
+    if (method === "snapshot") return null
+    if (method === "listeningPorts")
+      return (args.params as { sessionIds: string[] }).sessionIds.map((sessionId) => ({ sessionId, ports: [] }))
+    throw new Error(`Unimplemented Storybook terminal request: ${String(method)}`)
+  }
   if (command === "gamepad_permission") return { supported: true, authorized: true, mayPrompt: false, known: true }
   if (command === "gamepad_capture") return
   if (command === "gamepad_catalog") return []

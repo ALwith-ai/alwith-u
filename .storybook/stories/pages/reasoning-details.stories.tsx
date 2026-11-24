@@ -1,15 +1,17 @@
 import { acknowledgePrompt, addPrompt, applyUpdate, createSession } from "@alwith/module-chat/client"
-import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useState } from "react"
+import type { ComponentProps } from "react"
 import { expect, waitFor } from "storybook/test"
 
 import { Button } from "@/components/ui/button"
 
 import { ChatTimeline } from "../../fixtures/chat-timeline"
+import preview from "../../preview"
+import type { SharedMeta } from "../page-meta"
 
 const paragraphs = Array.from({ length: 24 }, (_, index) => `Checking step ${index + 1} of the long task.`).join("\n\n")
 
-function ReasoningPreview() {
+export function ReasoningPreview() {
   const [id] = useState(() => crypto.randomUUID())
   // A sent prompt opens the turn, which stays live so its work section remains open as reasoning streams.
   const [session, setSession] = useState(() => {
@@ -68,11 +70,8 @@ function ReasoningPreview() {
   )
 }
 
-const meta = {
-  id: "页面-聊天-思考细节",
+export const pageMeta = {
   tags: ["layout"],
-  title: "页面/主窗聊天/思考细节",
-  component: ReasoningPreview,
   globals: { locale: "en" },
   parameters: {
     a11y: {
@@ -82,11 +81,18 @@ const meta = {
       }
     }
   }
-} satisfies Meta<typeof ReasoningPreview>
-export default meta
-type Story = StoryObj<typeof meta>
+} satisfies SharedMeta<ComponentProps<typeof ReasoningPreview>>
 
-export const LivePreview: Story = {
+// pageMeta is shared with derived files, not a story.
+const meta = preview.meta({
+  id: "页面-聊天-思考细节",
+  title: "页面/主窗聊天/思考细节",
+  excludeStories: ["pageMeta", "ReasoningPreview"],
+  component: ReasoningPreview,
+  ...pageMeta
+})
+
+export const LivePreview = meta.story({
   name: "实时预览",
   play: async ({ canvas, canvasElement, userEvent }) => {
     const viewport = () => {
@@ -137,4 +143,4 @@ export const LivePreview: Story = {
     await userEvent.tab()
     void expect(canvas.getByRole("region", { name: "Thought" })).toHaveFocus()
   }
-}
+})

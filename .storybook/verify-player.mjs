@@ -27,18 +27,18 @@ try {
       { timeout: 60_000 }
     )
   }
-  await open("workflow-navigation-modules--sequence")
+  await open("workflow-account-register--sequence")
   assert.equal(
     await page.locator("[data-workflow-viewport]").evaluate((node) => node.scrollTop),
     0,
     "Checkpoint focus scrolled away from the first row"
   )
   assert.equal(await page.locator("[data-workflow-action]").count(), 5)
-  assert.equal(await page.locator('[data-workflow-action="1"]').innerText(), "点击 · 自定义")
+  assert.equal(await page.locator('[data-workflow-action="1"]').innerText(), "点击 · 注册")
   assert.equal(await page.locator("[data-workflow-page-title]").count(), 0)
   for (const width of [1440, 2200]) {
     await page.setViewportSize({ width, height: 1000 })
-    await page.waitForTimeout(100)
+    await page.waitForFunction((expected) => window.innerWidth === expected, width)
     const cards = await page.locator("[data-workflow-step]").evaluateAll((nodes) =>
       nodes.map((node) => ({
         index: Number(node.getAttribute("data-workflow-step")),
@@ -77,7 +77,7 @@ try {
   }
   await page.screenshot({ path: "/tmp/workflow-horizontal-overview.png", fullPage: true })
   await page.setViewportSize({ width: 1440, height: 1000 })
-  await page.waitForTimeout(100)
+  await page.waitForFunction(() => window.innerWidth === 1440)
   const viewport = page.locator("[data-workflow-viewport]")
   const area = await viewport.boundingBox()
   const panCanvas = async (fromX, toX, y) => {
@@ -131,7 +131,7 @@ try {
   assert(await page.getByRole("button", { name: "放大流程图", exact: true }).isVisible())
   await page.setViewportSize({ width: 1440, height: 1000 })
   for (const story of [
-    "workflow-navigation-guide--sequence",
+    "workflow-files-dirtysave--sequence",
     "workflow-plugin-recovery-install--sequence",
     "workflow-settings-sections--sequence"
   ]) {

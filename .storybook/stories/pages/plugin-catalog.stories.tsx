@@ -1,13 +1,15 @@
 import type { PluginSummary } from "@alwith/module-chat/client"
-import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useEffect } from "react"
+import type { ComponentProps } from "react"
 
 import { createPluginCatalogStore } from "../../../src/features/plugins/catalog-store"
 import { pluginsStore } from "../../../src/features/plugins/instance"
 import { PluginsPage } from "../../../src/features/plugins/plugins-page"
 import { client } from "../../../src/lib/client"
+import preview from "../../preview"
+import type { SharedMeta } from "../page-meta"
 
-function CatalogPreview({ loading = false }: { loading?: boolean }) {
+export function CatalogPreview({ loading = false }: { loading?: boolean }) {
   useEffect(() => {
     const previous = pluginsStore.getState()
     const app = client.state
@@ -120,15 +122,19 @@ function CatalogPreview({ loading = false }: { loading?: boolean }) {
   )
 }
 
-const meta = {
-  title: "页面/负一屏/自定义/插件/目录布局",
-  component: CatalogPreview,
+export const pageMeta = {
   parameters: { layout: "fullscreen" }
-} satisfies Meta<typeof CatalogPreview>
-export default meta
-type Story = StoryObj<typeof meta>
-export const UnifiedCatalog: Story = { name: "插件与技能目录" }
-export const Narrow: Story = {
+} satisfies SharedMeta<ComponentProps<typeof CatalogPreview>>
+
+// pageMeta is shared with derived files, not a story.
+const meta = preview.meta({
+  title: "页面/负一屏/自定义/插件/目录布局",
+  excludeStories: ["pageMeta", "CatalogPreview"],
+  component: CatalogPreview,
+  ...pageMeta
+})
+export const UnifiedCatalog = meta.story({ name: "插件与技能目录" })
+export const Narrow = meta.story({
   name: "窄窗口",
   decorators: [
     (Story) => (
@@ -137,6 +143,6 @@ export const Narrow: Story = {
       </div>
     )
   ]
-}
+})
 
-export const Loading: Story = { name: "加载中", args: { loading: true } }
+export const Loading = meta.story({ name: "加载中", args: { loading: true } })

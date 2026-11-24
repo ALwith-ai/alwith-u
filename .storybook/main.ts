@@ -1,7 +1,7 @@
 import path from "node:path"
 
 import { shadcn } from "@nyssance/shadcn/vite"
-import type { StorybookConfig } from "@storybook/react-vite"
+import { defineMain } from "@storybook/react-vite/node"
 import tailwindcss from "@tailwindcss/vite"
 
 const boundaries = {
@@ -18,12 +18,14 @@ const boundaries = {
   "features/workspace/html-preview": "html-preview.ts"
 }
 
-const config: StorybookConfig = {
+export default defineMain({
   stories:
     process.env.ATLAS_LAYOUT_TEST === "1"
       ? ["./stories/pages/canvas-details.stories.tsx"]
       : ["./stories/page-boards/**/*.stories.tsx", "./stories/flows/**/*.stories.tsx"],
   docs: { defaultName: "说明文档" },
+  // TypeScript 7.0 没有文档引擎能用的 API,Controls 与文档参数表改由并装的 TypeScript 6 读取
+  typescript: { docgenSpecifier: "@typescript/typescript6" },
   staticDirs: [
     "../public",
     { from: "./assets", to: "/storybook-fixtures" },
@@ -294,6 +296,4 @@ const config: StorybookConfig = {
       locales: "zh-CN"
     }
   ]
-}
-
-export default config
+})

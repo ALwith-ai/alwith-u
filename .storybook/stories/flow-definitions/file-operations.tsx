@@ -1,25 +1,31 @@
-import type { Meta, StoryObj } from "@storybook/react-vite"
+import type { ComponentProps } from "react"
 import { expect, waitFor, within } from "storybook/test"
 
 import { PROJECT_DIRECTORY } from "../../fixtures/catalog"
 import { typeInEditor } from "../../fixtures/editor-input"
 import { fileRequest, virtualFiles } from "../../fixtures/filesystem"
 import { preparePreview } from "../../fixtures/prepare"
+import preview from "../../preview"
+import type { SharedMeta } from "../page-meta"
 import { productPreviewArgTypes } from "../preview-options"
 import { ProductPreview } from "../product-preview"
 import { workflowAction } from "../workflow-driver"
 
-const meta = {
-  title: "流程/文件树和预览区/文件操作与恢复",
-  component: ProductPreview,
+export const pageMeta = {
   loaders: [preparePreview],
   args: { page: "chat", chatCase: "files", file: "README.md" },
   argTypes: productPreviewArgTypes,
   parameters: { layout: "fullscreen", productPage: true, a11y: { test: "todo" } }
-} satisfies Meta<typeof ProductPreview>
-export default meta
-type Story = StoryObj<typeof meta>
-export const NewFolder: Story = {
+} satisfies SharedMeta<ComponentProps<typeof ProductPreview>>
+
+// pageMeta is shared with derived files, not a story.
+const meta = preview.meta({
+  title: "流程/文件树和预览区/文件操作与恢复",
+  excludeStories: ["pageMeta"],
+  component: ProductPreview,
+  ...pageMeta
+})
+export const NewFolder = meta.story({
   name: "新建文件夹 → 输入名称 → 完成",
   play: async ({ canvas, canvasElement, userEvent }) => {
     await userEvent.click(await canvas.findByRole("button", { name: "新建文件夹" }))
@@ -33,8 +39,8 @@ export const NewFolder: Story = {
       ).toMatchObject({ kind: "directory" })
     )
   }
-}
-export const Rename: Story = {
+})
+export const Rename = meta.story({
   name: "文件重命名 → 编辑名称 → 保存",
   play: async ({ canvas, canvasElement, userEvent }) => {
     await userEvent.pointer({
@@ -49,8 +55,8 @@ export const Rename: Story = {
     await waitFor(() => expect(virtualFiles.has(`${PROJECT_DIRECTORY}/review.txt`)).toBe(true))
     await expect(virtualFiles.has(`${PROJECT_DIRECTORY}/notes.txt`)).toBe(false)
   }
-}
-export const Delete: Story = {
+})
+export const Delete = meta.story({
   name: "删除文件 → 确认 → 列表更新",
   play: async ({ canvas, canvasElement, userEvent }) => {
     await userEvent.pointer({
@@ -62,8 +68,8 @@ export const Delete: Story = {
     await userEvent.click(within(await body.findByRole("dialog")).getByRole("button", { name: "删除" }))
     await waitFor(() => expect(virtualFiles.has(`${PROJECT_DIRECTORY}/notes.txt`)).toBe(false))
   }
-}
-export const SaveRetry: Story = {
+})
+export const SaveRetry = meta.story({
   name: "修改文件 → 保存失败 → 再次保存成功",
   args: { file: "notes.txt", fileCase: "saveError" },
   play: async ({ canvas, canvasElement, userEvent }) => {
@@ -81,4 +87,4 @@ export const SaveRetry: Story = {
       )
     )
   }
-}
+})

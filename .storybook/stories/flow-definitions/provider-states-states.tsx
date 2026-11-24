@@ -1,43 +1,49 @@
-import type { Meta, StoryObj } from "@storybook/react-vite"
+import type { ComponentProps } from "react"
 import { expect } from "storybook/test"
 
 import { preparePreview } from "../../fixtures/prepare"
+import preview from "../../preview"
+import type { SharedMeta } from "../page-meta"
 import { productPreviewArgTypes } from "../preview-options"
 import { ProductPreview } from "../product-preview"
-const meta = {
-  title: "流程/设置页/供应商配置",
-  component: ProductPreview,
+export const pageMeta = {
   loaders: [preparePreview],
   args: { page: "settings", settingsSection: "provider" },
   parameters: { layout: "fullscreen", productPage: true, a11y: { test: "todo" } },
   argTypes: productPreviewArgTypes
-} satisfies Meta<typeof ProductPreview>
-export default meta
-type Story = StoryObj<typeof meta>
+} satisfies SharedMeta<ComponentProps<typeof ProductPreview>>
 
-export const CustomNew: Story = {
+// pageMeta is shared with derived files, not a story.
+const meta = preview.meta({
+  title: "流程/设置页/供应商配置",
+  excludeStories: ["pageMeta"],
+  component: ProductPreview,
+  ...pageMeta
+})
+
+export const CustomNew = meta.story({
   name: "新增自定义供应商",
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(await canvas.findByRole("button", { name: "自定义" }))
   }
-}
-export const CustomEdit: Story = {
+})
+export const CustomEdit = meta.story({
   name: "编辑已有自定义供应商",
   args: { providerCase: "custom" },
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(await canvas.findByRole("button", { name: "团队模型网关" }))
   }
-}
-export const JsonEditor: Story = {
-  ...CustomEdit,
+})
+export const JsonEditor = meta.story({
+  ...CustomEdit.input,
   name: "编辑模型列表 JSON",
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(await canvas.findByRole("button", { name: "团队模型网关" }))
     await userEvent.click(canvas.getByRole("button", { name: "编辑 JSON" }))
   }
-}
-export const JsonInvalid: Story = {
-  ...JsonEditor,
+})
+export const JsonInvalid = meta.story({
+  ...JsonEditor.input,
   name: "模型 JSON 格式错误",
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(await canvas.findByRole("button", { name: "团队模型网关" }))
@@ -48,9 +54,9 @@ export const JsonInvalid: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "预览模型" }))
     await canvas.findByRole("alert")
   }
-}
-export const JsonDuplicate: Story = {
-  ...JsonEditor,
+})
+export const JsonDuplicate = meta.story({
+  ...JsonEditor.input,
   name: "模型 ID 重复",
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(await canvas.findByRole("button", { name: "团队模型网关" }))
@@ -61,31 +67,43 @@ export const JsonDuplicate: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "预览模型" }))
     await canvas.findByRole("alert")
   }
-}
+})
 
-export const TestSuccess: Story = {
+export const TestSuccess = meta.story({
   name: "连接测试成功",
   args: { providerCase: "pending" },
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(await canvas.findByRole("button", { name: "测试连接" }))
     await canvas.findByRole("status")
   }
-}
-export const InvalidKey: Story = { ...TestSuccess, name: "API 密钥无效", args: { providerCase: "invalidKey" } }
-export const Timeout: Story = { ...TestSuccess, name: "连接超时", args: { providerCase: "timeout" } }
-export const Network: Story = { ...TestSuccess, name: "网络连接失败", args: { providerCase: "network" } }
-export const RateLimited: Story = { ...TestSuccess, name: "请求限流或余额不足", args: { providerCase: "rateLimited" } }
-export const Unsupported: Story = { ...TestSuccess, name: "接口返回格式无效", args: { providerCase: "unsupported" } }
-export const Testing: Story = {
-  ...TestSuccess,
+})
+export const InvalidKey = meta.story({
+  ...TestSuccess.input,
+  name: "API 密钥无效",
+  args: { providerCase: "invalidKey" }
+})
+export const Timeout = meta.story({ ...TestSuccess.input, name: "连接超时", args: { providerCase: "timeout" } })
+export const Network = meta.story({ ...TestSuccess.input, name: "网络连接失败", args: { providerCase: "network" } })
+export const RateLimited = meta.story({
+  ...TestSuccess.input,
+  name: "请求限流或余额不足",
+  args: { providerCase: "rateLimited" }
+})
+export const Unsupported = meta.story({
+  ...TestSuccess.input,
+  name: "接口返回格式无效",
+  args: { providerCase: "unsupported" }
+})
+export const Testing = meta.story({
+  ...TestSuccess.input,
   name: "连接测试中",
   args: { providerCase: "testing" },
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(await canvas.findByRole("button", { name: "测试连接" }))
     await expect(canvas.getByRole("button", { name: "测试连接" })).toBeDisabled()
   }
-}
-export const Saving: Story = {
+})
+export const Saving = meta.story({
   name: "密钥保存中",
   args: { providerCase: "saving" },
   play: async ({ canvas, userEvent }) => {
@@ -94,4 +112,4 @@ export const Saving: Story = {
     await userEvent.click(canvas.getByRole("button", { name: /保存$/ }))
     await expect(canvas.getByRole("button", { name: /保存$/ })).toBeDisabled()
   }
-}
+})

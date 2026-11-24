@@ -1,16 +1,18 @@
+import { modelTriggerLabel, presentModelCatalog } from "@alwith/module-chat/desktop"
 import { type ChatModelOption, ModelSelect } from "@alwith/module-chat/model-select"
-import type { Meta, StoryObj } from "@storybook/react-vite"
 import { mockIPC } from "@tauri-apps/api/mocks"
 import { ExternalLink } from "lucide-react"
 import { type ReactElement, useState } from "react"
+import type { ComponentProps } from "react"
 import { expect, fn, waitFor, within } from "storybook/test"
 
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 
-import { modelTriggerLabel, presentModelCatalog } from "@alwith/module-chat/desktop"
 import { gatewayModelId } from "../../../src/lib/providers"
 import type { SettingsRequest } from "../../../src/lib/settings-store"
 import { handleNativeRequest } from "../../fixtures/native"
+import preview from "../../preview"
+import type { SharedMeta } from "../page-meta"
 
 const catalog = [
   {
@@ -37,7 +39,7 @@ const catalog = [
 
 const configureModels = fn()
 
-function ModelMenuPreview({ delay = 0 }: { delay?: number }): ReactElement {
+export function ModelMenuPreview({ delay = 0 }: { delay?: number }): ReactElement {
   const [selected, setSelected] = useState("GPT-6.1-Sol")
   const [effort, setEffort] = useState("medium")
   const [fast, setFast] = useState(false)
@@ -94,11 +96,8 @@ function ModelMenuPreview({ delay = 0 }: { delay?: number }): ReactElement {
   )
 }
 
-const meta = {
-  id: "页面-聊天-模型菜单",
+export const pageMeta = {
   tags: ["layout"],
-  title: "页面/主窗聊天/模型菜单",
-  component: ModelMenuPreview,
   globals: { locale: "zh-CN" },
   beforeEach: () => {
     configureModels.mockClear()
@@ -127,13 +126,20 @@ const meta = {
       )
     }
   }
-} satisfies Meta<typeof ModelMenuPreview>
-export default meta
-type Story = StoryObj<typeof meta>
+} satisfies SharedMeta<ComponentProps<typeof ModelMenuPreview>>
 
-export const Overview: Story = { name: "模型菜单概览" }
+// pageMeta is shared with derived files, not a story.
+const meta = preview.meta({
+  id: "页面-聊天-模型菜单",
+  title: "页面/主窗聊天/模型菜单",
+  excludeStories: ["pageMeta", "ModelMenuPreview"],
+  component: ModelMenuPreview,
+  ...pageMeta
+})
 
-export const DelayedEffort: Story = {
+export const Overview = meta.story({ name: "模型菜单概览" })
+
+export const DelayedEffort = meta.story({
   args: { delay: 500 },
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(canvas.getByTestId("model-trigger"))
@@ -148,9 +154,9 @@ export const DelayedEffort: Story = {
     await userEvent.unhover(canvas.getByTestId("model-trigger"))
     await waitFor(async () => expect(document.querySelector("[data-base-ui-focus-guard]")).toBeNull())
   }
-}
+})
 
-export const Providers: Story = {
+export const Providers = meta.story({
   name: "模型供应商",
   play: async ({ canvas, userEvent }) => {
     const body = within(document.body)
@@ -181,9 +187,9 @@ export const Providers: Story = {
     await expect(canvas.getByTestId("model-trigger")).toHaveTextContent("Extra High")
     await waitFor(async () => expect(document.querySelector("[data-base-ui-focus-guard]")).toBeNull())
   }
-}
+})
 
-export const ScrollableCatalog: Story = {
+export const ScrollableCatalog = meta.story({
   name: "可滚动模型目录",
   play: async ({ canvas, userEvent }) => {
     const body = within(document.body)
@@ -211,13 +217,13 @@ export const ScrollableCatalog: Story = {
     await expect(configureModels).toHaveBeenCalled()
     await waitFor(async () => expect(body.queryByRole("menu")).toBeNull())
   }
-}
+})
 
-export const OpenMenu: Story = {
+export const OpenMenu = meta.story({
   parameters: { a11y: { test: "todo" } },
   name: "展开模型菜单",
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(canvas.getByTestId("model-trigger"))
     await waitFor(async () => expect(document.querySelector("[data-model-menu-list]")).not.toBeNull())
   }
-}
+})

@@ -1,9 +1,11 @@
 import type { BrowserBridgeHost } from "@alwith/module-browser"
-import type { Meta, StoryObj } from "@storybook/react-vite"
 import { GlobeIcon } from "lucide-react"
+import type { ComponentProps } from "react"
 import { userEvent, within } from "storybook/test"
 
 import { BrowserBridgeCard } from "../../../src/features/layout/components/browser-bridge-card"
+import preview from "../../preview"
+import type { SharedMeta, SharedPlay } from "../page-meta"
 
 const host: BrowserBridgeHost = {
   extensionInstalled: () => Promise.resolve(false),
@@ -11,12 +13,15 @@ const host: BrowserBridgeHost = {
   ping: () => Promise.resolve(false),
   setEnabled: () => Promise.resolve()
 }
-const meta = {
-  title: "页面/右侧隐藏屏",
-  component: BrowserBridgeCard,
+export const pageMeta = {
   parameters: {
     layout: "fullscreen",
-    docs: { description: { component: "02：扩展已安装，但“启用浏览器控制”开关关闭，连接桥尚未注册。两个圆点为一绿一灰。产品提示：打开“启用浏览器控制”以注册桥。\n\n03：扩展已安装，“启用浏览器控制”开关打开，连接桥已注册，但尚未建立连接。两个圆点同样为一绿一灰。产品提示：重新加载扩展或重启浏览器，然后再次检测。\n\n浏览器缩略卡片和详情浮层复用真实产品组件。详情锚定在卡片右下角的状态圆点上，向左展开；错开和重叠保留产品原有定位。" } }
+    docs: {
+      description: {
+        component:
+          "02：扩展已安装，但“启用浏览器控制”开关关闭，连接桥尚未注册。两个圆点为一绿一灰。产品提示：打开“启用浏览器控制”以注册桥。\n\n03：扩展已安装，“启用浏览器控制”开关打开，连接桥已注册，但尚未建立连接。两个圆点同样为一绿一灰。产品提示：重新加载扩展或重启浏览器，然后再次检测。\n\n浏览器缩略卡片和详情浮层复用真实产品组件。详情锚定在卡片右下角的状态圆点上，向左展开；错开和重叠保留产品原有定位。"
+      }
+    }
   },
   args: { title: "Google Chrome", icon: <GlobeIcon />, onOpen: () => {}, active: true, host },
   decorators: [
@@ -28,34 +33,59 @@ const meta = {
       </div>
     )
   ]
-} satisfies Meta<typeof BrowserBridgeCard>
-export default meta
-type Story = StoryObj<typeof meta>
-const openDetails: Story["play"] = async ({ canvasElement }) => {
+} satisfies SharedMeta<ComponentProps<typeof BrowserBridgeCard>>
+
+// pageMeta is shared with derived files, not a story.
+const meta = preview.meta({
+  title: "页面/右侧隐藏屏",
+  excludeStories: ["pageMeta"],
+  component: BrowserBridgeCard,
+  ...pageMeta
+})
+type Play = SharedPlay<ComponentProps<typeof BrowserBridgeCard>>
+const openDetails: Play = async ({ canvasElement }) => {
   await userEvent.click(within(canvasElement).getByRole("button", { name: /Enable browser control|启用浏览器控制/ }))
 }
 
-export const NotInstalled: Story = {
+export const NotInstalled = meta.story({
   name: "01 扩展未安装",
   parameters: { pageStateGroup: "浏览器连接" },
   play: openDetails
-}
+})
 
-export const Disabled: Story = {
+export const Disabled = meta.story({
   name: "02 开关关闭 · 扩展已安装，控制未启用",
-  parameters: { pageStateGroup: "浏览器连接", docs: { description: { story: "扩展已安装，但“启用浏览器控制”开关关闭，连接桥尚未注册。两个圆点为一绿一灰。产品提示：打开“启用浏览器控制”以注册桥。" } } },
+  parameters: {
+    pageStateGroup: "浏览器连接",
+    docs: {
+      description: {
+        story:
+          "扩展已安装，但“启用浏览器控制”开关关闭，连接桥尚未注册。两个圆点为一绿一灰。产品提示：打开“启用浏览器控制”以注册桥。"
+      }
+    }
+  },
   args: { host: { ...host, extensionInstalled: () => Promise.resolve(true) } },
   play: openDetails
-}
+})
 
-export const Disconnected: Story = {
+export const Disconnected = meta.story({
   name: "03 开关打开 · 控制已启用，连接未建立",
-  parameters: { pageStateGroup: "浏览器连接", docs: { description: { story: "扩展已安装，“启用浏览器控制”开关打开，连接桥已注册，但尚未建立连接。两个圆点同样为一绿一灰。产品提示：重新加载扩展或重启浏览器，然后再次检测。" } } },
-  args: { host: { ...host, extensionInstalled: () => Promise.resolve(true), bridgeInstalled: () => Promise.resolve(true) } },
+  parameters: {
+    pageStateGroup: "浏览器连接",
+    docs: {
+      description: {
+        story:
+          "扩展已安装，“启用浏览器控制”开关打开，连接桥已注册，但尚未建立连接。两个圆点同样为一绿一灰。产品提示：重新加载扩展或重启浏览器，然后再次检测。"
+      }
+    }
+  },
+  args: {
+    host: { ...host, extensionInstalled: () => Promise.resolve(true), bridgeInstalled: () => Promise.resolve(true) }
+  },
   play: openDetails
-}
+})
 
-export const Connected: Story = {
+export const Connected = meta.story({
   name: "04 已连接",
   parameters: { pageStateGroup: "浏览器连接" },
   args: {
@@ -67,4 +97,4 @@ export const Connected: Story = {
     }
   },
   play: openDetails
-}
+})

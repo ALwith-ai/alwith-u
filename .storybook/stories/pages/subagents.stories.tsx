@@ -1,11 +1,13 @@
 import { applyUpdate, CodexClient, createSession, type Session } from "@alwith/module-chat/client"
 import { ConversationProvider, SessionActions } from "@alwith/module-chat/conversation"
 import { SessionTimeline } from "@alwith/module-chat/session-timeline"
-import type { Meta, StoryObj } from "@storybook/react-vite"
 import { useState } from "react"
+import type { ComponentProps } from "react"
 import { expect, waitFor } from "storybook/test"
 
 import { useChatHost } from "../../../src/features/chat/chat-host"
+import preview from "../../preview"
+import type { SharedMeta } from "../page-meta"
 
 function message(session: Session, text: string) {
   return applyUpdate(session, {
@@ -79,7 +81,7 @@ function fixture() {
   }
   return { client, parent }
 }
-function Preview() {
+export function Preview() {
   const [{ client, parent }] = useState(fixture)
   const host = useChatHost()
   return (
@@ -91,12 +93,18 @@ function Preview() {
     </ConversationProvider>
   )
 }
-const meta = { title: "页面/主窗聊天/子智能体", component: Preview, globals: { locale: "en" } } satisfies Meta<
-  typeof Preview
->
-export default meta
-type Story = StoryObj<typeof meta>
-export const NestedApproval: Story = {
+export const pageMeta = {
+  globals: { locale: "en" }
+} satisfies SharedMeta<ComponentProps<typeof Preview>>
+
+// pageMeta is shared with derived files, not a story.
+const meta = preview.meta({
+  title: "页面/主窗聊天/子智能体",
+  excludeStories: ["pageMeta", "Preview"],
+  component: Preview,
+  ...pageMeta
+})
+export const NestedApproval = meta.story({
   name: "嵌套授权请求",
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(canvas.getByRole("button", { name: /Protocol review Needs input/ }))
@@ -116,4 +124,4 @@ export const NestedApproval: Story = {
       await expect(canvas.queryByRole("button", { name: "Stop Compatibility check" })).toBeNull()
     })
   }
-}
+})
