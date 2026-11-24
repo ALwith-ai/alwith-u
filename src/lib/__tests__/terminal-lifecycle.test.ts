@@ -14,7 +14,7 @@ test("cancel leaves application services running; archive and delete clean only 
   const client = new DesktopCodexClient(
     () => Promise.resolve(port),
     { agentId: "codex", launch: { engine: "codex" } },
-    { closeSession }
+    { closeSession, adoptSession: vi.fn() }
   )
   try {
     await client.connect()
@@ -31,6 +31,31 @@ test("cancel leaves application services running; archive and delete clean only 
   }
 })
 
+test("a draft replaced by another hands its terminals over; a discarded draft closes them", async () => {
+  const fake = createFakeAgent()
+  const port = new FakeHubPort(() => fake.app)
+  const closeSession = vi.fn().mockResolvedValue(undefined)
+  const adoptSession = vi.fn().mockResolvedValue(undefined)
+  const client = new DesktopCodexClient(
+    () => Promise.resolve(port),
+    { agentId: "codex", launch: { engine: "codex" } },
+    { closeSession, adoptSession }
+  )
+  try {
+    await client.connect()
+    const first = await client.prepareDraft("main", "/tmp/replaced-draft")
+    // Another model is another session: the draft is replaced, and what hangs on it follows.
+    const replacement = await client.prepareDraft("main", "/tmp/replaced-draft", "another-model")
+    expect(replacement).not.toBe(first)
+    expect(adoptSession).toHaveBeenCalledExactlyOnceWith(first, replacement)
+    expect(closeSession).not.toHaveBeenCalled()
+    await client.discardDraft("main")
+    expect(closeSession).toHaveBeenCalledExactlyOnceWith(replacement)
+  } finally {
+    client.disconnect()
+  }
+})
+
 test("a failed deletion leaves the chat deletable", async () => {
   const fake = createFakeAgent()
   const port = new FakeHubPort(() => fake.app)
@@ -38,7 +63,7 @@ test("a failed deletion leaves the chat deletable", async () => {
   const client = new DesktopCodexClient(
     () => Promise.resolve(port),
     { agentId: "codex", launch: { engine: "codex" } },
-    { closeSession }
+    { closeSession, adoptSession: vi.fn() }
   )
   try {
     await client.connect()

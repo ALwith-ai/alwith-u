@@ -22,7 +22,7 @@ import { guideChapters, guideVersion } from "@/features/guide/content"
 import { generatedImageStorage } from "@/features/images/generated-image-storage"
 import { useImagePreferences } from "@/features/images/preferences"
 import { createTerminalTools } from "@/features/terminal/tools"
-import { closeConversationTerminals } from "@/features/terminal/view-preferences"
+import { adoptConversationTerminals, closeConversationTerminals } from "@/features/terminal/view-preferences"
 import { createWebAutomationTools } from "@/features/web-automation/application-tools"
 import { RemoteChatClient } from "@/lib/chat-window-client"
 import { DesktopCodexClient } from "@/lib/desktop-client"
@@ -71,7 +71,7 @@ export const client =
             if ((await runtimeCapabilities()).embeddedBrowser) await invoke("cef_browser_revoke", { sessionId })
           }
         },
-        { closeSession: closeConversationTerminals }
+        { closeSession: closeConversationTerminals, adoptSession: adoptConversationTerminals }
       )
 
 configureSessionInputConfig({

@@ -18,12 +18,12 @@ import { projectTurnRetry } from "./turn-retry"
 
 /** Main owns native filesystem access; floating clients forward this method to it. */
 export class DesktopCodexClient extends CodexClient {
-  private readonly terminals: Pick<TerminalClient, "closeSession"> | undefined
+  private readonly terminals: Pick<TerminalClient, "closeSession" | "adoptSession"> | undefined
   private readonly deleting = new Map<string, Promise<void>>()
   constructor(
     openPort: ConstructorParameters<typeof CodexClient>[0],
     options: ConstructorParameters<typeof CodexClient>[1],
-    terminals?: Pick<TerminalClient, "closeSession">
+    terminals?: Pick<TerminalClient, "closeSession" | "adoptSession">
   ) {
     super(openPort, options)
     this.terminals = terminals
@@ -79,7 +79,17 @@ export class DesktopCodexClient extends CodexClient {
     const draft = Boolean(this.state.drafts[sessionId])
     const operation = Promise.resolve()
       .then(async () => {
-        await this.terminals?.closeSession(sessionId)
+        // A draft that is being replaced, as when its model changes, already has its successor in the same
+        // slot: its terminals move there. Any other deleted conversation closes its own.
+        const owner = this.state.draftSessions[sessionId]
+        const successor =
+          owner === undefined
+            ? undefined
+            : Object.keys(this.state.draftSessions).find(
+                (id) => id !== sessionId && this.state.draftSessions[id] === owner
+              )
+        if (successor === undefined) await this.terminals?.closeSession(sessionId)
+        else await this.terminals?.adoptSession(sessionId, successor)
         await super.delete(sessionId)
         if (useBrowserQuickChat.getState().sessionId === sessionId)
           useBrowserQuickChat.setState({ sessionId: null, cwd: null })

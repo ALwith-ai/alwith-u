@@ -39,6 +39,13 @@ export async function restoreTerminalViews(sessionId: string): Promise<string | 
   }
   return saved.activeId
 }
+/** A draft replaced by another, as when its model changes, hands its terminals and their saved views to the new one. */
+export async function adoptConversationTerminals(sessionId: string, intoSessionId: string): Promise<void> {
+  await terminalClient.adoptSession(sessionId, intoSessionId)
+  const saved = await store.get<Views>(sessionId)
+  if (saved) await store.set(intoSessionId, saved)
+  await store.delete(sessionId)
+}
 export async function closeConversationTerminals(sessionId: string): Promise<void> {
   await terminalClient.closeSession(sessionId)
   await store.delete(sessionId)
