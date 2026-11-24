@@ -49,13 +49,10 @@ impl MobileHost for Host {
     fn session_replay(&self, app: AppHandle, session_id: String) -> HostFuture<Vec<String>> {
         Box::pin(async move {
             let client = app.state::<crate::runtime::RuntimeState>().current()?;
-            let mut lines = history::read(&session_id, |params| {
+            let mut lines = history::read(&session_id, |method, params| {
                 let client = client.clone();
                 async move {
-                    client
-                        .acp_request("codex", "_codex/session_history", params, None, None)
-                        .await
-                        .map_err(crate::runtime::request_error)
+                    client.acp_request("codex", method, params, None, None).await.map_err(crate::runtime::request_error)
                 }
             })
             .await?;

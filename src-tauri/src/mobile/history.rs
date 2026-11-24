@@ -1,4 +1,5 @@
 //! Project Codex's persisted, paged ACP history onto the mobile replay wire.
+use base64::{Engine, engine::general_purpose::STANDARD};
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::{collections::HashSet, future::Future};
@@ -10,6 +11,8 @@ struct Page {
     consistency: String,
     revision: Option<Value>,
     turns: Vec<Turn>,
+    #[serde(default)]
+    framed_items: bool,
     next_cursor: Option<String>,
     complete: bool,
 }
@@ -38,24 +41,93 @@ pub fn pending_permissions(session_id: &str, replay: Vec<String>) -> Result<Vec<
     Ok(permissions)
 }
 
+async fn item_updates<F, Fut>(session_id: &str, turn_id: &str, request: &mut F) -> Result<Vec<Value>, String>
+where
+    F: FnMut(&'static str, Value) -> Fut,
+    Fut: Future<Output = Result<Value, String>>,
+{
+    let mut params =
+        json!({"sessionId": session_id, "turnId": turn_id, "mode": "browse", "sortDirection": "asc", "limit": 30});
+    params["framed"] = true.into();
+    let mut cursors = HashSet::new();
+    let mut ids = HashSet::new();
+    let mut updates = Vec::new();
+    loop {
+        let mut bytes = Vec::new();
+        let mut part = 0;
+        let mut digest = None;
+        let page = loop {
+            let mut page = request("_codex/session_history_items", params.clone()).await?;
+            if page["sessionId"] != session_id || page["consistency"] != "live" || !page["revision"].is_null() {
+                return Err("Invalid mobile history item page".into());
+            }
+            if let Some(fragment) = page.get("fragment") {
+                let hash = page["fragmentDigest"].as_str().ok_or("Invalid history fragment digest")?;
+                if page["fragmentPart"] != part || digest.as_deref().is_some_and(|d| d != hash) {
+                    return Err("Invalid mobile history fragment".into());
+                }
+                digest = Some(hash.to_owned());
+                STANDARD
+                    .decode_vec(fragment.as_str().ok_or("Invalid history fragment")?, &mut bytes)
+                    .map_err(|error| error.to_string())?;
+                part += 1;
+                if page["nextFragment"].is_null() {
+                    page["items"] = Value::Array(vec![serde_json::from_slice(&bytes).map_err(|e| e.to_string())?]);
+                    params.as_object_mut().unwrap().remove("fragment");
+                } else {
+                    if page["nextFragment"] != format!("{hash}:{part}") {
+                        return Err("Invalid mobile fragment continuation".into());
+                    }
+                    params["fragment"] = page["nextFragment"].clone();
+                    continue;
+                }
+            } else if part != 0 {
+                return Err("Incomplete mobile history fragment".into());
+            }
+            break page;
+        };
+        let items = page["items"].as_array().ok_or("Invalid mobile history items")?;
+        for item in items {
+            if item["turnId"] != turn_id || !ids.insert(item["itemId"].as_str().ok_or("Invalid item ID")?.to_owned()) {
+                return Err("Invalid mobile history item identity".into());
+            }
+            updates.extend(item["updates"].as_array().ok_or("Invalid history updates")?.iter().cloned());
+        }
+        match (page["complete"].as_bool(), &page["nextCursor"]) {
+            (Some(true), Value::Null) => return Ok(updates),
+            (Some(false), Value::String(cursor))
+                if !items.is_empty() && !cursor.is_empty() && cursors.insert(cursor.clone()) =>
+            {
+                params["cursor"] = cursor.clone().into();
+            }
+            _ => return Err("Invalid mobile history item cursor".into()),
+        }
+    }
+}
+
 pub async fn read<F, Fut>(session_id: &str, mut request: F) -> Result<Vec<String>, String>
 where
-    F: FnMut(Value) -> Fut,
+    F: FnMut(&'static str, Value) -> Fut,
     Fut: Future<Output = Result<Value, String>>,
 {
     let mut cursor: Option<String> = None;
     let mut cursors = HashSet::new();
     let mut seen = HashSet::new();
     let mut turns = Vec::new();
+    let mut legacy = false;
     loop {
         let mut params = json!({
             "sessionId": session_id, "mode": "browse", "sortDirection": "desc",
-            "itemsView": "full", "limit": 1, "maxBytes": 16 * 1024 * 1024
+            "itemsView": if legacy { "full" } else { "summary" }, "limit": 5
         });
+        if legacy {
+            params["maxBytes"] = (16 * 1024 * 1024).into();
+        }
         if let Some(value) = &cursor {
             params["cursor"] = Value::String(value.clone());
         }
-        let page: Page = serde_json::from_value(request(params).await?).map_err(|error| error.to_string())?;
+        let page: Page = serde_json::from_value(request("_codex/session_history", params).await?)
+            .map_err(|error| error.to_string())?;
         if page.session_id != session_id
             || page.consistency != "live"
             || page.revision.is_some()
@@ -64,9 +136,22 @@ where
         {
             return Err("Invalid mobile history pagination".into());
         }
-        for turn in page.turns {
-            if turn.items_view != "full" || !seen.insert(turn.turn_id.clone()) {
+        // Older packaged adapters return no framed-items capability on the first summary page.
+        if !legacy && !page.framed_items {
+            if cursor.is_some() {
+                return Err("Mobile history capability changed during replay".into());
+            }
+            legacy = true;
+            continue;
+        }
+        for mut turn in page.turns {
+            if turn.items_view != (if legacy { "full" } else { "summary" }) || !seen.insert(turn.turn_id.clone()) {
                 return Err("Invalid mobile history turn".into());
+            }
+            if !legacy {
+                let mut updates = item_updates(session_id, &turn.turn_id, &mut request).await?;
+                updates.append(&mut turn.updates);
+                turn.updates = updates;
             }
             turns.push(turn);
         }
@@ -135,15 +220,18 @@ mod tests {
     }
     fn page(id: &str, cursor: Option<&str>) -> Value {
         json!({"sessionId":"background", "consistency":"live", "revision":null,
-            "turns":[{"turnId":id,"itemsView":"full","updates":[
-                {"sessionUpdate":"user_message","messageId":format!("u-{id}"),"content":[{"type":"text","text":id}]},
-                {"sessionUpdate":"agent_message","messageId":format!("a-{id}"),"content":[{"type":"text","text":"answer"}]}
-            ]}], "nextCursor":cursor, "complete":cursor.is_none()})
+            "framedItems":true, "turns":[{"turnId":id,"itemsView":"summary","updates":[]}], "nextCursor":cursor, "complete":cursor.is_none()})
     }
     #[tokio::test]
     async fn reads_persisted_background_history_in_order_without_resuming_a_session() {
         let mut calls = Vec::new();
-        let lines = read("background", |params| {
+        let lines = read("background", |method, params| {
+            if method.ends_with("_items") {
+                let id = params["turnId"].as_str().unwrap();
+                return std::future::ready(Ok(json!({"sessionId":"background","consistency":"live","revision":null,"items":[
+                    {"turnId":id,"itemId":"item","updates":[{"sessionUpdate":"user_message","messageId":format!("u-{id}")},{"sessionUpdate":"agent_message","messageId":format!("a-{id}")}]}
+                ],"nextCursor":null,"complete":true})));
+            }
             calls.push(params.clone());
             std::future::ready(Ok(if params.get("cursor").is_some() {
                 page("old", None)
@@ -162,11 +250,40 @@ mod tests {
         assert!(messages.iter().all(|line| line["params"]["sessionId"] == "background"));
     }
     #[tokio::test]
+    async fn reassembles_fragmented_item_before_advancing() {
+        let item = json!({"turnId":"turn","itemId":"item","updates":[{"sessionUpdate":"agent_message",
+            "messageId":"answer","content":[{"type":"text","text":"你好"}]}]});
+        let bytes = serde_json::to_vec(&item).unwrap();
+        let split = bytes.iter().position(|byte| *byte >= 128).unwrap() + 1;
+        let digest = "a".repeat(64);
+        let mut calls = 0;
+        let updates = item_updates("s", "turn", &mut |_, params| {
+            let first = calls == 0;
+            if !first {
+                assert_eq!(params["fragment"], format!("{digest}:1"));
+            }
+            assert!(params.get("cursor").is_none());
+            calls += 1;
+            std::future::ready(Ok(json!({"sessionId":"s", "consistency":"live", "items":[],
+                "fragment":STANDARD.encode(if first { &bytes[..split] } else { &bytes[split..] }),
+                "fragmentDigest":digest,"fragmentPart":calls-1,
+                "nextFragment":first.then(|| format!("{digest}:1")), "nextCursor":null,"complete":true})))
+        })
+        .await
+        .unwrap();
+        assert_eq!(calls, 2);
+        assert_eq!(Value::Array(updates), item["updates"]);
+    }
+
+    #[tokio::test]
     async fn rejects_cross_session_history_and_cursor_cycles() {
-        assert!(read("other", |_| std::future::ready(Ok(page("turn", None)))).await.is_err());
+        assert!(read("other", |_, _| std::future::ready(Ok(page("turn", None)))).await.is_err());
         let mut count = 0;
         assert!(
-            read("background", |_| {
+            read("background", |method, _| {
+                if method.ends_with("_items") {
+                    return std::future::ready(Ok(json!({"sessionId":"background","consistency":"live","items":[],"nextCursor":null,"complete":true})));
+                }
                 count += 1;
                 std::future::ready(Ok(page(&count.to_string(), Some("cycle"))))
             })
