@@ -5,7 +5,7 @@ import { pageMeta, ConfigureProvider as source } from "../../flow-definitions/ch
 import { prepareWorkflow, workflowConfig, workflowStory } from "../../workflow-driver"
 import { WorkflowPreview } from "../../workflow-preview"
 
-const labels = ["初始页面 · 缺少模型登录","点击 · 配置服务商"]
+const labels = ["初始页面 · 缺少模型登录","点击 · 林然","点击 · 设置","点击 · 大模型"]
 const config = { labels, id: "workflow-chat-configureprovider" }
 const meta = preview.meta({
   component: ProductPreview,

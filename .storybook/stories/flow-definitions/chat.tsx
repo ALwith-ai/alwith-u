@@ -15,6 +15,11 @@ export const pageMeta = {
   parameters: { layout: "fullscreen", productPage: true, a11y: { test: "todo" } }
 } satisfies SharedMeta<ComponentProps<typeof ProductPreview>>
 
+// The main title bar carries the workspace's own "More actions" and the navigation header
+// opens a new floating chat; the current chat's controls live in its header.
+const chatHeader = (canvasElement: HTMLElement) =>
+  within(canvasElement.querySelector<HTMLElement>("[data-main-chat-header]")!)
+
 // pageMeta is shared with derived files, not a story.
 const meta = preview.meta({
   title: "流程/主窗聊天/聊天与项目",
@@ -119,7 +124,7 @@ export const Rename = meta.story({
   play: async ({ canvasElement, userEvent, step }) => {
     const body = within(canvasElement.ownerDocument.body)
     await step("打开重命名", async () => {
-      await userEvent.click(body.getByRole("button", { name: "更多操作" }))
+      await userEvent.click(chatHeader(canvasElement).getByRole("button", { name: "更多操作" }))
       await userEvent.click(await body.findByRole("menuitem", { name: /重命名/ }))
     })
     await step("保存标题", async () => {
@@ -138,7 +143,7 @@ export const SearchChat = meta.story({
   play: async ({ canvasElement, userEvent }) => {
     const body = within(canvasElement.ownerDocument.body)
     await body.findByRole("log")
-    await userEvent.click(body.getByRole("button", { name: "更多操作" }))
+    await userEvent.click(chatHeader(canvasElement).getByRole("button", { name: "更多操作" }))
     await userEvent.click(await body.findByRole("menuitem", { name: /查找/ }))
     const search = await body.findByPlaceholderText("在聊天中查找")
     await userEvent.type(search, "模块 12")
@@ -150,11 +155,13 @@ export const Floating = meta.story({
   args: { chatCase: "conversation" },
   play: async ({ canvasElement, userEvent }) => {
     const body = within(canvasElement.ownerDocument.body)
-    await userEvent.click(body.getByRole("button", { name: "打开聊天浮窗" }))
-    await waitFor(() => expect(canvasElement.querySelector("main.rounded-2xl")).toBeVisible())
-    await userEvent.click(body.getByRole("button", { name: "更多操作" }))
+    await userEvent.click(chatHeader(canvasElement).getByRole("button", { name: "打开聊天浮窗" }))
+    // The floating window replaces the main window here, so its menu is the only one.
+    await waitFor(() => expect(canvasElement.querySelector("[data-main-chat-header]")).toBeNull())
+    await userEvent.click(await body.findByRole("button", { name: "更多操作" }))
     await userEvent.click(await body.findByRole("menuitem", { name: /回到聊天主窗/ }))
-    await body.findByRole("button", { name: "打开聊天浮窗" })
+    await waitFor(() => expect(canvasElement.querySelector("[data-main-chat-header]")).toBeVisible())
+    await chatHeader(canvasElement).findByRole("button", { name: "打开聊天浮窗" })
   }
 })
 
@@ -163,17 +170,24 @@ export const ConfigureProvider = meta.story({
   args: { draftFailure: "请先登录模型账号或配置供应商。" },
   play: async ({ canvasElement, userEvent }) => {
     const body = within(canvasElement.ownerDocument.body)
-    await userEvent.click(await body.findByRole("button", { name: "配置服务商" }))
+    // The draft reports the failure as text only; providers are configured in Settings.
+    await body.findByText("请先登录模型账号或配置供应商。")
+    await userEvent.click(await body.findByRole("button", { name: /^林然/ }))
+    await userEvent.click(await body.findByRole("menuitem", { name: /^设置/ }))
+    await userEvent.click(await body.findByRole("button", { name: "大模型" }))
     await body.findByRole("region", { name: "大模型" })
   }
 })
+// A new chat has no handoff: its floating-window entry is hidden until the chat has
+// messages, so the unsent input travels with an existing conversation.
 export const TransferDraft = meta.story({
   name: "未发送草稿 → 浮动聊天 → 返回并保留输入",
+  args: { chatCase: "conversation" },
   play: async ({ canvasElement, userEvent }) => {
     const body = within(canvasElement.ownerDocument.body)
     const input = await body.findByRole("textbox", { name: "发送消息" })
     await userEvent.type(input, "尚未发送的项目任务")
-    await userEvent.click(body.getByRole("button", { name: "打开聊天浮窗" }))
+    await userEvent.click(chatHeader(canvasElement).getByRole("button", { name: "打开聊天浮窗" }))
     await waitFor(() => expect(body.getByRole("textbox", { name: "发送消息" })).toHaveValue("尚未发送的项目任务"))
     await userEvent.click(body.getByRole("button", { name: "更多操作" }))
     await userEvent.click(await body.findByRole("menuitem", { name: /回到聊天主窗/ }))

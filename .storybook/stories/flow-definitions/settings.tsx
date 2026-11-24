@@ -37,10 +37,12 @@ export const Theme = meta.story({
   name: "外观 → 深色 → 浅色",
   args: { settingsSection: "appearance" },
   play: async ({ canvas, userEvent }) => {
-    await userEvent.click(canvas.getByRole("button", { name: "深色" }))
+    await userEvent.click(canvas.getByRole("radio", { name: "深色" }))
     await waitFor(() => expect(document.documentElement).toHaveClass("dark"))
-    await userEvent.click(canvas.getByRole("button", { name: "浅色" }))
+    await expect(canvas.getByRole("radio", { name: "深色" })).toBeChecked()
+    await userEvent.click(canvas.getByRole("radio", { name: "浅色" }))
     await waitFor(() => expect(document.documentElement).toHaveClass("light"))
+    await expect(canvas.getByRole("radio", { name: "浅色" })).toBeChecked()
   }
 })
 export const Computer = meta.story({
@@ -57,10 +59,12 @@ export const Computer = meta.story({
   }
 })
 export const ComputerPermission = meta.story({
-  name: "缺少系统权限 → 打开权限设置",
+  name: "缺少系统权限 → 申请系统权限",
   args: { settingsSection: "computer", computerCase: "permissions" },
   play: async ({ canvas, userEvent }) => {
-    await userEvent.click((await canvas.findAllByRole("button", { name: "打开系统设置" }))[0])
+    // Each missing permission has its own request in its own row.
+    const accessibility = within(await canvas.findByRole("group", { name: "辅助功能" }))
+    await userEvent.click(accessibility.getByRole("button", { name: "申请系统权限" }))
     await waitFor(() =>
       expect(nativeCalls.some((call) => call.command === "plugin:alwith-computer|request_permissions")).toBe(true)
     )

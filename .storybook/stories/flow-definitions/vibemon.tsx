@@ -43,13 +43,22 @@ export const Equip = meta.story({
     await canvas.findByText("小森", {}, { timeout: 15000 })
   }
 })
+// The pull video element stays mounted between draws; it listens for `ended` only once
+// the draw has started playback, so complete it after it starts rather than when it exists.
+async function finishPullVideo() {
+  const video = await waitFor(() => {
+    const element = document.querySelector("video")
+    expect(element?.paused).toBe(false)
+    return element!
+  })
+  video.dispatchEvent(new Event("ended"))
+}
 export const Draw = meta.story({
   name: "卡池 → 单次抽取 → 结果",
   args: { vibemonCase: "pull" },
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(await canvas.findByRole("button", { name: "Pull once" }))
-    await waitFor(() => expect(document.querySelector("video")).not.toBeNull())
-    document.querySelectorAll("video").forEach((video) => video.dispatchEvent(new Event("ended")))
+    await finishPullVideo()
     await canvas.findAllByRole("img", { name: /小森/ }, { timeout: 10000 })
   }
 })
@@ -58,8 +67,7 @@ export const DrawMulti = meta.story({
   args: { vibemonCase: "pull" },
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(await canvas.findByRole("button", { name: "Pull ten times" }))
-    await waitFor(() => expect(document.querySelector("video")).not.toBeNull())
-    document.querySelectorAll("video").forEach((video) => video.dispatchEvent(new Event("ended")))
+    await finishPullVideo()
     await canvas.findAllByRole("img", { name: /小森/ }, { timeout: 10000 })
   }
 })

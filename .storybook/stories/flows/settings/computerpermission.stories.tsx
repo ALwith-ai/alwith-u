@@ -5,7 +5,7 @@ import { pageMeta, ComputerPermission as source } from "../../flow-definitions/s
 import { prepareWorkflow, workflowConfig, workflowStory } from "../../workflow-driver"
 import { WorkflowPreview } from "../../workflow-preview"
 
-const labels = ["初始页面 · 缺少系统权限","点击 · 打开系统设置"]
+const labels = ["初始页面 · 缺少系统权限","点击 · 申请系统权限"]
 const config = { labels, id: "workflow-settings-computerpermission" }
 const meta = preview.meta({
   component: ProductPreview,

@@ -68,9 +68,11 @@ export const Maximize = meta.story({
 })
 export const Close = meta.story({
   name: "项目文件 → 关闭工作区 → 返回聊天",
-  play: async ({ canvas, userEvent }) => {
-    await userEvent.click(await canvas.findByRole("button", { name: "关闭工作区" }))
-    await canvas.findByRole("button", { name: "打开预览区" })
+  play: async ({ canvasElement, canvas, userEvent }) => {
+    // The title bar toggle shares the name; the workspace's own close button sits in its tab strip.
+    const workspace = within(canvasElement.querySelector<HTMLElement>("#file-workspace-panel")!)
+    await userEvent.click(await workspace.findByRole("button", { name: "关闭工作区" }))
+    await waitFor(() => expect(canvas.getByRole("button", { name: "打开工作区" })).toHaveAttribute("aria-expanded", "false"))
   }
 })
 
