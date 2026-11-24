@@ -142,6 +142,27 @@ export function installNativeMock(os: "macos" | "windows" | "linux" = "macos"): 
     }
   })
   mockIPC(handleNativeRequest, { shouldMockEvents: true })
+  // A file write sends its bytes as the request body and its target in an `options` header, and Tauri's
+  // mock drops request options before calling the handler. Route that one command here, with its header.
+  const internals = (
+    window as unknown as {
+      __TAURI_INTERNALS__: {
+        invoke: (command: string, body?: unknown, options?: { headers?: Record<string, string> }) => Promise<unknown>
+      }
+    }
+  ).__TAURI_INTERNALS__
+  const invoke = internals.invoke
+  internals.invoke = (command, body, options) => {
+    if (command !== "plugin:alwith-fs|workspace_write_file") return invoke(command, body, options)
+    return Promise.try(() => {
+      if (!(body instanceof Uint8Array)) throw new Error("A file write must send its bytes as the request body")
+      const encoded = options?.headers?.["options"]
+      if (encoded === undefined) throw new Error("A file write must name its target in the options header")
+      const target = JSON.parse(decodeURIComponent(encoded)) as { root: string; path: string }
+      nativeCalls.push({ command, payload: { ...target, size: body.length } })
+      return fileRequest({ operation: "writeFile", root: target.root, path: target.path, data: [...body] }) ?? null
+    })
+  }
 }
 
 const fileOperations: Record<string, NativeRequest["operation"] | undefined> = {
