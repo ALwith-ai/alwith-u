@@ -22,7 +22,7 @@ import { type FileCase, resetFiles, virtualFiles } from "./filesystem"
 import { type GamepadCase, resetGamepad } from "./gamepad"
 import { installNativeMock, resetNative, setComputerStatus } from "./native"
 import { disposePlaybackClock } from "./playback-clock"
-import { type PluginCase, type PluginOperation, resetPlugins } from "./plugins"
+import { type PluginCase, type PluginOperation, type PluginSource, resetPlugins } from "./plugins"
 import { type AccountCase, resetAccount } from "./settings-bridge"
 import { resetUpdater, type UpdateCase } from "./updater"
 import { resetVibemon, type VibemonCase } from "./vibemon"
@@ -47,6 +47,7 @@ export interface PreviewState {
   connection?: "ready" | "connecting" | "disconnected" | "failed"
   pluginCase?: PluginCase
   pluginOperation?: PluginOperation
+  pluginSource?: PluginSource
   extensionCase?: ExtensionCase
   driveCase?: DriveCase
   archiveCase?:
@@ -134,7 +135,7 @@ export const preparePreview: LoaderFunction = async ({ args, globals }) => {
   resetComposer(state.composerCase)
   predictionPreference.setState({ enabled: true })
   resetDrive(state.driveCase)
-  resetPlugins(state.pluginCase, state.pluginOperation)
+  resetPlugins(state.pluginCase, state.pluginOperation, state.pluginSource)
   stopPlugins()
   const previewPlugins = createPluginsStore(client, pluginMarketplace)
   pluginsStore.setState(previewPlugins.getState(), true)

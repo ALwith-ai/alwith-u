@@ -36,6 +36,7 @@ export const Marketplace = meta.story({ name: "插件市场" })
 
 export const Installed = meta.story({
   name: "已安装插件与技能",
+  args: { pluginSource: "personal" },
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(
       within(canvas.getByRole("navigation", { name: "已安装" })).getByRole("button", { name: "Spreadsheets" })

@@ -31,6 +31,7 @@ const controlLabels = {
   platform: "窗口外观",
   pluginCase: "插件列表",
   pluginOperation: "插件操作",
+  pluginSource: "插件列表",
   providerCase: "供应商配置",
   settingsSection: "设置导航",
   sidebarPinned: "侧栏显示",

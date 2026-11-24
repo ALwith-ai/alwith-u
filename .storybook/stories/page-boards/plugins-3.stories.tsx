@@ -7,10 +7,7 @@ const meta = preview.meta({
   component: ProductPreview,
   ...source.pageMeta,
   id: "page-plugins-3",
-  title: "页面/负一屏/自定义/插件/插件列表/插件列表"
+  title: "页面/负一屏/自定义/插件/插件列表/页面操作"
 })
 
-export const Empty = meta.story({ ...source.Empty.input, name: "插件与技能均为空" })
-export const Loading = meta.story({ ...source.Loading.input, name: "加载中" })
-export const Failed = meta.story({ ...source.Failed.input, name: "加载失败与重试" })
-export const Scrolling = meta.story({ ...source.Scrolling.input, name: "滚动加载远程插件" })
+export const NoResults = meta.story({ ...source.NoResults.input, name: "搜索无结果" })

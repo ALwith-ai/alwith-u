@@ -40,6 +40,7 @@ export const Install = meta.story({
 })
 export const Toggle = meta.story({
   name: "已安装 → 停用 → 启用",
+  args: { pluginSource: "personal" },
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(
       within(canvas.getByRole("navigation", { name: "已安装" })).getByRole("button", { name: "Spreadsheets" })
@@ -52,6 +53,7 @@ export const Toggle = meta.story({
 })
 export const Uninstall = meta.story({
   name: "已安装 → 详情 → 卸载",
+  args: { pluginSource: "personal" },
   play: async ({ canvasElement, userEvent }) => {
     const body = within(canvasElement.ownerDocument.body)
     await userEvent.click(

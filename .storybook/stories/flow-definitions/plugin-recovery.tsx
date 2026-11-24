@@ -37,7 +37,7 @@ export const Install = meta.story({
 })
 export const Toggle = meta.story({
   name: "停用插件 → 失败回滚 → 重试成功",
-  args: { pluginOperation: "toggleError" },
+  args: { pluginOperation: "toggleError", pluginSource: "personal" },
   play: async ({ canvas, canvasElement, userEvent }) => {
     await userEvent.click(
       within(canvas.getByRole("navigation", { name: "已安装" })).getByRole("button", { name: "Spreadsheets" })
@@ -50,7 +50,7 @@ export const Toggle = meta.story({
 })
 export const Uninstall = meta.story({
   name: "卸载插件 → 失败保留 → 重试成功",
-  args: { pluginOperation: "uninstallError" },
+  args: { pluginOperation: "uninstallError", pluginSource: "personal" },
   play: async ({ canvas, canvasElement, userEvent }) => {
     const body = within(canvasElement.ownerDocument.body)
     await userEvent.click(

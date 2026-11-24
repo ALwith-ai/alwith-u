@@ -80,6 +80,7 @@ export const productPreviewArgTypes = {
       "samples/corrupt.pdf"
     ]
   },
+  pluginSource: { control: "select", options: ["official", "personal"] },
   pluginCase: {
     control: "select",
     options: ["catalog", "installed", "empty", "loading", "error", "detailError", "unavailable", "scroll"]

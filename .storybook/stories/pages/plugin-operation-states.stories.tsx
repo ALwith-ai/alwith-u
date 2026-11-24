@@ -56,7 +56,7 @@ export const InstallRetry = meta.story({
 })
 export const Toggling = meta.story({
   name: "启停处理中",
-  args: { pluginOperation: "toggling" },
+  args: { pluginOperation: "toggling", pluginSource: "personal" },
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(
       within(canvas.getByRole("navigation", { name: "已安装" })).getByRole("button", { name: "Spreadsheets" })
@@ -68,7 +68,7 @@ export const Toggling = meta.story({
 export const ToggleError = meta.story({
   ...Toggling.input,
   name: "启停失败 · 回滚状态",
-  args: { pluginOperation: "toggleError" },
+  args: { pluginOperation: "toggleError", pluginSource: "personal" },
   play: async ({ canvas, canvasElement, userEvent }) => {
     await userEvent.click(
       within(canvas.getByRole("navigation", { name: "已安装" })).getByRole("button", { name: "Spreadsheets" })
@@ -82,7 +82,7 @@ export const ToggleError = meta.story({
 })
 export const Uninstalling = meta.story({
   name: "卸载处理中",
-  args: { pluginOperation: "uninstalling" },
+  args: { pluginOperation: "uninstalling", pluginSource: "personal" },
   play: async ({ canvas, canvasElement, userEvent }) => {
     await userEvent.click(
       within(canvas.getByRole("navigation", { name: "已安装" })).getByRole("button", { name: "Spreadsheets" })
@@ -94,7 +94,7 @@ export const Uninstalling = meta.story({
 export const UninstallError = meta.story({
   ...Uninstalling.input,
   name: "卸载失败 · 保留插件",
-  args: { pluginOperation: "uninstallError" },
+  args: { pluginOperation: "uninstallError", pluginSource: "personal" },
   play: async ({ canvas, canvasElement, userEvent }) => {
     await userEvent.click(
       within(canvas.getByRole("navigation", { name: "已安装" })).getByRole("button", { name: "Spreadsheets" })

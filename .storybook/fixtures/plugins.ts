@@ -17,7 +17,10 @@ export type PluginOperation =
   | "upgrading"
   | "upgradeError"
   | "skillError"
+/** Official plugins come from the remote catalog; personal ones from a local marketplace the user added. */
+export type PluginSource = "official" | "personal"
 let operation: PluginOperation = "ready"
+let source: PluginSource = "official"
 async function operationGate(pending: PluginOperation, failure: PluginOperation) {
   if (operation === pending) await new Promise(() => {})
   if (operation === failure) {
@@ -90,7 +93,7 @@ const names = [
   ]
 ]
 export function marketplace(): PluginMarketplaceEntry {
-  if (operation === "toggling" || operation === "toggleError")
+  if (source === "personal")
     return { name: "demo-local", path: "/demo/plugins/marketplace.json", interface: { displayName: "Local" }, plugins }
   return { name: "openai-primary-runtime", path: null, interface: { displayName: "OpenAI" }, plugins }
 }
@@ -120,8 +123,13 @@ function detail(summary: PluginSummary): PluginDetail {
     }))
   }
 }
-export function resetPlugins(next: PluginCase = "catalog", nextOperation: PluginOperation = "ready"): void {
+export function resetPlugins(
+  next: PluginCase = "catalog",
+  nextOperation: PluginOperation = "ready",
+  nextSource: PluginSource = "official"
+): void {
   operation = nextOperation
+  source = nextSource
   skills.forEach((skill, index) => {
     skill.enabled = index < 2
   })
@@ -135,10 +143,7 @@ export function resetPlugins(next: PluginCase = "catalog", nextOperation: Plugin
           remotePluginId: name,
           version: "26.1020.11618",
           localVersion: index < 2 ? "26.1020.11618" : null,
-          source:
-            operation === "toggling" || operation === "toggleError"
-              ? { type: "local", path: `/demo/plugins/${name}` }
-              : { type: "remote" },
+          source: source === "personal" ? { type: "local", path: `/demo/plugins/${name}` } : { type: "remote" },
           shareContext: null,
           installed: index < 2 || mode === "installed",
           installedAt: index < 2 ? 1792728000 - index : null,
