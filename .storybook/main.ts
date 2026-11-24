@@ -34,7 +34,7 @@ export default defineMain({
   addons: ["@storybook/addon-docs", "@storybook/addon-a11y", "@storybook/addon-themes", "@storybook/addon-vitest"],
   framework: {
     name: "@storybook/react-vite",
-    options: { builder: { viteConfigPath: path.resolve(import.meta.dirname, "vite.config.ts") } }
+    options: { builder: { viteConfigPath: ".storybook/vite.config.ts" } }
   },
   async viteFinal(config) {
     const { mergeConfig } = await import("vite")
