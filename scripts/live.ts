@@ -7,12 +7,6 @@ import { join } from "node:path"
 
 import { startTestRuntime } from "@alwith/api/node"
 import {
-  asyncQuestionId,
-  asyncQuestions,
-  questionReplies,
-  questionReplyEnvelope
-} from "@alwith/module-chat/async-question-card"
-import {
   CodexClient,
   codexTurnId,
   codexTurnStartedAt,
@@ -557,31 +551,27 @@ async function verifyAsyncUserInput(client: CodexClient, directory: string): Pro
         text: 'UI integration test: call request_user_input_async now with one question titled "Which async implementation?" and options ["Alpha", "Beta"]. Do not ask in prose and do not use request_user_input. After asking, run the read-only shell command sleep 10 to leave time for the answer. Continue the same turn; when the asynchronous answer is Beta, reply with exactly ASYNC_BETA. Do not modify files.'
       }
     ])
-    await until(
-      () => client.session(id).items.some((item) => item.kind === "assistant" && asyncQuestions(item._meta).length > 0),
-      120_000,
-      "asynchronous question metadata"
+    const asyncForm = () =>
+      client.state.actions.find((action) => {
+        if (action.sessionId !== id || action.kind !== "elicitation" || !isFormElicitation(action.params)) return false
+        const codex = action.params._meta?.codex
+        return typeof codex === "object" && codex !== null && "delivery" in codex && codex.delivery === "async"
+      })
+    await until(() => asyncForm() !== undefined, 120_000, "asynchronous question form")
+    const action = asyncForm()
+    if (action?.kind !== "elicitation" || !isFormElicitation(action.params))
+      throw new Error("Missing asynchronous question")
+    // An asynchronous form stays pending while the native turn continues.
+    if (
+      client.session(id).state !== "running" ||
+      client.state.actions.some((other) => other.sessionId === id && other.id !== action.id)
     )
-    const item = client
-      .session(id)
-      .items.find((entry) => entry.kind === "assistant" && asyncQuestions(entry._meta).length > 0)
-    if (!item) throw new Error("Missing asynchronous question")
-    if (item.replayed || codexTurnId(item._meta) === null)
-      throw new Error("Live asynchronous question is missing its active turn identity")
-    const question = asyncQuestions(item._meta)[0]
-    // ACP can keep a non-blocking async form pending while the native turn continues.
-    const blockingRequest = client.state.actions.some((action) => {
-      if (action.sessionId !== id) return false
-      if (action.kind !== "elicitation" || !isFormElicitation(action.params)) return true
-      const codex = action.params._meta?.codex
-      return !(typeof codex === "object" && codex !== null && "delivery" in codex && codex.delivery === "async")
-    })
-    if (client.session(id).state !== "running" || blockingRequest)
       throw new Error("Asynchronous question blocked or ended the turn")
-    const reply = { questionItemId: asyncQuestionId(item.id, 0), question: question.title, answer: "Beta" }
-    await client.prompt(id, [
-      { type: "text", text: questionReplyEnvelope(reply), _meta: { codex: { questionReply: reply } } }
-    ])
+    const field = Object.entries(action.params.requestedSchema.properties ?? {}).find(
+      ([, property]) => isStringProperty(property) && property.oneOf?.some((option) => option.const === "Beta")
+    )
+    if (!field) throw new Error("The asynchronous question is missing its selectable Beta answer")
+    client.respond(action.id, { action: "accept", content: { [field[0]]: "Beta" } })
     await until(
       () => client.session(id).state === "idle" && assistantText(client.session(id)).includes("ASYNC_BETA"),
       120_000,
@@ -591,28 +581,20 @@ async function verifyAsyncUserInput(client: CodexClient, directory: string): Pro
     await client.open(id, directory)
     await until(
       () =>
-        client.session(id).items.some((entry) => entry.kind === "assistant" && asyncQuestions(entry._meta).length > 0),
-      10_000,
-      "asynchronous question replay"
-    )
-    await until(
-      () =>
         client
           .session(id)
           .items.some(
             (entry) =>
-              entry.kind === "user" &&
-              [
-                ...questionReplies(entry._meta),
-                ...entry.content.filter(isText).flatMap((block) => questionReplies(block._meta))
-              ].some((answer) => answer.questionItemId === reply.questionItemId && answer.answer === "Beta")
+              entry.kind === "tool" &&
+              entry.id.startsWith("async-question-reply:") &&
+              JSON.stringify(entry.rawOutput).includes("Beta")
           ),
       10_000,
       "asynchronous answer replay"
     )
-    if (client.state.actions.some((action) => action.sessionId === id))
+    if (client.state.actions.some((other) => other.sessionId === id))
       throw new Error("History replay reopened a question")
-    console.log("async question: non-blocking metadata, correlated steering answer and history replay")
+    console.log("async question: non-blocking form, answered through the form and replayed as an answered tool call")
   } finally {
     await client.delete(id)
   }
