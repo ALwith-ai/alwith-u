@@ -68,7 +68,7 @@ struct Context {
 struct ProxyRequestBody {
     declared_bytes: Option<u64>,
     read_bytes: u64,
-    limit_bytes: u64,
+    decoded_bytes: Option<u64>,
     encoding: String,
     complete: bool,
     aborted: bool,
@@ -79,8 +79,7 @@ impl ProxyRequestBody {
         const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
         self.declared_bytes.is_none_or(|bytes| bytes <= MAX_SAFE_INTEGER)
             && self.read_bytes <= MAX_SAFE_INTEGER
-            && self.limit_bytes > 0
-            && self.limit_bytes <= MAX_SAFE_INTEGER
+            && self.decoded_bytes.is_none_or(|bytes| bytes <= MAX_SAFE_INTEGER)
             && matches!(self.encoding.as_str(), "identity" | "zstd" | "gzip" | "deflate" | "br" | "other")
     }
 }
@@ -117,7 +116,7 @@ struct ModelProxyDiagnostic {
 
 impl ModelProxyDiagnostic {
     fn valid(&self) -> bool {
-        self.version == 1
+        self.version == 2
             && self.request_body.as_ref().is_none_or(ProxyRequestBody::valid)
             && self.request_id.len() == 24
             && self.request_id.bytes().all(|c| c.is_ascii_hexdigit())
@@ -188,8 +187,10 @@ impl ModelProxyDiagnostic {
                     "UNKNOWN"
                         | "ERR_INVALID_ARG_TYPE"
                         | "ERR_HTTP_REQUEST_BODY_TOO_LARGE"
-                        | "REQUEST_BODY_TOO_LARGE"
                         | "REQUEST_BODY_READ_FAILED"
+                        | "REQUEST_BODY_DECOMPRESS_FAILED"
+                        | "REQUEST_BODY_PARSE_FAILED"
+                        | "REQUEST_BODY_REWRITE_FAILED"
                         | "WS_ERR_UNSUPPORTED_MESSAGE_LENGTH"
                         | "NATIVE_NETWORK_CONNECT_FAILED"
                         | "NATIVE_PROXY_RESOLUTION_FAILED"
@@ -434,8 +435,10 @@ struct ErrorSignature {
 fn signature(message: &str) -> ErrorSignature {
     let lower = message.to_ascii_lowercase();
     let transport_code = [
-        "REQUEST_BODY_TOO_LARGE",
         "REQUEST_BODY_READ_FAILED",
+        "REQUEST_BODY_DECOMPRESS_FAILED",
+        "REQUEST_BODY_PARSE_FAILED",
+        "REQUEST_BODY_REWRITE_FAILED",
         "WS_ERR_UNSUPPORTED_MESSAGE_LENGTH",
         "NATIVE_NETWORK_CONNECT_FAILED",
         "NATIVE_PROXY_RESOLUTION_FAILED",

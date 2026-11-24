@@ -482,7 +482,7 @@ fn proxy_line() -> String {
     format!(
         "[alwith-model-proxy] {}",
         json!({
-            "version":1,"requestId":"0123456789abcdef01234567","transport":"http","destination":"external",
+            "version":2,"requestId":"0123456789abcdef01234567","transport":"http","destination":"external",
             "runtime":"bun-fetch","stage":"connect_upstream","phase":"failed","targetHost":"api.deepseek.com",
             "targetPort":443,"endpoint":"responses","status":null,"upstreamRequestId":null,"sentBytes":123,
             "receivedBytes":0,"firstByteMs":null,"reusedSocket":null,"proxyEnv":["HTTPS_PROXY"],"noProxySet":true,
@@ -700,12 +700,12 @@ fn native_transport_backend_is_bounded_and_survives_export() {
 fn request_body_diagnostics_survive_export_and_reject_unsafe_metadata() {
     let original: Value = serde_json::from_str(proxy_line().strip_prefix("[alwith-model-proxy] ").unwrap()).unwrap();
     let mut payload = original.clone();
-    payload["stage"] = json!("read_request");
-    payload["errors"] = json!(["REQUEST_BODY_TOO_LARGE"]);
+    payload["stage"] = json!("prepare_request");
+    payload["errors"] = json!(["REQUEST_BODY_PARSE_FAILED", "UNKNOWN"]);
     payload["errorNames"] = json!(["Error"]);
     payload["requestBody"] = json!({
-        "declaredBytes":67108865,"readBytes":67108865,"limitBytes":67108864,
-        "encoding":"identity","complete":false,"aborted":false
+        "declaredBytes":50341999,"readBytes":50341999,"decodedBytes":67108865,
+        "encoding":"zstd","complete":true,"aborted":false
     });
     let context = model_proxy_context(&format!("[alwith-model-proxy] {payload}")).unwrap();
     let directory = tempfile::tempdir().unwrap();
@@ -726,4 +726,15 @@ fn request_body_diagnostics_survive_export_and_reject_unsafe_metadata() {
     payload["requestBody"]["encoding"] = json!("private-value");
     assert!(model_proxy_context(&format!("[alwith-model-proxy] {payload}")).is_none());
     assert!(model_proxy_context(&format!("[alwith-model-proxy] {original}")).is_some());
+    for invalid in [json!(-1), json!(9007199254740992_u64), json!("secret")] {
+        let mut unsafe_payload = original.clone();
+        unsafe_payload["requestBody"] = json!({
+            "declaredBytes":null,"readBytes":1,"decodedBytes":invalid,"encoding":"identity","complete":true,"aborted":false
+        });
+        assert!(model_proxy_context(&format!("[alwith-model-proxy] {unsafe_payload}")).is_none());
+    }
+    // An event from an adapter that still caps the request (version 1, `limitBytes`) is not accepted.
+    let mut previous = original.clone();
+    previous["version"] = json!(1);
+    assert!(model_proxy_context(&format!("[alwith-model-proxy] {previous}")).is_none());
 }
