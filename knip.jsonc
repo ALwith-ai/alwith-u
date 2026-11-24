@@ -19,6 +19,8 @@
   // The shared configuration is extended by the project files, which knip does not read by default.
   "typescript": { "config": ["tsconfig.json", "tsconfig.app.json", "tsconfig.bun.json", "tsconfig.test.json"] },
   "ignoreDependencies": [
+    // Storybook loads this module through its docgenSpecifier option.
+    "@typescript/typescript6",
     // Rust-only transport consumed by src-tauri/Cargo.toml.
     "@alwith/enterprise-client",
     "@alwith/native-kit",
