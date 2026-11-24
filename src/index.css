@@ -386,7 +386,7 @@ body,
 
 /* Atlas adds four gutters to the floating width; distribute them evenly around its contents. */
 [data-sidebar-mode="floating"] .main-sidebar-panel {
-  inset-inline-start: calc(2 * var(--atlas-gutter, 4px));
+  inset-inline-start: calc(2 * var(--atlas-gutter, 3px));
   border-radius: 0;
 }
 
