@@ -1,7 +1,11 @@
 <style>
   /* Match component icons for feature groups at the same navigation level. */
-  .sidebar-item > button:has(.sidebar-feature-label) > div > svg:last-child {
+  .sidebar-item > [role="gridcell"] > div:has(> span > .sidebar-feature-label) > button[slot="chevron"] .static-only > svg {
     display: none;
+  }
+  /* The label then starts where the hidden icon was, as the replacement icon is part of the label. */
+  .sidebar-item > [role="gridcell"] > div > span:has(> .sidebar-feature-label) {
+    margin-left: 0;
   }
   .sidebar-feature-label {
     display: inline-flex;
