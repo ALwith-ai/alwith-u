@@ -269,16 +269,9 @@ def upgrade(context: Context) -> None:
     context.run("bun update")
     # Resolve Cargo only after Bun updates: shared packages may change Rust dependencies.
     with context.cd("src-tauri"):
-        context.run("cargo update")
-        # Report releases outside Cargo's declared ranges without upgrading them, as ALwith Desktop
-        # does: cargo update stays inside the declared ranges, and a 0.x minor is a major, so only
-        # cargo outdated's Latest column says that a crate needs its declaration changed by hand.
-        # --depth 1 limits the report without dropping the path dependencies and local patches the
-        # resolution needs; --root-deps-only and --ignore-external-rel would drop them and fall back
-        # to the crates.io Tauri 2 plugins.
-        if shutil.which("cargo-outdated") is None:
-            context.run("cargo install cargo-outdated")
-        context.run("cargo outdated --depth 1 --workspace", warn=True)
+        # --verbose also lists each direct dependency whose newest release is outside its declared range
+        # (`Unchanged … (available: …)`); raising that range is left to a person.
+        context.run("cargo update --verbose")
     # Compare the final installed JavaScript packages with the updated Cargo lockfile.
     try:
         check_tauri_versions(ROOT)

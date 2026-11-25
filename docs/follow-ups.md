@@ -34,10 +34,6 @@ factors, and the visible line at the bottom edge.
 
 ## Development tooling
 
-- `fab upgrade` reports newer Rust releases with `cargo outdated`, which resolves a
-  rewritten temporary copy of the workspace. `cargo upgrade --dry-run --incompatible
-  allow --pinned allow` from cargo-edit reads the manifests only and also reports pinned
-  prereleases. The two outputs have not been compared on this repository.
 - A bare `cargo clippy` in `src-tauri` fails in the `cef-dll-sys` build script because
   `CEF_PATH` comes from `scripts/desktop.ts`. Clippy and the Rust tests were not run for
   the changes of these two days, and neither were the CI gates listed in `AGENTS.md`.
