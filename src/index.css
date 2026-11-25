@@ -618,6 +618,32 @@ body,
   background-color: transparent !important;
   background-image: none !important;
 }
+.vibemon-content [data-slot="gem-balance-add"] {
+  --vibemon-gem-add-pressed: #a87eff;
+  --vibemon-gem-add-icon: #2a3472;
+  position: relative;
+}
+.vibemon-content button[data-slot="gem-balance-add"]:enabled:is(:active, [data-pressed]) {
+  background-color: var(--vibemon-gem-add-pressed) !important;
+  transition: none;
+}
+.vibemon-content [data-slot="gem-balance-add"]:enabled:is(:active, [data-pressed]) > img {
+  visibility: hidden;
+}
+.vibemon-content [data-slot="gem-balance-add"]:enabled:is(:active, [data-pressed])::before,
+.vibemon-content [data-slot="gem-balance-add"]:enabled:is(:active, [data-pressed])::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 50%;
+  height: 10%;
+  border-radius: 9999px;
+  background-color: var(--vibemon-gem-add-icon);
+}
+.vibemon-content [data-slot="gem-balance-add"]:enabled:is(:active, [data-pressed])::after {
+  rotate: 90deg;
+}
 /* Keep context warnings visible while the usage details are hovered. */
 button.text-destructive:has(> svg[viewBox="0 0 18 18"]) {
   color: var(--destructive);
