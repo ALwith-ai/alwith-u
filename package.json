@@ -25,6 +25,7 @@
     "test:scripts": "bun test scripts/lib",
     "test:watch": "bun --bun vitest",
     "check:backends": "bun scripts/check-runtime-backends.ts",
+    "contracts": "bun scripts/contracts.ts",
     "test:contracts": "bun --bun vitest run --config vitest.contracts.config.ts",
     "test:browser": "bun --bun vitest run --config vitest.contracts.config.ts tests/contracts/browser-automation.contract.ts",
     "test:browser-tabs": "bun --bun vitest run --config vitest.contracts.config.ts tests/contracts/browser-tabs.contract.ts",

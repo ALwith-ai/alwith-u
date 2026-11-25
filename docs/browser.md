@@ -47,24 +47,26 @@ TAURI_CONFIG='{"identifier":"ai.alwith.u.contract-test"}' \
 ```
 
 The binary Cargo builds cannot run where it is: CEF is loaded from `../Frameworks` beside the
-executable, with its helper applications, and those exist only in an application bundle. To run
-the test application, bundle it and start the executable inside the bundle. The product name
-keeps it apart from the other bundles in `src-tauri/target/debug/bundle/macos`:
+executable, with its helper applications, and those exist only in an application bundle. One
+command bundles the test application from the working tree, starts it with its own identity and
+a disposable profile, runs contracts against it, stops it and rebuilds the ordinary frontend:
 
 ```sh
-CEF_PATH="$PWD/target/cef-h264-aac" ALWITH_NATIVE_TEST=1 bun tauri build --debug --bundles app \
-  --features dev-backends,hasgard-testing,tauri/custom-protocol \
-  --config '{"identifier":"ai.alwith.u.contract-test","productName":"ALwith U Contract Test","bundle":{"createUpdaterArtifacts":false,"macOS":{"signingIdentity":null,"hardenedRuntime":false}}}' \
-  -- --no-default-features
-
-cd "src-tauri/target/debug/bundle/macos/ALwith U Contract Test.app/Contents/MacOS"
-ALWITH_U_CEF_SHELL_TEST=1 ALWITH_U_CEF_BROWSER_TEST=1 \
-  ALWITH_U_CEF_TEST_PROFILE="$(mktemp -d)" TAURI_HASGARD_DISPLAY=secondary \
-  TAURI_HASGARD_SOCKET=/tmp/u-contract.sock ./alwith-u
+bun run contracts browser tests/contracts/browser-application-tools.contract.ts
+bun run contracts shell tests/contracts/runtime-panels.contract.ts
 ```
 
-The application is ready when the socket exists and its main window shows `browser-fixture.html`;
-contracts then run with the same `TAURI_HASGARD_SOCKET`.
+`browser` is the browser fixture and `shell` the shell test of the table below; what follows is
+passed to vitest, and nothing runs every contract. The bundle is `ALwith U Contract Test.app` in
+`src-tauri/target/debug/bundle/macos`, apart from the other bundles there. Only one test
+application runs at a time: a second one hands over to the first and exits, and the command
+then fails saying so. A contract that needs more environment, such as
+`ALWITH_U_CEF_TEST_EXTENSION`, takes it from the environment of the command.
+
+To start the test application by hand, start the executable inside that bundle with
+`ALWITH_U_CEF_SHELL_TEST=1`, `ALWITH_U_CEF_BROWSER_TEST=1` for the browser fixture, a disposable
+`ALWITH_U_CEF_TEST_PROFILE`, `TAURI_HASGARD_DISPLAY=secondary` and a `TAURI_HASGARD_SOCKET`; it
+is ready when the socket exists and its main window shows the fixture's page.
 
 Rebuild the normal frontend and binary afterwards. Never install a test build as the development
 application, and never run a contract against a user's own session.
@@ -248,8 +250,8 @@ with Launch Services, and it aborts.
   directory, are refused; a script past its time limit is stopped). No test starts a browser of
   its own: a browser started by a test inherits the sandbox of whoever ran the tests, and macOS
   aborts it while it registers, which is what `bun run test` did from inside a conversation
-  until 2026-11-25. Contracts are not part of `fab check`, so run `test:browser-tools` before a
-  release that changes `browser_run`, the runner or the shim.
+  until 2026-11-25. Contracts are not part of `fab check`: before a release that changes `browser_run`, the
+  runner or the shim, run `bun run contracts browser tests/contracts/browser-application-tools.contract.ts`.
 - **Verified.** On macOS, in the running application through the chat entry (two viewports,
   assertions, screenshots; the script's own TCP connection and a write outside the working
   directory were both refused), and by the contract step above against the bundled test
