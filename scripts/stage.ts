@@ -6,6 +6,7 @@
  *   binaries/codex-{windows-sandbox-setup,command-runner}-<triple>  its Windows sandbox helpers
  *   resources/adapter/engine.json                          how the Runtime starts the chat engine
  *   resources/adapter/codex-acp-v2.mjs                     the adapter's self-contained JS bundle, run by bundled Bun
+ *   resources/adapter/mobile-history.mjs                   the mobile history worker, run by bundled Bun
  *   binaries/alwith-runtime-<triple>                        the closed ALwith Runtime binary from the @alwith/runtime platform package (explicit local override)
  * plus the licence notices shipped under resources/licenses.
  *
@@ -150,9 +151,10 @@ for (const file of staged) if (file.signing === "resign") console.log(`native mo
 // The chat engine: the adapter, the Codex build it was generated against, and the engine manifest.
 // Codex spawns `codex-code-mode-host` from its own directory; Tauri drops every sidecar next to the
 // app executable, and the Windows sandbox helpers support the same sibling layout.
+const adapterDirectory = join(root, "src-tauri/resources/adapter")
 const engine = stageChatEngine({
   triple,
-  adapter: join(root, "src-tauri/resources/adapter"),
+  adapter: adapterDirectory,
   binaries,
   licenses
 })
@@ -172,6 +174,13 @@ verifyCodexArtifacts(root, triple)
 
 const adapterPackage = engine.adapter
 const adapterDestination = adapterPackage.entry
+const historyBuild = await Bun.build({
+  entrypoints: [join(root, "src/agent/mobile-history/index.ts")],
+  target: "bun",
+  format: "esm"
+})
+if (!historyBuild.success) throw new AggregateError(historyBuild.logs, "Mobile history worker build failed")
+await Bun.write(join(adapterDirectory, "mobile-history.mjs"), historyBuild.outputs[0])
 if (triple === nativeTriple) {
   assertVersion(
     "staged ACP adapter",

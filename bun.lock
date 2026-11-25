@@ -22,7 +22,7 @@
         "@alwith/module-gamepad": "^0.6.1",
         "@alwith/module-installed-apps": "^0.6.1",
         "@alwith/module-media": "^0.6.3",
-        "@alwith/module-mobile": "^0.6.0",
+        "@alwith/module-mobile": "^0.6.1",
         "@alwith/module-store": "^0.6.0",
         "@alwith/module-tabs": "^0.6.1",
         "@alwith/module-terminal": "^0.6.2",
@@ -189,7 +189,7 @@
 
     "@alwith/module-media": ["@alwith/module-media@0.6.3", "", { "peerDependencies": { "@agentclientprotocol/sdk": "^2.2.0", "@alwith/module-chat": "^0.6.0", "@tauri-apps/api": "^3.0.0-alpha.3", "react": "^19.3.1", "zustand": "^5.1.0" } }, "sha512-6O/9BDDtTJoGTWwsqi5ZGHToPyCx6k/NDz5tz2wwQuyWT0qVEnISHYmcjc1sVN9SgsBRhisEGzR3e7R21qkeLg=="],
 
-    "@alwith/module-mobile": ["@alwith/module-mobile@0.6.0", "", { "peerDependencies": { "@tauri-apps/api": "^3.0.0-alpha.3" } }, "sha512-SQH4bxoBvI291f4HprS3HFfDEF36Or0UgMNTTUrwcd19u2hJv4TxrtRezmfUhx59kqgTePtXMhAFUYHR7zxNIA=="],
+    "@alwith/module-mobile": ["@alwith/module-mobile@0.6.1", "", { "peerDependencies": { "@tauri-apps/api": "^3.0.0-alpha.3" } }, "sha512-gELRkBvdoh6em5V96Mqwn9PMEg2/K9ipurlcElX0MnVvNKIthQcaRy6F5CM6UXd9fUvD1ROgw5pcAoil7sfVwg=="],
 
     "@alwith/module-store": ["@alwith/module-store@0.6.0", "", { "peerDependencies": { "@tauri-apps/api": "^3.0.0-alpha.3" }, "optionalPeers": ["@tauri-apps/api"] }, "sha512-Uw/MPWlTgz1QZhr8ngLujxGkLJmLxfreGDtNy3vpbUhq2bYaJTLUJFUi7bpOfN7/IOcpr1kl1iGNLRxOocPd/w=="],
 

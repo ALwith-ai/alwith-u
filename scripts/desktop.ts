@@ -1,9 +1,10 @@
 import { existsSync } from "node:fs"
 import { join, resolve } from "node:path"
 
-/** Platform policy for normal desktop entry points. */
 import { desktopArgs } from "./lib/desktop-build"
 import { instanceArguments, instanceName, instanceWorkspace } from "./lib/desktop-instance"
+
+/** Platform policy for normal desktop entry points. */
 const [mode, ...extra] = process.argv.slice(2)
 const args = desktopArgs(process.platform, mode, extra)
 const development = mode === "dev" || extra.includes("--debug")

@@ -328,9 +328,9 @@ dependencies = [
 
 [[package]]
 name = "alwith-mobile"
-version = "0.6.1"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8ce41b5079b0dbf882ce6496472abc6ccfcf626b04ed14df025bce7ee3e1dd4"
+checksum = "d1237e272207d2151208a398092af071963c0d883250b1b756b3a6b7511b1d82"
 dependencies = [
  "alwith-native-client 0.6.2",
  "log",

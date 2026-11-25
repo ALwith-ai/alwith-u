@@ -12,6 +12,7 @@ import { settingsStore, updateSettings } from "@/lib/settings-store"
 import { text } from "@/lib/text"
 
 import { type MobilePermission, type MobilePrompt, respondMobilePermission, sendMobilePrompt } from "./actions"
+import { initializeSessionActions } from "./session-actions"
 
 export const MOBILE_RELAY_URL = "wss://relay.alwith.ai/v1/ws"
 export function mobileEnabled(): boolean {
@@ -28,20 +29,24 @@ export async function initializeMobile(): Promise<void> {
   if (!isTauri()) return
   await listen<MobilePrompt>("bridge:send-prompt", ({ payload }) => {
     void (async () => {
+      const retiredQuestion = payload.clientRequestId?.startsWith("question/") === true
       let messageId: string | null = null
-      let failure: string | null = null
-      try {
-        messageId = await sendMobilePrompt(client, payload)
-      } catch (error: unknown) {
-        failure = text(error)
-        reportBackgroundError("mobile-prompt", error)
+      let failure = retiredQuestion ? "Question is no longer available" : null
+      // A cached reply to the former question protocol must never become a new chat prompt.
+      if (!retiredQuestion) {
+        try {
+          messageId = await sendMobilePrompt(client, payload)
+        } catch (error: unknown) {
+          failure = text(error)
+          reportBackgroundError("mobile-prompt", error)
+        }
       }
       if (payload.deviceId && payload.clientRequestId) {
         await mobile.bridgePromptResult({
           deviceId: payload.deviceId,
           sessionId: payload.sessionId,
           clientRequestId: payload.clientRequestId,
-          status: messageId ? "accepted" : "unknown",
+          status: retiredQuestion ? "rejected" : messageId ? "accepted" : "unknown",
           messageId,
           error: failure
         })
@@ -57,6 +62,7 @@ export async function initializeMobile(): Promise<void> {
   await listen<string>("bridge:error", ({ payload }) => {
     reportBackgroundError("mobile-bridge", new Error(payload))
   })
+  await initializeSessionActions(client)
   let previous: string[] | null = null
   let sync: Promise<unknown> = Promise.resolve()
   const publishOrder = (): void => {
