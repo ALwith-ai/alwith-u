@@ -27,7 +27,7 @@ import { PanelControlsContext } from "@/features/workspace/panel-controls-contex
 import { PreviewPaneContext } from "@/features/workspace/preview-pane-context"
 
 import { devicePresentation } from "./presentation"
-import { deviceSelections } from "./window-routing"
+import { deviceSelections, sendDeviceRemark } from "./window-routing"
 
 /** Keep device controls behind a compact workspace overflow menu. */
 export function DeviceWorkspaceMenu({ children }: { children?: ReactNode }) {
@@ -172,6 +172,10 @@ export function DeviceWorkspacePane({
         onAddContext={async (text) => {
           if (detached) await emitTo("main", "device-window-context", { sessionId, text })
           else appendComposerDraft(sessionId, text)
+        }}
+        onRemark={async ({ text, context }) => {
+          if (detached) await emitTo("main", "device-window-remark", { sessionId, text, context })
+          else await sendDeviceRemark(sessionId, text, context)
         }}
         onAddCapture={async (capture, url) => {
           if (detached) {
