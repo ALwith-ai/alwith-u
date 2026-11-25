@@ -212,7 +212,10 @@ test("a completed browser chat stays blue until its response is visible in the f
 
   act(() => clientModule.client.applyRunStates([{ ...done, state: "running", version: 8 }]))
   act(() => clientModule.client.applyRunStates([{ ...done, version: 9 }]))
-  expect(markRead.mock.calls).toEqual([[sessionId, 7], [sessionId, 9]])
+  expect(markRead.mock.calls).toEqual([
+    [sessionId, 7],
+    [sessionId, 9]
+  ])
   act(() => clientModule.client.applyRunStates([{ ...done, state: "idle", version: 10 }]))
   expect(view.queryByLabelText("未读回复")).toBeNull()
 })

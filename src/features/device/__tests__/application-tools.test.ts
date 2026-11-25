@@ -1,9 +1,7 @@
 import { CodexClient } from "@alwith/module-chat/client"
+import { createFakeAgent, FakeHubPort } from "@alwith/module-chat/testing"
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks"
 import { afterEach, beforeEach, expect, test, vi } from "vitest"
-
-import { createFakeAgent } from "@alwith/module-chat/testing"
-import { FakeHubPort } from "@alwith/module-chat/testing"
 
 import { createDeviceTools } from "../application-tools"
 
