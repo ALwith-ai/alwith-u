@@ -181,3 +181,46 @@ bun --bun node_modules/vitest/vitest.mjs run --config vitest.contracts.config.ts
 
 These isolated Chromium checks are separate from the native CEF application-tool contracts.
 They do not establish support for every production website or comparative agent performance.
+
+## Navigation is limited to websites
+
+A tab driven by a conversation navigates to `http:` and `https:` addresses only. The rule is
+enforced where a conversation opens a tab (`browser_ai.rs`), where it navigates one
+(`cef_runtime.rs`), and for `Page.navigate` on the tab's DevTools connection
+(`browser_protocol.rs`); each refuses with `Navigation requires HTTP(S)`. It keeps a
+conversation, or a page that has misled it, from reading local files through `file:`, opening
+the browser's own `chrome:` and `devtools:` pages, or running code through `javascript:` and
+`data:` addresses. The rule admits two schemes instead of refusing a list of dangerous ones, so
+`about:blank` is refused as well: a tab cannot be made blank.
+
+## Running a Playwright script
+
+`browser_run` runs a script file or module source against one tab. A script started as a
+command cannot launch a browser: the command sandbox on macOS stops Chrome while it registers
+with Launch Services, and it aborts.
+
+- **Authority.** Codex sends the session's sandbox state with each call to a tool server that
+  asks for it (`codex/sandbox-state`); the chat package asks and hands the state to the tool
+  unchanged. `script-runner.mjs` starts the script through `codex sandbox --sandbox-state-json`
+  with that state, in the session's working directory, so the script has the permissions of the
+  conversation's commands. A call without a state is refused, and a state written by the model
+  is replaced by the engine's.
+- **The tab.** The sandbox gets one addition: a Unix socket in a private directory
+  (`--allow-unix-socket`). The application's worker serves it and rewrites the first request of
+  each connection to the DevTools path of the tab the call names, adding the credential. The
+  script cannot reach another tab, the browser's own port, or the network.
+- **Playwright.** `script-shim.mjs` is loaded before the script. Launching or connecting to
+  Chromium gives the tab; a new page is that tab again with the context's viewport; closing a
+  page leaves the tab open. Because a tab cannot be made blank, a new page still shows the
+  document the tab had: a script that reads a page before navigating reads that document. The
+  script gets the Playwright shipped with the application whatever the project installs; the
+  runner does this with `--tsconfig-override`, so path aliases of the project's `tsconfig` do
+  not apply inside a script.
+- **Not available.** Firefox, WebKit and the `playwright test` runner, which starts its own
+  browsers.
+- **Verified.** On macOS: the real sandbox with a real Chrome in
+  `scripts/lib/__tests__/script-sandbox.test.ts`, and in the running application through the
+  chat entry (two viewports, assertions, screenshots; the script's own TCP connection and a write
+  outside the working directory were both refused). Windows has not been run: the socket and
+  the Windows sandbox are unverified there, and a failure to set them up is reported, never
+  replaced by an unsandboxed run.
