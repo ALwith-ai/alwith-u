@@ -33,6 +33,7 @@ import { observeWindowHidden } from "@/lib/window-hidden"
 
 import { collapseToVibemon } from "./collapse"
 import { reportVibemonError } from "./display-error"
+import { createVibemonPermissionPresentation } from "./permission-presentation"
 import { prepareVibemonResource, vibemonResourceIdentity } from "./presentation-resource"
 import { createVibemonSessionOwner, type VibemonSurface } from "./session-host"
 import { sessionIcons } from "./session-icons"
@@ -92,7 +93,6 @@ async function start() {
         if (chat === null) throw new Error("Chat window unavailable")
         await chat.setSize(new LogicalSize(560, 640))
       }
-      if (windowLabel === "chat" && (await WebviewWindow.getByLabel("vibemon"))) await command("suspend", "")
     }
   })
   setMainSurface = (value) => owner.surface("main", value)
@@ -303,6 +303,17 @@ async function start() {
     // Keep the suspended renderer for the next explicit presentation.
     await updateVibemonState({ enabled: false, position: null })
   }
+  const presentPermission = createVibemonPermissionPresentation({
+    snapshot: owner.snapshot,
+    serialize,
+    async needsPet() {
+      if (currentAccount() === null || !(await getVibemonState()).enabled) return false
+      const pet = await WebviewWindow.getByLabel("vibemon")
+      return pet === null || !(await pet.isVisible())
+    },
+    present: () => presentVibemon({ trusted: true }),
+    report
+  })
   const windows: VibemonWindowHost = {
     ...createVibemonWindowClient(),
     openVibemon: (options = {}) => serialize(() => showVibemonWithoutChat(options)),
@@ -432,12 +443,13 @@ async function start() {
       case "hide-vibemon":
         return serialize(async () => {
           if (await WebviewWindow.getByLabel("vibemon")) await command("suspend", "")
-          await updateVibemonState({ enabled: false })
+          presentPermission()
         })
       case "restore-vibemon":
         return serialize(async () => {
           await refreshSettings()
-          if ((await getVibemonState()).vibemon) await presentVibemon()
+          const state = await getVibemonState()
+          if (state.enabled && state.vibemon) await presentVibemon()
         })
       case "collapse": {
         if (request.from !== "chat") throw new Error("Only chat can collapse to a vibemon")
@@ -489,6 +501,7 @@ async function start() {
   owner.subscribe((value) => {
     for (const label of ["vibemon", "bubble-menu-vibemon"])
       void emitTo(label, "vibemon:observation", value).catch(console.error)
+    presentPermission()
   })
   client.store.subscribe(() => {
     if (assets.account() !== null) void owner.refresh().catch(report)

@@ -1,12 +1,13 @@
 import { configureVibemon, type VibemonHost, type VibemonObservation } from "@alwith/module-auth/vibemon/core"
 import { VibemonQuickReply } from "@alwith/module-auth/vibemon/react"
 import { CodexClient, runStateSource } from "@alwith/module-chat/client"
+import { createFakeAgent, FakeHubPort } from "@alwith/module-chat/testing"
+import { invoke } from "@tauri-apps/api/core"
 import { emitTo, listen } from "@tauri-apps/api/event"
-import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
+import { getCurrentWebviewWindow, WebviewWindow } from "@tauri-apps/api/webviewWindow"
 import { createRoot } from "react-dom/client"
 
-import { createFakeAgent } from "@alwith/module-chat/testing"
-import { FakeHubPort } from "@alwith/module-chat/testing"
+import { createVibemonPermissionPresentation } from "@/features/vibemon/permission-presentation"
 import { createVibemonSessionOwner } from "@/features/vibemon/session-host"
 import { createVibemonWindowClient, vibemonWindowCall } from "@/features/vibemon/window-client"
 import { initI18n } from "@/lib/i18n"
@@ -19,6 +20,8 @@ const publish = "vibemon-test:observation"
 const answer = "vibemon-test:answer"
 const begin = "vibemon-test:begin"
 const surface = "vibemon-test:surface"
+const presentPet = "vibemon-test:present-pet"
+const suspendPet = "vibemon-test:suspend-pet"
 
 if (window.label === "main") {
   const fake = createFakeAgent()
@@ -61,10 +64,23 @@ if (window.label === "main") {
     respond: (token, response) => client.respond(token, response),
     openChat: () => Promise.reject(new Error("Unexpected chat navigation"))
   })
+  const presentPermission = createVibemonPermissionPresentation({
+    snapshot: owner.snapshot,
+    serialize: (work) => work(),
+    async needsPet() {
+      const pet = await WebviewWindow.getByLabel("vibemon")
+      return pet !== null && !(await pet.isVisible())
+    },
+    present: () => emitTo("vibemon", presentPet),
+    report: (error) => {
+      root.dataset.error = String(error)
+    }
+  })
   owner.subscribe((value) => {
     const feed = value?.taskFeed
     root.dataset.pending = String(feed?.tasks.some((task) => task.prompt !== null) ?? false)
-    for (const label of ["vibemon", "bubble-menu-vibemon"]) void emitTo(label, publish, feed ?? null)
+    for (const label of ["vibemon", "bubble-menu-vibemon"]) void emitTo(label, publish, value)
+    presentPermission()
   })
   client.store.subscribe(() => void owner.refresh())
   await owner.surface("main", { sessionId, visible: true })
@@ -79,9 +95,15 @@ if (window.label === "main") {
     },
     console.error
   )
+  const chatObserver = await observeWindowHidden(
+    window,
+    (hidden) => owner.windowHidden("chat", hidden),
+    console.error,
+    () => invoke<boolean>("chat_window_hidden"),
+    "alwith:chat-window-hidden"
+  )
   await listen<{ binding: VibemonObservation["binding"]; token: string; optionId: string }>(answer, ({ payload }) => {
-    void observer
-      .refresh()
+    void Promise.all([observer.refresh(), chatObserver.refresh()])
       .then(() => owner.answer(payload.binding, crypto.randomUUID(), payload.token, payload.optionId))
       .catch(console.error)
   })
@@ -103,17 +125,42 @@ if (window.label === "main") {
       .catch(console.error)
   })
 } else if (window.label === "vibemon") {
-  await listen<VibemonObservation["taskFeed"]>(publish, ({ payload }) => {
-    const visible = payload?.tasks.some((task) => !task.surfaceVisible && task.prompt?.kind === "permission") ?? false
-    void vibemonWindowCall("bubble", { visible })
+  let feed: VibemonObservation["taskFeed"] | null = null
+  let revision = 0
+  let presented = false
+  const updateBubble = () => {
+    const pending = feed?.tasks.some((task) => !task.surfaceVisible && task.prompt?.kind === "permission") ?? false
+    const visible = presented && pending
+    root.dataset.bubble = String(visible)
+    void vibemonWindowCall("bubble", { visible }).catch((error) => {
+      root.dataset.error = String(error)
+    })
+  }
+  await listen<VibemonObservation | null>(publish, ({ payload }) => {
+    if (payload !== null && payload.revision <= revision) return
+    revision = payload?.revision ?? 0
+    feed = payload?.taskFeed ?? null
+    updateBubble()
   })
-  await vibemonWindowCall("present")
+  const present = async () => {
+    await vibemonWindowCall("present")
+    presented = true
+    updateBubble()
+  }
+  await listen(presentPet, () => void present())
+  await listen(suspendPet, () => {
+    presented = false
+    updateBubble()
+    void vibemonWindowCall("hide")
+  })
+  await present()
 } else if (window.label === "bubble-menu-vibemon") {
   let value: VibemonObservation | null = null
   const listeners = new Set<(value: VibemonObservation | null) => void>()
   await initI18n("en")
-  await listen<VibemonObservation["taskFeed"]>(publish, ({ payload }) => {
-    value = payload?.tasks[0] ? { ...payload.tasks[0], taskFeed: payload } : null
+  await listen<VibemonObservation | null>(publish, ({ payload }) => {
+    if (payload !== null && value !== null && payload.revision <= value.revision) return
+    value = payload
     for (const listener of listeners) listener(value)
   })
   configureVibemon({

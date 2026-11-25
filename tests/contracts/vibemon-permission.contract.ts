@@ -70,7 +70,10 @@ test("a backgrounded main window presents and resolves each permission in the Vi
           `JSON.parse(document.querySelector('#root').dataset.result ?? 'null')?.outcome?.optionId === '${optionId}'`
         )
       }, `${kind} did not reach the original request`)
-      await waitFor(async () => !(await visible()), "The answered permission did not close")
+      await waitFor(async () => !(await visible()), "The answered permission did not close").catch(async (error) => {
+        const state = await evaluate(pet, "Object.assign({}, document.querySelector('#root').dataset)")
+        throw new Error(`${error.message}. Pet fixture state ${JSON.stringify(state)}`, { cause: error })
+      })
     }
 
     await ipc("plugin:window|center", { label: main })
@@ -108,18 +111,58 @@ test("a backgrounded main window presents and resolves each permission in the Vi
 
     await ipc("show_main_window")
     await waitFor(async () => !(await ipc("main_window_hidden")), "The native main window did not restore")
+    const chat = "chat"
+    await ipc("plugin:webview|create_webview_window", {
+      options: {
+        label: chat,
+        url: "native-shell-test.html",
+        title: "Floating chat permission contract",
+        width: 560,
+        height: 640,
+        minWidth: 420,
+        minHeight: 360,
+        center: true,
+        decorations: false,
+        transparent: true,
+        alwaysOnTop: true,
+        visible: false,
+        focus: false,
+        maximizable: false,
+        skipTaskbar: true
+      }
+    })
+    await waitFor(
+      () => evaluate(chat, "document.readyState === 'complete'").catch(() => false),
+      "The floating chat did not load"
+    )
+    await windowCall(chat, "present_chat_window")
+    await waitFor(async () => !(await ipc("chat_window_hidden")), "The native floating chat is not visible")
     await surface("main", false)
-    await surface("chat", true)
+    await surface(chat, true)
+    await ipc("plugin:event|emit_to", {
+      target: { kind: "AnyLabel", label: pet },
+      event: "vibemon-test:suspend-pet",
+      payload: null
+    })
+    await waitFor(
+      async () => !(await windowCall(pet, "plugin:window|is_visible", { label: pet })),
+      "The native pet did not suspend"
+    )
     await start()
     await waitFor(() => ui("document.querySelector('#root').dataset.pending === 'true'"), "No floating chat request")
     assert.equal(await visible(), false, "The visible floating chat already presents the permission")
-    await surface("chat", false)
-    await waitFor(visible, "Collapsing the floating chat did not hand its permission to the pet")
-    assert.equal(await ipc("main_window_hidden"), false)
+    await windowCall(chat, "plugin:window|hide", { label: chat })
+    await waitFor(() => ipc("chat_window_hidden"), "The native floating chat did not hide")
+    await waitFor(visible, "A suspended pet did not resume to present the floating chat permission")
     await decision("reject", "decline")
+
+    await start()
+    await waitFor(visible, "A new request from a hidden floating chat did not open the pet bubble")
+    await decision("allow", "allow_once")
   } finally {
+    await ipc("plugin:window|close", { label: "chat" }).catch(() => {})
     await ipc("plugin:window|close", { label: bubble }).catch(() => {})
     await ipc("plugin:window|close", { label: pet }).catch(() => {})
-    await ipc("show_main_window")
+    await ipc("show_main_window").catch(() => {})
   }
 })

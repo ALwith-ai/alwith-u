@@ -6,10 +6,11 @@ import { act, cleanup, render, renderHook } from "@testing-library/react"
 import { afterEach, beforeEach, expect, type MockInstance, test, vi } from "vitest"
 
 import { MainChatPresence } from "@/features/layout/components/main-chat-presence"
+import { updateMainVibemonSurface } from "@/features/vibemon/main-host"
 
 import * as clientModule from "../client"
 
-vi.mock("@/features/vibemon/main-host", () => ({ updateMainVibemonSurface: vi.fn() }))
+vi.mock("@/features/vibemon/main-host", () => ({ updateMainVibemonSurface: vi.fn(async () => {}) }))
 vi.mock("@tauri-apps/api/webviewWindow", async (original) => ({
   ...(await original<object>()),
   getCurrentWebviewWindow: () => ({ isVisible: async () => true, isMinimized: async () => false })
@@ -146,6 +147,7 @@ test("a restored chat on a shared canvas page is read when its pane is visible",
   const view = render(show(["preview", "chat"]))
   expect(runtime.marked).toEqual([])
   view.rerender(show(["preview", "chat"], false))
+  expect(updateMainVibemonSurface).toHaveBeenLastCalledWith("selected", true)
   await act(() => clientModule.client.store.setState({ sessions: { selected: restored } }))
   expect(runtime.marked).toEqual([])
   view.rerender(show(["preview", "chat"]))

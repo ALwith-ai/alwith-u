@@ -21,13 +21,16 @@ export function MainChatPresence({
   const showing = chatView && onPage
   useReadVisibleSession(sessionId, focused && showing)
   useEffect(() => {
+    void updateMainVibemonSurface(sessionId, showing).catch((error: unknown) =>
+      toast.error(error instanceof Error ? error.message : String(error))
+    )
+  }, [sessionId, showing])
+  useEffect(() => {
     let cancelled = false
     void (async () => {
       const window = getCurrentWebviewWindow()
       const visible = showing && (focused || (await window.isVisible())) && !(await window.isMinimized())
-      if (cancelled) return
-      useMainWindowSurface.setState({ sessionId, visible })
-      await updateMainVibemonSurface(sessionId, visible)
+      if (!cancelled) useMainWindowSurface.setState({ sessionId, visible })
     })().catch((error: unknown) => toast.error(error instanceof Error ? error.message : String(error)))
     return () => {
       cancelled = true

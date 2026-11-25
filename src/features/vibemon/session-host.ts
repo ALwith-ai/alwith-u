@@ -245,7 +245,6 @@ export function createVibemonSessionOwner(owner: VibemonSessionOwner) {
           (task.binding.sessionId === focusedSessionId && (task.state === "idle" || task.state === "done")) ||
           task.state === "running" ||
           (task.state === "done" && task.completion !== undefined) ||
-          (task.state === "requires_action" && state.runStates[task.binding.sessionId].interruption == null) ||
           task.prompt !== null ||
           task.stopped
       )

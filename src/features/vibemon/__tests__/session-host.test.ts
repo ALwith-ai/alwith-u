@@ -3,10 +3,9 @@
 import { type SessionRunState } from "@alwith/api"
 import type { VibemonObservation } from "@alwith/module-auth/vibemon/core"
 import { CodexClient, createSession, isText, runStateSource } from "@alwith/module-chat/client"
+import { createFakeAgent, FakeHubPort } from "@alwith/module-chat/testing"
 import { afterEach, expect, test, vi } from "vitest"
 
-import { createFakeAgent } from "@alwith/module-chat/testing"
-import { FakeHubPort } from "@alwith/module-chat/testing"
 import { must } from "@/lib/__tests__/must"
 
 import { createVibemonSessionOwner } from "../session-host"
@@ -323,7 +322,10 @@ test("only an exposed chat displaying the requesting session suppresses the pet 
   })
   await f.host.surface("main", { sessionId: f.b.id, visible: true })
   const task = () =>
-    must(f.host.snapshot()?.taskFeed?.tasks.find((item) => item.binding.sessionId === f.a.id), "pending task")
+    must(
+      f.host.snapshot()?.taskFeed?.tasks.find((item) => item.binding.sessionId === f.a.id),
+      "pending task"
+    )
   await f.host.surface("chat", { sessionId: f.a.id, visible: true })
   expect(task().surfaceVisible).toBe(true)
   await expect(f.host.answer(task().binding, "duplicate", "pending", "reject")).rejects.toThrow("expired or changed")
@@ -375,6 +377,20 @@ test("stopping targets the clicked session and feedback waits for Runtime state"
 
 test("a completion remains observable before another task's pending permission is answered", async () => {
   const f = await fixture()
+  f.client.store.setState({
+    actions: [
+      {
+        id: "pending",
+        kind: "permission",
+        sessionId: f.a.id,
+        params: {
+          sessionId: f.a.id,
+          title: "Pending permission",
+          options: [{ optionId: "reject", kind: "reject_once", name: "Reject" }]
+        }
+      }
+    ]
+  })
   f.client.applyRunStates([
     { ...f.run(f.a.id), state: "requires_action" },
     { ...f.run(f.b.id), state: "running" }
@@ -388,7 +404,10 @@ test("a completion remains observable before another task's pending permission i
   const completed = must(f.host.snapshot()?.taskFeed, "task feed").tasks[1]
   expect(completed).toMatchObject({ state: "done", source: "event" })
   expect(typeof completed.completion).toBe("string")
-  expect(f.host.snapshot()?.taskFeed?.tasks[0].state).toBe("requires_action")
+  expect(f.host.snapshot()?.taskFeed?.tasks[0]).toMatchObject({
+    state: "requires_action",
+    prompt: { kind: "permission", token: "pending" }
+  })
 })
 
 test("ownership lookup is reused across streaming updates while actions still verify the owner", async () => {
@@ -538,6 +557,47 @@ test("historical interruption and reusable drafts do not become desktop tasks", 
   )
   await f.host.refresh()
   expect(f.host.snapshot()?.taskFeed?.tasks).toEqual([])
+})
+
+test.each(["snapshot", "event"] as const)("restored waiting sessions need a pending request (%s)", async (source) => {
+  const f = await fixture()
+  f.client.applyRunStates([], "snapshot")
+  await f.host.refresh()
+  const historical = { ...f.run(f.a.id), state: "requires_action" as const }
+  f.client.applyRunStates([historical], source)
+  await f.host.refresh()
+  const tasks = () => f.host.snapshot()?.taskFeed?.tasks
+  expect(tasks()).toEqual([])
+
+  f.client.applyRunStates([historical, { ...f.run(f.b.id), state: "running" }])
+  await f.host.refresh()
+  expect(tasks()?.map((task) => task.binding.sessionId)).toEqual([f.b.id])
+
+  f.client.store.setState({
+    actions: [
+      {
+        id: "pending-question",
+        kind: "elicitation",
+        sessionId: f.a.id,
+        params: {
+          mode: "form",
+          sessionId: f.a.id,
+          message: "Choose a name",
+          requestedSchema: { type: "object", properties: { name: { type: "string" } } }
+        }
+      }
+    ]
+  })
+  await f.host.refresh()
+  expect(tasks()?.find((task) => task.binding.sessionId === f.a.id)?.prompt).toMatchObject({
+    kind: "question",
+    token: "pending-question"
+  })
+
+  f.client.store.setState({ actions: [] })
+  await f.host.refresh()
+  expect(tasks()?.map((task) => task.binding.sessionId)).toEqual([f.b.id])
+  expect(f.client.state.runStates[f.a.id]).toEqual(historical)
 })
 
 test("restored completions stay out of the desktop task stack while live completions join it", async () => {
