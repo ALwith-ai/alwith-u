@@ -1,6 +1,6 @@
 import { acknowledgePrompt, addPrompt, applyUpdate, createSession, type Session } from "@alwith/module-chat/client"
 import { commands as chatCommands } from "@alwith/module-chat/commands"
-import { ConversationBody, drafts } from "@alwith/module-chat/conversation"
+import { ConversationBody, drafts, SubagentSessions } from "@alwith/module-chat/conversation"
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 
@@ -305,6 +305,51 @@ test("subagent details stay at delegation rather than after later parent comment
   const details = view.container.querySelector("[data-subagent-sessions]")
   expect(details).not.toBeNull()
   precedes(details!, view.getByText("Parent commentary after delegation"))
+})
+
+test("subagent status icons reserve the same space and only the running action can interrupt", async () => {
+  const parent = createSession("status-parent", "/tmp")
+  const child: Session = {
+    ...createSession("status-child", "/tmp", "Town"),
+    attached: true,
+    subagent: { parentId: parent.id, description: null, capabilities: { cancel: {} }, _meta: null }
+  }
+  client.store.setState({ connection: "ready" })
+  const cancel = vi.spyOn(client, "cancel").mockResolvedValue()
+  const view = render(
+    <ThemeProvider>
+      <ChatHostProvider>
+        <SubagentSessions
+          sessionId={parent.id}
+          turn={{
+            key: "status-turn",
+            user: null,
+            work: [],
+            final: [],
+            errors: [],
+            edits: [],
+            startedAt: 0,
+            endedAt: 0,
+            replayed: false,
+            items: []
+          }}
+          tasks={[
+            { key: "town", threadId: null, title: "Town", description: null, status: "running", session: child },
+            { key: "harbor", threadId: null, title: "Harbor", description: null, status: "completed" },
+            { key: "sea", threadId: null, title: "Sea", description: null, status: "interrupted" }
+          ]}
+        />
+      </ChatHostProvider>
+    </ThemeProvider>
+  )
+  const interrupt = view.getByRole("button", { name: /stop Town/i })
+  expect(interrupt.querySelector(".lucide-pause")).toBeInTheDocument()
+  expect(view.getByRole("region", { name: "Harbor" }).querySelector(".lucide-check")?.parentElement).toHaveClass(
+    "size-8"
+  )
+  expect(view.getByRole("region", { name: "Sea" }).querySelector('[aria-hidden="true"].size-8')).toBeEmptyDOMElement()
+  fireEvent.click(interrupt)
+  await waitFor(() => expect(cancel).toHaveBeenCalledExactlyOnceWith(child.id))
 })
 
 test("an image splits consecutive tools before subsequent commentary, async text and the final answer", () => {
