@@ -5,7 +5,14 @@ import { fileURLToPath } from "node:url"
 export async function stageBrowser(root: string): Promise<void> {
   const destination = join(root, "src-tauri/resources/browser")
   await mkdir(destination, { recursive: true })
-  for (const name of ["definitions.mjs", "engine.mjs", "observation.mjs", "worker.mjs"])
+  for (const name of [
+    "definitions.mjs",
+    "engine.mjs",
+    "observation.mjs",
+    "script-runner.mjs",
+    "script-shim.mjs",
+    "worker.mjs"
+  ])
     await cp(join(root, "src/features/web-automation", name), join(destination, name))
   await rm(join(destination, "stdio.mjs"), { force: true })
   for (const name of ["playwright-core", "playwright"]) {

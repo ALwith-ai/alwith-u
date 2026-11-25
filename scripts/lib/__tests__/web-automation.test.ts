@@ -300,3 +300,100 @@ test("handoff cancels calls still awaiting their native claim before they can at
   expect(attached).toBe(false)
   await executor.close()
 })
+
+test("a script needs a file or source, a sane time limit, and takes the tab over from this process", async () => {
+  let closed = 0
+  const page = {
+    setDefaultTimeout() {},
+    setDefaultNavigationTimeout() {},
+    on() {},
+    frames: () => [],
+    mainFrame: () => ({}),
+    url: () => "about:blank"
+  }
+  const browser = {
+    contexts: () => [{ pages: () => [page] }],
+    on() {},
+    close: async () => void closed++
+  } as unknown as Browser
+  const started: unknown[] = []
+  const run = createBrowserTools(
+    async () => ({}),
+    async () => browser,
+    {
+      runScript: async (target: string, args: Record<string, unknown>) => (
+        started.push([target, args, closed]),
+        { ok: true }
+      )
+    }
+  )
+  await expect(run("browser_run", { target: "guest" })).rejects.toThrow("either script or code")
+  await expect(run("browser_run", { target: "guest", script: "/a.mjs", code: "1" })).rejects.toThrow("either")
+  await expect(run("browser_run", { target: "guest", script: "relative.mjs" })).rejects.toThrow("absolute path")
+  await expect(run("browser_run", { target: "guest", code: "  " })).rejects.toThrow("empty")
+  await expect(run("browser_run", { target: "guest", code: "1", timeoutMs: 5 })).rejects.toThrow("timeout")
+  expect(started).toEqual([])
+  // Attach this process to the tab, then run a script: the script must find the tab free.
+  await run("browser_diagnostics", { target: "guest" })
+  expect(await run("browser_run", { target: "guest", code: "1" })).toEqual({ ok: true })
+  expect(started).toEqual([["guest", { target: "guest", code: "1" }, 1]])
+  await expect(createBrowserTools(async () => ({}))("browser_run", { target: "guest", code: "1" })).rejects.toThrow(
+    "cannot run"
+  )
+})
+
+test("a script runs under the engine's sandbox, against its one tab, and stops when the tab is released", async () => {
+  const { createExecutor } = await import("../../../src/features/web-automation/worker.mjs")
+  const runs: Record<string, any>[] = []
+  let stopped = 0
+  let finish!: (value: unknown) => void
+  const executor = createExecutor(
+    undefined,
+    async () => Response.json({}),
+    (options: Record<string, any>) => {
+      runs.push(options)
+      options.onStart(() => {
+        stopped++
+        finish({ ok: false, stopped: "canceled" })
+      })
+      return new Promise((resolve) => (finish = resolve))
+    }
+  )
+  const request = {
+    version: 1,
+    kind: "call",
+    endpoint: "http://127.0.0.1:12345",
+    sessionId: "a",
+    token: "token-a",
+    transportToken: "host",
+    name: "browser_run",
+    args: { target: "guest 1", code: "1" }
+  }
+  try {
+    // Without a sandbox from the engine nothing is started: there is no unsandboxed way to run a script.
+    await expect(executor.dispatch(request)).rejects.toThrow("stated no sandbox")
+    expect(runs).toEqual([])
+    const state = { sandboxCwd: "file:///work" }
+    const running = executor.dispatch({ ...request, args: { ...request.args, sandboxState: state } })
+    // The claim is one awaited native call; the script starts on a turn after it resolves.
+    while (runs.length === 0) await new Promise((resolve) => setTimeout(resolve, 1))
+    expect(runs[0]).toMatchObject({
+      code: "1",
+      sandboxState: state,
+      tab: { host: "127.0.0.1", port: 12345, path: "/cdp/guest%201", token: "host" },
+      timeoutMs: 60000
+    })
+    expect(runs[0]!.launcher).toMatch(/codex(\.exe)?$/)
+    await executor.dispatch({
+      version: 1,
+      kind: "releaseTarget",
+      sessionId: "a",
+      token: "token-a",
+      targets: ["guest 1"]
+    })
+    expect(stopped).toBe(1)
+    expect(await running).toEqual({ ok: false, stopped: "canceled" })
+  } finally {
+    await executor.close()
+  }
+})

@@ -27,8 +27,10 @@ export function createWebAutomationTools() {
         if (!input || typeof input !== "object" || Array.isArray(input)) throw Error("Expected browser arguments")
         return input
       },
-      async execute(args, { sessionId, signal }) {
+      async execute(input, { sessionId, signal, sandboxState }) {
         signal.throwIfAborted()
+        // A script runs under the sandbox the engine states for this call; the model cannot supply one.
+        const args = definition.name === "browser_run" ? { ...input, sandboxState } : input
         const cancel = () => {
           void invoke("web_automation_cancel", { sessionId }).catch(console.error)
         }

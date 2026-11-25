@@ -254,6 +254,17 @@ tools.push(
     ["target", "path"]
   ),
   tool(
+    "browser_run",
+    "Run a Playwright script against one tab of this conversation. Use it for an existing Playwright script or for a sequence of steps that belongs in one program. The script runs as its own process with the permissions of this conversation's commands, in the conversation's working directory, and can reach nothing but that tab. Import playwright, playwright-core or @playwright/test as usual: launching or connecting to Chromium gives the tab, a new page is that tab with the context's viewport and the document it already shows, and closing a page leaves the tab open. Firefox, WebKit and the `playwright test` runner are not available. Give script as an absolute path, or code as the source of an ES module. Save screenshots and other files under the working directory. The result has the exit code and what the script printed; a zero exit code is the script's own verdict, so read its output.",
+    {
+      target,
+      script: { type: "string", description: "Absolute path of a script file." },
+      code: { type: "string", description: "Source of an ES module to run instead of a file." },
+      timeoutMs: { type: "integer", description: "Time limit; 60000 by default, at most 600000." }
+    },
+    ["target"]
+  ),
+  tool(
     "browser_resolve",
     "Convert a current observed ref into a semantic Playwright locator for a reusable workflow. A locator is not proof of future identity: revalidate it before reuse.",
     {

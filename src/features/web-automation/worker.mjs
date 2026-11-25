@@ -1,14 +1,17 @@
 /** Application-owned Playwright executor. This is not an agent or an MCP server. */
 import { AsyncLocalStorage } from "node:async_hooks"
+import { dirname, join } from "node:path"
 import { createInterface } from "node:readline"
 
 import { chromium } from "playwright-core"
 
 import { createBrowserTools } from "./engine.mjs"
+import { DEFAULT_TIMEOUT_MS, runScript } from "./script-runner.mjs"
 
 /** @param {(url: string, options: import("playwright-core").ConnectOverCDPOptions) => Promise<import("playwright-core").Browser>} connect */
-export function createExecutor(connect = chromium.connectOverCDP.bind(chromium), request = fetch) {
+export function createExecutor(connect = chromium.connectOverCDP.bind(chromium), request = fetch, start = runScript) {
   const context = new AsyncLocalStorage()
+  const scripts = new Map()
   const sessions = new Map()
   const revoked = new Set()
   const generations = new Map()
@@ -41,7 +44,32 @@ export function createExecutor(connect = chromium.connectOverCDP.bind(chromium),
         timeout: 15000
       })
     },
-    { nativeDownloads: true }
+    {
+      nativeDownloads: true,
+      runScript: (target, args) => {
+        const { args: call } = context.getStore()
+        // The application puts the engine's sandbox state here; a script never runs without one.
+        if (call.sandboxState === undefined || call.sandboxState === null)
+          throw Error("The engine stated no sandbox for this conversation, so the script was not run")
+        const endpoint = new URL(transport.endpoint)
+        return start({
+          script: args.script,
+          code: args.code,
+          sandboxState: call.sandboxState,
+          tab: {
+            host: endpoint.hostname,
+            port: Number(endpoint.port),
+            path: `/cdp/${encodeURIComponent(target)}`,
+            token: transport.token
+          },
+          launcher: join(dirname(process.execPath), process.platform === "win32" ? "codex.exe" : "codex"),
+          runtime: process.execPath,
+          shim: join(import.meta.dirname, "script-shim.mjs"),
+          timeoutMs: args.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+          onStart: (stop) => scripts.set(target, stop)
+        }).finally(() => scripts.delete(target))
+      }
+    }
   )
   return {
     async dispatch(message) {
@@ -59,6 +87,7 @@ export function createExecutor(connect = chromium.connectOverCDP.bind(chromium),
           message.targets.map(async (target) => {
             generations.set(target, (generations.get(target) ?? 0) + 1)
             const pending = active.get(target)
+            scripts.get(target)?.()
             const result = await run.release(target)
             if (pending) await Promise.allSettled([pending])
             return { target, ...result }

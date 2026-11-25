@@ -7,8 +7,9 @@ import { expect } from "playwright/test"
 
 import { tools } from "./definitions.mjs"
 import { createObservations, verify } from "./observation.mjs"
+import { MAX_TIMEOUT_MS } from "./script-runner.mjs"
 
-export function createBrowserTools(call, attach, { nativeDownloads = false } = {}) {
+export function createBrowserTools(call, attach, { nativeDownloads = false, runScript } = {}) {
   const connections = new Map()
   let disposed = false
   async function pageFor(target) {
@@ -171,6 +172,26 @@ export function createBrowserTools(call, attach, { nativeDownloads = false } = {
         connections.delete(target)
       }
       return call({ target, method: "release" })
+    }
+    if (name === "browser_run") {
+      if (!runScript) throw Error("Scripts cannot run in this browser")
+      if ((args.script === undefined) === (args.code === undefined)) throw Error("Give either script or code")
+      if (args.script !== undefined && (typeof args.script !== "string" || !isAbsolute(args.script)))
+        throw Error("script must be an absolute path")
+      if (args.code !== undefined && (typeof args.code !== "string" || !args.code.trim()))
+        throw Error("code must not be empty")
+      if (
+        args.timeoutMs !== undefined &&
+        (!Number.isInteger(args.timeoutMs) || args.timeoutMs < 1000 || args.timeoutMs > MAX_TIMEOUT_MS)
+      )
+        throw Error("Invalid script timeout")
+      // One client drives a tab at a time: the script takes over from this process and hands back when it ends.
+      const pending = connections.get(target)
+      if (pending) {
+        connections.delete(target)
+        await (await pending).browser.close()
+      }
+      return runScript(target, args)
     }
     if (name === "browser_focus" || name === "browser_close")
       return call({

@@ -1,8 +1,6 @@
 import { CodexClient } from "@alwith/module-chat/client"
+import { createFakeAgent, FakeHubPort } from "@alwith/module-chat/testing"
 import { expect, test, vi } from "vitest"
-
-import { createFakeAgent } from "@alwith/module-chat/testing"
-import { FakeHubPort } from "@alwith/module-chat/testing"
 
 import { createWebAutomationTools } from "../application-tools"
 
@@ -116,4 +114,34 @@ test("a rejected replacement is not reported as successful application execution
     }
   )
   expect(result.isError).toBe(true)
+})
+
+test("a script gets the sandbox the engine states for the call, never one the model writes", async () => {
+  invoke.mockReset().mockResolvedValue({ ok: true, exitCode: 0, stdout: "", stderr: "" })
+  const tool = createWebAutomationTools().find((entry) => entry.name === "browser_run")!
+  const context = {
+    sessionId: "a",
+    toolCallId: "run",
+    turnId: "turn",
+    signal: new AbortController().signal,
+    agent: {} as import("@alwith/module-chat/client").ApplicationToolContext["agent"]
+  }
+  const state = { sandboxCwd: "file:///work" }
+  await tool.execute(
+    { target: "guest", code: "1", sandboxState: { forged: true } },
+    { ...context, sandboxState: state }
+  )
+  expect(invoke).toHaveBeenLastCalledWith("web_automation_execute", {
+    sessionId: "a",
+    name: "browser_run",
+    args: { target: "guest", code: "1", sandboxState: state }
+  })
+  // The engine stated none: the forged value is removed and the executor refuses to start the script.
+  await tool.execute({ target: "guest", code: "1", sandboxState: { forged: true } }, context)
+  expect(invoke).toHaveBeenLastCalledWith("web_automation_execute", {
+    sessionId: "a",
+    name: "browser_run",
+    args: { target: "guest", code: "1", sandboxState: undefined }
+  })
+  expect(tool.annotations).toBeUndefined()
 })
