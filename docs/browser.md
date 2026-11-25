@@ -46,6 +46,26 @@ TAURI_CONFIG='{"identifier":"ai.alwith.u.contract-test"}' \
   cargo build --features 'dev-backends,hasgard-testing,tauri/custom-protocol'
 ```
 
+The binary Cargo builds cannot run where it is: CEF is loaded from `../Frameworks` beside the
+executable, with its helper applications, and those exist only in an application bundle. To run
+the test application, bundle it and start the executable inside the bundle. The product name
+keeps it apart from the other bundles in `src-tauri/target/debug/bundle/macos`:
+
+```sh
+CEF_PATH="$PWD/target/cef-h264-aac" ALWITH_NATIVE_TEST=1 bun tauri build --debug --bundles app \
+  --features dev-backends,hasgard-testing,tauri/custom-protocol \
+  --config '{"identifier":"ai.alwith.u.contract-test","productName":"ALwith U Contract Test","bundle":{"createUpdaterArtifacts":false,"macOS":{"signingIdentity":null,"hardenedRuntime":false}}}' \
+  -- --no-default-features
+
+cd "src-tauri/target/debug/bundle/macos/ALwith U Contract Test.app/Contents/MacOS"
+ALWITH_U_CEF_SHELL_TEST=1 ALWITH_U_CEF_BROWSER_TEST=1 \
+  ALWITH_U_CEF_TEST_PROFILE="$(mktemp -d)" TAURI_HASGARD_DISPLAY=secondary \
+  TAURI_HASGARD_SOCKET=/tmp/u-contract.sock ./alwith-u
+```
+
+The application is ready when the socket exists and its main window shows `browser-fixture.html`;
+contracts then run with the same `TAURI_HASGARD_SOCKET`.
+
 Rebuild the normal frontend and binary afterwards. Never install a test build as the development
 application, and never run a contract against a user's own session.
 
@@ -232,7 +252,8 @@ with Launch Services, and it aborts.
   release that changes `browser_run`, the runner or the shim.
 - **Verified.** On macOS, in the running application through the chat entry (two viewports,
   assertions, screenshots; the script's own TCP connection and a write outside the working
-  directory were both refused). The contract step above has not been run since it was moved
-  there. Windows has not been run: the socket and
+  directory were both refused), and by the contract step above against the bundled test
+  application (2026-11-25: all eleven steps of `test:browser-tools` passed, the conversation
+  with a real model skipped). Windows has not been run: the socket and
   the Windows sandbox are unverified there, and a failure to set them up is reported, never
   replaced by an unsandboxed run.
