@@ -25,7 +25,9 @@ const BACKDROP: f64 = 0.6;
 /// contents are never read. `selector` matches this element and no other, so a conversation acts
 /// on exactly what was pointed at; an element inside a frame or a shadow tree has none.
 const DESCRIBE: &str = r#"function() {
-  const words = (value) => (value || '').replace(/\s+/g, ' ').trim().slice(0, 200)
+  // Editors keep characters of no width in their text; they are no words.
+  const plain = (value) => (value || '').replace(/[\u200B-\u200D\u2060\uFEFF]/g, '').replace(/\s+/g, ' ').trim()
+  const words = (value) => plain(value).slice(0, 200)
   const field = this.matches('input, textarea, select')
   const label = this.getAttribute('aria-label') || this.getAttribute('alt') || this.getAttribute('title')
     || this.getAttribute('placeholder') || (this.labels && this.labels[0] && this.labels[0].innerText)
@@ -46,9 +48,13 @@ const DESCRIBE: &str = r#"function() {
     const path = steps.join(' > ')
     if (path.length <= 300 && only(path)) selector = path
   }
-  // In a document, the paragraph, list item or table cell the element is part of says which one it is.
-  const part = this.closest('p, li, td, th, h1, h2, h3, h4, h5, h6, pre, blockquote')
-  const block = part ? (part.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 600) : ''
+  // In a document, the paragraph the element is part of says which one it is. A paragraph is told by
+  // how the page lays it out: editors build theirs from whatever elements they like.
+  let part = this
+  while (part.parentElement && getComputedStyle(part).display.startsWith('inline')) part = part.parentElement
+  const said = part === document.body || part === document.documentElement ? '' : plain(part.innerText)
+  // More than a paragraph's worth is a region of the page, which says nothing about where in it.
+  const block = said.length <= 600 ? said : ''
   // A picture or an icon says nothing itself: the link or button it is part of does.
   const control = this.closest('a[href], button, [role=button], [role=link], [role=tab], [role=menuitem], label, summary')
   if (!label && !field && !words(this.innerText) && control && control !== this) {
