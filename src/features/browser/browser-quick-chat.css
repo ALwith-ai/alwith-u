@@ -13,39 +13,8 @@
   --chat-input-max-height: min(18rem, 30cqh);
 }
 
-[data-quick-chat-panel] .chat-composer-toolbar > div > :last-child {
-  container: browser-chat-tools / inline-size;
-}
-
-/* Keep Desktop's intrinsic model width, allowing it to shrink between fixed controls. */
-[data-quick-chat-panel] .chat-composer-toolbar div:has(> [data-testid="model-trigger"]) {
-  flex: 0 1 auto;
-  min-width: 0;
-}
-
-/* Keep the model name between the icons and effort level on one row. */
 [data-quick-chat-panel] .chat-composer-toolbar [data-testid="model-trigger"] {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding-inline: 0.5rem;
   font-size: 0.8125rem;
-  white-space: nowrap;
-}
-
-[data-quick-chat-panel] [data-testid="model-trigger"] > :is(svg, img) {
-  flex-shrink: 0;
-}
-
-[data-quick-chat-panel] [data-testid="model-trigger"] > span + span > .invisible {
-  display: none;
-}
-
-/* Free the effort label's width first when the action row gets crowded. */
-@container browser-chat-tools (width < 25rem) {
-  [data-quick-chat-panel] [data-testid="model-trigger"] > span + span {
-    display: none;
-  }
 }
 
 @container browser-chat (max-width: 340px) {

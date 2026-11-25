@@ -1,5 +1,64 @@
 @import "@alwith/module-chat/styles.css";
 
+.chat-composer-toolbar > div > :last-child {
+  container: composer-actions / inline-size;
+}
+
+.chat-composer-toolbar :has(> [data-testid="model-trigger"]) {
+  flex: 0 1 auto;
+}
+
+.chat-composer-toolbar [data-testid="model-trigger"] > :is(svg, img) {
+  flex-shrink: 0;
+}
+
+.chat-composer-toolbar [data-testid="model-trigger"] > span + span > .invisible {
+  display: none;
+}
+
+/* Reserve room for the fixed controls before shortening the model name. */
+@container composer-actions (width < 22rem) {
+  [data-testid="model-trigger"] > span + span {
+    display: none;
+  }
+}
+
+@container composer-actions (width < 10rem) {
+  [data-testid="model-trigger"] {
+    --composer-model-label-position: absolute;
+    --composer-model-label-clip: inset(50%);
+    --composer-model-extra-icon: none;
+  }
+}
+
+/* Leave enough room to shorten the label before switching to a single icon. */
+@container composer-actions (width < 11.5rem) {
+  .chat-composer-toolbar > div > :last-child:has(> :nth-child(4)) [data-testid="model-trigger"] {
+    --composer-model-label-position: absolute;
+    --composer-model-label-clip: inset(50%);
+    --composer-model-extra-icon: none;
+  }
+}
+
+/* With context usage and both voice controls, leave room for more than a single glyph. */
+@container composer-actions (width < 15rem) {
+  .chat-composer-toolbar > div > :last-child:has(> :nth-child(5)) [data-testid="model-trigger"] {
+    --composer-model-label-position: absolute;
+    --composer-model-label-clip: inset(50%);
+    --composer-model-extra-icon: none;
+  }
+}
+
+.chat-composer-toolbar [data-testid="model-trigger"]:has(> :is(svg, img):first-child) > span:first-of-type {
+  position: var(--composer-model-label-position, static);
+  clip-path: var(--composer-model-label-clip, none);
+}
+
+.chat-composer-toolbar [data-testid="model-trigger"]:has(> :is(svg, img):first-child) > .lucide-chevron-up,
+.chat-composer-toolbar [data-testid="model-trigger"]:has(> .lucide-zap) > :is(svg, img):not(.lucide-zap, [data-testid="model-switch-loading"]) {
+  display: var(--composer-model-extra-icon, block);
+}
+
 .codex-user-image,
 .codex-assistant-message img,
 .codex-generated-image-preview,
