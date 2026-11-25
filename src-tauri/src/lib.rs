@@ -359,6 +359,8 @@ pub fn run() {
             settings::initialize(app.handle())?;
             window::initialize_main_window(app.handle())?;
             window_state::install(app.handle())?;
+            #[cfg(feature = "dev-backends")]
+            development_instance::place(app.handle())?;
             log::info!("ALwith U {} starting", env!("CARGO_PKG_VERSION"));
             #[cfg(target_os = "windows")]
             app.get_webview_window("main").expect("main window exists at setup").hide()?;

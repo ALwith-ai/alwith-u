@@ -32,3 +32,16 @@ fn only_additional_dev_instances_get_separate_codex_homes() {
     assert_eq!(codex_home("ai.alwith.u.dev2", data), Some(data.join("codex")));
     assert_eq!(codex_home("ai.alwith.u.dev12", data), Some(data.join("codex")));
 }
+
+#[test]
+fn a_display_is_chosen_by_role_index_or_name() {
+    let names = [Some("Built-in"), Some("Side")];
+    assert_eq!(chosen("secondary", Some("Built-in"), &names), Some(1));
+    assert_eq!(chosen("secondary", Some("Side"), &names), Some(0));
+    assert_eq!(chosen("1", Some("Built-in"), &names), Some(1));
+    assert_eq!(chosen("Side", Some("Built-in"), &names), Some(1));
+    // One display has no secondary, and an index or name that is not there chooses nothing.
+    assert_eq!(chosen("secondary", Some("Built-in"), &names[..1]), None);
+    assert_eq!(chosen("2", Some("Built-in"), &names), None);
+    assert_eq!(chosen("Other", Some("Built-in"), &names), None);
+}

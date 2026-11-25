@@ -1,8 +1,51 @@
-//! Numbered development profiles and the one-time migration of the original Dev identity.
+//! Numbered development profiles, the one-time migration of the original Dev identity, and the
+//! display a development run opens on.
 use std::path::{Path, PathBuf};
 
 const LEGACY: &str = "ai.alwith.u.dev";
 const FIRST: &str = "ai.alwith.u.dev1";
+
+/// The display named by `TAURI_HASGARD_DISPLAY`: `secondary` for the first display that is not
+/// the primary one, a display's index from 0, or its name.
+fn chosen(wanted: &str, primary: Option<&str>, names: &[Option<&str>]) -> Option<usize> {
+    if wanted == "secondary" {
+        return names.iter().position(|name| name.is_none() || *name != primary);
+    }
+    match wanted.parse::<usize>() {
+        Ok(index) => (index < names.len()).then_some(index),
+        Err(_) => names.iter().position(|name| *name == Some(wanted)),
+    }
+}
+
+/// Opens the main window on the display `TAURI_HASGARD_DISPLAY` names, whatever position the last
+/// run left it at, so an automated development run stays off the screen someone is working on.
+/// Without the variable, or without such a display, the window stays where it was restored.
+pub fn place(app: &tauri::AppHandle) -> Result<(), String> {
+    use tauri::Manager;
+    let Ok(wanted) = std::env::var("TAURI_HASGARD_DISPLAY") else { return Ok(()) };
+    let Some(window) = app.get_webview_window("main") else { return Ok(()) };
+    let monitors = window.available_monitors().map_err(|error| error.to_string())?;
+    let primary = window.primary_monitor().map_err(|error| error.to_string())?;
+    let primary = primary.as_ref().and_then(|monitor| monitor.name().map(String::as_str));
+    let names: Vec<_> = monitors.iter().map(|monitor| monitor.name().map(String::as_str)).collect();
+    let Some(monitor) = chosen(&wanted, primary, &names).map(|index| &monitors[index]) else {
+        log::warn!("No display matches TAURI_HASGARD_DISPLAY={wanted}; the window stays where it was");
+        return Ok(());
+    };
+    let area = monitor.work_area();
+    let margin = (24.0 * monitor.scale_factor()) as u32;
+    let size = window.outer_size().map_err(|error| error.to_string())?;
+    let room = |length: u32| length.saturating_sub(2 * margin);
+    let fitted =
+        tauri::PhysicalSize::new(size.width.min(room(area.size.width)), size.height.min(room(area.size.height)));
+    window
+        .set_position(tauri::PhysicalPosition::new(area.position.x + margin as i32, area.position.y + margin as i32))
+        .map_err(|error| error.to_string())?;
+    if fitted != size {
+        window.set_size(fitted).map_err(|error| error.to_string())?;
+    }
+    Ok(())
+}
 
 pub fn prepare(identifier: &str) -> Result<(), String> {
     if identifier != FIRST {
