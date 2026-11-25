@@ -67,6 +67,22 @@
   user-select: none;
 }
 
+.codex-user-image {
+  width: auto;
+  height: auto;
+  min-width: 0;
+  max-width: min(20rem, 100%);
+}
+
+.codex-user-image img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 20rem;
+  object-fit: contain;
+}
+
 /* Generated images are previews; the lightbox retains the original dimensions. */
 .codex-generated-image {
   max-width: min(25rem, 100%);
