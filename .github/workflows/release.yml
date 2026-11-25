@@ -1,5 +1,5 @@
 # Manual runs build unsigned installers as workflow artifacts. Version tags create
-# a signed, notarised draft release with Tauri updater metadata.
+# signed, notarised installers and publish the release after TOS mirroring and registration.
 name: release
 
 on:
@@ -303,6 +303,14 @@ jobs:
           API_BASE: ${{ vars.API_BASE || secrets.API_BASE }}
           CI_RELEASE_TOKEN: ${{ secrets.CI_RELEASE_TOKEN || vars.CI_RELEASE_TOKEN }}
         run: bun scripts/register-release.ts "$RUNNER_TEMP/tos-release" "$RELEASE_TAG"
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tos_release_tag || github.ref_name }}
+        run: |
+          gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false
+          release=$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json tagName,isDraft)
+          jq -e --arg tag "$RELEASE_TAG" '.tagName == $tag and .isDraft == false' <<< "$release"
       - name: Notify Feishu
         env:
           RELEASE_TAG: ${{ inputs.tos_release_tag || github.ref_name }}

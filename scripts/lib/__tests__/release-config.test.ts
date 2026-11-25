@@ -5,6 +5,7 @@ import { resolve } from "node:path"
 const root = resolve(import.meta.dirname, "../../..")
 
 type Step = {
+  if?: string
   name?: string
   uses?: string
   run?: string
@@ -176,7 +177,18 @@ test("TOS mirroring follows successful tagged builds and can retry a draft relea
   expect(register).toBeGreaterThan(upload)
   expect(job.steps![register]?.run).toBe('bun scripts/register-release.ts "$RUNNER_TEMP/tos-release" "$RELEASE_TAG"')
   const notify = job.steps!.findIndex((step) => step.name === "Notify Feishu")
-  expect(notify).toBeGreaterThan(register)
+  const publish = job.steps!.findIndex((step) => step.name === "Publish GitHub Release")
+  expect(publish).toBeGreaterThan(register)
+  expect(notify).toBeGreaterThan(publish)
+  // Default success gating keeps the draft private if uploading or registration fails.
+  expect(job.steps![publish]?.if).toBeUndefined()
+  expect(job.steps![publish]?.env).toEqual({
+    GH_TOKEN: "${{ github.token }}",
+    RELEASE_TAG: "${{ inputs.tos_release_tag || github.ref_name }}"
+  })
+  expect(job.steps![publish]?.run).toContain('gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false')
+  expect(job.steps![publish]?.run).toContain("--json tagName,isDraft")
+  expect(job.steps![publish]?.run).toContain(".tagName == $tag and .isDraft == false")
   expect(job.steps![notify]?.env).toEqual({
     RELEASE_TAG: "${{ inputs.tos_release_tag || github.ref_name }}",
     LARK_ROBOT_URL: "${{ secrets.LARK_ROBOT_URL }}"
@@ -187,6 +199,35 @@ test("TOS mirroring follows successful tagged builds and can retry a draft relea
     CI_RELEASE_TOKEN: "${{ secrets.CI_RELEASE_TOKEN || vars.CI_RELEASE_TOKEN }}"
   })
   expect(job.steps!.find((step) => step.uses === "actions/setup-python@v5")?.with?.["python-version"]).toBe("3.12")
+})
+
+test("GitHub publication verifies the tag and published status and propagates API failures", () => {
+  const publish = releaseWorkflow()["upload-to-tos"].steps!.find((step) => step.name === "Publish GitHub Release")!
+  const mock = `
+gh() {
+  case "$*" in
+    'release edit v26.11.24 --repo test/repo --draft=false')
+      if [ "$SCENARIO" = edit-error ]; then return 42; fi ;;
+    'release view v26.11.24 --repo test/repo --json tagName,isDraft')
+      case "$SCENARIO" in
+        view-error) return 43 ;;
+        draft) printf '%s' '{"tagName":"v26.11.24","isDraft":true}' ;;
+        wrong-tag) printf '%s' '{"tagName":"v26.11.23","isDraft":false}' ;;
+        *) printf '%s' '{"tagName":"v26.11.24","isDraft":false}' ;;
+      esac ;;
+    *) return 44 ;;
+  esac
+}
+`
+  const run = (scenario: string) =>
+    Bun.spawnSync(["bash", "-e", "-o", "pipefail", "-c", mock + publish.run], {
+      env: { ...process.env, GITHUB_REPOSITORY: "test/repo", RELEASE_TAG: "v26.11.24", SCENARIO: scenario }
+    }).exitCode
+  expect(run("published")).toBe(0)
+  expect(run("edit-error")).toBe(42)
+  expect(run("view-error")).toBe(43)
+  expect(run("draft")).not.toBe(0)
+  expect(run("wrong-tag")).not.toBe(0)
 })
 
 test("mobile release dependencies are installable on every desktop build runner", () => {
