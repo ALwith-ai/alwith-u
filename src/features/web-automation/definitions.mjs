@@ -83,6 +83,26 @@ export const tools = [
     },
     ["target", "selector", "text"]
   ),
+  locatorTool(
+    "browser_edit_text",
+    "Change text inside a document or rich-text editor (ProseMirror, Tiptap, Milkdown, Quill, any contenteditable) and leave everything else as it is. Use this for every change to an existing document; browser_type with replace=true would replace the whole document. `selector` is the editor or a part of it. `find` is the exact text as the page shows it, within one paragraph, heading, list item or table cell. `replace` is what it becomes: an empty string deletes it, and deleting all of a paragraph removes the paragraph; a line break in it starts a new paragraph, so adding a paragraph after one is replacing its last words with those words, a line break and the new paragraph. When the text is there more than once the call fails and lists each occurrence with the text around it: pass `occurrence`, or `all` to change every one. The change is typed as a person types, so the editor records, saves and shares it as its own. Afterwards the whole document is read again: `ok` says that only what was asked changed, and `before` and `after` are the paragraphs that differ.",
+    {
+      find: { type: "string" },
+      replace: { type: "string" },
+      occurrence: { type: "integer", minimum: 1, description: "Which occurrence, from 1." },
+      all: { type: "boolean", description: "Change every occurrence." }
+    },
+    ["find", "replace"]
+  ),
+  locatorTool(
+    "browser_select_text",
+    "Select text inside a document editor, exactly as browser_edit_text finds it, and change nothing. Then use what the site offers for a selection: its toolbar or a shortcut such as ControlOrMeta+B to format it, its comment button, its link dialog.",
+    {
+      find: { type: "string" },
+      occurrence: { type: "integer", minimum: 1, description: "Which occurrence, from 1." }
+    },
+    ["find"]
+  ),
   tool("browser_press", "Press a key or shortcut on an observed locator, e.g. Enter or ControlOrMeta+A.", {
     target,
     selector,
