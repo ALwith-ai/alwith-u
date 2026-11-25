@@ -230,3 +230,9 @@ Origin: explicit user instruction following stale Storybook catalog verification
 - Never delete, reset or overwrite these stores while debugging. Tests use their own identifier and temporary profiles (`.contract-test`, `startTestRuntime`).
 - Development runs through `bun dev:tauri`, which uses the `ai.alwith.u.dev` identity and its own login; never launch development with a bare `bun tauri dev`, which runs under the release identity.
 - Origin: explicit user instruction (2026-11-16; a bare `bun tauri dev` ran under the release identity and the user had to sign in again).
+
+## Rust formatting: stable only, never nightly
+
+- Format Rust with stable `cargo fmt` only. `rustfmt.toml` keeps options that only nightly applies; on stable they are ignored with a warning, which is known and accepted.
+- Never run `cargo +nightly`, `rustfmt +nightly` or `rustup toolchain install nightly`, and never install a nightly toolchain to make those warnings go away.
+- Origin: user instruction (2026-07-25 in alwith-desktop; repeated here 2026-11-25 after a session auto-installed nightly through `cargo +nightly fmt`).
