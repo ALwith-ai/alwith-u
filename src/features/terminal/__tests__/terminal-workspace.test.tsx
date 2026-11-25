@@ -28,6 +28,10 @@ vi.mock("@alwith/module-terminal/tauri", () => ({
   }
 }))
 vi.mock("@tauri-apps/api/core", () => ({ isTauri: () => true }))
+vi.mock("@/features/device/window-routing", () => ({
+  deviceSelections: new Map<string, string>(),
+  sendDeviceRemark: vi.fn()
+}))
 vi.mock("@/components/theme-provider", () => ({ useTheme: () => ({ resolvedTheme: "dark" }) }))
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
 vi.mock("@tauri-apps/api/window", () => ({ getCurrentWindow: () => ({ label: "main" }) }))
