@@ -9,6 +9,7 @@ import {
   EllipsisVertical,
   Info,
   Lock,
+  Pointer,
   RotateCw,
   Square,
   Star,
@@ -16,7 +17,7 @@ import {
   TriangleAlert,
   X
 } from "lucide-react"
-import { type Ref, useEffect, useImperativeHandle, useRef, useState } from "react"
+import { lazy, type Ref, Suspense, useEffect, useImperativeHandle, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useStore } from "zustand"
@@ -55,6 +56,9 @@ import { LibraryPanel, type SavedLogin } from "./library-panel"
 import { type MenuAction, PageContextMenu, type PageMenu } from "./page-menu"
 import type { PreviewRequest } from "./preview-request"
 import { resumable, type TabHistory } from "./tab-store"
+
+// Pointing talks to the conversation client, which a page that is only shown has no need of.
+const PagePointer = lazy(async () => ({ default: (await import("./page-pointer")).PagePointer }))
 
 /** How often the page in front is asked for the state it would come back in. */
 const pageStateInterval = 5000
@@ -203,6 +207,11 @@ export function BrowserPane({
   const [editing, setEditing] = useState(false)
   const [highlight, setHighlight] = useState(-1)
   const [libraryOpen, setLibraryOpen] = useState(false)
+  // The person is pointing at the page to say something about it.
+  const [pointing, setPointing] = useState(false)
+  // Where pointing starts when it was asked for from the page's menu, as fractions of the page's visible area.
+  const [pointStart, setPointStart] = useState<{ x: number; y: number; selection?: string } | undefined>(undefined)
+  const [surface, setSurface] = useState<HTMLEmbedElement | null>(null)
   const editingAddress = useRef(false)
   const addressInput = useRef<HTMLInputElement>(null)
   const [navigating, setNavigating] = useState(false)
@@ -474,7 +483,17 @@ export function BrowserPane({
       )
     else if ("reload" in action) history("reload")
     else if ("source" in action && /^https?:\/\//i.test(page.url)) onOpenTab?.(`${sourcePrefix}${page.url}`)
-    else if ("inspect" in action && guest && chrome.menu)
+    else if ("say" in action && surface && chrome.menu) {
+      // The menu was asked for at a point of the window; the page's visible area is where its surface lies.
+      const bounds = surface.getBoundingClientRect()
+      const within = (value: number) => Math.min(1, Math.max(0, value))
+      setPointStart({
+        x: within((chrome.menu.x / zoom - bounds.left) / bounds.width),
+        y: within((chrome.menu.y / zoom - bounds.top) / bounds.height),
+        selection: chrome.menu.selectionText.trim() || undefined
+      })
+      setPointing(true)
+    } else if ("inspect" in action && guest && chrome.menu)
       // The browser finds the element where it reported the menu: in the window's points.
       void invoke("cef_guest_inspect", { label: guest.label, x: chrome.menu.x, y: chrome.menu.y }).catch((error) =>
         toast.error(String(error))
@@ -513,6 +532,8 @@ export function BrowserPane({
   const secure = /^https:/i.test(page.url) && !distrusted
   // A blank tab shows the user's own pages instead of an empty document.
   const startPage = !adopted && page.url === "" && !chrome.loading && !chrome.error && !navigating
+  // Only a website that is showing can be pointed at.
+  const canPoint = guest !== null && active && web && !chrome.error && !libraryOpen && !chrome.fullscreen
   const focusAddress = () => {
     addressInput.current?.focus()
     addressInput.current?.select()
@@ -598,7 +619,7 @@ export function BrowserPane({
     if (blank && active) focusAddress()
   }, [blank, active])
   return (
-    <section className="flex min-h-0 flex-1 flex-col overflow-hidden" aria-label={t("browser.pane")}>
+    <section className="relative flex min-h-0 flex-1 flex-col overflow-hidden" aria-label={t("browser.pane")}>
       <header className="flex h-11 shrink-0 [scrollbar-width:none] items-center gap-0.5 overflow-x-auto overflow-y-hidden border-b bg-background px-2 whitespace-nowrap">
         <Button
           variant="ghost"
@@ -819,6 +840,21 @@ export function BrowserPane({
             <Star className={bookmarked ? "fill-current" : undefined} />
           </Button>
         </div>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="rounded-full"
+          aria-label={t("browser.point")}
+          title={t("browser.point")}
+          aria-pressed={pointing}
+          disabled={!canPoint}
+          onClick={() => {
+            setPointStart(undefined)
+            setPointing((on) => !on)
+          }}
+        >
+          <Pointer />
+        </Button>
         {guest && (
           <ExtensionActions
             label={guest.label}
@@ -1197,11 +1233,27 @@ export function BrowserPane({
               key={chrome.menu.id}
               menu={chrome.menu}
               scale={zoom}
+              say={canPoint}
               onChoose={chooseFromMenu}
               onDismiss={() => answerMenu(null)}
             />
           )}
+          {pointing && canPoint && surface && (
+            <Suspense>
+              <PagePointer
+                label={guest.label}
+                surface={surface}
+                url={page.url}
+                start={pointStart}
+                onClose={() => {
+                  setPointing(false)
+                  setPointStart(undefined)
+                }}
+              />
+            </Suspense>
+          )}
           <embed
+            ref={setSurface}
             title={t("browser.livePage")}
             type="application/x-chromium-surface-embed"
             data-content-id={guest.token}

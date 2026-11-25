@@ -45,6 +45,7 @@ export type MenuAction =
   | { reload: true }
   | { source: true }
   | { inspect: true }
+  | { say: true }
 export type MenuEntry =
   | { kind: "separator" }
   | { kind: "item"; label: string; enabled: boolean; checked?: boolean; action: MenuAction }
@@ -105,8 +106,11 @@ function tidy(entries: MenuEntry[]): MenuEntry[] {
   return kept
 }
 
-/** The menu as the user sees it: what the application adds for a link, an image or a selection, then the browser's. */
-export function menuEntries(menu: PageMenu, words: Words): MenuEntry[] {
+/**
+ * The menu as the user sees it: what the application adds for a link, an image or a selection, then the browser's.
+ * With `say`, it opens by offering to say something about what is under the pointer.
+ */
+export function menuEntries(menu: PageMenu, words: Words, say = false): MenuEntry[] {
   const item = (label: string, action: MenuAction): MenuEntry => ({ kind: "item", label, enabled: true, action })
   // Only what the browser can fetch again is offered for saving.
   const saved = (key: string, url: string) => (/^https?:\/\//i.test(url) ? [item(words(key), { save: url })] : [])
@@ -142,7 +146,10 @@ export function menuEntries(menu: PageMenu, words: Words): MenuEntry[] {
   if (history !== -1) browser.splice(history + 1, 0, item(words("reload"), { reload: true }))
   const entries = tidy([...own, ...browser])
   // Last, as every browser has it: the element under the pointer in the developer tools.
-  return entries.length === 0 ? [] : [...entries, { kind: "separator" }, item(words("inspect"), { inspect: true })]
+  const all: MenuEntry[] =
+    entries.length === 0 ? [] : [...entries, { kind: "separator" }, item(words("inspect"), { inspect: true })]
+  if (!say) return all
+  return [item(words("say"), { say: true }), ...(all.length === 0 ? [] : [{ kind: "separator" } as const, ...all])]
 }
 
 /** What an entry does, in words that do not change with the language: what a script asks for it by. */
@@ -159,7 +166,9 @@ const nameOf = (action: MenuAction) =>
             ? "reload"
             : "source" in action
               ? "source"
-              : "inspect"
+              : "say" in action
+                ? "say"
+                : "inspect"
 
 function Entries({ entries, onChoose }: { entries: MenuEntry[]; onChoose: (action: MenuAction) => void }) {
   return entries.map((entry, index) => {
@@ -206,18 +215,21 @@ function Entries({ entries, onChoose }: { entries: MenuEntry[]; onChoose: (actio
 export function PageContextMenu({
   menu,
   scale,
+  say,
   onChoose,
   onDismiss
 }: {
   menu: PageMenu
   scale: number
+  /** The page can be pointed at: the menu offers to say something about what is under the pointer. */
+  say?: boolean
   onChoose: (action: MenuAction) => void
   onDismiss: () => void
 }) {
   // Choosing closes the menu too; only a menu closed without a choice is dismissed.
   const chosen = useRef(false)
   const { t } = useTranslation()
-  const entries = menuEntries(menu, (key, values) => t(`pageMenu.${key}`, values ?? {}))
+  const entries = menuEntries(menu, (key, values) => t(`pageMenu.${key}`, values ?? {}), say)
   // Nothing to offer here: the browser is told so, and waits no longer.
   const empty = entries.length === 0
   useEffect(() => {

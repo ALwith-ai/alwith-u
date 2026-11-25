@@ -1434,7 +1434,8 @@
     "addToDictionary": "添加到词典",
     "viewSource": "查看网页源代码",
     "inspect": "检查",
-    "print": "打印…"
+    "print": "打印…",
+    "say": "对这里说…"
   },
   "browser": {
     "embeddedUnavailable": "当前后端不支持内嵌浏览器。",
@@ -1622,7 +1623,12 @@
       "requires_action": "需要处理",
       "done": "未读回复",
       "welcome": "在这里提问，或让 AI 帮你操作浏览器。"
-    }
+    },
+    "point": "指给 AI 看",
+    "pointSay": "说说这里要怎样",
+    "pointSend": "发送",
+    "pointLabel": "指着“{{what}}”",
+    "pointLabelPlain": "指着这一处"
   },
   "images": {
     "discover": "从一个灵感开始",

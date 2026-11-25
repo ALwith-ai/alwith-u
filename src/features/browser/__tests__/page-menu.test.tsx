@@ -170,3 +170,19 @@ test("a menu with nothing to offer is dismissed at once", () => {
   expect(onDismiss).toHaveBeenCalledOnce()
   expect(screen.queryByRole("menu")).toBeNull()
 })
+
+test("a page that can be pointed at opens its menu by offering to say something about the spot", () => {
+  const entries = menuEntries(menu({ items: [entry(113, "Copy")] }), words, true)
+  expect(entries.map((item) => (item.kind === "separator" ? "-" : item.label))).toEqual([
+    "对这里说…",
+    "-",
+    "复制",
+    "-",
+    "检查"
+  ])
+  expect(entries[0]).toMatchObject({ enabled: true, action: { say: true } })
+  // With nothing else to offer, that is the whole menu.
+  expect(menuEntries(menu({ items: [] }), words, true)).toEqual([
+    { kind: "item", label: "对这里说…", enabled: true, action: { say: true } }
+  ])
+})

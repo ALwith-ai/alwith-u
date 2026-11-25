@@ -17,6 +17,8 @@ mod browser_extensions;
 #[cfg(feature = "runtime-cef")]
 mod browser_logins;
 #[cfg(feature = "runtime-cef")]
+mod browser_point;
+#[cfg(feature = "runtime-cef")]
 mod browser_protocol;
 #[cfg(all(test, feature = "runtime-cef"))]
 #[path = "../../node_modules/@nyssance/cef-rs/rust/sys/runtime_output.rs"]
@@ -432,6 +434,8 @@ pub fn run() {
                 browser_site::cef_guest_site_permissions,
                 browser_site::cef_guest_reset_site,
                 browser_site::cef_clear_browsing_data,
+                browser_point::cef_guest_point,
+                browser_point::cef_guest_wheel,
                 browser_logins::cef_guest_login_answer,
                 browser_logins::cef_logins,
                 browser_logins::cef_guest_logins,
@@ -484,6 +488,8 @@ pub fn run() {
                             | "cef_guest_site_permissions"
                             | "cef_guest_reset_site"
                             | "cef_clear_browsing_data"
+                            | "cef_guest_point"
+                            | "cef_guest_wheel"
                             | "cef_guest_login_answer"
                             | "cef_logins"
                             | "cef_guest_logins"

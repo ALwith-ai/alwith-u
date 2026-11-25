@@ -1434,7 +1434,8 @@
     "addToDictionary": "Add to dictionary",
     "viewSource": "View page source",
     "inspect": "Inspect",
-    "print": "Print…"
+    "print": "Print…",
+    "say": "Say something about this…"
   },
   "browser": {
     "embeddedUnavailable": "The embedded browser is unavailable on this backend.",
@@ -1622,7 +1623,12 @@
       "requires_action": "Action required",
       "done": "Unread response",
       "welcome": "Ask a question or let AI help you use the browser."
-    }
+    },
+    "point": "Point at something",
+    "pointSay": "Say what you want here",
+    "pointSend": "Send",
+    "pointLabel": "Pointing at “{{what}}”",
+    "pointLabelPlain": "Pointing at this spot"
   },
   "images": {
     "discover": "Start with an idea",
