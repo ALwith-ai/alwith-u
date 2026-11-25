@@ -1,6 +1,7 @@
 /** Native application-tool/CDP contract, with an optional isolated real-agent check. */
 import assert from "node:assert/strict"
-import { mkdtemp, readFile, rm } from "node:fs/promises"
+import { existsSync } from "node:fs"
+import { mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from "node:fs/promises"
 import { homedir, tmpdir } from "node:os"
 import { join } from "node:path"
 
@@ -163,6 +164,104 @@ describe("browser application tools", () => {
       assert.equal(await readFile(result.sourcePath, "utf8"), "native download")
       await rm(result.sourcePath)
     } finally {
+      await rm(directory, { recursive: true, force: true })
+    }
+  })
+
+  // The engine's state for a conversation that may write its working directory and has no network.
+  const sandboxFor = (cwd: string) => ({
+    permissionProfile: {
+      type: "managed",
+      file_system: {
+        type: "restricted",
+        entries: [
+          { path: { type: "special", value: { kind: "root" } }, access: "read" },
+          { path: { type: "path", path: cwd }, access: "write" },
+          { path: { type: "special", value: { kind: "tmpdir" } }, access: "write" }
+        ]
+      },
+      network: "restricted"
+    },
+    codexLinuxSandboxExe: null,
+    sandboxCwd: `file://${cwd}`,
+    useLegacyLandlock: false,
+    useMxc: false
+  })
+
+  // The application provides the tab; only the script is in the sandbox. No browser is started here: a test
+  // that starts one inherits the sandbox of whoever ran the tests, and macOS aborts a browser launched there.
+  test("browser_run drives the tab with an ordinary Playwright script that can reach nothing else", async () => {
+    const directory = await realpath(await mkdtemp(join(tmpdir(), "u-browser-run-")))
+    const cwd = join(directory, "work")
+    const outside = join(homedir(), `.u-browser-run-probe-${process.pid}`)
+    await mkdir(cwd)
+    const run = (args: Record<string, unknown>) =>
+      tool("browser_run", { target: guest!.label, sandboxState: sandboxFor(cwd), ...args })
+    try {
+      // Written the way scripts are: it launches a browser, makes a page per viewport and closes everything.
+      await writeFile(
+        join(cwd, "check.cjs"),
+        `const { chromium } = require("playwright")
+const { expect } = require("@playwright/test")
+const net = require("node:net")
+const fs = require("node:fs")
+const reach = (port) => new Promise((done) => {
+  const socket = net.connect(port, "127.0.0.1", () => done("reached"))
+  socket.on("error", (error) => done(error.code))
+})
+;(async () => {
+  const browser = await chromium.launch()
+  const widths = []
+  for (const width of [390, 1280]) {
+    const context = await browser.newContext({ viewport: { width, height: 850 } })
+    const page = await context.newPage()
+    await page.locator("#entry").fill("width " + width)
+    await expect(page.locator("#entry")).toHaveValue("width " + width)
+    widths.push(await page.evaluate(() => innerWidth))
+    await page.screenshot({ path: "shot-" + width + ".png" })
+    await context.close()
+  }
+  let write = "written"
+  try { fs.writeFileSync(${JSON.stringify(outside)}, "x") } catch (error) { write = error.code }
+  console.log(JSON.stringify({ widths, browser: await reach(${new URL(env.ALWITH_BROWSER_ENDPOINT!).port}), page: await reach(${server.port}), write }))
+  await browser.close()
+})().catch((error) => { console.error(String(error)); process.exit(1) })
+`
+      )
+      const result = await run({ script: join(cwd, "check.cjs") })
+      assert.equal(result.stderr, "")
+      assert.deepEqual({ ok: result.ok, exitCode: result.exitCode }, { ok: true, exitCode: 0 })
+      const seen = JSON.parse(result.stdout)
+      assert.deepEqual(seen.widths, [390, 1280])
+      // The browser's own port, the network and a file outside the working directory are all out of reach.
+      assert.notEqual(seen.browser, "reached")
+      assert.notEqual(seen.page, "reached")
+      assert.equal(seen.write, "EPERM")
+      assert.equal(existsSync(outside), false)
+      assert.ok((await stat(join(cwd, "shot-390.png"))).size > 1000)
+      assert.ok((await stat(join(cwd, "shot-1280.png"))).size > 1000)
+
+      const module = await run({
+        code: `import { chromium } from "playwright-core"
+const page = await (await chromium.launch()).newPage()
+console.log(await page.locator("h1").textContent())
+process.exit(0)`
+      })
+      assert.deepEqual(
+        { ok: module.ok, stdout: module.stdout, stderr: module.stderr },
+        { ok: true, stdout: `${nonce}\n`, stderr: "" }
+      )
+
+      await writeFile(
+        join(cwd, "forever.cjs"),
+        `require("playwright").chromium.launch().then(() => setInterval(() => {}, 1000))`
+      )
+      const stuck = await run({ script: join(cwd, "forever.cjs"), timeoutMs: 3000 })
+      assert.deepEqual({ ok: stuck.ok, stopped: stuck.stopped }, { ok: false, stopped: "timed out" })
+      // The tab is the application's again once a script ends.
+      assert.ok((await tool("browser_read_page", { target: guest!.label })).text.includes(nonce))
+    } finally {
+      await rm(outside, { force: true })
       await rm(directory, { recursive: true, force: true })
     }
   })

@@ -218,9 +218,21 @@ with Launch Services, and it aborts.
   not apply inside a script.
 - **Not available.** Firefox, WebKit and the `playwright test` runner, which starts its own
   browsers.
-- **Verified.** On macOS: the real sandbox with a real Chrome in
-  `scripts/lib/__tests__/script-sandbox.test.ts`, and in the running application through the
-  chat entry (two viewports, assertions, screenshots; the script's own TCP connection and a write
-  outside the working directory were both refused). Windows has not been run: the socket and
+- **Tests.** `scripts/lib/__tests__/script-runner.test.ts` runs with `bun run test` and checks
+  the arguments, the tab a script is bound to and that the credential stays out of the script,
+  against a stand-in connection. The real sandbox is checked by the `browser_run` step of
+  `tests/contracts/browser-application-tools.contract.ts` (`bun run test:browser-tools`): the
+  test application provides the tab and the step calls the tool with a restricted sandbox state
+  (two viewports with an action, an assertion and a screenshot each; the script's own TCP
+  connections to the browser's port and to the page's server, and a write outside the working
+  directory, are refused; a script past its time limit is stopped). No test starts a browser of
+  its own: a browser started by a test inherits the sandbox of whoever ran the tests, and macOS
+  aborts it while it registers, which is what `bun run test` did from inside a conversation
+  until 2026-11-25. Contracts are not part of `fab check`, so run `test:browser-tools` before a
+  release that changes `browser_run`, the runner or the shim.
+- **Verified.** On macOS, in the running application through the chat entry (two viewports,
+  assertions, screenshots; the script's own TCP connection and a write outside the working
+  directory were both refused). The contract step above has not been run since it was moved
+  there. Windows has not been run: the socket and
   the Windows sandbox are unverified there, and a failure to set them up is reported, never
   replaced by an unsandboxed run.
