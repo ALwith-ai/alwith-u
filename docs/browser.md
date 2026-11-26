@@ -200,6 +200,20 @@ and says so; nothing is done again on its behalf, because what it did before the
 happened. An expression gets thirty seconds and is then terminated. After each, the next call
 answers at once. `tests/contracts/browser-held-pages.contract.ts` covers the three.
 
+## Answering a page's dialog
+
+The application shows a page's dialogs in the tab and holds the answer to each. A conversation used
+to answer through the protocol instead (`Page.handleJavaScriptDialog`), which fails with "No dialog
+is showing" whenever it arrives before the browser has handed the dialog over. A first dialog is
+rarely answered that fast; the second of two in a row is answered the moment it is announced, and
+failed 14 times in 25 in the released 26.11.25. `browser_dialog` now answers through the
+application's own route, which waits for the dialog to be there: 25 in 25, and the business
+contract answers ten such pairs running.
+
+A frame taken out of its page a moment before a call names it used to fail that call with
+"Target page, context or browser has been closed", four runs in twelve. It is now reported as a
+detached frame.
+
 ## What a tab is told before it is registered
 
 A guest is registered once its surface has a token to embed it by, a moment after it is created.

@@ -95,7 +95,7 @@ export function conversations(prefix: string) {
           url.pathname = `/cdp/${target}`
           return chromium.connectOverCDP(url.href, { headers, noDefaults: true, timeout: 15000 })
         },
-        { nativeDownloads: true }
+        { nativeDownloads: true, nativeDialogs: true }
       )
       runs.push(run)
       return run

@@ -11,6 +11,8 @@ export function createBrowserTools(
   attach?: (target: string) => Promise<Browser>,
   options?: {
     nativeDownloads?: boolean
+    /** The application shows a page's dialogs itself and answers them through the native route. */
+    nativeDialogs?: boolean
     /** Runs a script against the tab once this process has let go of it. */
     runScript?: (target: string, args: Record<string, unknown>) => Promise<unknown>
   }

@@ -240,6 +240,21 @@ describe("website business workflows", () => {
     await tool("browser_dialog", { id: second.dialog.id, accept: true, promptText: "CASE-42" })
     assert.equal((await tool("browser_read_elements", { frame, selector: "#reference" })).elements[0].text, "CASE-42")
   })
+  test("a dialog raised straight after another is answered every time", async () => {
+    // The second is answered the moment it is announced, which is before the browser can take an answer
+    // through the protocol more often than not: answered through the application, it is taken every time.
+    for (let round = 0; round < 10; round++) {
+      const first = await tool("browser_click", { frame, selector: "#reference" })
+      assert.ok(first.dialog, JSON.stringify(first))
+      const second = await tool("browser_dialog", { id: first.dialog.id, accept: true })
+      assert.equal(second.dialog?.message, "Reference", `Round ${round}: ${JSON.stringify(second)}`)
+      await tool("browser_dialog", { id: second.dialog.id, accept: true, promptText: `ROUND-${round}` })
+      assert.equal(
+        (await tool("browser_read_elements", { frame, selector: "#reference" })).elements[0].text,
+        `ROUND-${round}`
+      )
+    }
+  })
   test("operates administration controls and collaboration cells without coordinates", async () => {
     await tool("browser_check", { selector: "#approved", checked: true })
     const controls = await tool("browser_read_elements", { selector: "input" })
@@ -282,6 +297,9 @@ describe("website business workflows", () => {
       tool("browser_type", { frame, selector: "#cell", text: "Wrong document", replace: true }),
       /Frame (?:is detached or unknown|was detached)/
     )
-    assert.equal((await tool("browser_read_elements", { selector: "#cell" })).elements[0].text, "Updated cell 后续\n第二行")
+    assert.equal(
+      (await tool("browser_read_elements", { selector: "#cell" })).elements[0].text,
+      "Updated cell 后续\n第二行"
+    )
   })
 })

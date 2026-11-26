@@ -588,7 +588,7 @@ async fn dispatch(
             .collect();
         return Ok(Json(json!({"targets":targets})));
     }
-    if !matches!(request.method.as_str(), "focus" | "close" | "downloads" | "release" | "claim") {
+    if !matches!(request.method.as_str(), "focus" | "close" | "downloads" | "release" | "claim" | "dialog") {
         validate_method(&request.method, &request.params).map_err(|e| (StatusCode::BAD_REQUEST, e))?;
     }
     let label = request.target.ok_or((StatusCode::BAD_REQUEST, "An explicit guest target is required".into()))?;
@@ -625,6 +625,14 @@ async fn dispatch(
     let view = agent.view(&app, &label).ok_or((StatusCode::NOT_FOUND, "Browser guest closed".into()))?;
     if request.method == "downloads" {
         return Ok(Json(json!({"downloads": agent.downloads.lock().unwrap().values().cloned().collect::<Vec<_>>()})));
+    }
+    if request.method == "dialog" {
+        let accept = request.params["accept"].as_bool().ok_or((StatusCode::BAD_REQUEST, "Missing answer".into()))?;
+        let text = request.params["promptText"].as_str().map(str::to_owned);
+        crate::browser_chrome::answer_open_dialog(&app, &label, &agent, &view, accept, text)
+            .await
+            .map_err(|e| (StatusCode::CONFLICT, e))?;
+        return Ok(Json(json!({"ok":true})));
     }
     if request.method == "focus" {
         app.emit_to("main", "browser-tab-focus", json!({"label":label}))

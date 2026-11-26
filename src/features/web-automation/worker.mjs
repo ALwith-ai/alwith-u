@@ -46,6 +46,7 @@ export function createExecutor(connect = chromium.connectOverCDP.bind(chromium),
     },
     {
       nativeDownloads: true,
+      nativeDialogs: true,
       runScript: (target, args) => {
         const { args: call } = context.getStore()
         // The application puts the engine's sandbox state here; a script never runs without one.

@@ -488,6 +488,33 @@ pub async fn cef_guest_context_menu(
         .await
 }
 
+/// Answers the dialog a guest is blocked on for the conversation that works in it, whichever
+/// dialog that is: a conversation names no id, since it learns of the dialog from the page's
+/// protocol and not from here.
+///
+/// The protocol announces a dialog a moment before the browser hands it over to be answered, so an
+/// answer given at once finds none yet; this waits for it. Answering through the protocol instead
+/// (`Page.handleJavaScriptDialog`) fails whenever it arrives in that moment, which for the second
+/// of two dialogs in a row was more than half the time.
+pub async fn answer_open_dialog(
+    app: &tauri::AppHandle, label: &str, agent: &crate::browser_ai::GuestAgent, target: &GuestTarget, accept: bool,
+    text: Option<String>,
+) -> Result<(), String> {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(3);
+    let id = loop {
+        if let Some(dialog) = agent.chrome.lock().unwrap().dialog.take() {
+            break dialog.id;
+        }
+        if std::time::Instant::now() > deadline {
+            return Err("No dialog is open in this tab".into());
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+    };
+    let _ = app.emit_to("main", "browser-tab-updated", json!({"label": label, "dialog": null}));
+    let answered = target.browser(move |_| Ok(tauri_runtime_cef::answer_dialog(id, accept, text.as_deref()))).await?;
+    if answered { Ok(()) } else { Err("This dialog is no longer open".into()) }
+}
+
 /// Answer the JavaScript dialog a guest is blocked on. `text` is a prompt's value.
 #[tauri::command]
 pub async fn cef_guest_dialog(

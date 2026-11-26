@@ -99,7 +99,7 @@ const shownBlocks = (texts) => texts.map((text) => text.replace(/[​-‍⁠﻿]
 const EVALUATION_LIMIT_MS = 30000
 const EXPIRED = Symbol("expired")
 
-export function createBrowserTools(call, attach, { nativeDownloads = false, runScript } = {}) {
+export function createBrowserTools(call, attach, { nativeDownloads = false, nativeDialogs = false, runScript } = {}) {
   const connections = new Map()
   let disposed = false
   async function pageFor(target) {
@@ -442,7 +442,16 @@ export function createBrowserTools(call, attach, { nativeDownloads = false, runS
       const operation = interaction.operation
       interaction.dialog = null
       try {
-        if (args.accept) await dialog.accept(args.promptText)
+        // Where the application shows a page's dialogs itself, it is the one that can answer them:
+        // the protocol's own answer fails whenever it arrives before the browser has handed the
+        // dialog over, which for the second of two dialogs in a row is more often than not.
+        if (nativeDialogs)
+          await call({
+            target,
+            method: "dialog",
+            params: { accept: args.accept, ...(args.promptText !== undefined && { promptText: args.promptText }) }
+          })
+        else if (args.accept) await dialog.accept(args.promptText)
         else await dialog.dismiss()
       } catch (error) {
         throw Error(`Dialog response failed; inspect the page before retrying: ${error}`, { cause: error })
@@ -862,10 +871,21 @@ export function createBrowserTools(call, attach, { nativeDownloads = false, runS
     try {
       return await operation
     } catch (error) {
-      throw (await heldByArrival(target, error)) ?? error
+      throw (await inDetachedFrame(target, args, error)) ?? (await heldByArrival(target, error)) ?? error
     } finally {
       if (target) busy.delete(target)
     }
+  }
+  /**
+   * A frame taken out of its page a moment before a call named it is still listed when the call
+   * starts, and the call then fails with whatever the browser says of a frame that is gone ("Target
+   * page, context or browser has been closed"). It is said plainly instead.
+   */
+  async function inDetachedFrame(target, args, error) {
+    if (args.frame === undefined) return undefined
+    const state = await connections.get(target)?.catch(() => null)
+    if (!state?.frames.get(args.frame)?.isDetached()) return undefined
+    return Error("Frame was detached; read the page again", { cause: error })
   }
   /**
    * A page the tab is still on its way to holds every command to the document it shows: a link was
