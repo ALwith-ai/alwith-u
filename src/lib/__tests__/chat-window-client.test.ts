@@ -373,8 +373,11 @@ test("floating fork sends the source and turn to the owner and receives the new 
   try {
     await remote.connect()
     const source = await remote.newSession("/tmp/floating")
+    await fake.turns(source, ["turn-1", "turn-2"])
+    await vi.waitFor(() => expect(owner.session(source).items).toHaveLength(2))
     const child = await remote.fork(source, "/tmp/floating", "turn-1")
-    expect(fake.forks[0]).toMatchObject({ sessionId: source, _meta: { codex: { lastTurnId: "turn-1" } } })
+    // After turn-1 is the standard cursor before the turn that follows it.
+    expect(fake.forks[0]).toMatchObject({ sessionId: source, cursorId: "before:turn-2" })
     expect(remote.state.sessionList.find((sessionRow) => sessionRow.sessionId === child)?.forkedFromId).toBe(source)
     expect(remote.session(child).attached).toBe(true)
     expect(remote.state.forkOrigins[child]).toEqual({ sourceId: source, boundaryTurnId: "turn-1" })
