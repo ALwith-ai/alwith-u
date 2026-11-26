@@ -160,6 +160,49 @@ describe("structural and visual browser execution", () => {
     expect(scoped.text).toContain('button "Save"')
     expect(scoped.text).not.toContain('textbox "Name"')
   })
+  test("long text is cut where it stands, so the controls after it stay in the snapshot", async () => {
+    await page.locator("body").evaluate((body) => {
+      // Past the basic plane on purpose: a cut must never leave half a character.
+      body.insertAdjacentHTML("afterbegin", `<article>${"𝒜 long thread. ".repeat(2000)}END</article>`)
+    })
+    const snapshot = await call("browser_snapshot")
+    expect(snapshot.truncated).toBe(false)
+    expect(snapshot.text).toMatch(/- article \[ref=\w+\]: "(𝒜 long thread\. )+[^"]*…" \[\+\d+ chars\]/)
+    expect(snapshot.text).not.toContain("END")
+    expect(snapshot.text.isWellFormed()).toBe(true)
+    expect(snapshot.text).toContain('button "Save"')
+    expect(snapshot.instruction).toContain("browser_read_page")
+    // The whole text is one read away.
+    const read = await call("browser_read_page", { selector: "article", offset: 29990 })
+    expect(read.text.endsWith("END")).toBe(true)
+    expect((await call("browser_snapshot", { selector: "#save" })).instruction).not.toContain("browser_read_page")
+  })
+  test("text typed straight into an editable element is in the snapshot", async () => {
+    await page.locator("[contenteditable]").evaluate((draft) => {
+      draft.innerHTML = "First line<div>Second line</div>"
+    })
+    const snapshot = await call("browser_snapshot")
+    expect(snapshot.text).toContain('textbox "Draft" [ref=')
+    expect(snapshot.text).toMatch(/textbox "Draft" \[ref=\w+\]: "First line\\nSecond line"/)
+  })
+  test("a frame arriving while the page is read does not fail the snapshot", async () => {
+    await page.evaluate((source) => {
+      for (let index = 0; index < 5; index++)
+        setTimeout(() => {
+          const frame = document.createElement("iframe")
+          frame.src = `${source}?late=${index}`
+          document.body.append(frame)
+        }, index * 15)
+    }, `http://localhost:${server.port}/frame`)
+    const snapshot = await call("browser_snapshot")
+    expect(snapshot.text).toContain('button "Save"')
+    // Every frame the reading shows can be addressed: none is missing from the list.
+    expect(snapshot.text.match(/- iframe/g)!.length).toBeLessThanOrEqual(snapshot.frames.length - 1)
+    // A reference from before the last frame arrived is refused or used, never a crash.
+    await call("browser_click", reference(snapshot, 'button "Save"')).catch((error: Error) =>
+      expect(error.message).toMatch(/expired element reference|Stale element/)
+    )
+  })
   test("password values are absent from structural snapshots and page reads", async () => {
     expect(JSON.stringify(await call("browser_snapshot"))).not.toContain("secret-must-not-leak")
     expect(JSON.stringify(await call("browser_read_page"))).not.toContain("secret-must-not-leak")

@@ -244,7 +244,29 @@ export function createBrowserTools(call, attach, { nativeDownloads = false, runS
     if (name === "browser_open") {
       const url = new URL(args.url)
       if (!["http:", "https:"].includes(url.protocol)) throw Error("Preview requires HTTP(S)")
-      return call({ method: "open", params: { url: url.href } })
+      const opened = await call({ method: "open", params: { url: url.href } })
+      // Without a Playwright connection there is nothing to observe the page with, nor to wait on.
+      if (!attach) return opened
+      // The tab exists before its document does: answer once it can be read, as browser_navigate does,
+      // or the first observation finds the page still arriving.
+      const state = await pageFor(opened.target)
+      const arrived = (current) => ["http:", "https:", "chrome-error:"].includes(current.protocol)
+      const outcome = await waitForInteraction(
+        state,
+        state.page.waitForURL(arrived, { waitUntil: "domcontentloaded" }).then(
+          () => ({}),
+          (cause) => ({ cause })
+        )
+      )
+      // A page that asks something while it loads is open and waiting for browser_dialog.
+      if (outcome.pending) return { ...opened, pending: true, dialog: outcome.dialog }
+      if (outcome.cause)
+        throw Error(`Tab ${opened.target} is open but its page did not load; inspect or close it`, {
+          cause: outcome.cause
+        })
+      if (state.page.url().startsWith("chrome-error:"))
+        throw Error(`Tab ${opened.target} is open but ${url.href} could not be reached; inspect or close it`)
+      return opened
     }
     if (name === "browser_list") return call({ method: "list" })
     if (!tools.some((tool) => tool.name === name)) throw Error("Unknown browser tool")
@@ -418,14 +440,14 @@ export function createBrowserTools(call, attach, { nativeDownloads = false, runS
         dialog: pendingDialog(interaction),
         url: page.url()
       }
-    const inventory = listFrames()
+    listFrames()
     const scope = args.frame === undefined ? page.mainFrame() : frames.get(args.frame)
     if (!scope) throw Error("Frame is detached or unknown; read the page again")
     const locate = (currentScope = scope, input = args) => observations.locate(currentScope, input)
     if (interaction.operation) throw Error("A page action is pending; finish its dialog or wait before continuing")
     if (args.ref && !(name === "browser_verify" && args.condition === "hidden"))
       await observations.validate(scope, args)
-    if (name === "browser_snapshot") return observations.snapshot(scope, args, inventory)
+    if (name === "browser_snapshot") return observations.snapshot(scope, args, listFrames)
     if (name === "browser_resolve")
       return {
         locator: (await locate().normalize()).toString(),
@@ -529,7 +551,7 @@ export function createBrowserTools(call, attach, { nativeDownloads = false, runS
       const offset = args.offset ?? 0
       const limit = args.limit ?? 16000
       const text = await root.innerText()
-      const snapshot = await observations.snapshot(scope, { maxChars: 32000 }, inventory, root)
+      const snapshot = await observations.snapshot(scope, { maxChars: 32000 }, listFrames, root)
       const accessibility = snapshot.text
       return {
         url: page.url(),
@@ -542,7 +564,7 @@ export function createBrowserTools(call, attach, { nativeDownloads = false, runS
             multiple: input.multiple
           }))
         ),
-        frames: inventory,
+        frames: snapshot.frames,
         frameUrl: scope.url(),
         accessibility: accessibility.slice(0, 32000),
         accessibilityTruncated: snapshot.truncated,

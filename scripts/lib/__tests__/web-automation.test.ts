@@ -87,6 +87,67 @@ test("opening a website needs no existing tab or project", async () => {
   await expect(run("browser_open", { url: "file:///tmp/test" })).rejects.toThrow("HTTP(S)")
 })
 
+test("an opened tab is answered once its page can be read, and says so when it cannot", async () => {
+  const waits: unknown[] = []
+  let address = "about:blank"
+  let dialogs: ((dialog: unknown) => void) | undefined
+  let arrive: () => void = () => {}
+  const page = {
+    setDefaultTimeout() {},
+    setDefaultNavigationTimeout() {},
+    on(event: string, listener: (dialog: unknown) => void) {
+      if (event === "dialog") dialogs = listener
+    },
+    url: () => address,
+    waitForURL(accepts: (url: URL) => boolean, options: unknown) {
+      waits.push(options)
+      expect(accepts(new URL("about:blank"))).toBe(false)
+      expect(accepts(new URL("https://example.com/"))).toBe(true)
+      return new Promise<void>((resolve) => {
+        arrive = resolve
+      })
+    }
+  }
+  const run = createBrowserTools(
+    async () => ({ target: "browser-new" }),
+    async () => ({ contexts: () => [{ pages: () => [page] }], on() {}, close: async () => {} }) as unknown as Browser
+  )
+  try {
+    let answered = false
+    const opened = run("browser_open", { url: "https://example.com" }).then((result: unknown) => {
+      answered = true
+      return result
+    })
+    await Bun.sleep(0)
+    expect(answered).toBe(false)
+    expect(waits).toEqual([{ waitUntil: "domcontentloaded" }])
+    address = "https://example.com/"
+    arrive()
+    expect(await opened).toEqual({ target: "browser-new" })
+
+    address = "chrome-error://chromewebdata/"
+    const unreachable = run("browser_open", { url: "https://unreachable.example" })
+    await Bun.sleep(0)
+    arrive()
+    await expect(unreachable).rejects.toThrow(
+      "browser-new is open but https://unreachable.example/ could not be reached"
+    )
+
+    // A page that asks something while it loads is open: the question is answered, not waited out.
+    address = "about:blank"
+    const asking = run("browser_open", { url: "https://example.com" })
+    await Bun.sleep(0)
+    dialogs!({ type: () => "confirm", message: () => "Leave?", defaultValue: () => "" })
+    expect(await asking).toEqual({
+      target: "browser-new",
+      pending: true,
+      dialog: { id: 1, type: "confirm", message: "Leave?", defaultValue: "" }
+    })
+  } finally {
+    await run.close()
+  }
+})
+
 test("application executor scopes native calls by session and never reuses a changed credential", async () => {
   const { createExecutor } = await import("../../../src/features/web-automation/worker.mjs")
   const calls: string[] = []

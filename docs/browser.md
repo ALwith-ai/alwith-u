@@ -158,6 +158,17 @@ Playwright remains outside the UI bundle and continues to use the live CEF pages
 
 `browser_snapshot` uses Playwright's public AI snapshot API, including nested frames and
 shadow DOM. It returns bounded text, a unique `snapshotId`, and actionable `ref` values.
+A snapshot is for finding what to act on, so one node shows at most 200 characters of text
+followed by `[+N chars]`: a long article no longer uses the whole budget and hides the controls
+after it. `browser_read_page` with a selector reads the text whole. An editable element shows the
+text it holds, which Playwright's snapshot leaves out. A frame that arrives while the page is
+being read makes the reading stale; the snapshot reads again, for up to five seconds, before it
+reports that the page navigated.
+
+`browser_open` answers once the new tab's document can be read, as `browser_navigate` does, so
+the first observation does not find the page still arriving. A page that opens a dialog while it
+loads is answered with that dialog pending; one that cannot be reached is an error naming the
+tab, which stays open.
 Element tools accept either an observed selector with an optional frame, or a ref and its
 snapshot ID. References are scoped to the attached target and current snapshot. Navigation,
 a replacement snapshot, removed elements, or changed accessible identity require a fresh
