@@ -354,10 +354,59 @@ pub struct BrowserAi {
     pub guests: Mutex<HashMap<String, Arc<GuestAgent>>>,
     /// Titles of guests that were titled before they were registered, by label.
     pub early_titles: Mutex<HashMap<String, String>>,
+    /// What guests still being created were told before they were registered, by label. A page
+    /// from the cache or a resumed history has loaded by then, and what it said then (that it
+    /// stopped loading, that there is a page to go forward to) is said only once.
+    early_statuses: Mutex<HashMap<String, Vec<tauri_runtime_cef::BrowserStatus>>>,
     /// The application's interface zoom, as a CEF zoom level. Pages follow it.
     pub zoom_level: Mutex<f64>,
 }
 impl BrowserAi {
+    /// From here until `register` or `forget_guest`, what the guest is told is kept for it.
+    pub fn expect_guest(&self, label: &str) {
+        self.early_statuses.lock().unwrap().insert(label.into(), Vec::new());
+    }
+
+    /// A guest that was not created after all: what was kept for it goes.
+    pub fn forget_guest(&self, label: &str) {
+        self.early_statuses.lock().unwrap().remove(label);
+        self.early_titles.lock().unwrap().remove(label);
+    }
+
+    /// The guest a status is for. For one still being created the status is kept instead.
+    pub fn guest_or_keep(&self, label: &str, status: &tauri_runtime_cef::BrowserStatus) -> Option<Arc<GuestAgent>> {
+        // Under the lock `register` holds, so a status is either kept before it or handled after.
+        let guests = self.guests.lock().unwrap();
+        let guest = guests.get(label).cloned();
+        if guest.is_none()
+            && let Some(kept) = self.early_statuses.lock().unwrap().get_mut(label)
+        {
+            kept.push(status.clone());
+        }
+        guest
+    }
+
+    /// Registers a guest, starting from what it was told and titled while it was being created.
+    pub fn register(&self, label: &str, agent: Arc<GuestAgent>) {
+        let mut guests = self.guests.lock().expect("browser guests");
+        if let Some(title) = self.early_titles.lock().unwrap().remove(label) {
+            *agent.title.lock().unwrap() = title;
+        }
+        for status in self.early_statuses.lock().unwrap().remove(label).into_iter().flatten() {
+            match &status {
+                tauri_runtime_cef::BrowserStatus::Address(url) => {
+                    let mut current = agent.url.lock().unwrap();
+                    *current = shown_address(&current, url);
+                }
+                // The tab asks for this state once it listens; nothing is listening yet.
+                _ => {
+                    agent.chrome.lock().unwrap().apply(&status);
+                }
+            }
+        }
+        guests.insert(label.into(), agent);
+    }
+
     pub fn bind_preview(&self, label: &str, request_id: Option<&str>) -> Result<(), String> {
         if let Some(id) = request_id {
             let previews = self.previews.lock().unwrap();
@@ -789,6 +838,43 @@ pub fn cef_browser_tabs_ready(webview: tauri::Webview, id: String, tabs: Value) 
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn a_guest_starts_from_what_it_was_told_while_it_was_being_created() {
+        use tauri_runtime_cef::BrowserStatus;
+        let state = BrowserAi::default();
+        let loaded = BrowserStatus::Loading { is_loading: false, can_go_back: false, can_go_forward: true };
+        // Nobody is being created under this name: what it is told is not kept.
+        assert!(state.guest_or_keep("stranger", &loaded).is_none());
+        assert!(state.early_statuses.lock().unwrap().is_empty());
+
+        // A page resumed from history loads before its guest is registered.
+        state.expect_guest("tab");
+        for status in [
+            BrowserStatus::Loading { is_loading: true, can_go_back: false, can_go_forward: false },
+            BrowserStatus::Address("https://example.com/first".into()),
+            loaded.clone(),
+        ] {
+            assert!(state.guest_or_keep("tab", &status).is_none());
+        }
+        let guest = Arc::new(GuestAgent::default());
+        state.register("tab", guest.clone());
+        let chrome = serde_json::to_value(&*guest.chrome.lock().unwrap()).unwrap();
+        assert_eq!(chrome["loading"], false);
+        assert_eq!(chrome["canGoForward"], true);
+        assert_eq!(chrome["canGoBack"], false);
+        assert_eq!(*guest.url.lock().unwrap(), "https://example.com/first");
+        // Registered, it is told directly and nothing more is kept.
+        assert!(state.guest_or_keep("tab", &loaded).is_some());
+        assert!(state.early_statuses.lock().unwrap().is_empty());
+
+        // One that was never created leaves nothing behind.
+        state.expect_guest("failed");
+        state.early_titles.lock().unwrap().insert("failed".into(), "Title".into());
+        assert!(state.guest_or_keep("failed", &loaded).is_none());
+        state.forget_guest("failed");
+        assert!(state.early_statuses.lock().unwrap().is_empty());
+        assert!(state.early_titles.lock().unwrap().is_empty());
+    }
     #[test]
     fn what_the_browser_says_to_the_application_is_not_the_pages_protocol() {
         let event = |method: &str, params: Value| DevToolsProtocol::Event {

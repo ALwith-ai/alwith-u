@@ -174,6 +174,23 @@ macOS in the released 26.11.25 before the change: a tab behind got 1 to 2 frames
 against 38 for the shown tab, and a pointer move on it took 1.4 to 1.9 seconds against 30 to 50
 milliseconds; with the pane closed its width was 0 and every action timed out.
 
+Keeping such tabs drawn has a price. Measured in the debug test application on macOS with five
+tabs each running a one-second CSS rotation and a `requestAnimationFrame` counter at 75 frames a
+second: all five worked on used about 42% of one core, and with the four behind released and
+hidden, about 30%. Three per cent of a core for a tab that animates without pause, and only while
+a conversation holds it.
+
+## What a tab is told before it is registered
+
+A guest is registered once its surface has a token to embed it by, a moment after it is created.
+A page from the cache or a resumed history has loaded by then, and said so: that it stopped
+loading, and whether there is a page to go back or forward to. That is said once. It used to be
+dropped for want of a registered guest, so a tab copied from one with pages ahead of it showed
+Forward disabled although its history was whole. What a guest is told while it is being created
+is now kept and folded into its state when it is registered, under the lock its title already
+used for the same reason. `tests/contracts/browser-everyday.contract.ts` (a copied tab keeps its
+history) failed three runs in three before this and passes now.
+
 ## Structural references and verified outcomes
 
 `browser_snapshot` uses Playwright's public AI snapshot API, including nested frames and

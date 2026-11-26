@@ -676,7 +676,7 @@ pub fn report_history(app: &tauri::AppHandle, label: &str, target: &GuestTarget)
 
 /// Called on the UI thread from the guest's native callbacks.
 pub fn guest_status(app: &tauri::AppHandle, label: &str, status: BrowserStatus) {
-    let Some(agent) = app.state::<BrowserAi>().guests.lock().unwrap().get(label).cloned() else { return };
+    let Some(agent) = app.state::<BrowserAi>().guest_or_keep(label, &status) else { return };
     // A page arrived or the tab moved through its history: what it would resume with changed.
     if matches!(status, BrowserStatus::Loading { is_loading: false, .. } | BrowserStatus::Address(_))
         && let Some(target) = agent.view(app, label)

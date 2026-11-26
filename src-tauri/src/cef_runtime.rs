@@ -231,7 +231,16 @@ pub async fn cef_open_guest(
             Some(history) => builder.session_history(history),
             None => builder,
         };
-        let guest = webview.window().add_child(builder).map_err(|error| error.to_string())?;
+        // A page from the cache or a resumed history is loaded before the guest is registered below.
+        let arriving = webview.state::<crate::browser_ai::BrowserAi>();
+        arriving.expect_guest(&label);
+        let guest = match webview.window().add_child(builder) {
+            Ok(guest) => guest,
+            Err(error) => {
+                arriving.forget_guest(&label);
+                return Err(error.to_string());
+            }
+        };
         let (sender, receiver) = tokio::sync::oneshot::channel();
         if let Err(error) = guest.with_cef_webview(move |native| {
             let token = native
@@ -240,6 +249,7 @@ pub async fn cef_open_guest(
                 .map(|host| tauri_runtime_cef::cef::CefString::from(&host.surface_embed_token()).to_string());
             let _ = sender.send(token);
         }) {
+            arriving.forget_guest(&label);
             let _ = guest.close();
             return Err(error.to_string());
         }
@@ -248,14 +258,7 @@ pub async fn cef_open_guest(
                 match crate::browser_ai::GuestAgent::attach(&guest, url.as_str()) {
                     Ok(agent) => {
                         agent.private.store(private, std::sync::atomic::Ordering::Relaxed);
-                        let state = webview.state::<crate::browser_ai::BrowserAi>();
-                        let mut guests = state.guests.lock().expect("browser guests");
-                        // Under the same lock the title callback takes, so none falls between.
-                        if let Some(title) = state.early_titles.lock().unwrap().remove(&label) {
-                            *agent.title.lock().unwrap() = title;
-                        }
-                        guests.insert(label.clone(), agent.clone());
-                        drop(guests);
+                        arriving.register(&label, agent.clone());
                         // A tab of the user's remembers their logins; a conversation's or a private one does not.
                         // Wherever it starts: the script itself acts only in a website's page.
                         if request_id.is_none() && !private {
@@ -271,12 +274,14 @@ pub async fn cef_open_guest(
                         Ok(Guest { label, token })
                     }
                     Err(error) => {
+                        arriving.forget_guest(&label);
                         let _ = guest.close();
                         Err(error)
                     }
                 }
             }
             _ => {
+                arriving.forget_guest(&label);
                 let _ = guest.close();
                 Err("Browser guest did not provide an embedding token".into())
             }
