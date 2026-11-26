@@ -588,7 +588,10 @@ async fn dispatch(
             .collect();
         return Ok(Json(json!({"targets":targets})));
     }
-    if !matches!(request.method.as_str(), "focus" | "close" | "downloads" | "release" | "claim" | "dialog") {
+    if !matches!(
+        request.method.as_str(),
+        "focus" | "close" | "downloads" | "download" | "release" | "claim" | "dialog" | "status"
+    ) {
         validate_method(&request.method, &request.params).map_err(|e| (StatusCode::BAD_REQUEST, e))?;
     }
     let label = request.target.ok_or((StatusCode::BAD_REQUEST, "An explicit guest target is required".into()))?;
@@ -625,6 +628,31 @@ async fn dispatch(
     let view = agent.view(&app, &label).ok_or((StatusCode::NOT_FOUND, "Browser guest closed".into()))?;
     if request.method == "downloads" {
         return Ok(Json(json!({"downloads": agent.downloads.lock().unwrap().values().cloned().collect::<Vec<_>>()})));
+    }
+    if request.method == "status" {
+        // What the tab is showing the reader besides its page: a question, a sign-in, a failure.
+        let status = serde_json::to_value(&*agent.chrome.lock().unwrap())
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+        return Ok(Json(status));
+    }
+    if request.method == "download" {
+        // The browser saves the address itself, as it would for "Save link as", with the tab's cookies.
+        let url: tauri::Url = request.params["url"]
+            .as_str()
+            .ok_or((StatusCode::BAD_REQUEST, "Missing URL".into()))?
+            .parse()
+            .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid URL".into()))?;
+        if !matches!(url.scheme(), "http" | "https") {
+            return Err((StatusCode::BAD_REQUEST, "Only a website's document can be saved".into()));
+        }
+        view.browser(move |browser| {
+            use tauri_runtime_cef::cef::{CefString, ImplBrowser, ImplBrowserHost};
+            browser.host().ok_or("Browser closed")?.start_download(Some(&CefString::from(url.as_str())));
+            Ok(())
+        })
+        .await
+        .map_err(|e| (StatusCode::BAD_GATEWAY, e))?;
+        return Ok(Json(json!({"ok":true})));
     }
     if request.method == "dialog" {
         let accept = request.params["accept"].as_bool().ok_or((StatusCode::BAD_REQUEST, "Missing answer".into()))?;

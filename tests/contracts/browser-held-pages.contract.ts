@@ -14,6 +14,13 @@ describe("pages and scripts that never answer", () => {
     fetch(request) {
       const path = new URL(request.url).pathname
       if (path === "/held") return new Promise<Response>((resolve) => held.add(() => resolve(new Response("late"))))
+      if (path === "/private")
+        return new Response("Sign in", { status: 401, headers: { "WWW-Authenticate": 'Basic realm="Reports"' } })
+      if (path === "/draft")
+        return new Response(
+          `<title>Draft</title><textarea id="draft"></textarea><script>document.querySelector('#draft').oninput=()=>{window.onbeforeunload=(event)=>{event.preventDefault();return ''}}</script>`,
+          { headers: { "Content-Type": "text/html" } }
+        )
       return new Response(
         `<title>Here ${path.slice(1)}</title><h1>Here</h1><a id="held" href="/held">A held page</a>`,
         {
@@ -74,5 +81,33 @@ describe("pages and scripts that never answer", () => {
     )
     assert.ok((await elapsed(async () => assert.equal(await shown(), "Here b"))) < 2000)
     await run("browser_click", { target, selector: "h1" })
+  })
+
+  test("a website that asks the browser for a password is the reader's to answer, and says so", async () => {
+    // Not stopped: the reader is being asked in the tab, and stopping would take the question away.
+    const asks = /asks the browser for a user name and password \(127\.0\.0\.1\).*ask the reader to sign in/
+    await assert.rejects(run("browser_navigate", { target, url: `${origin}/private` }), asks)
+    await assert.rejects(run("browser_snapshot", { target }), asks)
+    await run("browser_navigate", { target, url: `${origin}/b` })
+    assert.equal(await shown(), "Here b")
+  })
+
+  test("staying on a page that asks before it is left is the answer given, not a failure", async () => {
+    await run("browser_navigate", { target, url: `${origin}/draft` })
+    await run("browser_type", { target, selector: "#draft", text: "unsaved", replace: true })
+    const leaving = await run("browser_navigate", { target, url: `${origin}/b` })
+    assert.equal(leaving.dialog?.type, "beforeunload", JSON.stringify(leaving))
+    const stayed = await run("browser_dialog", { target, id: leaving.dialog.id, accept: false })
+    assert.equal(stayed.ok, true)
+    assert.match(stayed.outcome, /stayed on the page/)
+    assert.equal(
+      (
+        await run("browser_evaluate", {
+          target,
+          expression: "location.pathname + document.querySelector('#draft').value"
+        })
+      ).result,
+      "/draftunsaved"
+    )
   })
 })

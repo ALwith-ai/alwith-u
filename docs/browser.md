@@ -200,6 +200,27 @@ and says so; nothing is done again on its behalf, because what it did before the
 happened. An expression gets thirty seconds and is then terminated. After each, the next call
 answers at once. `tests/contracts/browser-held-pages.contract.ts` covers the three.
 
+## Documents the browser shows itself
+
+A PDF behind a link is not a download: following the link opens it in a tab and nothing is saved,
+and the text of a PDF a tab shows is not in any page. In the released 26.11.25 `browser_download`
+on such a link waited twenty seconds and failed, and reading the tab returned nothing at all.
+
+`browser_download` named a link to a website's document asks the browser for that address itself,
+as "Save link as" does, with the tab's cookies, and does not follow the link. Named no control, it
+saves the document the tab shows. A snapshot or a read of a tab that shows a PDF says that it does
+and how to read it. `tests/contracts/browser-documents.contract.ts` covers the three. What is
+saved stays in the reader's Downloads as well, as every download does.
+
+## What the reader is asked instead
+
+- A website that asks the browser for a user name and password holds its page until it is
+  answered, and the tab asks the reader. A conversation's call used to run out of time and be
+  told the page did not arrive. It is now told what the tab waits for, and the navigation is left
+  for the reader instead of being stopped.
+- Staying on a page that asks before it is left was reported as a navigation that failed
+  (`net::ERR_ABORTED`). It is reported as the answer that was given.
+
 ## Answering a page's dialog
 
 The application shows a page's dialogs in the tab and holds the answer to each. A conversation used

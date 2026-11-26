@@ -25,6 +25,17 @@ See [windows-snap-layout-integration.md](windows-snap-layout-integration.md) for
 Unverified: the Wry backend, fullscreen, moving between displays with different scale
 factors, and the visible line at the bottom edge.
 
+## Embedded browser
+
+- A page that prints holds a conversation's tab. Pressing a button that calls `window.print()`
+  opens the system's print panel; the press runs out of its ten seconds, and the tab answers
+  nothing more until someone closes the panel. Reproduced in the isolated test application on
+  2026-11-26. The page's printing has to be turned off while a conversation controls the tab and
+  put back the moment control ends. The automation engine cannot own that: when the reader takes a
+  tab over or a conversation is revoked, its credential is already gone and it can no longer reach
+  the page through the application. The application, which holds the control state and its own
+  connection to every page, has to add and remove the script.
+
 ## Hasgard
 
 - Add real-cursor hover to the MCP server. The CLI has `native-move` on Windows only,

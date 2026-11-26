@@ -262,7 +262,7 @@ tools.push(
   ),
   tool(
     "browser_download",
-    "Click an observed download control and save the resulting download to an absolute local path. Does not overwrite existing files. A timeout does not authorize clicking again; inspect the page first.",
+    "Save a download to an absolute local path: from an observed download control, from a link to a document the browser would show instead of saving (a PDF, an image), or, with no selector, the document this tab shows. Read a PDF by saving it and reading the file. Does not overwrite existing files. A timeout does not authorize clicking again; inspect the page first.",
     {
       target,
       selector,
