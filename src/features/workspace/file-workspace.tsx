@@ -82,11 +82,7 @@ import { BoardMenuItem, BoardPane } from "@/features/board/board-pane"
 import { ChatDirectoryContext, ChatOpenWebLinkContext } from "@/features/chat/file-actions"
 import { DeviceWorkspaceMenu, DeviceWorkspacePane } from "@/features/device/device-workspace"
 import { useDeviceReveal } from "@/features/device/use-device-reveal"
-import {
-  TerminalWorkspaceMenuItem,
-  TerminalWorkspacePane,
-  useTerminalViewAvailable
-} from "@/features/terminal/terminal-workspace"
+import { TerminalWorkspaceMenuItem, TerminalWorkspacePane } from "@/features/terminal/terminal-workspace"
 
 import {
   type FilePosition,
@@ -248,7 +244,6 @@ export function FileWorkspace({
   }
   const openBoardRef = useRef(openBoard)
   openBoardRef.current = openBoard
-  const terminalAvailable = useTerminalViewAvailable()
   const paneSessionId = useContext(WorkspaceSessionContext)
   const currentPaneSession = useRef(paneSessionId)
   currentPaneSession.current = paneSessionId
@@ -999,7 +994,7 @@ export function FileWorkspace({
   )
   const openPane = useCallback(
     (next: WorkspacePane): void => {
-      if (next === "terminal" && (!terminalAvailable || paneSessionId === null)) return
+      if (next === "terminal" && (!isTauri() || paneSessionId === null)) return
       if (next === "files") {
         if (!visible || pane !== "files") {
           setPane("files")
@@ -1033,7 +1028,7 @@ export function FileWorkspace({
       setVisible(true)
       navigateCanvas?.("preview")
     },
-    [visible, pane, toggle, navigateCanvas, previewOnPage, terminalAvailable, paneSessionId]
+    [visible, pane, toggle, navigateCanvas, previewOnPage, paneSessionId]
   )
   const revealDevice = useCallback(() => {
     requestGeneration.current++
@@ -1053,6 +1048,7 @@ export function FileWorkspace({
   useDeviceReveal(paneSessionId, revealAttachedDevice)
   useDeviceWindowReturn(paneSessionId, revealDevice)
   useEffect(() => {
+    if (!isTauri() || paneSessionId === null) return
     const onKeyDown = (event: KeyboardEvent): void => {
       if (
         event.defaultPrevented ||
@@ -1060,9 +1056,7 @@ export function FileWorkspace({
         event.altKey ||
         event.shiftKey ||
         !(event.metaKey || event.ctrlKey) ||
-        event.key.toLowerCase() !== "j" ||
-        !terminalAvailable ||
-        paneSessionId === null
+        event.key.toLowerCase() !== "j"
       )
         return
       event.preventDefault()
@@ -1071,7 +1065,7 @@ export function FileWorkspace({
     }
     window.addEventListener("keydown", onKeyDown, true)
     return () => window.removeEventListener("keydown", onKeyDown, true)
-  }, [terminalAvailable, paneSessionId, openPane])
+  }, [paneSessionId, openPane])
   const context = useMemo(
     () => ({
       visible,

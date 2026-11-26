@@ -68,18 +68,11 @@ function mount() {
   fireEvent.click(view.getByRole("button", { name: "actions.more" }))
   return view
 }
-test("unsupported native capability hides the terminal entry", async () => {
-  mocks.capabilities.mockResolvedValue({ interactiveView: false, headless: true })
-  mount()
-  await waitFor(() => expect(mocks.capabilities).toHaveBeenCalledOnce())
-  expect(screen.queryByRole("menuitem", { name: /^terminal\.open/ })).not.toBeInTheDocument()
-})
-test("native interactive capability exposes the terminal entry in every build", async () => {
-  mocks.capabilities.mockResolvedValue({ interactiveView: true, headless: true })
+test("opening the workspace menu shows the terminal entry immediately without querying native capabilities", () => {
   mount()
   expect(screen.getByRole("menuitem", { name: "device.panel.open" })).toBeInTheDocument()
-  const button = await screen.findByRole("menuitem", { name: /^terminal\.open/ })
-  button.click()
+  fireEvent.click(screen.getByRole("menuitem", { name: /^terminal\.open/ }))
+  expect(mocks.capabilities).not.toHaveBeenCalled()
   expect(mocks.openPane).toHaveBeenCalledWith("terminal")
 })
 
@@ -89,7 +82,6 @@ test("terminal uses workspace tabs with per-tab close and no permanent control o
     { terminalId: "two", title: "server", cwd: "/work", interactive: true, ownerWindow: "main", viewOwnerWindow: null }
   ]
   let active = "one"
-  mocks.capabilities.mockResolvedValue({ interactiveView: true, headless: true })
   mocks.list.mockImplementation(() => Promise.resolve(entries))
   mocks.snapshot.mockImplementation(() => Promise.resolve(entries.find((entry) => entry.terminalId === active) ?? null))
   mocks.activate.mockImplementation((_session: string, id: string) => {
@@ -130,7 +122,6 @@ test("a poll started before close cannot restore a deleted terminal tab", async 
     viewOwnerWindow: null
   }
   let entries = [entry]
-  mocks.capabilities.mockResolvedValue({ interactiveView: true, headless: true })
   mocks.list.mockImplementation(() => Promise.resolve(entries))
   mocks.snapshot.mockImplementation(() => Promise.resolve(entries[0] ?? null))
   mocks.close.mockImplementation(() => {
@@ -181,7 +172,6 @@ test("headless startup keeps the selected view while allowing manual selection",
   }
   let entries = [view]
   let nativeActive = view
-  mocks.capabilities.mockResolvedValue({ interactiveView: true, headless: true })
   mocks.list.mockImplementation(async () => entries)
   mocks.snapshot.mockImplementation(async () => nativeActive)
   mocks.activate.mockImplementation(async (_session: string, id: string) => {
@@ -229,7 +219,6 @@ test("reopening the pane restores the saved view instead of the background activ
     cwd: "/work",
     interactive: false
   }
-  mocks.capabilities.mockResolvedValue({ interactiveView: true, headless: true })
   mocks.list.mockResolvedValue([view, headless])
   mocks.snapshot.mockResolvedValue(headless)
   mocks.restore.mockResolvedValue("view")
