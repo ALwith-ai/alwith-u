@@ -92,6 +92,8 @@ test("the locked footer uses Codex copy and keeps enabled actions beside the mes
   const original = client.state
   const open = vi.spyOn(client, "open").mockResolvedValue()
   const fork = vi.spyOn(client, "fork").mockResolvedValue("child")
+  // The last turn: a fork after it is the whole session.
+  const cursor = vi.spyOn(client, "canForkAfterTurn").mockReturnValue(true)
   const select = vi.fn()
   const session = applyUpdate(
     { ...createSession("locked-footer", "/tmp/locked"), readOnly: true },
@@ -139,6 +141,7 @@ test("the locked footer uses Codex copy and keeps enabled actions beside the mes
     view.unmount()
     open.mockRestore()
     fork.mockRestore()
+    cursor.mockRestore()
     client.store.setState(original, true)
     await initI18n("en")
   }

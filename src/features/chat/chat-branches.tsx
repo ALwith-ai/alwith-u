@@ -15,6 +15,8 @@ import { client, useApp } from "@/lib/client"
 type BranchActions = {
   canFork: boolean
   atTurn: boolean
+  /** Whether a fork can start after this native turn: the agent announced a cursor there. */
+  canForkAfter: (turnId: string) => boolean
   origin: ForkOrigin | undefined
   boundaryItem: Item | undefined
   openingSource: boolean
@@ -37,6 +39,8 @@ export function ChatBranchProvider({
   const connected = useApp((state) => state.connection === "ready")
   const features = codexExtensionCapabilities(agent)
   const origin = useApp((state) => state.forkOrigins[session.id])
+  // The turn index announces cursors too, so the actions follow it.
+  useApp((state) => state.historyNavigation[session.id])
   // A native turn may contain several user messages and therefore several UI batches.
   // Only its final item owns the marker, not every batch with the same turn id.
   const boundaryItem = session.items.findLast(
@@ -102,6 +106,7 @@ export function ChatBranchProvider({
       : {
           canFork,
           atTurn: features.forkAtTurn,
+          canForkAfter: (turnId: string) => client.canForkAfterTurn(session.id, turnId),
           origin,
           boundaryItem,
           openingSource: openingSource || !connected,
@@ -135,7 +140,7 @@ export function ForkTurnButton({ turnId, labelled = false }: { turnId: string | 
   const actions = useContext(BranchContext)
   const { t } = useTranslation()
   const label = t(labelled ? "chat.readOnly.fork" : "chat.branches.create")
-  if (!actions?.atTurn || turnId === null) return null
+  if (!actions?.atTurn || turnId === null || !actions.canForkAfter(turnId)) return null
   return (
     <Button
       variant={labelled ? "outline" : "ghost"}

@@ -31,7 +31,10 @@ const forked: SessionSummary = {
   archived: false,
   updatedAt: null
 }
-function setup(select: (sessionRow: SessionSummary) => void) {
+function setup(select: (sessionRow: SessionSummary) => void, forkable = true) {
+  // The agent announced a cursor after the turn, or it did not.
+  const cursor = vi.spyOn(client, "canForkAfterTurn").mockReturnValue(forkable)
+  restores.push(() => cursor.mockRestore())
   client.store.setState({
     connection: "ready",
     agent: {
@@ -87,6 +90,12 @@ test("a completed reply forks its explicit turn once and navigates to the return
   })
   await waitFor(() => expect(selected).toEqual([forked]))
   expect(view.queryByRole("status")).toBeNull()
+})
+
+test("a turn without a cursor after it offers no branch", () => {
+  const view = setup(() => {}, false)
+  expect(view.queryByRole("button", { name: "Create chat branch" })).toBeNull()
+  expect(client.canForkAfterTurn).toHaveBeenCalledWith("source", "real-turn")
 })
 
 test("a fork failure keeps the current chat and allows retry", async () => {
