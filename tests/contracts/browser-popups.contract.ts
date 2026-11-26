@@ -89,7 +89,10 @@ describe("browser popups", () => {
   })
 
   test("the popup belongs to the conversation that opened it", async () => {
-    assert.ok(!(await b("browser_list")).targets.some((value: any) => value.id === popup.id))
+    // Another conversation sees whose the popup is, and that it is not for it to use.
+    const listed = (await b("browser_list")).targets.find((value: any) => value.id === popup.id)
+    assert.equal(listed?.available, false, JSON.stringify(listed))
+    assert.ok(listed.ownerSessionId)
     await assert.rejects(b("browser_read_page", { target: popup.id }), /403/)
   })
 
@@ -181,7 +184,7 @@ describe("browser popups", () => {
     assert.equal(await evaluate(kept.id, "document.querySelector('#result').textContent"), "Saved")
     await a("browser_navigate", { target: kept.id, url: `${origin}/moved` })
     await route(kept.id, "/moved")
-    assert.ok(!(await b("browser_list")).targets.some((value: any) => value.id === kept.id))
+    assert.equal((await b("browser_list")).targets.find((value: any) => value.id === kept.id)?.available, false)
     await assert.rejects(b("browser_read_page", { target: kept.id }), /403/)
   })
 

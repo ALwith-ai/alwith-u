@@ -249,9 +249,7 @@ describe("browser chrome", () => {
         )) === true,
       "The start page did not open the bookmark in its tab"
     )
-    await ui(
-      `document.querySelector('[role=tab][aria-selected=true]').parentElement.querySelector('button[aria-label^="关闭标签"]').click(); true`
-    )
+    await ui(`document.querySelector('[role=tab][aria-selected=true] button[aria-label^="关闭标签"]').click(); true`)
     await waitFor(
       async () => Number(await ui(`document.querySelectorAll('[role=tab]').length`)) === tabsBeforeStart,
       "Extra tab not closed"
@@ -311,7 +309,8 @@ describe("browser chrome", () => {
     addressBeforeMenu = await shownAddress()
     const [linkX, linkY] = await rightClick("#next")
     await waitFor(async () => String(await menuItems()).includes("copy:"), "No context menu for a link")
-    assert.deepEqual(JSON.parse(String(await menuItems())).slice(0, 2), [`open:${origin}/b`, `copy:${origin}/b`])
+    // A page that can be pointed at offers that first, then what belongs to the link.
+    assert.deepEqual(JSON.parse(String(await menuItems())).slice(0, 3), ["say", `open:${origin}/b`, `copy:${origin}/b`])
     const placed = JSON.parse(
       String(
         await panel(
@@ -331,9 +330,7 @@ describe("browser chrome", () => {
       await ui("document.querySelector('[role=tabpanel]:not([inert]) input[aria-label=\"网页地址\"]')?.value"),
       `${origin}/b`
     )
-    await ui(
-      `document.querySelector('[role=tab][aria-selected=true]').parentElement.querySelector('button[aria-label^="关闭标签"]').click(); true`
-    )
+    await ui(`document.querySelector('[role=tab][aria-selected=true] button[aria-label^="关闭标签"]').click(); true`)
     await waitFor(async () => (await tabCount()) === tabsBeforeMenu, "The tab the link opened did not close")
     await waitFor(
       async () => (await shownAddress()) === addressBeforeMenu,
@@ -378,9 +375,7 @@ describe("browser chrome", () => {
     )
     await Bun.sleep(1500)
     assert.ok(String(await shownAddress()).startsWith(`view-source:${origin}`))
-    await ui(
-      `document.querySelector('[role=tab][aria-selected=true]').parentElement.querySelector('button[aria-label^="关闭标签"]').click(); true`
-    )
+    await ui(`document.querySelector('[role=tab][aria-selected=true] button[aria-label^="关闭标签"]').click(); true`)
     await waitFor(async () => (await shownAddress()) === addressBeforeMenu, "The page did not come back to the front")
   })
 
@@ -557,12 +552,32 @@ describe("browser chrome", () => {
   })
 
   test("a page's own dialogs never hold the application, and automation still gets their answers", async () => {
-    assert.equal(await evaluate("new Promise((resolve) => setTimeout(() => resolve(confirm('continue?')), 0))"), false)
+    // A dialog raised under a conversation's action is the conversation's to answer; the reader is shown it too.
+    const asked = await a("browser_evaluate", {
+      target: one.target,
+      expression: "new Promise((resolve) => setTimeout(() => resolve(confirm('continue?')), 0))"
+    })
+    assert.equal(asked.pending, true, JSON.stringify(asked))
+    assert.equal(asked.dialog.message, "continue?")
+    // The application answers while the page waits: it is the page that is held, not the application.
+    await waitFor(
+      async () => (await panel(`return panel.querySelector('[role=alertdialog]') !== null`)) === true,
+      "The reader is not shown the page's question"
+    )
+    assert.equal((await a("browser_dialog", { target: one.target, id: asked.dialog.id, accept: false })).result, false)
+    const told = await a("browser_evaluate", {
+      target: one.target,
+      expression: "new Promise((resolve) => setTimeout(() => { alert('done'); resolve('returned') }, 0))"
+    })
+    assert.equal(told.dialog.message, "done", JSON.stringify(told))
     assert.equal(
-      await evaluate("new Promise((resolve) => setTimeout(() => { alert('done'); resolve('returned') }, 0))"),
+      (await a("browser_dialog", { target: one.target, id: told.dialog.id, accept: true })).result,
       "returned"
     )
-    assert.equal(await panel(`return panel.querySelector('[role=alertdialog]') === null`), true)
+    await waitFor(
+      async () => (await panel(`return panel.querySelector('[role=alertdialog]') === null`)) === true,
+      "An answered dialog stayed open"
+    )
   })
 
   test("a page may fill the window, and gives it back", async ({ skip }) => {

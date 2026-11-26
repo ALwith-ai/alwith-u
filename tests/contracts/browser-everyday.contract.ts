@@ -82,10 +82,10 @@ const strip = `[...document.querySelectorAll('[role=tablist] [role=tab]')]`
 /** Close every tab; a pinned one has no close button until it is unpinned. */
 const closeTabs = async () => {
   for (;;) {
-    const pinned = `${strip}.find((tab) => tab.parentElement.querySelector('button[aria-label^="关闭标签"]') === null)`
+    const pinned = `${strip}.find((tab) => tab.querySelector('button[aria-label^="关闭标签"]') === null)`
     if (!(await ui(`${pinned} !== undefined`))) break
     await ui(
-      `${pinned}.parentElement.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 60, clientY: 60 })), true`
+      `${pinned}.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 60, clientY: 60 })), true`
     )
     const item = `[...document.querySelectorAll('[role=menu] [role=menuitem]')].find((item) => item.textContent === '取消固定')`
     await waitFor(() => ui(`${item} !== undefined`), "A pinned tab cannot be unpinned")
@@ -116,7 +116,7 @@ const tabMenu = async (tab: string, entry: string) => {
   // The menu of the tab before may still be closing.
   await waitFor(() => ui(`document.querySelector('[role=menu]') === null`), "A tab's menu stayed open")
   await ui(
-    `${strip}.find((tab) => tab.textContent.includes(${JSON.stringify(tab)})).parentElement.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 60, clientY: 60 })), true`
+    `${strip}.find((tab) => tab.textContent.includes(${JSON.stringify(tab)})).dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 60, clientY: 60 })), true`
   )
   const item = `[...document.querySelectorAll('[role=menu] [role=menuitem]')].find((item) => item.textContent === ${JSON.stringify(entry)})`
   await waitFor(() => ui(`${item} !== undefined`), `A tab's menu does not offer ${entry}`)
@@ -195,7 +195,7 @@ describe("everyday browsing", () => {
     await tabMenu("gamma", "固定标签页")
     await waitFor(async () => (await titles())[0]!.includes("gamma"), "A pinned tab did not move to the front")
     assert.equal(
-      await ui(`${strip}[0].parentElement.querySelector('button[aria-label^="关闭标签"]') === null`),
+      await ui(`${strip}[0].querySelector('button[aria-label^="关闭标签"]') === null`),
       true,
       "A pinned tab still offers its close button"
     )
@@ -215,7 +215,7 @@ describe("everyday browsing", () => {
 
   test("dragging a tab reorders the strip", async () => {
     await ui(
-      `(() => { const all = ${strip}; const from = all.find((tab) => tab.textContent.includes('beta')).parentElement; const to = all.find((tab) => tab.textContent.includes('alpha')).parentElement; const data = new DataTransfer(); from.dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer: data })); to.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer: data })); to.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: data })); return true })()`
+      `(() => { const all = ${strip}; const from = all.find((tab) => tab.textContent.includes('beta')); const to = all.find((tab) => tab.textContent.includes('alpha')); const data = new DataTransfer(); from.dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer: data })); to.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer: data })); to.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: data })); return true })()`
     )
     await waitFor(async () => {
       const order = await titles()

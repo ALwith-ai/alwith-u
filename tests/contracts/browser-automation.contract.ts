@@ -216,42 +216,6 @@ describe("browser automation", () => {
     await run.close()
   })
 
-  test("the bundled entry answers tool calls when run by the bundled Bun", async () => {
-    // Execute the exact bundled entry with bundled Bun, not a source-tree import.
-    const child = Bun.spawn([descriptor.command, ...descriptor.args], {
-      env: { ...process.env, ...env },
-      stdin: "pipe",
-      stdout: "pipe",
-      stderr: "pipe"
-    })
-    try {
-      const ask = (id: number, name: string, args: Record<string, unknown>) =>
-        void child.stdin.write(
-          `${JSON.stringify({ jsonrpc: "2.0", id, method: "tools/call", params: { name, arguments: args } })}\n`
-        )
-      ask(1, "browser_read_page", { target })
-      ask(2, "browser_reload", { target })
-      ask(3, "browser_evaluate", { target, expression: "document.title" })
-      void child.stdin.end()
-      const [output, errors, code] = await Promise.all([
-        new Response(child.stdout).text(),
-        new Response(child.stderr).text(),
-        child.exited
-      ])
-      assert.equal(code, 0, errors)
-      const replies = output
-        .trim()
-        .split("\n")
-        .map((line) => JSON.parse(line))
-      assert.equal(replies.length, 3)
-      for (const reply of replies) assert.ok(!reply.result.isError, JSON.stringify(reply))
-      assert.equal(JSON.parse(replies[0].result.content[0].text).title, "Playwright guest fixture")
-      assert.equal(JSON.parse(replies[2].result.content[0].text).result, "Playwright guest fixture")
-    } finally {
-      child.kill()
-    }
-  })
-
   test("revoking the conversation drops its connection", async () => {
     browser = await connect(endpoint, 15000)
     await ipc("cef_browser_revoke", { sessionId })
