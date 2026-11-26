@@ -23,11 +23,24 @@ pub fn browser_locale(saved: Option<&str>, system: Option<&str>) -> String {
     }
 }
 
+/// The languages a website is told the reader prefers, for a locale Chromium ships: the locale,
+/// then its language alone, as Chrome lists them. The system's own tag is not passed on: it can
+/// carry a script subtag (`zh-Hans-CN`), which no Chrome sends and which therefore tells a website
+/// apart every reader who has it.
+pub fn accept_languages(locale: &str) -> String {
+    match locale.split_once('-') {
+        Some((language, _)) => format!("{locale},{language}"),
+        None => locale.into(),
+    }
+}
+
 pub fn create() -> tauri_runtime_cef::Cef {
+    let locale = crate::desktop_runtime::browser_locale();
     let runtime = tauri_runtime_cef::Cef::default()
         // Chromium's own pages and controls, and the languages a website is asked for, follow
         // the application's language. The whole set of locale packs is staged with the framework.
-        .locale(crate::desktop_runtime::browser_locale())
+        .locale(locale)
+        .accept_language_list(accept_languages(locale))
         // The alpha bundler does not yet package the Aperitif helper application.
         .disable_features(["AperitifHelpers"])
         // FedCM's account chooser belongs to a Chrome browser window, which a tab here does not

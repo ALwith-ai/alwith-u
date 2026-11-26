@@ -1,4 +1,4 @@
-use super::browser_locale;
+use super::{accept_languages, browser_locale};
 
 #[test]
 fn the_chosen_language_wins_over_the_system() {
@@ -27,4 +27,18 @@ fn a_system_tag_becomes_a_locale_chromium_ships() {
         assert_eq!(browser_locale(None, Some(system)), locale, "{system}");
     }
     assert_eq!(browser_locale(None, None), "en-US");
+}
+
+#[test]
+fn a_website_is_told_the_locale_and_its_language_without_a_script() {
+    for (system, languages) in [
+        ("zh-Hans-CN", "zh-CN,zh"),
+        ("zh-Hant-HK", "zh-TW,zh"),
+        ("en-AU", "en-GB,en"),
+        ("es-MX", "es-419,es"),
+        ("pt", "pt-BR,pt"),
+        ("ja-JP", "ja"),
+    ] {
+        assert_eq!(accept_languages(&browser_locale(None, Some(system))), languages, "{system}");
+    }
 }
