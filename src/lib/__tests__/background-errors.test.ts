@@ -3,7 +3,7 @@ import { error as logError } from "@tauri-apps/plugin-log"
 import { toast } from "sonner"
 import { beforeEach, expect, test, vi } from "vitest"
 
-import { errorDetails, logBackgroundError, reportBackgroundError } from "../background-errors"
+import { errorDetails, errorMessage, logBackgroundError, reportBackgroundError } from "../background-errors"
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
 beforeEach(() => vi.clearAllMocks())
@@ -31,6 +31,15 @@ test("plain native errors and circular causes can be logged", () => {
   const error = new Error("outer")
   error.cause = error
   expect(errorDetails(error)).toContain("[circular error cause]")
+})
+
+test("session notices show readable messages from native and RPC errors", () => {
+  expect(errorMessage({ code: "window_unavailable", message: "Chat window closed" })).toBe("Chat window closed")
+  expect(errorMessage({ error: { data: { detail: "The session could not be loaded" } } })).toBe(
+    "The session could not be loaded"
+  )
+  expect(errorMessage(new Error("Disconnected"))).toBe("Disconnected")
+  expect(errorMessage("Timed out")).toBe("Timed out")
 })
 
 test("Runtime errors retain ACP code and data alongside the stack", () => {

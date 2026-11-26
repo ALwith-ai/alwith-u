@@ -1,4 +1,5 @@
 import type { ComposerDraft } from "@alwith/module-chat/conversation"
+import { error as logError } from "@tauri-apps/plugin-log"
 import { expect, test, vi } from "vitest"
 
 import type { ChatTransfer } from "@/lib/chat-window"
@@ -26,8 +27,10 @@ function deferred(): { promise: Promise<void>; resolve: () => void; reject: (err
 function actions(open: () => Promise<void>, selected: string[], errors: unknown[]): SelectSessionActions {
   return {
     connect: async () => {},
+    discardDraft: async () => {},
     unarchive: async () => {},
     release: (): Promise<ChatTransfer | null> => Promise.resolve(null),
+    transferDraft: async () => {},
     importDraft: (_id: string, _draft: ComposerDraft | null) => {},
     include: () => {},
     open: async () => open(),
@@ -89,4 +92,19 @@ test("reports a background restore failure after selecting the chat", async () =
 
   expect(selected).toEqual(["history-1"])
   expect(errors).toEqual([failure])
+  expect(logError).toHaveBeenCalledWith("[session-selection/open-session] resume failed")
+})
+
+test("logs the exact step and actual native message if a window handoff fails", async () => {
+  const callbacks = actions(async () => {}, [], [])
+  const failure = { code: "window_unavailable", message: "Chat window closed during handoff" }
+  callbacks.release = () => Promise.reject(failure)
+  callbacks.transferDraft = vi.fn()
+  callbacks.open = vi.fn()
+
+  await expect(selectSession(sessionRow, callbacks)).rejects.toBe(failure)
+
+  expect(logError).toHaveBeenCalledWith("[session-selection/release-window] Chat window closed during handoff")
+  expect(callbacks.transferDraft).not.toHaveBeenCalled()
+  expect(callbacks.open).not.toHaveBeenCalled()
 })

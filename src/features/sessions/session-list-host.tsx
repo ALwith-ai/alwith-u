@@ -3,6 +3,8 @@ import { type ReactNode, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
+import { errorMessage } from "@/lib/background-errors"
+
 import { ProjectPathAction } from "./project-path-action"
 import { SessionImageIcon } from "./session-image-icon"
 import { sessionListClient } from "./session-list-client"
@@ -22,7 +24,7 @@ export function SessionListHostProvider({ children }: { children: ReactNode }) {
         i18n: { language },
         PathAction: SessionPathAction,
         SessionMedia: SessionImageIcon,
-        reportError: (error) => toast.error(error instanceof Error ? error.message : String(error))
+        reportError: (error) => toast.error(errorMessage(error))
       }) satisfies SessionListHost,
     [i18n, language]
   )

@@ -5,6 +5,7 @@ import type { RateLimitSnapshot, RealtimeEvent, Session } from "@alwith/module-c
 import { type AppState, CodexClient, macProjectPaths } from "@alwith/module-chat/client"
 import { emitTo, listen } from "@tauri-apps/api/event"
 
+import { errorMessage } from "@/lib/background-errors"
 import { isMac } from "@/lib/platform"
 import { asError } from "@/lib/text"
 
@@ -183,7 +184,7 @@ export async function serveChatClient(
             connectionId: request.connectionId,
             id: request.id,
             error: {
-              message: error instanceof Error ? error.message : String(error),
+              message: errorMessage(error),
               ...(code === undefined ? {} : { code })
             }
           } satisfies Response)
