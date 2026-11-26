@@ -117,7 +117,8 @@ test("a button changes when the browser says so, and one the user took out is no
     act(() => hiddenExtensions.setState([], true))
     expect(screen.getByRole("button", { name: "Reader" })).toBeInTheDocument()
   } finally {
-    hiddenExtensions.setState([], true)
+    // Inside act: an update left to the scheduler runs after the last test's window is gone.
+    act(() => hiddenExtensions.setState([], true))
   }
 })
 
@@ -136,7 +137,10 @@ test("a button the toolbar does not show can still be pressed, and is there whil
       expect(invoke).toHaveBeenCalledWith("cef_guest_extension_trigger", { label: "tab", id: "blocker" })
     )
     expect(await screen.findByRole("button", { name: "Blocker (3 blocked)" })).toBeInTheDocument()
+    // The popup it asked for has opened before the test lets go of it.
+    expect(await screen.findByTitle("Blocker 弹出页")).toHaveAttribute("data-content-id", "popup-token")
   } finally {
-    hiddenExtensions.setState([], true)
+    // Inside act: an update left to the scheduler runs after the last test's window is gone.
+    act(() => hiddenExtensions.setState([], true))
   }
 })
