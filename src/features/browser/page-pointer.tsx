@@ -1,24 +1,123 @@
+import { type DraftPort, RevisionDraft } from "@alwith/module-voice/chat"
 import { invoke } from "@tauri-apps/api/core"
 import { ArrowUp } from "lucide-react"
-import { useEffect, useLayoutEffect, useRef, useState } from "react"
+import { type CSSProperties, type PointerEvent, useEffect, useId, useLayoutEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { VoiceButton } from "@/features/voice/voice-button"
 import { client } from "@/lib/client"
 
-import { type Pointed, pointedContext, remarkPlace } from "./point"
+import { type Pointed, pointedContext, regionContext, remarkPlace } from "./point"
 import { prepareBrowserChat } from "./quick-chat-session"
 import { useBrowserQuickChat } from "./quick-chat-state"
 
 /** The size of the box a remark is written in, in CSS pixels. */
 const remarkBox = { width: 320, height: 44 }
+const dragThreshold = 4
+
+type Chosen = { revision: number } & (
+  { kind: "point"; point: Pointed } | { kind: "region"; rect: Pointed["rect"]; url: string }
+)
+
+interface Gesture {
+  pointerId: number
+  start: { x: number; y: number }
+  clientX: number
+  clientY: number
+  dragging: boolean
+}
+
+async function remarkDirectory() {
+  return useBrowserQuickChat.getState().cwd ?? (await client.refreshProjectContext(true)).chatDirectory
+}
+
+function RemarkInput({
+  style,
+  sending,
+  onSend
+}: {
+  style: CSSProperties
+  sending: boolean
+  onSend: (text: string) => void
+}) {
+  const { t } = useTranslation()
+  const target = useId()
+  const input = useRef<HTMLInputElement>(null)
+  const cancelVoice = useRef<(() => void) | null>(null)
+  const [revision] = useState(() => new RevisionDraft(target, "", [0, 0]))
+  const [text, setText] = useState("")
+  const nextSelection = useRef<readonly [number, number] | null>(null)
+  const [draft] = useState<DraftPort>(() => ({
+    read: () => revision.read(),
+    compareAndSet: (expected, value, selection) => {
+      const updated = revision.compareAndSet(expected, value, selection)
+      if (updated) {
+        nextSelection.current = selection
+        setText(value)
+      }
+      return updated
+    }
+  }))
+  useLayoutEffect(() => {
+    const selection = nextSelection.current
+    nextSelection.current = null
+    if (selection) input.current?.setSelectionRange(...selection)
+  }, [text])
+
+  return (
+    <form
+      className="absolute flex items-center gap-1 rounded-full border bg-popover p-1 shadow-lg"
+      style={style}
+      onSubmit={(event) => {
+        event.preventDefault()
+        const words = revision.read().text.trim()
+        if (sending || words === "") return
+        cancelVoice.current?.()
+        onSend(words)
+      }}
+    >
+      <Input
+        ref={input}
+        autoFocus
+        value={text}
+        disabled={sending}
+        aria-label={t("browser.pointSay")}
+        placeholder={t("browser.pointSay")}
+        onChange={({ currentTarget }) => {
+          const { value, selectionStart, selectionEnd } = currentTarget
+          revision.edit(value, [selectionStart ?? value.length, selectionEnd ?? value.length])
+          setText(value)
+        }}
+        onSelect={({ currentTarget }) => {
+          const { value, selectionStart, selectionEnd } = currentTarget
+          const current = revision.read()
+          if (current.text !== value || selectionStart === null || selectionEnd === null) return
+          if (current.selection[0] !== selectionStart || current.selection[1] !== selectionEnd) {
+            revision.edit(value, [selectionStart, selectionEnd])
+          }
+        }}
+        className="h-8 min-w-0 flex-1 border-0 bg-transparent px-2 shadow-none focus-visible:border-0 focus-visible:ring-0 dark:bg-transparent"
+      />
+      <VoiceButton draft={draft} cwd={remarkDirectory} enabled={!sending} cancelRef={cancelVoice} dictationOnly />
+      <Button
+        type="submit"
+        size="icon-sm"
+        className="rounded-full"
+        aria-label={t("browser.pointSend")}
+        disabled={sending || text.trim() === ""}
+      >
+        <ArrowUp />
+      </Button>
+    </form>
+  )
+}
 
 /**
  * Lets a person point at something on the page and say one thing about it. The remark goes to the
- * browser's conversation at once, with what was pointed at; the page itself receives nothing while
- * this is shown.
+ * browser's conversation with the selected element or region.
  */
 export function PagePointer({
   label,
@@ -40,8 +139,11 @@ export function PagePointer({
   const layer = useRef<HTMLDivElement>(null)
   const [frame, setFrame] = useState({ left: 0, top: 0, width: 0, height: 0 })
   const [hovered, setHovered] = useState<Pointed | null>(null)
-  const [chosen, setChosen] = useState<Pointed | null>(null)
-  const [remark, setRemark] = useState("")
+  const [chosen, setChosen] = useState<Chosen | null>(null)
+  const gesture = useRef<Gesture | null>(null)
+  const [dragRect, setDragRect] = useState<Pointed["rect"] | null>(null)
+  const chosenRevision = useRef(0)
+  const regionRevision = useRef(0)
   const [sending, setSending] = useState(false)
   // One question to the page at a time; the newest point waits for the answer to the one before.
   const asking = useRef(false)
@@ -80,11 +182,11 @@ export function PagePointer({
 
   const choose = (x: number, y: number) => {
     next.current = null
+    const region = regionRevision.current
     void ask(x, y, true)
       .then((answer) => {
-        if (closed.current) return
-        setChosen(answer)
-        setRemark("")
+        if (closed.current || region !== regionRevision.current) return
+        setChosen(answer ? { kind: "point", point: answer, revision: ++chosenRevision.current } : null)
       })
       .catch((failure: unknown) => toast.error(String(failure)))
   }
@@ -143,11 +245,37 @@ export function PagePointer({
     }
   }
 
-  const send = async () => {
-    const words = remark.trim()
-    if (!chosen || !words || sending) return
+  const dragAt = (press: Gesture, event: PointerEvent<HTMLDivElement>): Pointed["rect"] | null => {
+    if (!press.dragging) {
+      if (Math.max(Math.abs(event.clientX - press.clientX), Math.abs(event.clientY - press.clientY)) < dragThreshold) {
+        return null
+      }
+      press.dragging = true
+    }
+    const { x, y } = at(event)
+    return [
+      Math.min(press.start.x, x),
+      Math.min(press.start.y, y),
+      Math.abs(press.start.x - x),
+      Math.abs(press.start.y - y)
+    ]
+  }
+
+  const cancelGesture = (event: PointerEvent<HTMLDivElement>) => {
+    if (gesture.current?.pointerId !== event.pointerId) return
+    gesture.current = null
+    setDragRect(null)
+  }
+
+  const send = async (words: string) => {
+    if (!chosen || sending) return
     setSending(true)
     try {
+      const pageUrl = chosen.kind === "region" ? chosen.url : url
+      const screenshot =
+        chosen.kind === "region"
+          ? await invoke<string>("cef_guest_region_screenshot", { label, url: pageUrl, rect: chosen.rect })
+          : null
       await prepareBrowserChat()
       const sessionId = useBrowserQuickChat.getState().sessionId
       if (sessionId === null) throw Error("Browser conversation is unavailable")
@@ -157,25 +285,34 @@ export function PagePointer({
         {
           type: "resource",
           resource: {
-            uri: url,
+            uri: pageUrl,
             mimeType: "text/plain",
-            text: pointedContext(chosen, { url, tab: label, selection: selection.current }, t)
+            text:
+              chosen.kind === "region"
+                ? regionContext(chosen.rect, { url: pageUrl, tab: label }, t("browser.pointRegionLabel"))
+                : pointedContext(chosen.point, { url, tab: label, selection: selection.current }, t)
           }
-        }
+        },
+        ...(screenshot === null ? [] : [{ type: "image" as const, mimeType: "image/png", data: screenshot }])
       ])
-      useBrowserQuickChat.setState({ revealSessionId: sessionId })
-      onClose()
+      if (!closed.current) {
+        setChosen(null)
+        setHovered(null)
+        layer.current?.focus({ preventScroll: true })
+      }
     } catch (failure) {
       toast.error(failure instanceof Error ? failure.message : String(failure))
-      setSending(false)
+    } finally {
+      if (!closed.current) setSending(false)
     }
   }
 
-  const shown = chosen ?? hovered
+  const chosenRect = chosen?.kind === "point" ? chosen.point.rect : chosen?.rect
+  const shown = dragRect ?? chosenRect ?? hovered?.rect
   const place =
-    chosen &&
+    chosenRect &&
     frame.width > 0 &&
-    remarkPlace(chosen.rect, {
+    remarkPlace(chosenRect, {
       width: Math.min(1, remarkBox.width / frame.width),
       height: Math.min(1, (remarkBox.height + 8) / frame.height)
     })
@@ -189,6 +326,18 @@ export function PagePointer({
       className="absolute z-20 cursor-pointer outline-none"
       style={frame}
       onPointerMove={(event) => {
+        const press = gesture.current
+        if (press) {
+          if (press.pointerId === event.pointerId) {
+            const wasDragging = press.dragging
+            const rect = dragAt(press, event)
+            if (rect) {
+              if (!wasDragging) event.currentTarget.focus({ preventScroll: true })
+              setDragRect(rect)
+            }
+          }
+          return
+        }
         if (chosen) return
         next.current = at(event)
         void follow()
@@ -198,15 +347,31 @@ export function PagePointer({
         if (!chosen) setHovered(null)
       }}
       onPointerDown={(event) => {
-        if (event.button !== 0 || sending || event.target !== event.currentTarget) return
+        if (event.button !== 0 || sending || gesture.current || event.target !== event.currentTarget) return
         event.preventDefault()
-        const { x, y } = at(event)
-        selection.current = undefined
-        choose(x, y)
+        const { pointerId, clientX, clientY } = event
+        gesture.current = { pointerId, clientX, clientY, start: at(event), dragging: false }
+        event.currentTarget.setPointerCapture(pointerId)
+        next.current = null
       }}
+      onPointerUp={(event) => {
+        const press = gesture.current
+        if (!press || press.pointerId !== event.pointerId) return
+        gesture.current = null
+        setDragRect(null)
+        const rect = dragAt(press, event)
+        if (rect && (rect[2] === 0 || rect[3] === 0)) return
+        selection.current = undefined
+        if (rect) {
+          regionRevision.current += 1
+          setChosen({ kind: "region", rect, url, revision: ++chosenRevision.current })
+        } else choose(press.start.x, press.start.y)
+      }}
+      onPointerCancel={cancelGesture}
+      onLostPointerCapture={cancelGesture}
       onWheel={(event) => {
         // What was chosen stays where it was outlined: the page does not move under a remark being written.
-        if (chosen || event.target !== event.currentTarget) return
+        if (chosen || gesture.current || event.target !== event.currentTarget) return
         const { x, y } = at(event)
         const before = turned.current
         turned.current = {
@@ -221,8 +386,17 @@ export function PagePointer({
         if (event.key !== "Escape") return
         event.preventDefault()
         event.stopPropagation()
-        if (chosen) setChosen(null)
-        else onClose()
+        if (gesture.current) {
+          const { pointerId } = gesture.current
+          gesture.current = null
+          setDragRect(null)
+          if (event.currentTarget.hasPointerCapture(pointerId)) event.currentTarget.releasePointerCapture(pointerId)
+          return
+        }
+        if (chosen) {
+          setChosen(null)
+          layer.current?.focus({ preventScroll: true })
+        } else onClose()
       }}
     >
       {shown && (
@@ -230,46 +404,25 @@ export function PagePointer({
           data-browser-pointed
           className="pointer-events-none absolute rounded-sm bg-ring/15 ring-2 ring-ring"
           style={{
-            left: `${shown.rect[0] * 100}%`,
-            top: `${shown.rect[1] * 100}%`,
-            width: `${shown.rect[2] * 100}%`,
-            height: `${shown.rect[3] * 100}%`
+            left: `${shown[0] * 100}%`,
+            top: `${shown[1] * 100}%`,
+            width: `${shown[2] * 100}%`,
+            height: `${shown[3] * 100}%`
           }}
         />
       )}
-      {place && (
-        <form
-          className="absolute flex items-center gap-1 rounded-full border bg-popover p-1 shadow-lg"
+      {chosen && place && (
+        <RemarkInput
+          key={chosen.revision}
           style={{
             left: `${place.left * 100}%`,
             top: `calc(${place.top * 100}% + 8px)`,
             width: Math.min(remarkBox.width, frame.width),
             height: remarkBox.height
           }}
-          onSubmit={(event) => {
-            event.preventDefault()
-            void send()
-          }}
-        >
-          <Input
-            autoFocus
-            value={remark}
-            disabled={sending}
-            aria-label={t("browser.pointSay")}
-            placeholder={t("browser.pointSay")}
-            onChange={(event) => setRemark(event.target.value)}
-            className="h-8 min-w-0 flex-1 border-0 bg-transparent px-2 shadow-none focus-visible:border-0 focus-visible:ring-0 dark:bg-transparent"
-          />
-          <Button
-            type="submit"
-            size="icon-sm"
-            className="rounded-full"
-            aria-label={t("browser.pointSend")}
-            disabled={sending || remark.trim() === ""}
-          >
-            <ArrowUp />
-          </Button>
-        </form>
+          sending={sending}
+          onSend={(words) => void send(words)}
+        />
       )}
     </div>
   )

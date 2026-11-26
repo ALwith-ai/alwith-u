@@ -51,6 +51,20 @@ export function pointedContext(
   return lines.join("\n")
 }
 
+export function regionContext(
+  rect: Pointed["rect"],
+  { url, tab }: { url: string; tab: string },
+  label: string
+): string {
+  const [left, top, width, height] = rect.map((value) => (value * 100).toFixed(2))
+  return [
+    label,
+    `page: ${url}`,
+    `tab: ${tab}`,
+    `rectangle in visible page: left ${left}%, top ${top}%, width ${width}%, height ${height}%`
+  ].join("\n")
+}
+
 /**
  * Where the box a person writes in goes, in fractions of the page's visible area: under the thing
  * they pointed at, or over it when there is no room underneath.

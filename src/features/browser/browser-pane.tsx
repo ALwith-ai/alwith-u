@@ -843,7 +843,7 @@ export function BrowserPane({
         <Button
           variant="ghost"
           size="icon-sm"
-          className="rounded-full"
+          className="rounded-full aria-pressed:bg-primary/15 aria-pressed:text-primary aria-pressed:hover:bg-primary/20 aria-pressed:hover:text-primary"
           aria-label={t("browser.point")}
           title={t("browser.point")}
           aria-pressed={pointing}
