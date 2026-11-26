@@ -1,6 +1,6 @@
 import { type Session } from "@alwith/module-chat/client"
 import { ConversationView } from "@alwith/module-chat/conversation"
-import { RUN_STATE_COLOR } from "@alwith/module-chat/session-list"
+import { RUN_STATE_COLOR, SessionStateDot } from "@alwith/module-chat/session-list"
 import { ChevronDown, GripVertical, MessageCircle, Plus } from "lucide-react"
 import { memo, type PointerEvent as ReactPointerEvent, useEffect, useLayoutEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -462,7 +462,8 @@ export function BrowserQuickChat({ active }: { active: boolean }) {
         onPointerCancel={(e) => finish(e, true)}
         onLostPointerCapture={(e) => finish(e, true)}
         className={cn(
-          "absolute overflow-hidden bg-background text-foreground shadow-xl",
+          "absolute bg-background text-foreground shadow-xl",
+          (panelVisible || record?.state !== "running") && "overflow-hidden",
           closing ? "pointer-events-none" : "pointer-events-auto",
           !moving &&
             animate &&
@@ -580,7 +581,14 @@ export function BrowserQuickChat({ active }: { active: boolean }) {
           onClick={() => useBrowserQuickChat.setState({ ...minimizedCorner, expanded: true })}
         >
           <MessageCircle className="size-5" />
-          {record && record.state !== "idle" && (
+          {record?.state === "running" ? (
+            <span
+              aria-label={t("browser.quickChat.running")}
+              className="pointer-events-none absolute inset-e-[5px] top-[5px] flex size-2.5 items-center justify-center"
+            >
+              <SessionStateDot state="running" className="motion-reduce:[&>span:first-child]:hidden" />
+            </span>
+          ) : record && record.state !== "idle" ? (
             <span
               aria-label={t(`browser.quickChat.${record.state}`)}
               className={cn(
@@ -588,7 +596,7 @@ export function BrowserQuickChat({ active }: { active: boolean }) {
                 RUN_STATE_COLOR[record.state]
               )}
             />
-          )}
+          ) : null}
         </Button>
       </div>
     </div>
