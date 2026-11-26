@@ -62,6 +62,13 @@ test("files inside an application bundle still open in the editor with their lin
   expect(open).not.toHaveBeenCalled()
 })
 
+test("a folder reference inside the project opens in the system file manager", async () => {
+  const { result, open, openFile } = setup()
+  act(() => result.current("file:///repo/%E5%BD%92%E6%A1%A3%20%231/"))
+  await waitFor(() => expect(open).toHaveBeenCalledExactlyOnceWith("/repo/归档 #1/"))
+  expect(openFile).not.toHaveBeenCalled()
+})
+
 test.each(["/outside/report.txt:9:4", "file:///outside/report.txt#L9C4", "FILE:///outside/report.txt#L9C4"])(
   "the main chat passes outside files and their position to the workspace: %s",
   async (link) => {

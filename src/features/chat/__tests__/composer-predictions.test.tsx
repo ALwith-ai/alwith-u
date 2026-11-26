@@ -56,6 +56,10 @@ function usePrediction(session: Session, available: boolean, hasDraft: boolean) 
   )
 }
 
+function placeholder(input: HTMLElement): string | null {
+  return input.getAttribute("aria-placeholder") ?? input.getAttribute("placeholder")
+}
+
 test.each(["Tab", "ArrowRight", "Enter"])(
   "%s accepts an editable draft without sending; modifiers and IME leave it alone",
   async (key) => {
@@ -63,7 +67,7 @@ test.each(["Tab", "ArrowRight", "Enter"])(
     const submit = vi.fn()
     const view = render(<Composer session={predicted(session)} onSubmit={submit} />)
     const input = view.getByRole("textbox")
-    expect(input).toHaveAttribute("placeholder", "Run the tests")
+    expect(placeholder(input)).toBe("Run the tests")
     fireEvent.keyDown(input, { key, shiftKey: true })
     expect(input).toHaveValue("")
     for (const modifier of ["ctrlKey", "altKey", "metaKey"]) {
@@ -84,14 +88,14 @@ test.each(["Tab", "ArrowRight", "Enter"])(
     if (key !== "Enter") fireEvent.keyDown(input, { key })
     expect(input).toHaveValue("Run only unit tests")
     fireEvent.change(input, { target: { value: "" } })
-    expect(input).toHaveAttribute("placeholder", "Run the tests")
+    expect(placeholder(input)).toBe("Run the tests")
     fireEvent.keyDown(input, { key })
     expect(input).toHaveValue("Run the tests")
     expect(view.queryByText(/Tab to accept/)).not.toBeInTheDocument()
     fireEvent.keyDown(input, { key: "Enter" })
     await waitFor(() => expect(submit).toHaveBeenCalledTimes(1))
     fireEvent.change(input, { target: { value: "" } })
-    await waitFor(() => expect(input).not.toHaveAttribute("placeholder", "Run the tests"))
+    await waitFor(() => expect(placeholder(input)).not.toBe("Run the tests"))
   }
 )
 
@@ -100,13 +104,13 @@ test("typing, clearing and Escape preserve a prediction for repeated Tab accepta
   const view = render(<Composer session={predicted(session)} />)
   const input = view.getByRole("textbox")
   fireEvent.keyDown(input, { key: "Escape" })
-  expect(input).toHaveAttribute("placeholder", "Run the tests")
+  expect(placeholder(input)).toBe("Run the tests")
   view.unmount()
   drafts.clear()
   const next = render(<Composer session={predicted(session)} />)
   fireEvent.change(next.getByRole("textbox"), { target: { value: "My message" } })
   fireEvent.change(next.getByRole("textbox"), { target: { value: "" } })
-  expect(next.getByRole("textbox")).toHaveAttribute("placeholder", "Run the tests")
+  expect(placeholder(next.getByRole("textbox"))).toBe("Run the tests")
 })
 
 test("running turns, drafts, replayed history, read-only sessions and a cleared list stay hidden", () => {

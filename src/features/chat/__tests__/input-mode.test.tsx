@@ -262,7 +262,7 @@ test("file selection admits ordinary files only in chat mode", () => {
 test.each(["Chat", "Images"])("draft protection disables %s input without making the window inert", (mode) => {
   const view = setup({ inputDisabled: true })
   fireEvent.click(view.getByRole("button", { name: mode }))
-  expect(view.getByRole("textbox", { name: "Send a message" })).toBeDisabled()
+  expect((view.getByRole("textbox", { name: "Send a message" }) as HTMLInputElement).disabled).toBe(true)
   expect(view.getByRole("button", { name: "Send" })).toBeDisabled()
   expect(view.getByRole("button", { name: mode })).toBeEnabled()
   expect(view.container.querySelector("[inert]")).toBeNull()
@@ -278,7 +278,9 @@ test("main-window mode changes preserve the same input, reference images and con
   fireEvent.click(view.getByRole("button", { name: "Images" }))
   expect(view.getByRole("textbox", { name: "Send a message" })).toBe(input)
   expect(input).toHaveValue("A paper bird")
-  expect(input).toHaveAttribute("placeholder", "Describe an image, or add reference images to edit")
+  expect(input.getAttribute("aria-placeholder") ?? input.getAttribute("placeholder")).toBe(
+    "Describe an image, or add reference images to edit"
+  )
   expect(view.getByRole("button", { name: "Aspect ratio" })).toHaveTextContent("Auto")
   expect(view.getByRole("button", { name: "Image model" })).toHaveTextContent("ChatGPT Images")
   expect(view.queryByRole("button", { name: "Commands" })).not.toBeInTheDocument()
@@ -303,7 +305,7 @@ test("missing image services keep input editable and do not send to a language m
   expect(view.getByRole("button", { name: "Images" })).toHaveFocus()
   expect(view.getByRole("button", { name: "Images" })).toHaveAttribute("aria-pressed", "true")
   const input = view.getByRole("textbox", { name: "Send a message" })
-  expect(input).not.toBeDisabled()
+  expect((input as HTMLInputElement).disabled).toBe(false)
   expect(view.getByRole("button", { name: "Send" })).toBeDisabled()
   fireEvent.change(input, { target: { value: "Edit the paper bird" } })
   fireEvent.click(view.getByRole("button", { name: "Aspect ratio" }))
