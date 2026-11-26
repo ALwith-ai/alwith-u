@@ -134,9 +134,21 @@ describe("browser quick chat", () => {
       await ipc("cef_browser_test_pointer", { phase: "down", x, y })
       await ipc("cef_browser_test_pointer", { phase: "move", x: x + dx, y: y + dy })
       await ipc("cef_browser_test_pointer", { phase: "up", x: x + dx, y: y + dy })
-      await waitFor(async () => (await rect())[axis] < before[axis] - 15, "Native edge resize did not settle")
+      await waitFor(async () => (await rect())[axis] < before[axis] - 15, "Native edge resize did not start")
+      // The gesture ends when the pointer's release has arrived, and the surface then eases to the size
+      // it was left at: measured once it is neither held nor moving, not on the way there.
+      await waitFor(
+        () =>
+          ui(
+            `(() => { const surface = document.querySelector('[data-browser-chat-session]'); return surface.style.willChange !== 'transform' && surface.getAnimations().length === 0 })()`
+          ),
+        "Native edge resize did not settle"
+      )
       const after = await rect()
-      assert.ok(Math.abs(axis === "width" ? after.height - before.height : after.width - before.width) < 1)
+      assert.ok(
+        Math.abs(axis === "width" ? after.height - before.height : after.width - before.width) < 1,
+        `Resizing the ${axis} moved the other axis: ${before.width}x${before.height} became ${after.width}x${after.height}`
+      )
     }
     await ui(
       `document.querySelector('[data-browser-quick-chat] header > div').dispatchEvent(new MouseEvent("dblclick", { bubbles: true }))`
@@ -190,7 +202,12 @@ describe("browser quick chat", () => {
       name: "browser_list",
       args: {}
     })
-    assert.ok(!old.targets.some((target: { id: string }) => target.id === privateGuest.label))
-    assert.ok(!old.targets.some((target: { id: string }) => target.id === foreign.target))
+    // A private tab is not named to it any more; another conversation's tab is named as every tab is, and is not its to use.
+    assert.ok(!old.targets.some((target: { id: string }) => target.id === privateGuest.label), JSON.stringify(old))
+    assert.equal(
+      old.targets.find((target: { id: string }) => target.id === foreign.target)?.available,
+      false,
+      JSON.stringify(old)
+    )
   })
 })
