@@ -75,6 +75,27 @@ fn chat_window_transparency_survives_restart_and_rejects_non_boolean_values() {
 }
 
 #[test]
+fn launcher_settings_survive_restart_and_reject_malformed_usage() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut store = SettingsStore::load(dir.path().into()).unwrap();
+    let usage = json!({"com.apple.Safari": {"anchor": 1.5e12, "openedAt": 1.4e12, "terms": ["saf"]}});
+    store.update(changes(json!({"launcher.shortcut": "Alt+Shift+Space", "launcher.usage": usage})), None).unwrap();
+    store = SettingsStore::load(dir.path().into()).unwrap();
+    assert_eq!(store.snapshot().unwrap().1["launcher.shortcut"], "Alt+Shift+Space");
+    assert_eq!(store.snapshot().unwrap().1["launcher.usage"], usage);
+    for malformed in [
+        json!([]),
+        json!({"a": {"anchor": 1, "openedAt": 1}}),
+        json!({"a": {"anchor": "1", "openedAt": 1, "terms": []}}),
+        json!({"a": {"anchor": 1, "openedAt": 1, "terms": ["a", "b", "c", "d"]}}),
+        json!({"a": {"anchor": 1, "openedAt": 1, "terms": [], "extra": true}}),
+    ] {
+        assert!(store.update(changes(json!({"launcher.usage": malformed})), None).is_err());
+    }
+    assert_eq!(store.values["launcher.usage"], usage);
+}
+
+#[test]
 fn migrates_legacy_chat_window_transparency() {
     let dir = tempfile::tempdir().unwrap();
     write_json(&dir.path().join("preferences.json"), &json!({"chatWindowTransparent": false})).unwrap();

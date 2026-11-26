@@ -525,6 +525,8 @@
     "threeFingerSwipeDesc": "Pan the canvas with a three-finger horizontal swipe",
     "mobile": "Mobile",
     "mobileConnection": "Mobile connection",
+    "clipboardHistory": "Clipboard history",
+    "clipboardHistoryDesc": "Keep text, images and file paths you copy on this computer for three months. Content that password managers mark as private is not kept.",
     "preventSleep": "Prevent sleep while tasks are running",
     "preventSleepDesc": "Keep the computer awake during running tasks. The display can still turn off.",
     "explorer": "Explorer",
@@ -913,6 +915,23 @@
     "newChat": "New chat",
     "toggleTheme": "Toggle theme",
     "settings": "Open settings"
+  },
+  "launcher": {
+    "placeholder": "Search applications and chats",
+    "results": "Results",
+    "sendTo": "Use “{{query}}” with",
+    "newChat": "New chat",
+    "application": "Application",
+    "chat": "Chat",
+    "project": "Project",
+    "command": "Command",
+    "clipboardPlaceholder": "Search clipboard history",
+    "clipboard": "Clipboard history",
+    "pinned": "Pinned",
+    "image": "Image",
+    "clipboardOff": "Clipboard history is off",
+    "clipboardOffDesc": "When on, text, images and file paths you copy are kept on this computer for three months. Content that password managers mark as private is not kept.",
+    "turnOnClipboard": "Turn on clipboard history"
   },
   "notify": {
     "needsInput": "Your input is needed",

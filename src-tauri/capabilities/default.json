@@ -8,6 +8,7 @@
     "gamepad",
     "guide",
     "chat",
+    "launcher",
     "device-*"
   ],
   "permissions": [

@@ -12,6 +12,8 @@ pub fn initialize(app: &tauri::AppHandle) -> Result<(), Box<dyn std::error::Erro
     let store = SettingsStore::load(app.path().app_data_dir()?)?;
     app.state::<crate::power::PreventSleep>()
         .set_enabled(store.values.get("system.preventSleep").and_then(Value::as_bool).unwrap_or(false))?;
+    app.state::<crate::clipboard::Clipboard>()
+        .set_enabled(app, store.values.get("clipboard.enabled").and_then(Value::as_bool).unwrap_or(false))?;
     let store = Arc::new(Mutex::new(store));
     if app.state::<VoiceCredentials>().0.set(store.clone()).is_err() {
         return Err("Voice credentials are already bound to the settings store".into());
@@ -112,8 +114,10 @@ fn image_provider(provider: alwith_media::ImageProvider) -> &'static str {
 pub fn settings_request(
     window: tauri::Window, state: State<'_, SharedSettings>, input: Value,
 ) -> Result<Value, String> {
-    if !matches!(window.label(), "main" | "chat" | "settings" | "gamepad" | "guide" | "vibemon" | "bubble-menu-vibemon")
-        && !window.label().starts_with("device-")
+    if !matches!(
+        window.label(),
+        "main" | "chat" | "launcher" | "settings" | "gamepad" | "guide" | "vibemon" | "bubble-menu-vibemon"
+    ) && !window.label().starts_with("device-")
     {
         return Err("Settings access denied".into());
     }
@@ -164,6 +168,8 @@ pub fn settings_request(
     if action != "read" {
         window.app_handle().emit("settings:changed", &snapshot).map_err(|e| e.to_string())?;
         window.app_handle().state::<crate::power::PreventSleep>().set_enabled(prevent_sleep)?;
+        let clipboard = values.get("clipboard.enabled").and_then(Value::as_bool).unwrap_or(false);
+        window.app_handle().state::<crate::clipboard::Clipboard>().set_enabled(window.app_handle(), clipboard)?;
     }
     Ok(snapshot)
 }

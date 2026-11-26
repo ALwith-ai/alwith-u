@@ -98,6 +98,7 @@ export const config = (mode = "development"): UserConfig => ({
         capture: path.resolve(import.meta.dirname, "capture.html"),
         device: path.resolve(import.meta.dirname, "device.html"),
         chat: path.resolve(import.meta.dirname, "chat.html"),
+        launcher: path.resolve(import.meta.dirname, "launcher.html"),
         vibemon: path.resolve(import.meta.dirname, "vibemon.html"),
         vibemonBubble: path.resolve(import.meta.dirname, "vibemon-bubble.html"),
         gamepad: path.resolve(import.meta.dirname, "gamepad.html"),

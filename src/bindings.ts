@@ -158,6 +158,37 @@ export const commands = {
    */
   setChatWindowBackdrop: (args: { cornerRadius: number | null }): Promise<null> =>
     __t3Invoke<null>("set_chat_window_backdrop", args),
+  /**
+   *  Shows the launcher on the display under the pointer and gives it the keyboard.
+   */
+  presentLauncherWindow: (): Promise<null> => __t3Invoke<null>("present_launcher_window"),
+  /**
+   *  Hides the launcher; the application that was in front keeps the keyboard.
+   */
+  dismissLauncherWindow: (): Promise<null> => __t3Invoke<null>("dismiss_launcher_window"),
+  /**
+   *  Whether this platform can keep a clipboard history at all.
+   */
+  clipboardSupported: (): Promise<boolean> => __t3Invoke<boolean>("clipboard_supported"),
+  /**
+   *  Pinned entries, then the newest; a query keeps the entries whose text contains it.
+   */
+  clipboardList: (args: { query: string; limit: number }): Promise<Item_Serialize[]> =>
+    __t3Invoke<Item_Serialize[]>("clipboard_list", args),
+  /**
+   *  A picture small enough for a list row, as a `data:` URL.
+   */
+  clipboardThumbnail: (args: { id: number }): Promise<string> => __t3Invoke<string>("clipboard_thumbnail", args),
+  /**
+   *  Puts an entry back on the system clipboard and moves it to the front of the history.
+   */
+  clipboardCopy: (args: { id: number }): Promise<null> => __t3Invoke<null>("clipboard_copy", args),
+  clipboardPin: (args: { id: number; pinned: boolean }): Promise<null> => __t3Invoke<null>("clipboard_pin", args),
+  clipboardRemove: (args: { id: number }): Promise<null> => __t3Invoke<null>("clipboard_remove", args),
+  /**
+   *  Drops every entry that is not pinned.
+   */
+  clipboardClear: (): Promise<null> => __t3Invoke<null>("clipboard_clear"),
   runtimeStart: (args: { connectionId: string }): Promise<null> => __t3Invoke<null>("runtime_start", args),
   runtimeSend: (args: { line: string; connectionId: string }): Promise<null> => __t3Invoke<null>("runtime_send", args),
   /**
@@ -246,6 +277,15 @@ export type CommandErrors = {
   presentChatWindow: string
   resizeChatWindow: string
   setChatWindowBackdrop: string
+  presentLauncherWindow: string
+  dismissLauncherWindow: string
+  clipboardSupported: never
+  clipboardList: string
+  clipboardThumbnail: string
+  clipboardCopy: string
+  clipboardPin: string
+  clipboardRemove: string
+  clipboardClear: string
   runtimeStart: string
   runtimeSend: string
   codexVersion: string
@@ -484,6 +524,37 @@ export type ImportedImage = {
   width: number
   height: number
 }
+
+/**  One entry of the history. */
+export type Item = Item_Serialize | Item_Deserialize
+
+/**  One entry of the history. */
+export type Item_Deserialize = {
+  id: number
+  kind: Kind
+  /**  The text; for files, their paths one per line; empty for an image. */
+  text: string
+  /**  The image file an image entry owns. */
+  image?: string | null
+  /**  Milliseconds since the epoch. */
+  copiedAt: number
+  pinned: boolean
+}
+
+/**  One entry of the history. */
+export type Item_Serialize = {
+  id: number
+  kind: Kind
+  /**  The text; for files, their paths one per line; empty for an image. */
+  text: string
+  /**  The image file an image entry owns. */
+  image: string | null
+  /**  Milliseconds since the epoch. */
+  copiedAt: number
+  pinned: boolean
+}
+
+export type Kind = "text" | "image" | "files"
 
 export type MoveToOutcome = MoveToOutcome_Serialize | MoveToOutcome_Deserialize
 

@@ -1,4 +1,4 @@
-//! U-owned macOS panel lifecycle shared by chat, vibemon, and bubble windows.
+//! U-owned macOS panel lifecycle shared by chat, launcher, vibemon, and bubble windows.
 use std::{cell::RefCell, collections::HashSet};
 use tauri::{Manager, WebviewWindow};
 
@@ -18,19 +18,21 @@ pub fn set_presented(label: &str, visible: bool) {
 
 pub fn should_restore(label: &str, visible: bool) -> bool {
     match label {
-        "chat" => visible,
+        "chat" | "launcher" => visible,
         "vibemon" | "bubble-menu-vibemon" => PRESENTED_VIBEMON.with_borrow(|windows| windows.contains(label)),
         _ => false,
     }
 }
 
 pub fn is_overlay(label: &str) -> bool {
-    matches!(label, "chat" | "vibemon" | "bubble-menu-vibemon")
+    matches!(label, "chat" | "launcher" | "vibemon" | "bubble-menu-vibemon")
 }
 
 pub fn is_input_panel(window: &objc2_app_kit::NSWindow) -> bool {
     use objc2::ClassType;
-    window.isKindOfClass(RawDesktopChatPanel::class()) || window.isKindOfClass(RawVibemonBubblePanel::class())
+    window.isKindOfClass(RawDesktopChatPanel::class())
+        || window.isKindOfClass(RawLauncherPanel::class())
+        || window.isKindOfClass(RawVibemonBubblePanel::class())
 }
 
 pub fn closed(app: &tauri::AppHandle, label: &str) {
@@ -114,6 +116,14 @@ tauri_nspanel::tauri_panel! {
             hides_on_deactivate: false
         }
     })
+    panel!(LauncherPanel {
+        config: {
+            // The launcher takes the keyboard while the application in front stays in front.
+            can_become_key_window: true,
+            can_become_main_window: false,
+            hides_on_deactivate: false
+        }
+    })
     panel!(VibemonPanel {
         config: {
             can_become_key_window: false,
@@ -187,6 +197,7 @@ pub fn prepare(window: &WebviewWindow) -> Result<(), String> {
         };
         let converted = match window.label() {
             "chat" => window.to_panel::<DesktopChatPanel>(),
+            "launcher" => window.to_panel::<LauncherPanel>(),
             "vibemon" => window.to_panel::<VibemonPanel>(),
             "bubble-menu-vibemon" => window.to_panel::<VibemonBubblePanel>(),
             _ => unreachable!("validated overlay label"),

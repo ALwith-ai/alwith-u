@@ -91,6 +91,7 @@ sys-locale = "0.3"
 dirs = { version = "7", optional = true }
 tokio = { version = "1", features = ["sync", "time", "macros", "net", "process", "io-util"] }
 uuid = { version = "1", features = ["v4"] }
+rusqlite = { version = "0.43", features = ["bundled"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 security-framework = "3"

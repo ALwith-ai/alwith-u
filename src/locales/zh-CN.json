@@ -525,6 +525,8 @@
     "threeFingerSwipeDesc": "三指横滑平移画布",
     "mobile": "移动端",
     "mobileConnection": "移动端连接",
+    "clipboardHistory": "剪贴板历史",
+    "clipboardHistoryDesc": "在这台电脑上保留你拷贝的文本、图片和文件路径三个月。密码管理器标记为私密的内容不会保留。",
     "preventSleep": "任务运行时防止休眠",
     "preventSleepDesc": "运行任务期间保持电脑唤醒，屏幕仍可关闭。",
     "explorer": "资源管理器",
@@ -913,6 +915,23 @@
     "newChat": "新聊天",
     "toggleTheme": "切换主题",
     "settings": "打开设置"
+  },
+  "launcher": {
+    "placeholder": "搜索应用和聊天",
+    "results": "结果",
+    "sendTo": "将“{{query}}”用于",
+    "newChat": "新聊天",
+    "application": "应用",
+    "chat": "聊天",
+    "project": "项目",
+    "command": "命令",
+    "clipboardPlaceholder": "搜索剪贴板历史",
+    "clipboard": "剪贴板历史",
+    "pinned": "已固定",
+    "image": "图片",
+    "clipboardOff": "剪贴板历史已关闭",
+    "clipboardOffDesc": "开启后，你拷贝的文本、图片和文件路径会在这台电脑上保留三个月。密码管理器标记为私密的内容不会保留。",
+    "turnOnClipboard": "开启剪贴板历史"
   },
   "notify": {
     "needsInput": "需要你的确认",

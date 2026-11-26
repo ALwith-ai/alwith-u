@@ -150,7 +150,7 @@ mod observer {
             }
             let mut vibemon_restored = false;
             // Child layout must use the repaired parent frame, never HashMap iteration order.
-            for label in ["chat", "vibemon", "bubble-menu-vibemon"] {
+            for label in ["chat", "launcher", "vibemon", "bubble-menu-vibemon"] {
                 if label == "bubble-menu-vibemon" && !vibemon_restored {
                     continue;
                 }

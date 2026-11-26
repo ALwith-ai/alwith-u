@@ -12,7 +12,7 @@ import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { useShallow } from "zustand/react/shallow"
 
-import { events } from "@/bindings"
+import { commands, events } from "@/bindings"
 import { Pane } from "@/components/alwith-ui/pane"
 import { toolboxContentClassName } from "@/components/alwith-ui/toolbox-layout"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -65,7 +65,7 @@ import { useVoiceHandoff } from "@/features/voice/use-voice-handoff"
 import { WorkspaceHeaderContext, WorkspaceSessionContext } from "@/features/workspace/context"
 import { FileWorkspace } from "@/features/workspace/file-workspace"
 import { errorMessage as describe, logBackgroundError, reportBackgroundError } from "@/lib/background-errors"
-import { installChatShortcut } from "@/lib/chat-shortcut"
+import { installChatShortcut, installLauncherShortcut } from "@/lib/chat-shortcut"
 import {
   openChatWindow,
   releaseChatWindow,
@@ -76,6 +76,7 @@ import {
 import { serveChatClient } from "@/lib/chat-window-client"
 import { useMainWindowSurface } from "@/lib/chat-window-state"
 import { client, markRead, useApp, useSession, watchRunStates } from "@/lib/client"
+import { prepareLauncher, serveLauncher, summonLauncher } from "@/lib/launcher-window"
 import { watchForNotifications } from "@/lib/notifications"
 import { type Preferences, savePreference } from "@/lib/preferences"
 import { applyProvidersWhenIdle } from "@/lib/providers"
@@ -393,6 +394,47 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
       void shortcut.dispose().catch((error) => toast.error(describe(error)))
     }
   }, [initialPreferences.chatWindowShortcut, openVibemon, operation])
+
+  // The launcher's requests reach the latest handlers without re-registering its global shortcut.
+  const launcherHost = useRef({ openSession: (_sessionId: string) => {}, send: (_text: string) => {} })
+  launcherHost.current = {
+    openSession: (sessionId) => {
+      const sessionRow = client.state.sessionList.find((listed) => listed.sessionId === sessionId)
+      if (sessionRow === undefined) throw new Error(`The launcher opened an unknown chat: ${sessionId}`)
+      select(sessionRow)
+      void commands.showMainWindow().catch((error: unknown) => toast.error(describe(error)))
+    },
+    send: (text) => {
+      void operation
+        .run(async () => {
+          await startDraft(
+            newChatDirectory(extensionSession.current?.cwd ?? lastDirectory, client.state.projectContext)
+          )
+          setComposerDraft(DRAFT_SESSION_ID, text)
+          await commands.showMainWindow()
+        })
+        .catch((error: unknown) => toast.error(describe(error)))
+    }
+  }
+  useEffect(() => {
+    const report = (error: unknown) => toast.error(describe(error))
+    const shortcut = installLauncherShortcut(() => {
+      void summonLauncher(
+        client.state.sessionList.map(({ sessionId, title, cwd }) => ({ sessionId, title: title ?? null, cwd }))
+      ).catch(report)
+    })
+    const serving = serveLauncher({
+      openSession: (sessionId) => launcherHost.current.openSession(sessionId),
+      send: (text) => launcherHost.current.send(text)
+    })
+    void shortcut.set(initialPreferences.launcherShortcut ?? "Alt+Shift+Space", false).catch(report)
+    // Created hidden ahead of the first summon, which then only shows it.
+    void prepareLauncher().catch(report)
+    return () => {
+      void serving.then((stop) => stop()).catch(report)
+      void shortcut.dispose().catch(report)
+    }
+  }, [initialPreferences.launcherShortcut])
 
   // Run states come over the Runtime port; a new port (after alwith-runtime restarted) needs a
   // new subscription, so the watch is restarted with every connect.

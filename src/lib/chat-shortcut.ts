@@ -43,7 +43,10 @@ export function createChatShortcut(
   return { set, dispose: () => set("", false) }
 }
 
-export function installChatShortcut(open: () => void): ReturnType<typeof createChatShortcut> {
+function installShortcut(
+  preference: "chatWindowShortcut" | "launcherShortcut",
+  open: () => void
+): ReturnType<typeof createChatShortcut> {
   let hasRegistered = false
   return createChatShortcut(
     {
@@ -57,8 +60,16 @@ export function installChatShortcut(open: () => void): ReturnType<typeof createC
         hasRegistered = true
       },
       unregister,
-      save: (shortcut) => savePreference("chatWindowShortcut", shortcut)
+      save: (shortcut) => savePreference(preference, shortcut)
     },
     open
   )
+}
+
+export function installChatShortcut(open: () => void): ReturnType<typeof createChatShortcut> {
+  return installShortcut("chatWindowShortcut", open)
+}
+
+export function installLauncherShortcut(open: () => void): ReturnType<typeof createChatShortcut> {
+  return installShortcut("launcherShortcut", open)
 }

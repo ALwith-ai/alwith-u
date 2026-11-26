@@ -29,6 +29,7 @@ mod bundled_extensions;
 #[cfg(feature = "runtime-cef")]
 mod cef_runtime;
 mod chat_window;
+mod clipboard;
 mod desktop_runtime;
 #[cfg(feature = "dev-backends")]
 mod development_instance;
@@ -43,6 +44,7 @@ mod extension_wire;
 mod gamepad;
 mod generated_images;
 mod html_preview;
+mod launcher_window;
 mod legacy_extensions;
 mod menu;
 mod mobile;
@@ -193,7 +195,7 @@ pub fn run() {
                 .with_state_flags(
                     tauri_plugin_window_state::StateFlags::all() - tauri_plugin_window_state::StateFlags::VISIBLE,
                 )
-                .with_denylist(&["chat", "settings", "vibemon", "bubble-menu-vibemon"])
+                .with_denylist(&["chat", "launcher", "settings", "vibemon", "bubble-menu-vibemon"])
                 // Windows guide windows must not restore their legacy undecorated state.
                 .map_label(|label| if cfg!(target_os = "windows") && label == "guide" { "guide-native" } else { label })
                 .build(),
@@ -279,6 +281,7 @@ pub fn run() {
         .manage(runtime::RuntimeState::default())
         .manage(voice_credentials)
         .manage(power::PreventSleep::default())
+        .manage(clipboard::Clipboard::default())
         .manage(device_window::DeviceWindows::default())
         .manage(extension_inbox::InboxState::default())
         .manage(vibemon::BubblePresentation::default());
@@ -654,6 +657,15 @@ pub fn bindings() -> tauri3_specta::Bindings {
                 chat_window::plugin::present_chat_window,
                 chat_window::plugin::resize_chat_window,
                 chat_window::plugin::set_chat_window_backdrop,
+                launcher_window::present_launcher_window,
+                launcher_window::dismiss_launcher_window,
+                clipboard::clipboard_supported,
+                clipboard::clipboard_list,
+                clipboard::clipboard_thumbnail,
+                clipboard::clipboard_copy,
+                clipboard::clipboard_pin,
+                clipboard::clipboard_remove,
+                clipboard::clipboard_clear,
                 runtime::runtime_start,
                 runtime::runtime_send,
                 runtime::codex_version,

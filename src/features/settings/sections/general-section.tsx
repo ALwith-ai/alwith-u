@@ -23,9 +23,10 @@ import i18n, { isLanguageCode, LANGUAGES } from "@/lib/i18n"
 import { loadPreferences, savePreference } from "@/lib/preferences"
 import { formatEditableShortcut, parseEditableShortcut } from "@/lib/shortcut-formatter"
 
-import { RuntimeRow } from "./runtime-row"
 import { AutostartRow } from "./autostart-row"
+import { ClipboardHistoryRow } from "./clipboard-history-row"
 import { PreventSleepRow } from "./prevent-sleep-row"
+import { RuntimeRow } from "./runtime-row"
 import { SettingGroup, SettingRow } from "./shared"
 
 export function GeneralSection() {
@@ -169,6 +170,7 @@ export function GeneralSection() {
       </SettingRow>
       <RuntimeRow />
       <PreventSleepRow />
+      <ClipboardHistoryRow />
       <AutostartRow />
     </SettingGroup>
   )

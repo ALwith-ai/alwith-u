@@ -349,6 +349,7 @@ fn setting_validity(key: &str, value: &Value) -> Option<bool> {
         | "appearance.trackpadEnabled"
         | "system.preventSleep"
         | "computer.enabled"
+        | "clipboard.enabled"
         | "chat.composerPredictions"
         | "chat.windowTransparent"
         | "explorer.showHidden"
@@ -365,6 +366,7 @@ fn setting_validity(key: &str, value: &Value) -> Option<bool> {
         | "general.lastProjectDirectory"
         | "general.externalEditor"
         | "chat.windowShortcut"
+        | "launcher.shortcut"
         | "chat.navigationInstrument"
         | "voice.deviceId"
         | "voice.hotwords" => value.is_string(),
@@ -383,6 +385,23 @@ fn setting_validity(key: &str, value: &Value) -> Option<bool> {
                             && id.starts_with(|c: char| c.is_ascii_lowercase())
                             && id.chars().all(|c| c.is_ascii_alphanumeric())
                     }) && !ids[..index].contains(id)
+                })
+        }),
+        // What the launcher has learned: per entry, when its score decays, when it was last opened
+        // and the queries it was picked for.
+        "launcher.usage" => value.as_object().is_some_and(|visits| {
+            visits.len() <= 4096
+                && visits.iter().all(|(id, visit)| {
+                    id.len() <= 1024
+                        && visit.as_object().is_some_and(|visit| {
+                            visit.len() == 3
+                                && visit.get("anchor").is_some_and(Value::is_number)
+                                && visit.get("openedAt").is_some_and(Value::is_number)
+                                && visit.get("terms").and_then(Value::as_array).is_some_and(|terms| {
+                                    terms.len() <= 3
+                                        && terms.iter().all(|term| term.as_str().is_some_and(|term| term.len() <= 256))
+                                })
+                        })
                 })
         }),
         "appearance.theme" => matches!(value.as_str(), Some("light" | "dark" | "system")),

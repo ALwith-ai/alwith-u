@@ -15,6 +15,8 @@ export type Preferences = {
   /** The user's order of the main window's movable panes (chat, preview, browser). */
   paneOrder?: string[]
   chatWindowShortcut?: string
+  /** The global shortcut that summons the launcher; empty when the user removed it. */
+  launcherShortcut?: string
   /** The floating chat window shows the native backdrop instead of an opaque background. */
   chatWindowTransparent?: boolean
   lastProjectDirectory: string | null
@@ -33,6 +35,7 @@ const preferenceKeys: Record<keyof Preferences, string> = {
   sidebarPinned: "appearance.sidebarPinned",
   paneOrder: "appearance.paneOrder",
   chatWindowShortcut: "chat.windowShortcut",
+  launcherShortcut: "launcher.shortcut",
   chatWindowTransparent: "chat.windowTransparent",
   lastProjectDirectory: "general.lastProjectDirectory",
   language: "general.language",
@@ -86,6 +89,7 @@ export async function loadPreferences(): Promise<Preferences> {
     sidebarPinned: sidebarPinned ?? false,
     paneOrder: (await store.get<string[]>("paneOrder")) ?? [],
     chatWindowShortcut: (await store.get<string>("chatWindowShortcut")) ?? "Alt+Space",
+    launcherShortcut: (await store.get<string>("launcherShortcut")) ?? "Alt+Shift+Space",
     chatWindowTransparent: (await store.get<boolean>("chatWindowTransparent")) ?? true,
     lastProjectDirectory: restoredDirectory,
     language: language ?? null,
