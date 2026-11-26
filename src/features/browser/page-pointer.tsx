@@ -8,6 +8,7 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { VoiceButton } from "@/features/voice/voice-button"
+import { errorMessage, logBackgroundError } from "@/lib/background-errors"
 import { client } from "@/lib/client"
 
 import { type Pointed, pointedContext, regionContext, remarkPlace } from "./point"
@@ -270,15 +271,18 @@ export function PagePointer({
   const send = async (words: string) => {
     if (!chosen || sending) return
     setSending(true)
+    let operation = chosen.kind === "region" ? "capture-region" : "prepare-chat"
     try {
       const pageUrl = chosen.kind === "region" ? chosen.url : url
       const screenshot =
         chosen.kind === "region"
           ? await invoke<string>("cef_guest_region_screenshot", { label, url: pageUrl, rect: chosen.rect })
           : null
+      operation = "prepare-chat"
       await prepareBrowserChat()
       const sessionId = useBrowserQuickChat.getState().sessionId
       if (sessionId === null) throw Error("Browser conversation is unavailable")
+      operation = "prompt"
       await client.prompt(sessionId, [
         { type: "text", text: words },
         // Attached context: the person sees its first line, the conversation reads all of it.
@@ -301,7 +305,8 @@ export function PagePointer({
         layer.current?.focus({ preventScroll: true })
       }
     } catch (failure) {
-      toast.error(failure instanceof Error ? failure.message : String(failure))
+      logBackgroundError(`browser/annotation/${operation}`, failure)
+      toast.error(errorMessage(failure))
     } finally {
       if (!closed.current) setSending(false)
     }
