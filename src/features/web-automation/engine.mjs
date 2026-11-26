@@ -682,8 +682,23 @@ export function createBrowserTools(call, attach, { nativeDownloads = false, runS
           // Settle destination scrolling before pressing the source; scrolling mid-drag can cancel native dragstart.
           await destination.scrollIntoViewIfNeeded()
           await locator.dragTo(destination, { steps: 8 })
-        } else if (name === "browser_upload") await locator.setInputFiles(args.paths)
-        else if (name === "browser_scroll")
+        } else if (name === "browser_upload") {
+          if (await locator.evaluate((element) => element instanceof HTMLInputElement && element.type === "file"))
+            await locator.setInputFiles(args.paths)
+          else {
+            // Not a file input: the control a website opens its file chooser with. The input behind it
+            // is often made on the spot and never put in the page, so there is nothing else to name.
+            // The chooser is answered here; the system's own dialog is not shown.
+            const chooser = page.waitForEvent("filechooser", { timeout: 5000 }).catch((cause) => {
+              throw Error(
+                "The control was pressed and opened no file chooser; whatever pressing it did stays done. Name a file input, or the control that opens the chooser",
+                { cause }
+              )
+            })
+            const [opened] = await Promise.all([chooser, locator.click()])
+            await opened.setFiles(args.paths)
+          }
+        } else if (name === "browser_scroll")
           return locator.evaluate(
             (element, { x, y }) => {
               const scroller =

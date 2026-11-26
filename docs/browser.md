@@ -131,7 +131,9 @@ checked state, and attached files. Virtualized tables still require scrolling an
 Editing activates the control before entering text and returns the observed value. Replacement
 operations also report `matchesRequestedText`; a mismatch is not a successful edit. Password
 values are not returned. `browser_upload` sets an observed file input from existing absolute
-paths, including hidden attachment inputs listed by the page read. The website's own upload or
+paths, including hidden attachment inputs listed by the page read. Named a control that is not a
+file input, it presses it and answers the file chooser that opens, without the system's dialog:
+websites often make the input when Attach is pressed and never put it in the page. The website's own upload or
 submission status must still be checked.
 
 When an action opens a JavaScript dialog, its reply contains `pending: true` and the dialog's

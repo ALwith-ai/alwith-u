@@ -170,7 +170,7 @@ export const tools = [
   ),
   locatorTool(
     "browser_upload",
-    "Attach existing local files to an observed file input, including a hidden input. Paths must be absolute. An empty array clears the input. Verify the website's attachment status afterwards.",
+    "Attach existing local files to an observed file input, including a hidden input, or through the control that opens the website's file chooser (an Attach or Upload button) when the page has no file input to name. Paths must be absolute. An empty array clears the input. Verify the website's attachment status afterwards.",
     {
       paths: { type: "array", items: { type: "string" }, maxItems: 100 }
     },

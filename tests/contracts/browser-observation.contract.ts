@@ -38,6 +38,7 @@ describe("structural and visual browser execution", () => {
       <p role="status">Not saved</p><label><input type="checkbox">Approved</label>
       <div id="shadow"></div><button class="duplicate">Duplicate</button><button class="duplicate">Duplicate</button>
       <a href="/file" download>Download evidence</a>
+      <button id="attach">Attach a file</button><p id="attached"></p>
       <canvas width="160" height="80" style="margin:30px;border:1px solid" onclick="window.canvasClicks++"></canvas>
       <iframe src="http://localhost:${server.port}/frame"></iframe>
       <div contenteditable="true" role="textbox" aria-label="Draft" style="white-space:pre-wrap"></div>
@@ -45,6 +46,8 @@ describe("structural and visual browser execution", () => {
       const draft=document.querySelector('[contenteditable]');draft.textContent=localStorage.getItem('draft')||'';
       draft.oninput=()=>localStorage.setItem('draft',draft.innerText);
       document.querySelector('#shadow').attachShadow({mode:'open'}).innerHTML='<button>Shadow action</button>';
+      // As websites do: the input is made when the button is pressed and never put in the page.
+      document.querySelector('#attach').onclick=()=>{const input=document.createElement('input');input.type='file';input.onchange=async()=>{document.querySelector('#attached').textContent=input.files[0].name+': '+await input.files[0].text()};input.click()};
       const c=document.querySelector('canvas').getContext('2d');c.fillStyle='blue';c.fillRect(20,20,60,30);
       </script>`,
         { headers: { "Content-Type": "text/html" } }
@@ -303,6 +306,19 @@ describe("structural and visual browser execution", () => {
     await expect(call("browser_download", input)).rejects.toThrow("EEXIST")
     expect(clicks).toBe(0)
     expect(await readFile(path, "utf8")).toBe("download evidence")
+  })
+  test("a file is attached through the control that opens the website's file chooser", async () => {
+    const file = join(directory, "evidence.txt")
+    await Bun.write(file, "attached 附件")
+    // The page has no file input to name.
+    expect((await call("browser_read_page")).fileInputs).toEqual([])
+    await call("browser_upload", { selector: "#attach", paths: [file] })
+    await call("browser_verify", { selector: "#attached", condition: "text", expected: "evidence.txt: attached 附件" })
+    // A control that opens no chooser was pressed all the same, and the answer says so.
+    await expect(call("browser_upload", { selector: "#save", paths: [file] })).rejects.toThrow(
+      "was pressed and opened no file chooser"
+    )
+    await call("browser_verify", { selector: "#attached", condition: "text", expected: "evidence.txt: attached 附件" })
   })
   test("concurrent operations on one target fail explicitly", async () => {
     const pending = call("browser_verify", { selector: "[role=status]", condition: "text", expected: "Not saved" })
