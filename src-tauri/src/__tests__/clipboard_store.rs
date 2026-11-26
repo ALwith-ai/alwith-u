@@ -86,5 +86,7 @@ fn a_search_over_fifty_thousand_entries_stays_interactive() {
     assert_eq!(store.list("entry 49999 ", 50).unwrap().len(), 1);
     let elapsed = started.elapsed();
     eprintln!("search over 50000 entries: {elapsed:?}");
-    assert!(elapsed < std::time::Duration::from_millis(100), "{elapsed:?}");
+    // 22 ms on an M-series laptop and 134 ms on a shared CI runner: the bound catches a search that
+    // has stopped being one pass over the table, not the speed of the machine it runs on.
+    assert!(elapsed < std::time::Duration::from_secs(1), "{elapsed:?}");
 }

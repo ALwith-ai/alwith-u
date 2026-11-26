@@ -11,6 +11,7 @@ import { skillIconSrc } from "@/features/plugins/skill-icon"
 import { configOptions } from "../../fixtures/catalog"
 import preview from "../../preview"
 import type { SharedMeta } from "../page-meta"
+import { typeInComposer } from "../type-in-composer"
 
 export function ComposerPreview({ appState = "ready" }: { appState?: "ready" | "empty" | "error" }) {
   const { t, i18n } = useTranslation("alwithChat")
@@ -104,8 +105,8 @@ export const Grouped = meta.story({
 })
 export const SlashShortcut = meta.story({
   name: "快捷入口 · 命令、技能、应用",
-  play: async ({ canvas, userEvent }) => {
-    await userEvent.type(await canvas.findByRole("textbox", { name: "发送消息" }), "/")
+  play: async ({ canvas }) => {
+    typeInComposer(await canvas.findByRole("textbox", { name: "发送消息" }), "/")
   }
 })
 export const SlashParity = meta.story({

@@ -125,3 +125,11 @@
   background-color: color-mix(in srgb, var(--foreground) 10%, transparent);
   background-image: none;
 }
+
+/* The shared package hides this scrollbar from its next release; drop this rule when U takes it. */
+.codex-composer-surface [data-chat-input] {
+  scrollbar-width: none;
+}
+.codex-composer-surface [data-chat-input]::-webkit-scrollbar {
+  display: none;
+}

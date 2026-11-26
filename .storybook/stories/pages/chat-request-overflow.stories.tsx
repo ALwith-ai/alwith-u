@@ -54,7 +54,7 @@ const verifyScrolling: Play = async ({ canvasElement, userEvent }) => {
   if (!import.meta.env.STORYBOOK_TEST) return
   const requests = canvasElement.querySelector<HTMLElement>("[data-session-actions]")!
   const content = canvasElement.querySelector<HTMLElement>("[data-chat-content]")!
-  const composer = content.querySelector<HTMLTextAreaElement>("textarea")!.closest("form")!
+  const composer = content.querySelector<HTMLElement>("[data-chat-input]")!.closest("form")!
   const cards = [...requests.querySelectorAll<HTMLElement>('[data-overlay="permission-request"]')]
   const lastRequestId = client.state.actions.at(-1)!.id
   await waitFor(async () => {

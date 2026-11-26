@@ -10,6 +10,7 @@ import type { SettingsRequest } from "../../../src/lib/settings-store"
 import { handleNativeRequest, mockHost } from "../../fixtures/native"
 import preview from "../../preview"
 import type { SharedMeta } from "../page-meta"
+import { typeInComposer } from "../type-in-composer"
 
 const session: Session = {
   ...createSession("composer-preview", "/Projects/alwith"),
@@ -100,7 +101,7 @@ export const Project = meta.story({
     await waitFor(async () => expect(surface.getBoundingClientRect().height).toBe(100))
     const toolbar = canvasElement.querySelector<HTMLElement>(".chat-composer-toolbar")!
     await expect(toolbar.getBoundingClientRect().bottom).toBeLessThan(surface.getBoundingClientRect().bottom)
-    await userEvent.type(textarea, "/")
+    typeInComposer(textarea, "/")
     const list = await canvas.findByRole("listbox")
     await expect(list.getBoundingClientRect().left).toBe(surface.getBoundingClientRect().left)
     await expect(list.getBoundingClientRect().width).toBe(surface.getBoundingClientRect().width)

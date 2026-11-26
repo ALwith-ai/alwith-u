@@ -7,6 +7,7 @@ import preview from "../../preview"
 import type { SharedMeta } from "../page-meta"
 import { productPreviewArgTypes } from "../preview-options"
 import { ProductPreview } from "../product-preview"
+import { typeInComposer } from "../type-in-composer"
 
 export const pageMeta = {
   loaders: [preparePreview],
@@ -142,7 +143,7 @@ export const ModelPicker = meta.story({
 export const SlashCommands = meta.story({
   name: "斜杠命令菜单",
   parameters: { pageStateGroup: "01 输入内容/01 文本输入" },
-  play: async ({ canvas, userEvent }) => {
+  play: async ({ canvas }) => {
     client.store.setState((state) => ({
       sessions: {
         ...state.sessions,
@@ -152,7 +153,7 @@ export const SlashCommands = meta.story({
         }
       }
     }))
-    await userEvent.type(await canvas.findByRole("textbox", { name: "发送消息" }), "/")
+    typeInComposer(await canvas.findByRole("textbox", { name: "发送消息" }), "/")
     await canvas.findByRole("listbox")
   }
 })
