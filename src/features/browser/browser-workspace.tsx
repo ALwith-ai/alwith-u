@@ -253,6 +253,23 @@ export function BrowserWorkspace({
       )
     )
   const [controls, setControls] = useState<Record<string, { sessionId: string; stopping: boolean }>>({})
+  // A page a conversation is working on has to keep being drawn and keep its size. A hidden surface
+  // is given two frames a second, which makes every action on it take over a second, and a closed
+  // pane is no wider than nothing, where an action cannot land at all. Such a page is moved out of
+  // sight inside the clipped area instead, and the workspace keeps the size it was last shown at.
+  const working = (tab: Tab) => tab.label !== undefined && controls[tab.label] !== undefined
+  const [workspace, setWorkspace] = useState<HTMLElement | null>(null)
+  const [shownSize, setShownSize] = useState<{ width: number; height: number }>()
+  useEffect(() => {
+    if (!workspace || !active) return
+    const observer = new ResizeObserver(([entry]) => {
+      const { width, height } = entry!.contentRect
+      if (width === 0 || height === 0) return
+      setShownSize((size) => (size?.width === width && size.height === height ? size : { width, height }))
+    })
+    observer.observe(workspace)
+    return () => observer.disconnect()
+  }, [workspace, active])
   const release = (tab: Tab) => {
     if (!tab.label) return
     void invoke("web_automation_takeover", { target: tab.label }).catch((error: unknown) => toast.error(String(error)))
@@ -628,8 +645,10 @@ export function BrowserWorkspace({
   }, [])
   return (
     <section
+      ref={setWorkspace}
       aria-label={t("browser.workspace")}
       className="flex min-h-0 flex-1 flex-col overflow-hidden"
+      style={!active && shownSize && tabs.some(working) ? { ...shownSize, flex: "none" } : undefined}
       onKeyDown={(event) => {
         // The same chords while focus is in the browser's own chrome rather than a page.
         if ((event.target as Element).closest("[data-browser-quick-chat]")) return
@@ -1059,7 +1078,7 @@ export function BrowserWorkspace({
           </Button>
         </div>
       </header>
-      <div className="relative grid min-h-0 flex-1 grid-cols-1 grid-rows-1">
+      <div className="relative grid min-h-0 flex-1 grid-cols-1 grid-rows-1 overflow-hidden">
         {tabs.map((tab) => (
           <div
             key={tab.id}
@@ -1067,7 +1086,7 @@ export function BrowserWorkspace({
             aria-label={tab.title}
             aria-hidden={tab.id !== selected}
             inert={tab.id !== selected}
-            className={`col-start-1 row-start-1 flex min-h-0 min-w-0 flex-col${tab.id !== selected ? " invisible" : ""}`}
+            className={`col-start-1 row-start-1 flex min-h-0 min-w-0 flex-col${tab.id === selected ? "" : working(tab) ? " pointer-events-none translate-x-full" : " invisible"}`}
           >
             {opened.includes(tab.id) && (
               <BrowserPane

@@ -90,7 +90,8 @@ describe("browser tabs", () => {
     assert.equal(
       Number(
         await ui(
-          "[...document.querySelectorAll('embed')].filter(e=>e.checkVisibility({visibilityProperty:true})).length"
+          // What the reader sees: a tab a conversation works on behind the shown one is drawn, out of sight.
+          "[...document.querySelectorAll('embed')].filter(e=>{if(!e.checkVisibility({visibilityProperty:true}))return false;const box=e.getBoundingClientRect(),area=e.closest('[role=tabpanel]').parentElement.getBoundingClientRect();return box.left<area.right&&box.right>area.left}).length"
         )
       ),
       1

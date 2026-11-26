@@ -52,13 +52,20 @@ function Fixture() {
   return (
     <main className="flex h-screen flex-col bg-background text-foreground">
       <header className="p-2">Isolated native test · Browser workspace</header>
-      <BrowserWorkspace
-        active={active}
-        maximized={false}
-        onMaximize={() => {}}
-        onClose={() => setActive(false)}
-        request={request}
-      />
+      {/* A closed pane is as the desktop shell leaves it: no wider than nothing, its content clipped. */}
+      <div
+        data-browser-pane
+        className="flex min-h-0 flex-1 flex-col overflow-clip"
+        style={active ? undefined : { width: 0 }}
+      >
+        <BrowserWorkspace
+          active={active}
+          maximized={false}
+          onMaximize={() => {}}
+          onClose={() => setActive(false)}
+          request={request}
+        />
+      </div>
     </main>
   )
 }

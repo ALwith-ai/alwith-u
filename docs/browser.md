@@ -154,6 +154,26 @@ it does not attach an embedded-browser MCP server. The native host owns the work
 per-session CDP credentials and releases connections on cancellation or session revocation.
 Playwright remains outside the UI bundle and continues to use the live CEF pages.
 
+## A tab a conversation works on
+
+A tab under a conversation's control keeps being drawn and keeps its size, whatever the reader is
+looking at. Two things used to stop that:
+
+- A tab behind the shown one was hidden with `visibility: hidden`. A hidden surface whose page
+  repaints (a caret in a field is enough) is given about two frames a second, and Playwright waits
+  for frames before every action: each one took over a second. Such a tab is now moved out of
+  sight inside the clipped tab area instead. A tab nobody works on is hidden as before.
+- A closed browser pane is no wider than nothing, and so was the page in it: an action could not
+  land and timed out. While a conversation works in a tab, the workspace keeps the size it was
+  last shown at inside the closed pane, which clips it.
+
+Neither changes what the reader sees. `tests/contracts/browser-working-tabs.contract.ts` checks
+both in the isolated CEF application, and
+`src/features/browser/__tests__/browser-working-tabs.test.tsx` the layout rules. Measured on
+macOS in the released 26.11.25 before the change: a tab behind got 1 to 2 frames in half a second
+against 38 for the shown tab, and a pointer move on it took 1.4 to 1.9 seconds against 30 to 50
+milliseconds; with the pane closed its width was 0 and every action timed out.
+
 ## Structural references and verified outcomes
 
 `browser_snapshot` uses Playwright's public AI snapshot API, including nested frames and
