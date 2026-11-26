@@ -404,8 +404,8 @@ export const HideNavigationAfterManualSplit = meta.story({
       await expect(dots()).toHaveLength(2)
       const body = canvasElement.querySelector(".main-window-body")!
       const slides = canvasElement.querySelectorAll<HTMLElement>(".main-screen-pane")
-      await expect(slides[0].getBoundingClientRect().width).toBe(body.clientWidth - 8)
-      await expect(slides[1].getBoundingClientRect().width).toBe(body.clientWidth - 8)
+      await expect(slides[0].getBoundingClientRect().width).toBe(body.clientWidth - desktopDefaults.gutter * 2)
+      await expect(slides[1].getBoundingClientRect().width).toBe(body.clientWidth - desktopDefaults.gutter * 2)
     })
     // Split by hand, the two stay pages of their own; the second is one click away.
     await userEvent.click(dots()[1])
@@ -536,7 +536,7 @@ export const PointerSplitAndReverse = meta.story({
     })
     // Past the preview's minimum each pane takes a page of its own, while the button is still down.
     await waitFor(async () => {
-      await expect(widths()[1]).toBe(body.clientWidth - 8)
+      await expect(widths()[1]).toBe(body.clientWidth - desktopDefaults.gutter * 2)
       await expect(widths()[0]).toBeGreaterThan(sideBySide[0]!)
     })
     await userEvent.pointer({

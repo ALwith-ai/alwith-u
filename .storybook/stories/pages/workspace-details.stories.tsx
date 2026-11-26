@@ -149,7 +149,7 @@ export const EqualPanels = meta.story({
       const left = chat.getBoundingClientRect(),
         right = preview.getBoundingClientRect()
       await expect(left.width).toBeCloseTo(right.width, 0)
-      await expect(right.left - left.right).toBe(8)
+      await expect(right.left - left.right).toBe(desktopDefaults.gutter * 2)
       await expect(getComputedStyle(chat).borderRadius).toBe("0px")
     })
     await userEvent.type(canvas.getByRole("textbox", { name: "Message" }), "Keep this message")

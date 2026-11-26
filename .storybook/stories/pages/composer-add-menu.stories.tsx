@@ -3,7 +3,7 @@ import { Composer, type ConversationHost, ConversationProvider, drafts } from "@
 import { useMemo } from "react"
 import type { ComponentProps } from "react"
 import { useTranslation } from "react-i18next"
-import { expect, within } from "storybook/test"
+import { expect, waitFor, within } from "storybook/test"
 
 import { useTheme } from "@/components/theme-provider"
 import { skillIconSrc } from "@/features/plugins/skill-icon"
@@ -127,17 +127,22 @@ export const SlashParity = meta.story({
     await SlashShortcut.play!(context)
     const slashMenu = (await body.findByRole("listbox")).getBoundingClientRect()
     const slashRow = await body.findByRole("option", { name: /review/ })
-    await context.userEvent.hover(slashRow)
     const slashAppearance = appearance(slashRow)
+    // Pointing at a row of the shortcut menu does not choose it: Enter still sends what was typed.
+    await context.userEvent.hover(slashRow)
+    await expect(slashRow).toHaveAttribute("aria-selected", "false")
     await context.userEvent.keyboard("{Escape}")
     await Grouped.play!(context)
     const addMenu = (await body.findByRole("listbox", { name: "添加附件、命令或应用" })).getBoundingClientRect()
     const addRow = await body.findByRole("option", { name: /review/ })
-    await context.userEvent.hover(addRow)
     await expect(Math.abs(slashMenu.width - addMenu.width)).toBeLessThan(1)
     await expect(Math.abs(slashMenu.left - addMenu.left)).toBeLessThan(1)
     await expect(Math.abs(slashMenu.bottom - addMenu.bottom)).toBeLessThan(1)
+    // The same row in both menus, before either is pointed at.
     await expect(appearance(addRow)).toEqual(slashAppearance)
+    // In the menu opened by its button, pointing at a row chooses it.
+    await context.userEvent.hover(addRow)
+    await waitFor(() => expect(addRow).toHaveAttribute("aria-selected", "true"))
   }
 })
 export const SkillSelected = meta.story({
