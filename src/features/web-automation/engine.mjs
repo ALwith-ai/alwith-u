@@ -95,6 +95,10 @@ function documentText(element, { mode, find, occurrence, collapse }) {
 /** The text of a document's blocks as a person reads it: without the characters of no width editors keep. */
 const shownBlocks = (texts) => texts.map((text) => text.replace(/[​-‍⁠﻿]/g, ""))
 
+/** How long one expression may run in a page. */
+const EVALUATION_LIMIT_MS = 30000
+const EXPIRED = Symbol("expired")
+
 export function createBrowserTools(call, attach, { nativeDownloads = false, runScript } = {}) {
   const connections = new Map()
   let disposed = false
@@ -182,6 +186,17 @@ export function createBrowserTools(call, attach, { nativeDownloads = false, runS
           browser.on("disconnected", () => {
             if (connections.get(target) === promise) connections.delete(target)
           })
+          // The page the tab is on its way to, from the request for it until it arrives or fails.
+          const arrival = { request: null }
+          page.on("request", (request) => {
+            if (request.isNavigationRequest() && request.frame() === page.mainFrame()) arrival.request = request
+          })
+          page.on("requestfailed", (request) => {
+            if (arrival.request === request) arrival.request = null
+          })
+          page.on("framenavigated", (frame) => {
+            if (frame === page.mainFrame()) arrival.request = null
+          })
           return {
             browser,
             page,
@@ -189,6 +204,7 @@ export function createBrowserTools(call, attach, { nativeDownloads = false, runS
             frames,
             listFrames,
             interaction,
+            arrival,
             observations: createObservations(page)
           }
         })
@@ -538,9 +554,30 @@ export function createBrowserTools(call, attach, { nativeDownloads = false, runS
         }
       })
     if (name === "browser_evaluate")
-      return perform(state, async () => ({
-        result: await scope.evaluate(args.expression)
-      }))
+      return perform(state, async () => {
+        // An expression that never finishes would hold the tab for good: nothing else may act on a
+        // target while a call is out. It is given a time, then stopped.
+        const evaluation = scope.evaluate(args.expression)
+        let timer
+        const expired = new Promise((resolve) => {
+          timer = setTimeout(() => resolve(EXPIRED), EVALUATION_LIMIT_MS)
+        })
+        try {
+          const result = await Promise.race([evaluation, expired])
+          if (result !== EXPIRED) return { result }
+        } finally {
+          clearTimeout(timer)
+        }
+        // What is still running is stopped; a promise nobody settles has nothing left to stop.
+        evaluation.catch(() => {})
+        await call({ target, method: "Runtime.terminateExecution", params: {} })
+        throw Object.assign(
+          Error(
+            `The expression did not finish in ${EVALUATION_LIMIT_MS / 1000} seconds and was stopped; what it did before that stays done, so read the page before going on`
+          ),
+          { name: "TimeoutError" }
+        )
+      })
     if (name === "browser_wait")
       return perform(state, async () => {
         await locate().waitFor({ state: args.state ?? "visible" })
@@ -612,10 +649,28 @@ export function createBrowserTools(call, attach, { nativeDownloads = false, runS
       return call({ target, method: args.method, params: args.params ?? {} })
     }
     return perform(state, async () => {
-      if (name === "browser_navigate") await page.goto(args.url, { waitUntil: "domcontentloaded" })
-      else if (name === "browser_reload") await page.reload({ waitUntil: "domcontentloaded" })
-      else if (name === "browser_back") await page.goBack({ waitUntil: "commit" })
-      else if (name === "browser_forward") await page.goForward({ waitUntil: "commit" })
+      // A navigation that has not arrived holds every later command to the page until it does. One
+      // that runs out of time is stopped, so the tab stays usable on the document it had.
+      const arrive = async (navigation) => {
+        try {
+          await navigation
+        } catch (cause) {
+          if (cause.name !== "TimeoutError") throw cause
+          // Stopped here and said here: the call is not reported a second time as held.
+          state.arrival.request = null
+          await call({ target, method: "Page.stopLoading", params: {} })
+          throw Error(
+            `The page did not arrive in time and the navigation was stopped; the tab still shows ${page.url()}`,
+            {
+              cause
+            }
+          )
+        }
+      }
+      if (name === "browser_navigate") await arrive(page.goto(args.url, { waitUntil: "domcontentloaded" }))
+      else if (name === "browser_reload") await arrive(page.reload({ waitUntil: "domcontentloaded" }))
+      else if (name === "browser_back") await arrive(page.goBack({ waitUntil: "commit" }))
+      else if (name === "browser_forward") await arrive(page.goForward({ waitUntil: "commit" }))
       else {
         const locator = locate()
         if (name === "browser_click") await locator.click()
@@ -791,9 +846,28 @@ export function createBrowserTools(call, attach, { nativeDownloads = false, runS
     if (target) busy.set(target, operation)
     try {
       return await operation
+    } catch (error) {
+      throw (await heldByArrival(target, error)) ?? error
     } finally {
       if (target) busy.delete(target)
     }
+  }
+  /**
+   * A page the tab is still on its way to holds every command to the document it shows: a link was
+   * followed, the page behind it never answers, and each call after that runs out of time. The
+   * navigation is stopped, and the call that ran out says why.
+   */
+  async function heldByArrival(target, error) {
+    if (error?.name !== "TimeoutError") return undefined
+    const state = await connections.get(target)?.catch(() => null)
+    const waiting = state?.arrival.request
+    if (!waiting) return undefined
+    state.arrival.request = null
+    await call({ target, method: "Page.stopLoading", params: {} })
+    return Error(
+      `The tab was on its way to ${waiting.url()}, which has not arrived, and that held this call. The navigation was stopped and the tab still shows ${state.page.url()}. What the call did before running out of time may have happened: read the page before going on`,
+      { cause: error }
+    )
   }
   // Disconnect only active operations. Idle transport and page state survive handoff.
   guarded.release = async (target) => {

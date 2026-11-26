@@ -180,6 +180,24 @@ second: all five worked on used about 42% of one core, and with the four behind 
 hidden, about 30%. Three per cent of a core for a tab that animates without pause, and only while
 a conversation holds it.
 
+## A page or a script that never answers
+
+Nothing else may act on a target while a call to it is out, and a navigation that has not arrived
+holds every command to the document the tab shows. Three things used to leave a tab unusable for
+the rest of a conversation, each measured in the released 26.11.25:
+
+- `browser_navigate` to a website that never answers ran out of its twenty seconds, and the
+  navigation stayed pending: the next `browser_evaluate` never returned, and every call after it
+  was refused as busy.
+- A followed link to such a website: the click, then every later call, ran out of time.
+- `browser_evaluate` had no limit. An expression that never finished held the tab for good.
+
+A navigation that runs out of time is now stopped, and the error says which document the tab still
+shows. A call that runs out of time while the tab is on its way somewhere stops that navigation
+and says so; nothing is done again on its behalf, because what it did before then may have
+happened. An expression gets thirty seconds and is then terminated. After each, the next call
+answers at once. `tests/contracts/browser-held-pages.contract.ts` covers the three.
+
 ## What a tab is told before it is registered
 
 A guest is registered once its surface has a token to embed it by, a moment after it is created.
