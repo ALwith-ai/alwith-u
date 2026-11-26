@@ -2,15 +2,13 @@ import { ReadableStream, TransformStream, WritableStream } from "node:stream/web
 
 import { type ClientOptions, CodexClient, createSession } from "@alwith/module-chat/client"
 import { drafts, importDraft } from "@alwith/module-chat/conversation"
+import { createFakeAgent, FakeHubPort, projectContext } from "@alwith/module-chat/testing"
 import * as core from "@tauri-apps/api/core"
 import { clearMocks, mockIPC, mockWindows } from "@tauri-apps/api/mocks"
 import { act, fireEvent, render as renderView, waitFor, within } from "@testing-library/react"
 import { type ReactElement, StrictMode, useState } from "react"
 import { expect, test, vi } from "vitest"
 
-import { createFakeAgent } from "@alwith/module-chat/testing"
-import { FakeHubPort } from "@alwith/module-chat/testing"
-import { projectContext } from "@alwith/module-chat/testing"
 import { ThemeProvider } from "@/components/theme-provider"
 import { ChatWindow } from "@/features/chat-window/chat-window"
 import { must } from "@/lib/__tests__/must"
@@ -276,9 +274,9 @@ test("floating draft changes protect input while pending forms stay interactive"
     act(() => {
       changing = env.startNewChat(id)
     })
-    await waitFor(() => expect(view.getByRole("textbox")).toBeDisabled())
+    await waitFor(() => expect((view.getByRole("textbox") as HTMLInputElement).disabled).toBe(true))
     expect(view.getByRole("main")).not.toHaveAttribute("inert")
-    expect(view.getByRole("textbox")).toBeDisabled()
+    expect((view.getByRole("textbox") as HTMLInputElement).disabled).toBe(true)
     expect(view.getByRole("button", { name: "More actions" })).toBeEnabled()
     answer = env.fake.requestForm({
       sessionId: id,
@@ -297,7 +295,7 @@ test("floating draft changes protect input while pending forms stay interactive"
     expect(await answer).toMatchObject({ action: "accept", content: { choice: "Beta" } })
     await act(() => Promise.try(release))
     await changing
-    await waitFor(() => expect(view.getByRole("textbox")).toBeEnabled())
+    await waitFor(() => expect((view.getByRole("textbox") as HTMLInputElement).disabled).toBe(false))
   } finally {
     release()
     await changing?.catch(() => undefined)

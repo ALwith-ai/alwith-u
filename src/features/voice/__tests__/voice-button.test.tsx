@@ -120,6 +120,28 @@ test("disabling voice removes its controls and cancels an active recording", asy
   await act(async () => {})
   expect(fake.instances).toHaveLength(count)
 })
+
+test("dictation-only controls insert text even when chat is configured to send automatically", async () => {
+  fake.load.mockResolvedValue({ ...settings, mode: "send" })
+  const draft = new RevisionDraft("remark", "before after", [7, 7])
+  const cwd = vi.fn(async () => "/tmp")
+  const formSubmit = vi.fn()
+  render(
+    <form onSubmit={formSubmit}>
+      <VoiceButton draft={draft} cwd={cwd} enabled cancelRef={{ current: null }} dictationOnly />
+    </form>
+  )
+  const mic = screen.getByRole("button", { name: "voice.start" })
+  expect(mic).toHaveAttribute("type", "button")
+  fireEvent.click(mic)
+  await screen.findByRole("button", { name: "voice.stop" })
+  const recording = must(fake.instances[0], "active recording")
+  act(() => recording.callbacks.final("new "))
+  await waitFor(() => expect(draft.read().text).toContain("new"))
+  expect(cwd).toHaveBeenCalledOnce()
+  expect(formSubmit).not.toHaveBeenCalled()
+  expect(fake.submit).not.toHaveBeenCalled()
+})
 test("the next handsfree recording has an enabled stop button and ignores old callbacks", async () => {
   const draft = new RevisionDraft("s", "", [0, 0])
   let endTurn!: () => void

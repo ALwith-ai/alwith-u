@@ -51,7 +51,7 @@ function setup(select: (sessionRow: SessionSummary) => void, forkable = true) {
     </ChatBranchProvider>
   )
   mounted.push(view)
-  return view
+  return { ...view, cursor }
 }
 
 test("a completed reply forks its explicit turn once and navigates to the returned session", async () => {
@@ -95,7 +95,7 @@ test("a completed reply forks its explicit turn once and navigates to the return
 test("a turn without a cursor after it offers no branch", () => {
   const view = setup(() => {}, false)
   expect(view.queryByRole("button", { name: "Create chat branch" })).toBeNull()
-  expect(client.canForkAfterTurn).toHaveBeenCalledWith("source", "real-turn")
+  expect(view.cursor).toHaveBeenCalledWith("source", "real-turn")
 })
 
 test("a fork failure keeps the current chat and allows retry", async () => {

@@ -5,6 +5,7 @@ import { getCurrentWebviewWindow, WebviewWindow } from "@tauri-apps/api/webviewW
 import { commands } from "@/bindings"
 import type { DriveFileDestination } from "@/features/drive/files"
 
+import { errorMessage, logBackgroundError } from "./background-errors"
 import { type ChatWindowSurface, useChatWindowSurface, useMainWindowSurface } from "./chat-window-state"
 import { client } from "./client"
 import i18n from "./i18n"
@@ -128,10 +129,13 @@ export async function serveChatSurface(
           } else value = await handler(action)
           await emitTo(payload.from, RESPONSE, { id: payload.id, value, error: null } satisfies SurfaceResponse)
         } catch (error) {
+          const { type } = payload.action
+          if (type === "restore" || type === "release" || type === "present")
+            logBackgroundError(`chat-surface/${window.label}/${type}`, errorMessage(error))
           await emitTo(payload.from, RESPONSE, {
             id: payload.id,
             value: null,
-            error: error instanceof Error ? error.message : String(error)
+            error: errorMessage(error)
           } satisfies SurfaceResponse)
         }
       })()

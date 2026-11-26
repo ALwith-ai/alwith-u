@@ -1,3 +1,4 @@
+import type { SessionSummary } from "@alwith/module-chat/client"
 import { NavigationGroup, NavigationLeading, NavigationStack } from "@alwith/module-chat/session-list"
 import { type Collection, DEFAULT_COLLECTION_ID, getCollectionName } from "@alwith/module-collection"
 import {
@@ -5,8 +6,8 @@ import {
   type CollisionDetection,
   DndContext,
   type DragEndEvent,
-  KeyboardSensor,
   type KeyboardCoordinateGetter,
+  KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors
@@ -30,7 +31,6 @@ import {
 import { type ReactNode, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
-import type { SessionSummary } from "@alwith/module-chat/client"
 import { Pane } from "@/components/alwith-ui/pane"
 import { Button } from "@/components/ui/button"
 import {
@@ -66,9 +66,11 @@ const collectionCollisions: CollisionDetection = (args) =>
             (item) => item.data.current?.type === "collection" && item.id !== DEFAULT_COLLECTION_ID
           )
         : args.droppableContainers.filter(
-            (item) => item.data.current?.type === "session" || !args.droppableContainers.some(
-              (row) => row.data.current?.type === "session" && row.data.current.collectionId === item.id
-            )
+            (item) =>
+              item.data.current?.type === "session" ||
+              !args.droppableContainers.some(
+                (row) => row.data.current?.type === "session" && row.data.current.collectionId === item.id
+              )
           )
   })
 
@@ -79,8 +81,9 @@ const collectionKeyboardCoordinates: KeyboardCoordinateGetter = (event, args) =>
   event.preventDefault()
   const targets = droppableContainers
     .getEnabled()
-    .filter((item) =>
-      item.data.current?.type === "collection" && item.id !== DEFAULT_COLLECTION_ID && droppableRects.has(item.id)
+    .filter(
+      (item) =>
+        item.data.current?.type === "collection" && item.id !== DEFAULT_COLLECTION_ID && droppableRects.has(item.id)
     )
     .toSorted((a, b) => droppableRects.get(a.id)!.top - droppableRects.get(b.id)!.top)
   const index = targets.findIndex((item) => item.id === (over?.id ?? active.id))
@@ -231,7 +234,7 @@ export function CollectionPanel({
   const [editing, setEditing] = useState<string | null>(null)
   const [name, setName] = useState("")
   const [emoji, setEmoji] = useState("")
-  const [confirmation, setConfirmation] = useState<{ id: string; type: "clear" | "delete" } | null>(null)
+  const [confirmation, setConfirmation] = useState<{ id: string; name: string; type: "clear" | "delete" } | null>(null)
   const [busy, setBusy] = useState(false)
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -320,7 +323,7 @@ export function CollectionPanel({
                       setName(collections[id].name)
                       setEmoji(collections[id].emoji ?? "")
                     }}
-                    onConfirm={(type) => setConfirmation({ id, type })}
+                    onConfirm={(type) => setConfirmation({ id, name: getCollectionName(collections[id], t), type })}
                   >
                     <SortableContext
                       items={collections[id].sessionIds.map((sid) => JSON.stringify([id, sid]))}
@@ -425,9 +428,7 @@ export function CollectionPanel({
               {t(confirmation?.type === "delete" ? "collection.deleteCollection" : "collection.clearCollection")}
             </DialogTitle>
             <DialogDescription>
-              {t("collection.confirmCollectionChange", {
-                name: confirmation === null ? "" : getCollectionName(collections[confirmation.id], t)
-              })}
+              {t("collection.confirmCollectionChange", { name: confirmation?.name ?? "" })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

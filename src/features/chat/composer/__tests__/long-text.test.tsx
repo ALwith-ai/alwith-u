@@ -28,6 +28,10 @@ function paste(text: string, input = screen.getByRole("textbox")) {
     clipboardData: { items: [], getData: (type: string) => (type === "text/plain" ? text : "") }
   })
   fireEvent(input, event)
+  if (input instanceof HTMLTextAreaElement && !event.defaultPrevented) {
+    const { selectionStart, selectionEnd, value } = input
+    fireEvent.input(input, { target: { value: value.slice(0, selectionStart) + text + value.slice(selectionEnd) } })
+  }
   return event
 }
 
@@ -66,8 +70,11 @@ test("converts a single 5000-character paste, not 4999 characters or accumulated
   render(<Composer session={session()} onSubmit={submit} />)
   const input = screen.getByRole("textbox")
   fireEvent.change(input, { target: { value: "existing prompt" } })
-  expect(paste("中".repeat(4999)).defaultPrevented).toBe(false)
+  const shortPaste = "中".repeat(4999)
+  paste(shortPaste)
+  expect(input).toHaveValue(`existing prompt${shortPaste}`)
   expect(commands.writeTextAttachment).not.toHaveBeenCalled()
+  fireEvent.change(input, { target: { value: "existing prompt" } })
   expect(paste(longText).defaultPrevented).toBe(true)
   expect(input).toHaveValue("existing prompt")
   await screen.findByText("5000 characters")
@@ -86,7 +93,9 @@ test("converts a single 5000-character paste, not 4999 characters or accumulated
 test("uses UTF-16 length for emoji and leaves long typed text inline at submission", async () => {
   const submit = vi.fn().mockResolvedValue(undefined)
   render(<Composer session={session()} onSubmit={submit} />)
-  expect(paste("😀".repeat(2499)).defaultPrevented).toBe(false)
+  const shortPaste = "😀".repeat(2499)
+  paste(shortPaste)
+  expect(screen.getByRole("textbox")).toHaveValue(shortPaste)
   expect(paste("😀".repeat(2500)).defaultPrevented).toBe(true)
   await screen.findByText("5000 characters")
   fireEvent.click(screen.getByRole("button", { name: "Remove pasted text attachment" }))

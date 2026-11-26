@@ -157,8 +157,23 @@ pre,
   display: none;
 }
 
+/* Blur the page before compositing it over the transparent native window. */
+#root:has(
+  ~ * :is([data-slot="dialog-content"], [data-slot="alert-dialog-content"], [data-slot="sheet-content"])[data-open]
+) {
+  filter: blur(var(--blur-xs));
+}
+
+#root ~ * :is([data-slot="dialog-overlay"], [data-slot="alert-dialog-overlay"], [data-slot="sheet-overlay"]) {
+  backdrop-filter: none;
+}
+
+#root:has(~ * [data-image-lightbox][data-open]) {
+  filter: blur(var(--blur-sm));
+}
+
 [data-slot="dialog-overlay"]:has(~ [data-image-lightbox]) {
-  @apply bg-background/60 backdrop-blur-sm;
+  @apply bg-background/60;
 }
 
 /* Account for the header buttons' own inset when aligning their icons to the surface gutter. */

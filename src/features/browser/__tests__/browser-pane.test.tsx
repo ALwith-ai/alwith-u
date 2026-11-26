@@ -6,10 +6,17 @@ import { beforeEach, expect, test, vi } from "vitest"
 import { BrowserPane } from "../browser-pane"
 
 const invoke = vi.hoisted(() => vi.fn())
+const tabUpdates = vi.hoisted(() => vi.fn<(payload: { label: string; url: string }) => void>())
 // Extension buttons have their own suite; here they would only add calls to count.
 vi.mock("../extension-actions", () => ({ ExtensionActions: () => null }))
+vi.mock("../page-pointer", () => ({ PagePointer: () => <input aria-label="批注" /> }))
 vi.mock("@tauri-apps/api/core", () => ({ invoke }))
-vi.mock("@tauri-apps/api/event", () => ({ listen: async () => () => {} }))
+vi.mock("@tauri-apps/api/event", () => ({
+  listen: async (event: string, handler: (event: { payload: { label: string; url: string } }) => void) => {
+    if (event === "browser-tab-updated") tabUpdates.mockImplementation((payload) => handler({ payload }))
+    return () => {}
+  }
+}))
 const props = { active: true }
 beforeEach(() => invoke.mockReset())
 
@@ -55,6 +62,44 @@ test("address-bar navigation preserves the existing guest", async () => {
     expect(invoke).toHaveBeenCalledWith("cef_navigate_guest", { label: "browser-test", url: "http://localhost:5173" })
   )
   expect(invoke.mock.calls.filter(([name]) => name === "cef_open_guest")).toHaveLength(1)
+})
+
+test("navigation within a tab keeps its pointing overlay and toolbar toggle", async () => {
+  invoke.mockResolvedValueOnce({ label: "browser-test", token: "surface" }).mockResolvedValue(undefined)
+  render(<BrowserPane {...props} request={{ id: "point-1", url: "https://example.com" }} />)
+  const toggle = screen.getByRole("button", { name: "指给 AI 看" })
+  await waitFor(() => expect(toggle).toBeEnabled())
+  fireEvent.click(toggle)
+  const remark = await screen.findByRole("textbox", { name: "批注" })
+  expect(toggle).toHaveAttribute("aria-pressed", "true")
+  act(() => tabUpdates({ label: "browser-test", url: "https://example.org" }))
+  expect(remark).toBeInTheDocument()
+  expect(toggle).toHaveAttribute("aria-pressed", "true")
+  fireEvent.click(toggle)
+  expect(toggle).toHaveAttribute("aria-pressed", "false")
+})
+
+test("switching tabs preserves each tab's own pointing toggle", async () => {
+  invoke.mockResolvedValue({ label: "browser-test", token: "surface" })
+  const tabs = (firstSelected: boolean) => (
+    <>
+      <div aria-hidden={!firstSelected}>
+        <BrowserPane active={firstSelected} initialUrl="https://first.example" />
+      </div>
+      <div aria-hidden={firstSelected}>
+        <BrowserPane active={!firstSelected} initialUrl="https://second.example" />
+      </div>
+    </>
+  )
+  const view = render(tabs(true))
+  const toggle = () => screen.getByRole("button", { name: "指给 AI 看" })
+  await waitFor(() => expect(toggle()).toBeEnabled())
+  fireEvent.click(toggle())
+  expect(toggle()).toHaveAttribute("aria-pressed", "true")
+  view.rerender(tabs(false))
+  expect(toggle()).toHaveAttribute("aria-pressed", "false")
+  view.rerender(tabs(true))
+  expect(toggle()).toHaveAttribute("aria-pressed", "true")
 })
 
 test("acknowledges an AI open request after its live guest is ready", async () => {

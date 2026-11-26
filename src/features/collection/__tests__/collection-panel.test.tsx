@@ -1,12 +1,13 @@
+import type { SessionSummary } from "@alwith/module-chat/client"
 import { applyCollectionAction, initialCollectionData } from "@alwith/module-collection"
-import { act, cleanup, fireEvent, render } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, waitFor, within } from "@testing-library/react"
 import { afterEach, expect, test, vi } from "vitest"
 
-import type { SessionSummary } from "@alwith/module-chat/client"
+import { settingsFixture } from "@/lib/__tests__/settings-fixture"
 import { client } from "@/lib/client"
 import { initI18n } from "@/lib/i18n"
 
-import { AddToCollectionAction, CollectionPicker } from "../collection-menu"
+import { AddToCollectionAction, CollectionPicker, CreateCollectionMenu } from "../collection-menu"
 import { CollectionPanel } from "../collection-panel"
 import { useCollectionStore } from "../store"
 import * as collectionStore from "../store"
@@ -102,4 +103,48 @@ test("favorite picker expands the real create-collection form", async () => {
   expect(confirm).toBeDisabled()
   fireEvent.change(input, { target: { value: "Work" } })
   expect(confirm).toBeEnabled()
+})
+
+test("deleting a newly created collection keeps the confirmation usable until the settings reply", async () => {
+  const fixture = settingsFixture()
+  const reply = Promise.withResolvers<void>()
+  try {
+    const screen = render(
+      <>
+        <CreateCollectionMenu />
+        <CollectionPanel onSelect={() => {}} onNewChat={() => {}} renderRow={() => null} />
+      </>
+    )
+    fireEvent.click(screen.getByRole("button", { name: "Create Collection" }))
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Create Collection" }))
+    const create = within(await screen.findByRole("dialog", { name: "Create Collection" }))
+    fireEvent.change(create.getByRole("textbox", { name: "Collection name" }), { target: { value: "Work" } })
+    fireEvent.click(create.getByRole("button", { name: "Confirm" }))
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Create Collection" })).toBeNull())
+
+    const write = fixture.write.getMockImplementation()!
+    fixture.write.mockImplementationOnce(async (request) => {
+      const snapshot = await write(request)
+      await reply.promise
+      return snapshot
+    })
+    fireEvent.click(screen.getByRole("button", { name: "More actions for Work" }))
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Delete collection" }))
+    const dialog = await screen.findByRole("dialog", { name: "Delete collection" })
+    const confirm = within(dialog).getByRole("button", { name: "Confirm" })
+    fireEvent.click(confirm)
+
+    await waitFor(() => expect(useCollectionStore.getState().order).toEqual(initialCollectionData().order))
+    expect(within(dialog).getByText(/Remove the records in “Work”/)).toBeVisible()
+    expect(confirm).toBeDisabled()
+
+    await act(async () => reply.resolve())
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Delete collection" })).toBeNull())
+    expect(screen.queryByRole("button", { name: "More actions for Work" })).toBeNull()
+    expect(screen.getByRole("button", { name: "More actions for Favorites" })).toBeVisible()
+  } finally {
+    await act(async () => reply.resolve())
+    fixture.read.mockRestore()
+    fixture.write.mockRestore()
+  }
 })

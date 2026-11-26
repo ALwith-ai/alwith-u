@@ -1,6 +1,8 @@
 import { error as logError } from "@tauri-apps/plugin-log"
 import { toast } from "sonner"
 
+import { text } from "./text"
+
 /** Preserve nested causes in the log; native errors may also arrive as plain objects. */
 export function errorDetails(error: unknown): string {
   const seen = new Set<unknown>()
@@ -30,6 +32,25 @@ export function errorDetails(error: unknown): string {
 
 export function logBackgroundError(context: string, error: unknown): void {
   void logError(`[${context}] ${errorDetails(error)}`).catch((failure) => console.error("[error-log]", failure))
+}
+
+/** Native and RPC errors can cross an IPC boundary as plain objects. */
+export function errorMessage(error: unknown): string {
+  const seen = new Set<object>()
+  const message = (value: unknown): string | undefined => {
+    if (typeof value === "string") return value.trim() ? value : undefined
+    if (value === null || typeof value !== "object" || seen.has(value)) return undefined
+    seen.add(value)
+    const fields = value as Record<string, unknown>
+    return (
+      message(fields.message) ??
+      message(fields.detail) ??
+      message(fields.error) ??
+      message(fields.cause) ??
+      message(fields.data)
+    )
+  }
+  return message(error) ?? text(error)
 }
 
 /** A stable notice per operation prevents concurrent startup failures from flooding the screen. */

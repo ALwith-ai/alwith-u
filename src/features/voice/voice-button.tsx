@@ -21,15 +21,20 @@ import { useVoiceEnabled } from "./use-voice-enabled"
 import { VoiceWaveform } from "./voice-waveform"
 
 const transport = createTauriTransport({ invoke, channel: (receive) => new Channel(receive) })
-interface VoiceButtonProps {
+type VoiceButtonProps = {
   draft: DraftPort
-  cwd: string
+  cwd: string | (() => Promise<string>)
   enabled: boolean
   cancelRef: RefObject<(() => void) | null>
-  waitForTurn: (signal: AbortSignal) => Promise<void>
-  supportsHandsfree: boolean
-  resume?: (signal: AbortSignal) => Promise<void>
-}
+} & (
+  | { dictationOnly: true; waitForTurn?: never; supportsHandsfree?: never; resume?: never }
+  | {
+      dictationOnly?: false
+      waitForTurn: (signal: AbortSignal) => Promise<void>
+      supportsHandsfree: boolean
+      resume?: (signal: AbortSignal) => Promise<void>
+    }
+)
 
 export function VoiceButton(props: VoiceButtonProps): ReactNode {
   return useVoiceEnabled() === true ? <EnabledVoiceButton key={props.draft.read().target} {...props} /> : null
@@ -40,6 +45,7 @@ function EnabledVoiceButton({
   cwd,
   enabled,
   cancelRef,
+  dictationOnly,
   waitForTurn,
   supportsHandsfree,
   resume
@@ -63,7 +69,7 @@ function EnabledVoiceButton({
   const reportRef = useRef(report)
   reportRef.current = report
   const interaction = useVoiceInteraction({
-    optionTap: true,
+    optionTap: !dictationOnly,
     transport,
     enabled: enabled && !resuming,
     cancelRef: interactionCancel,
@@ -71,15 +77,24 @@ function EnabledVoiceButton({
     host: {
       draft,
       canStart: () => enabled,
-      supportsHandsfree: () => supportsHandsfree,
-      loadSettings: async () => recordingSettings(await loadVoiceSettings(), cwd),
+      supportsHandsfree: () => supportsHandsfree === true,
+      loadSettings: async () => {
+        const settings = await loadVoiceSettings()
+        return recordingSettings(
+          dictationOnly ? { ...settings, mode: "dictation" } : settings,
+          typeof cwd === "string" ? cwd : await cwd()
+        )
+      },
       isConfigured: async (provider) => (await voiceProfiles())[provider],
       configure: () => openSettingsWindow("voice"),
       submit: async () => {
         if (submit === null) throw new Error("voice_submit_unavailable")
         return submit()
       },
-      waitForTurn,
+      waitForTurn: async (signal) => {
+        if (waitForTurn === undefined) throw new Error("voice_turn_unavailable")
+        await waitForTurn(signal)
+      },
       onNoSpeech: () => toast.info(t("voice.noSpeech")),
       onError: report
     }
@@ -197,6 +212,7 @@ function EnabledVoiceButton({
         <TooltipTrigger
           render={
             <PromptInputButton
+              type="button"
               aria-label={label}
               className={phase === "recording" ? "voice-recording-button" : undefined}
               disabled={!enabled || busy || phase === "finishing"}
@@ -221,6 +237,7 @@ function EnabledVoiceButton({
       </Tooltip>
       {(busy || phase === "starting" || phase === "recording" || phase === "finishing") && (
         <PromptInputButton
+          type="button"
           aria-label={t("voice.cancel")}
           title={t("voice.cancel")}
           onClick={() => {

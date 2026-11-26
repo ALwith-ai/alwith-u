@@ -1,8 +1,11 @@
 //! What a person points at on a page: the thing under the pointer. Positions are fractions of the
 //! page's visible area, so the interface needs neither the page's zoom nor its scroll position.
 
+use base64::{Engine, engine::general_purpose::STANDARD};
+use image::{GenericImageView, ImageFormat};
 use serde::Serialize;
 use serde_json::{Value, json};
+use std::io::Cursor;
 use tauri::Manager;
 
 use crate::browser_ai::{BrowserAi, GuestAgent, GuestTarget};
@@ -187,16 +190,74 @@ pub async fn cef_guest_point(
     answer
 }
 
+async fn document(agent: &GuestAgent, target: &GuestTarget, url: &str) -> Result<String, String> {
+    let tree = agent.call(target, "Page.getFrameTree", json!({})).await?;
+    let frame = &tree["frameTree"]["frame"];
+    let page = frame["url"].as_str().ok_or("Missing page address")?;
+    let fragment = frame["urlFragment"].as_str().unwrap_or_default();
+    if format!("{page}{fragment}") != url {
+        return Err("The page changed after the region was selected".into());
+    }
+    frame["loaderId"].as_str().map(str::to_owned).ok_or_else(|| "Missing page document".into())
+}
+
+fn crop_region(data: &str, [left, top, width, height]: [f64; 4]) -> Result<String, String> {
+    let png = STANDARD.decode(data).map_err(|error| error.to_string())?;
+    let image = image::load_from_memory_with_format(&png, ImageFormat::Png).map_err(|error| error.to_string())?;
+    let (pixel_width, pixel_height) = image.dimensions();
+    // Keep only pixels fully inside the rectangle, independent of zoom and display scale.
+    let x = (left * f64::from(pixel_width)).ceil() as u32;
+    let y = (top * f64::from(pixel_height)).ceil() as u32;
+    let right = ((left + width) * f64::from(pixel_width)).floor() as u32;
+    let bottom = ((top + height) * f64::from(pixel_height)).floor() as u32;
+    if x >= right || y >= bottom {
+        return Err("The selected region is too small to capture".into());
+    }
+    let mut cropped = Cursor::new(Vec::new());
+    image
+        .crop_imm(x, y, right - x, bottom - y)
+        .write_to(&mut cropped, ImageFormat::Png)
+        .map_err(|error| error.to_string())?;
+    Ok(STANDARD.encode(cropped.into_inner()))
+}
+
+/// Capture only the selected rectangle of the guest's visible page as a base64 PNG.
+#[tauri::command]
+pub async fn cef_guest_region_screenshot(
+    webview: tauri::Webview, label: String, url: String, rect: [f64; 4],
+) -> Result<String, String> {
+    let [left, top, width, height] = rect;
+    if !rect.into_iter().all(|value| (0.0..=1.0).contains(&value))
+        || width == 0.0
+        || height == 0.0
+        || left + width > 1.0
+        || top + height > 1.0
+    {
+        return Err("The region is outside the page or empty".into());
+    }
+    let (agent, target) = guest(&webview, &label)?;
+    let loader = document(&agent, &target, &url).await?;
+    let capture = agent
+        .call(
+            &target,
+            "Page.captureScreenshot",
+            json!({
+                "format": "png", "fromSurface": true, "captureBeyondViewport": false
+            }),
+        )
+        .await?;
+    if loader != document(&agent, &target, &url).await? {
+        return Err("The page changed during capture".into());
+    }
+    let png = capture["data"].as_str().ok_or("Missing page screenshot")?.to_owned();
+    tauri::async_runtime::spawn_blocking(move || crop_region(&png, rect)).await.map_err(|error| error.to_string())?
+}
+
 /// Scrolls whatever lies under a point of the page, as a turn of the wheel there would. The point
 /// is given as fractions of the page's visible area, the turn in page pixels.
 #[tauri::command]
 pub async fn cef_guest_wheel(
-    webview: tauri::Webview,
-    label: String,
-    x: f64,
-    y: f64,
-    delta_x: f64,
-    delta_y: f64,
+    webview: tauri::Webview, label: String, x: f64, y: f64, delta_x: f64, delta_y: f64,
 ) -> Result<(), String> {
     if !(0.0..=1.0).contains(&x) || !(0.0..=1.0).contains(&y) || !delta_x.is_finite() || !delta_y.is_finite() {
         return Err("The turn of the wheel is outside the page".into());
@@ -239,5 +300,21 @@ mod tests {
         assert_eq!(covered(&json!([1200, 0, 1300, 0, 1300, 10, 1200, 10]), 1000.0, 500.0), None);
         assert_eq!(covered(&json!([0, 0, 10, 0]), 1000.0, 500.0), None);
         assert_eq!(covered(&json!(null), 1000.0, 500.0), None);
+    }
+
+    #[test]
+    fn a_region_contains_only_pixels_inside_its_edges() {
+        let original = image::RgbImage::from_fn(10, 8, |x, y| image::Rgb([x as u8, y as u8, 0]));
+        let mut png = Cursor::new(Vec::new());
+        original.write_to(&mut png, ImageFormat::Png).unwrap();
+        let encoded = STANDARD.encode(png.into_inner());
+        let cropped = crop_region(&encoded, [0.12, 0.2, 0.46, 0.55]).unwrap();
+        let decoded = image::load_from_memory_with_format(&STANDARD.decode(cropped).unwrap(), ImageFormat::Png)
+            .unwrap()
+            .to_rgb8();
+        assert_eq!(decoded.dimensions(), (3, 4));
+        assert_eq!(*decoded.get_pixel(0, 0), image::Rgb([2, 2, 0]));
+        assert_eq!(*decoded.get_pixel(2, 3), image::Rgb([4, 5, 0]));
+        assert!(crop_region(&encoded, [0.12, 0.2, 0.04, 0.3]).is_err());
     }
 }

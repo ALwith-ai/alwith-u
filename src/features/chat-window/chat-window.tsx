@@ -23,6 +23,7 @@ import {
   suspendVibemonForChat
 } from "@/features/vibemon/window-client"
 import { useVoiceHandoff } from "@/features/voice/use-voice-handoff"
+import { errorMessage, logBackgroundError } from "@/lib/background-errors"
 import {
   announceChatReady,
   type ChatTransfer,
@@ -46,7 +47,12 @@ import { useChatWindowBackdrop } from "./use-chat-window-backdrop"
 import { WindowResizeEdges } from "./window-resize-edges"
 
 function report(error: unknown): void {
-  toast.error(error instanceof Error ? error.message : String(error))
+  toast.error(errorMessage(error))
+}
+
+function reportOpenError(error: unknown): void {
+  logBackgroundError("chat-window/open-session", errorMessage(error))
+  report(error)
 }
 
 async function acknowledgeInMain(sessionId: string, version: number): Promise<void> {
@@ -125,15 +131,16 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
         const directory = target ? target.cwd : cwd
         if (directory === null) throw new Error("A chat session must have a working directory")
         void client.open(selectedId, directory).catch((error: unknown) => {
-          if (current.current.selectedId === selectedId)
-            setRestoreError(error instanceof Error ? error.message : String(error))
-          report(error)
+          if (current.current.selectedId === selectedId) setRestoreError(errorMessage(error))
+          reportOpenError(error)
         })
       }
       setRestoreError(null)
       setContentMounted(true)
     } catch (error) {
-      setRestoreError(error instanceof Error ? error.message : String(error))
+      const message = errorMessage(error)
+      logBackgroundError("chat-window/reconnect", message)
+      setRestoreError(message)
       throw error
     }
   }, [])
@@ -220,7 +227,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
           const opening = client.open(sessionRow.sessionId, sessionRow.cwd)
           setCwd(sessionRow.cwd)
           setSelectedId(sessionRow.sessionId)
-          void opening.catch(report)
+          void opening.catch(reportOpenError)
         })
         .catch(report)
     },
@@ -249,7 +256,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
                   throw new Error("The chat window conversation changed")
                 const target = client.session(action.sessionId)
                 await client.discardDraft("chat")
-                void client.open(target.id, target.cwd).catch(report)
+                void client.open(target.id, target.cwd).catch(reportOpenError)
                 current.current = { selectedId: target.id, cwd: target.cwd }
                 setCwd(target.cwd)
                 setSelectedId(target.id)
@@ -273,7 +280,7 @@ export function ChatWindow({ preferences }: { preferences: Preferences }) {
                 if (transfer.sessionId !== null) {
                   if (transfer.cwd === null) throw new Error("A chat session must have a working directory")
                   await client.transferDraft(transfer.sessionId, "chat")
-                  void client.open(transfer.sessionId, transfer.cwd).catch(report)
+                  void client.open(transfer.sessionId, transfer.cwd).catch(reportOpenError)
                 }
                 if (transfer.sessionId === null) await client.discardDraft("chat")
                 importDraft(transfer.sessionId ?? DRAFT_SESSION_ID, transfer.draft)

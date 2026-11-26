@@ -48,6 +48,10 @@ export function useOpenChatLink(): (target: string) => void {
           let value = url
           if (/^file:/i.test(url)) {
             const file = new URL(url)
+            if (file.pathname.endsWith("/") && !file.hash && !file.search) {
+              await openExternal(url)
+              return
+            }
             value = file.pathname + file.hash
             if (/^\/[A-Za-z]:\//.test(value)) value = value.slice(1)
             if (file.hostname && file.hostname !== "localhost") value = `//${file.hostname}${value}`

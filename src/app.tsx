@@ -64,7 +64,7 @@ import { VibemonCenter } from "@/features/vibemon/vibemon-center"
 import { useVoiceHandoff } from "@/features/voice/use-voice-handoff"
 import { WorkspaceHeaderContext, WorkspaceSessionContext } from "@/features/workspace/context"
 import { FileWorkspace } from "@/features/workspace/file-workspace"
-import { logBackgroundError, reportBackgroundError } from "@/lib/background-errors"
+import { errorMessage as describe, logBackgroundError, reportBackgroundError } from "@/lib/background-errors"
 import { installChatShortcut } from "@/lib/chat-shortcut"
 import {
   openChatWindow,
@@ -85,10 +85,6 @@ import { useProviders } from "@/lib/use-providers"
 import { useSurfaceOperation } from "@/lib/use-surface-operation"
 import { useWindowFocus } from "@/lib/window-focus"
 import { openSettingsWindow } from "@/lib/window-manager"
-
-function describe(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
-}
 
 export function App({ initialPreferences }: { initialPreferences: Preferences }) {
   useDeviceWindowContext()
@@ -213,16 +209,13 @@ export function App({ initialPreferences }: { initialPreferences: Preferences })
   const openSession = useCallback(
     (sessionRow: SessionSummary) =>
       selectSession(sessionRow, {
-        connect: async () => {
-          await client.connect()
-          if (client.state.draftSessions[sessionRow.sessionId] !== "main") await client.discardDraft("main")
+        connect: () => client.connect(),
+        discardDraft: async (id) => {
+          if (client.state.draftSessions[id] !== "main") await client.discardDraft("main")
         },
         unarchive: (id) => client.unarchive(id),
-        release: async (id) => {
-          const transfer = await releaseChatWindow(id)
-          await client.transferDraft(id, "main")
-          return transfer
-        },
+        release: releaseChatWindow,
+        transferDraft: (id) => client.transferDraft(id, "main"),
         importDraft,
         include: (sessionRow) => client.includeSession(sessionRow),
         open: (id, cwd) => client.open(id, cwd),

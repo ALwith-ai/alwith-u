@@ -459,6 +459,11 @@ test("the bridge returns operation errors and disconnect rejects pending calls",
     await remote.connect()
     const id = await remote.newSession("/tmp/chat-window")
     await expect(remote.prompt(id, [])).rejects.toThrow("Enter a message")
+    vi.spyOn(owner, "open").mockRejectedValueOnce({ code: -32603, message: "Session could not be loaded" })
+    await expect(remote.open(id, "/tmp/chat-window")).rejects.toMatchObject({
+      message: "Session could not be loaded",
+      code: -32603
+    })
     stop()
     const pending = remote.readRateLimits()
     remote.disconnect()

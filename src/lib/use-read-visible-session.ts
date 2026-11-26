@@ -1,6 +1,7 @@
 import { useEffect } from "react"
 import { toast } from "sonner"
 
+import { errorMessage, logBackgroundError } from "./background-errors"
 import { markRead, useApp } from "./client"
 
 /** A focused window can still be showing another screen instead of its selected chat. */
@@ -22,7 +23,9 @@ export function useReadVisibleSession(
   useEffect(() => {
     if (visible && readable && sessionId !== null && doneVersion !== null) {
       void acknowledge(sessionId, doneVersion).catch((error: unknown) => {
-        toast.error(error instanceof Error ? error.message : String(error))
+        const message = errorMessage(error)
+        logBackgroundError("session-visibility/mark-read", message)
+        toast.error(message)
       })
     }
   }, [acknowledge, visible, readable, sessionId, doneVersion])

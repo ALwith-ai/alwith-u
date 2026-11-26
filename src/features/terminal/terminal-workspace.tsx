@@ -2,7 +2,6 @@ import { createTabController, type TabController } from "@alwith/module-tabs/cor
 import { TabActionButton, TabStrip } from "@alwith/module-tabs/react"
 import type { TerminalSnapshot } from "@alwith/module-terminal"
 import { terminalClient } from "@alwith/module-terminal/tauri"
-import { isTauri } from "@tauri-apps/api/core"
 import { homeDir } from "@tauri-apps/api/path"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import "@alwith/module-tabs/styles.css"
@@ -32,29 +31,10 @@ const TerminalView = lazy(async () => {
 function report(error: unknown) {
   toast.error(text(error))
 }
-/** Native build capability, including embedded frontend development candidates. */
-export function useTerminalViewAvailable() {
-  const [available, setAvailable] = useState(false)
-  useEffect(() => {
-    if (!isTauri()) return
-    let disposed = false
-    void terminalClient
-      .capabilities()
-      .then((capabilities) => {
-        if (!disposed) setAvailable(capabilities.interactiveView)
-      })
-      .catch(report)
-    return () => {
-      disposed = true
-    }
-  }, [])
-  return available
-}
 export function TerminalWorkspaceMenuItem() {
-  const available = useTerminalViewAvailable(),
-    workspace = useWorkspace(),
+  const workspace = useWorkspace(),
     { t } = useTranslation()
-  if (!available || !workspace?.openPane) return null
+  if (!workspace?.openPane) return null
   return (
     <DropdownMenuItem
       className="whitespace-nowrap"
@@ -77,8 +57,7 @@ export function TerminalWorkspacePane({
   cwd: string | null
   onClose: () => void
 }) {
-  const available = useTerminalViewAvailable(),
-    { t } = useTranslation(),
+  const { t } = useTranslation(),
     { resolvedTheme } = useTheme()
   const [entries, setEntries] = useState<TerminalSnapshot[]>([]),
     [active, setActive] = useState<string | null>(null),
@@ -112,7 +91,6 @@ export function TerminalWorkspacePane({
     if (selected && !nativeActive) await terminalClient.activate(sessionId, selected)
   }, [sessionId, readTerminals])
   useEffect(() => {
-    if (!available) return
     let disposed = false,
       initialized = false
     const run = async () => {
@@ -156,7 +134,7 @@ export function TerminalWorkspacePane({
       disposed = true
       clearInterval(timer)
     }
-  }, [available, sessionId, cwd, readTerminals])
+  }, [sessionId, cwd, readTerminals])
   const openLink = useCallback(
     (url: string) => {
       void openTerminalLink(sessionId, url).catch(report)
@@ -267,7 +245,6 @@ export function TerminalWorkspacePane({
     sourceWindow !== undefined &&
     sourceWindow !== ownerWindow &&
     transfer?.terminalId !== current?.terminalId
-  if (!available) return null
   return (
     <div
       className="flex h-full min-h-0 flex-col bg-background"

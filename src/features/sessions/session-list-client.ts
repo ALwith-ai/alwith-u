@@ -1,6 +1,7 @@
 import type { CodexClientState } from "@alwith/module-chat/client"
 import type { SessionListClient } from "@alwith/module-chat/session-list"
 
+import { errorMessage, logBackgroundError } from "@/lib/background-errors"
 import { client } from "@/lib/client"
 
 import { useActivityOrder } from "./activity-order"
@@ -57,7 +58,14 @@ export const sessionListClient: SessionListClient = {
   renameSession: (id, name): Promise<void> => client.renameSession(id, name),
   fork: (id, cwd): Promise<string> => client.fork(id, cwd),
   archive: (id): Promise<void> => client.archive(id),
-  unarchive: (id): Promise<void> => client.unarchive(id),
+  async unarchive(id): Promise<void> {
+    try {
+      await client.unarchive(id)
+    } catch (error) {
+      logBackgroundError("session-list/unarchive", errorMessage(error))
+      throw error
+    }
+  },
   delete: (id): Promise<void> => client.delete(id),
   stopSession: (id): Promise<void> => client.stopSession(id),
   activityReply: (id): Promise<string | null> => client.activityReply(id),
