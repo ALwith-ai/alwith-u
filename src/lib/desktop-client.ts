@@ -3,7 +3,8 @@ import type {
   AppsInstalledParams,
   FuzzyFileSearchParams,
   FuzzyFileSearchResponse,
-  PromptOptions
+  PromptOptions,
+  SessionRequestOptions
 } from "@alwith/module-chat/client"
 import { CodexClient } from "@alwith/module-chat/client"
 import type { TerminalClient } from "@alwith/module-terminal"
@@ -14,6 +15,7 @@ import { deleteChatFolder } from "@/features/chat/folder-chat"
 
 import { logBackgroundError } from "./background-errors"
 import { initialFileResults } from "./initial-file-results"
+import { codexWorkingDirectory } from "./path"
 import { projectTurnRetry } from "./turn-retry"
 
 /** Main owns native filesystem access; floating clients forward this method to it. */
@@ -28,6 +30,27 @@ export class DesktopCodexClient extends CodexClient {
     super(openPort, options)
     this.terminals = terminals
   }
+
+  override newSession(...[cwd, model, owner]: Parameters<CodexClient["newSession"]>): Promise<string> {
+    return super.newSession(cwd === undefined ? undefined : codexWorkingDirectory(cwd), model, owner)
+  }
+
+  override prepareDraft(
+    ...[owner, cwd, model, nativeDefault, inputMode]: Parameters<CodexClient["prepareDraft"]>
+  ): Promise<string> {
+    return super.prepareDraft(
+      owner,
+      cwd === undefined ? undefined : codexWorkingDirectory(cwd),
+      model,
+      nativeDefault,
+      inputMode
+    )
+  }
+
+  protected override replay(id: string, cwd: string, options?: SessionRequestOptions): Promise<void> {
+    return super.replay(id, codexWorkingDirectory(cwd), options)
+  }
+
   protected override onUpdate(sessionId: string, update: SessionUpdate): void {
     const previous = this.sessions.sessions.get(sessionId)
     super.onUpdate(sessionId, update)

@@ -1,11 +1,9 @@
 import type * as acp from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { RequestError } from "@agentclientprotocol/sdk/experimental/v2/unstable"
 import { CodexClient } from "@alwith/module-chat/client"
+import { createFakeAgent, FakeHubPort } from "@alwith/module-chat/testing"
 import type { EventCallback, EventName } from "@tauri-apps/api/event"
 import { expect, test, vi } from "vitest"
-
-import { createFakeAgent } from "@alwith/module-chat/testing"
-import { FakeHubPort } from "@alwith/module-chat/testing"
 
 import { type ChatEvents, RemoteChatClient, serveChatClient } from "../chat-window-client"
 import { DesktopCodexClient } from "../desktop-client"
@@ -140,6 +138,35 @@ test("U excludes account-only app entries in both main and floating composers", 
     owner.disconnect()
   }
 })
+
+test.each(["//?/C:/YUP Drive/项目", "//?/C:\\YUP Drive\\项目"])(
+  "restores native Windows separators for chat creation and resume from %s",
+  async (cwd) => {
+    const fake = createFakeAgent()
+    const port = new FakeHubPort(() => fake.app)
+    const owner = new DesktopCodexClient(() => Promise.resolve(port), { agentId: "codex", launch: { engine: "codex" } })
+    const transport = eventBus()
+    const stop = await serveChatClient(owner, transport)
+    const remote = new RemoteChatClient(transport)
+    const expected = "\\\\?\\C:\\YUP Drive\\项目"
+    try {
+      await remote.connect()
+      const draft = await owner.prepareDraft("main", cwd)
+      expect(owner.session(draft).cwd).toBe(expected)
+      await owner.discardDraft("main")
+
+      const id = await remote.newSession(cwd)
+      expect(owner.session(id).cwd).toBe(expected)
+      await remote.stopSession(id)
+      await remote.open(id, cwd)
+      expect(owner.session(id)).toMatchObject({ attached: true, cwd: expected })
+    } finally {
+      remote.disconnect()
+      stop()
+      owner.disconnect()
+    }
+  }
+)
 
 test("floating draft refreshes project context through its connected main owner", async () => {
   const fake = createFakeAgent()

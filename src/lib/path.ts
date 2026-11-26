@@ -2,6 +2,11 @@ function normalizeSlashes(value: string): string {
   return value.replaceAll("\\", "/")
 }
 
+/** File-tree paths use forward slashes, but Win32 extended paths require native separators. */
+export function codexWorkingDirectory(cwd: string): string {
+  return /^[/\\]{2}\?[/\\][A-Za-z]:[/\\]/.test(cwd) ? cwd.replaceAll("/", "\\") : cwd
+}
+
 /**
  * Last path segment (file or folder name), cross-platform: `\` is normalised to `/` first,
  * so `C:\Users\foo\bar` and `/Users/foo/bar` both give `bar`. A trailing separator is
