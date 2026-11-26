@@ -95,6 +95,11 @@ function documentText(element, { mode, find, occurrence, collapse }) {
 /** The text of a document's blocks as a person reads it: without the characters of no width editors keep. */
 const shownBlocks = (texts) => texts.map((text) => text.replace(/[​-‍⁠﻿]/g, ""))
 
+/** What a tab is told when it shows a document the browser displays itself, whose text is not in any page. */
+const DOCUMENT_NOTE =
+  "This tab shows a PDF, displayed by the browser itself: its text is not in the page. Save it with browser_download, without a selector, and read the saved file."
+const showsDocument = (page) => page.evaluate(() => document.contentType === "application/pdf")
+
 /** How long one expression may run in a page. */
 const EVALUATION_LIMIT_MS = 30000
 const EXPIRED = Symbol("expired")
@@ -327,7 +332,8 @@ export function createBrowserTools(call, attach, { nativeDownloads = false, nati
       if (!["http:", "https:"].includes(url.protocol)) throw Error("Navigation requires HTTP(S)")
     }
     const definition = tools.find((entry) => entry.name === name)
-    const optionalLocator = ["browser_read_page", "browser_snapshot", "browser_screenshot"]
+    // Without a locator these act on the page itself; a download is then of the document the tab shows.
+    const optionalLocator = ["browser_read_page", "browser_snapshot", "browser_screenshot", "browser_download"]
     if (
       definition.inputSchema.properties.selector &&
       !optionalLocator.includes(name) &&
@@ -456,7 +462,19 @@ export function createBrowserTools(call, attach, { nativeDownloads = false, nati
       } catch (error) {
         throw Error(`Dialog response failed; inspect the page before retrying: ${error}`, { cause: error })
       }
-      return waitForInteraction(state, operation ?? Promise.resolve({ ok: true, url: page.url() }))
+      const stays = dialog.type() === "beforeunload" && !args.accept
+      return waitForInteraction(
+        state,
+        (operation ?? Promise.resolve({ ok: true, url: page.url() })).catch((error) => {
+          // Staying on a page that asks before it is left is the answer that was given, not a navigation that failed.
+          if (!stays || !String(error).includes("ERR_ABORTED")) throw error
+          return {
+            ok: true,
+            url: page.url(),
+            outcome: "stayed on the page; the navigation was cancelled by this answer"
+          }
+        })
+      )
     }
     if (interaction.dialog)
       return {
@@ -472,7 +490,13 @@ export function createBrowserTools(call, attach, { nativeDownloads = false, nati
     if (interaction.operation) throw Error("A page action is pending; finish its dialog or wait before continuing")
     if (args.ref && !(name === "browser_verify" && args.condition === "hidden"))
       await observations.validate(scope, args)
-    if (name === "browser_snapshot") return observations.snapshot(scope, args, listFrames)
+    if (name === "browser_snapshot") {
+      const snapshot = await observations.snapshot(scope, args, listFrames)
+      // Only a page with nothing in it is asked what it is.
+      return snapshot.text === "" && (await showsDocument(page))
+        ? { ...snapshot, instruction: DOCUMENT_NOTE }
+        : snapshot
+    }
     if (name === "browser_resolve")
       return {
         locator: (await locate().normalize()).toString(),
@@ -491,7 +515,19 @@ export function createBrowserTools(call, attach, { nativeDownloads = false, nati
           if (nativeDownloads) {
             const read = async () => (await call({ target: args.target, method: "downloads" })).downloads
             const before = new Set((await read()).map((item) => item.id))
-            await locate().click()
+            // A document the browser would show rather than save (a PDF, an image) is no download when its
+            // link is followed: the link opens it in a tab and nothing is saved. The browser is asked for
+            // the address itself, as "Save link as" does, with the page's own cookies. The same holds for
+            // the document a tab already shows, named by leaving the locator out.
+            const located = args.selector !== undefined || args.ref !== undefined
+            const address = located
+              ? await locate().evaluate((element) =>
+                  element instanceof HTMLAnchorElement && /^https?:/.test(element.href) ? element.href : null
+                )
+              : page.url()
+            if (address) await call({ target: args.target, method: "download", params: { url: address } })
+            else if (located) await locate().click()
+            else throw Error("This tab shows nothing that can be saved; name the control that starts the download")
             let completed
             await expect
               .poll(
@@ -517,6 +553,8 @@ export function createBrowserTools(call, attach, { nativeDownloads = false, nati
               bytes: (await stat(args.path)).size
             }
           }
+          if (args.selector === undefined && args.ref === undefined)
+            throw Error("Name the control that starts the download")
           const [download] = await Promise.all([page.waitForEvent("download", { timeout: 20000 }), locate().click()])
           const directory = await mkdtemp(join(tmpdir(), "alwith-download-"))
           try {
@@ -615,6 +653,7 @@ export function createBrowserTools(call, attach, { nativeDownloads = false, nati
         accessibility: accessibility.slice(0, 32000),
         accessibilityTruncated: snapshot.truncated,
         snapshotId: snapshot.snapshotId,
+        ...(text.trim() === "" && (await showsDocument(page)) && { note: DOCUMENT_NOTE }),
         text: text.slice(offset, offset + limit),
         totalLength: text.length,
         nextOffset: offset + limit < text.length ? offset + limit : null
@@ -665,6 +704,8 @@ export function createBrowserTools(call, attach, { nativeDownloads = false, nati
           await navigation
         } catch (cause) {
           if (cause.name !== "TimeoutError") throw cause
+          const asked = await askedToSignIn(target, cause)
+          if (asked) throw asked
           // Stopped here and said here: the call is not reported a second time as held.
           state.arrival.request = null
           await call({ target, method: "Page.stopLoading", params: {} })
@@ -897,11 +938,27 @@ export function createBrowserTools(call, attach, { nativeDownloads = false, nati
     const state = await connections.get(target)?.catch(() => null)
     const waiting = state?.arrival.request
     if (!waiting) return undefined
+    const asked = await askedToSignIn(target, error)
+    if (asked) return asked
     state.arrival.request = null
     await call({ target, method: "Page.stopLoading", params: {} })
     return Error(
       `The tab was on its way to ${waiting.url()}, which has not arrived, and that held this call. The navigation was stopped and the tab still shows ${state.page.url()}. What the call did before running out of time may have happened: read the page before going on`,
       { cause: error }
+    )
+  }
+  /**
+   * A website that asks the browser for a user name and password holds its page until it is
+   * answered, and the application asks the reader in the tab. That is not a page that does not
+   * answer: the navigation is left as it is, for the reader, and the call says what it waits for.
+   */
+  async function askedToSignIn(target, cause) {
+    if (!nativeDialogs) return undefined
+    const { auth } = await call({ target, method: "status" })
+    if (!auth) return undefined
+    return Error(
+      `The website asks the browser for a user name and password (${auth.host}), and the tab is asking the reader for them. A conversation cannot answer that: ask the reader to sign in there, then go on. The page stays as it is until they do`,
+      { cause }
     )
   }
   // Disconnect only active operations. Idle transport and page state survive handoff.
