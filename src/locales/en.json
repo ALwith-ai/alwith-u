@@ -572,6 +572,21 @@
     }
   },
   "provider": {
+    "subscription": {
+      "description": "Use your Claude Pro or Max plan.",
+      "signIn": "Sign in with Claude",
+      "waiting": "Waiting for the browser…",
+      "signedIn": "Signed in",
+      "active": "Runs on the Claude subscription signed in above. Sign out to use an API key.",
+      "plan": {
+        "pro": "Pro",
+        "max": "Max",
+        "max_5x": "Max 5x",
+        "max_20x": "Max 20x",
+        "team": "Team",
+        "enterprise": "Enterprise"
+      }
+    },
     "managed": {
       "aliases": "Model aliases",
       "aliasHint": "Choose display names for account models. Their original identities stay unchanged.",

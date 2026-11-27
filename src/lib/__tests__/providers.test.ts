@@ -164,8 +164,9 @@ test("account-managed models keep their own group and can be selected explicitly
   expect(resolveSessionModel("gateway:litellm:ds%2Fpro", snapshot)).toBe("gateway:litellm:ds%2Fpro")
 })
 
-test("account-sourced providers and Anthropic are excluded from manual key configuration", () => {
+test("account-sourced providers are excluded from manual key configuration", () => {
   expect(PROVIDERS.map((provider) => provider.id)).toEqual([
+    "anthropic",
     "deepseek",
     "qwen",
     "xai",

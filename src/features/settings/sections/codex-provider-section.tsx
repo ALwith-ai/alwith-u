@@ -25,7 +25,7 @@ import {
 import { SettingGroup, SettingLabel } from "./shared"
 
 /** Desktop's `UsageLimitRow`: label, a long bar, "n% remaining", then the reset time under it. */
-function UsageLimitRow({ label, window }: { label?: string; window?: RateLimitWindow }) {
+export function UsageLimitRow({ label, window }: { label?: string; window?: RateLimitWindow }) {
   const { t } = useTranslation()
   const percent = window ? 100 - Math.round(Math.min(100, Math.max(0, window.usedPercent))) : 0
   const resets =
@@ -49,7 +49,7 @@ function UsageLimitRow({ label, window }: { label?: string; window?: RateLimitWi
             aria-valuemin={0}
             aria-valuemax={100}
           >
-            <div className="h-full rounded-full bg-primary" style={{ width: `${percent}%` }} />
+            <div className="h-full rounded-full bg-ring" style={{ width: `${percent}%` }} />
           </div>
         ) : (
           <Skeleton className="h-2 rounded-full motion-reduce:animate-none" />
@@ -70,7 +70,7 @@ function UsageLimitRow({ label, window }: { label?: string; window?: RateLimitWi
 }
 
 /** The window label: "5 hours" / "Weekly" from the window length Codex reports. */
-function limitWindowLabel(window: RateLimitWindow, t: TFunction): string {
+export function limitWindowLabel(window: RateLimitWindow, t: TFunction): string {
   const minutes = window.windowDurationMins
   if (minutes === null) return t("usage.usage")
   if (minutes % (24 * 60) === 0) return t("usage.windowDays", { count: minutes / (24 * 60) })

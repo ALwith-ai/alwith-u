@@ -11,6 +11,7 @@ import {
   PROVIDERS as sharedProviders,
   type ProviderSnapshot,
   type ProviderTestResult,
+  type ProviderUsage,
   resolveSessionModel as sharedResolveSessionModel
 } from "@alwith/module-chat/settings"
 
@@ -21,7 +22,8 @@ export type {
   ProviderInput,
   ProviderKey,
   ProviderSnapshot,
-  ProviderTestResult
+  ProviderTestResult,
+  ProviderUsage
 } from "@alwith/module-chat/settings"
 export {
   gatewayModelId,
@@ -38,8 +40,7 @@ import { enterpriseCatalog, isEnterpriseModel, projectEnterpriseProviders } from
 
 import { presentProviderError } from "./provider-errors"
 
-// U does not expose Anthropic key configuration.
-export const PROVIDERS = sharedProviders.filter((provider) => provider.id !== "anthropic")
+export const PROVIDERS = sharedProviders
 
 /** The chat plugin's provider commands; every window shares the native state. */
 const rawProvidersPort = createProvidersPort()
@@ -66,6 +67,9 @@ export const providersPort: ReturnType<typeof createProvidersPort> = {
   saveCustom: async (...args) => project(await rawProvidersPort.saveCustom(...args)),
   removeCustom: async (...args) => project(await rawProvidersPort.removeCustom(...args)),
   test: (...args) => rawProvidersPort.test(...args),
+  claudeLogin: async (...args) => project(await rawProvidersPort.claudeLogin(...args)),
+  claudeLogout: async (...args) => project(await rawProvidersPort.claudeLogout(...args)),
+  claudeUsage: () => rawProvidersPort.claudeUsage(),
   apply: async () => project(await rawProvidersPort.apply()),
   onChanged: async (listener) => {
     let revision = 0
@@ -142,6 +146,16 @@ export function saveCustomProvider(revision: number, input: CustomProviderInput)
 }
 export function removeCustomProvider(revision: number, providerId: string): Promise<ProviderSnapshot> {
   return providersPort.removeCustom(revision, providerId)
+}
+/** Opens the browser for a Claude subscription sign-in; resolves once the user has consented. */
+export function claudeLogin(revision: number): Promise<ProviderSnapshot> {
+  return providersPort.claudeLogin(revision)
+}
+export function claudeLogout(revision: number): Promise<ProviderSnapshot> {
+  return providersPort.claudeLogout(revision)
+}
+export function claudeUsage(): Promise<ProviderUsage> {
+  return providersPort.claudeUsage()
 }
 export function testProvider(providerId: string): Promise<ProviderTestResult> {
   return providersPort.test(providerId)

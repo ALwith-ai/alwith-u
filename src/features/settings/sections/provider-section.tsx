@@ -50,6 +50,7 @@ import {
 import { useProviders } from "@/lib/use-providers"
 import { cn } from "@/lib/utils"
 
+import { ClaudeProviderSection } from "./claude-provider-section"
 import { CodexProviderSection } from "./codex-provider-section"
 import { ProviderActions, type ProviderOperation } from "./provider-actions"
 import { ProviderBaseUrl, ProviderConnectionSettings } from "./provider-connection-settings"
@@ -263,6 +264,7 @@ export function ProviderSection() {
   return (
     <div className="flex flex-col gap-6">
       <CodexProviderSection />
+      <ClaudeProviderSection snapshot={snapshot ?? null} disabled={busy !== null} />
       <ManagedProviderSection />
       {snapshot?.status === "pending" && <p className="text-sm text-muted-foreground">{t("provider.pending")}</p>}
       {snapshot?.error && <p className="text-sm text-destructive">{snapshot.error}</p>}
@@ -480,68 +482,76 @@ export function ProviderRow({
           </Select>
         )}
       </div>
-      <ProviderConnectionSettings id={`${provider.id}-connection`}>
-        <Field className="gap-2">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <FieldLabel htmlFor={inputId}>{t("provider.apiKey")}</FieldLabel>
-            {keyUrl !== null && (
-              <Button
-                type="button"
-                variant="link"
-                size="sm"
-                className="h-auto p-0 text-xs text-muted-foreground"
-                onClick={() => void openExternal(keyUrl).catch((error: unknown) => toast.error(describe(error)))}
-              >
-                {t("provider.getKey", { name: provider.name })}
-                <ExternalLinkIcon className="size-3" aria-hidden="true" />
-              </Button>
-            )}
-          </div>
-          <InputGroup>
-            <InputGroupInput
-              id={inputId}
-              type={showKey ? "text" : "password"}
-              autoComplete="off"
-              spellCheck={false}
-              placeholder={configured ? t("provider.apiKeyKept") : t("provider.apiKeyPlaceholder")}
-              value={apiKey}
-              onChange={(event) => setApiKey(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && canSave) submit()
-              }}
+      {/* A subscription login has no key to save, test or remove. */}
+      {saved?.login !== undefined && (
+        <p className="text-sm text-muted-foreground">{t("provider.subscription.active")}</p>
+      )}
+      {saved?.login === undefined && (
+        <>
+          <ProviderConnectionSettings id={`${provider.id}-connection`}>
+            <Field className="gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <FieldLabel htmlFor={inputId}>{t("provider.apiKey")}</FieldLabel>
+                {keyUrl !== null && (
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0 text-xs text-muted-foreground"
+                    onClick={() => void openExternal(keyUrl).catch((error: unknown) => toast.error(describe(error)))}
+                  >
+                    {t("provider.getKey", { name: provider.name })}
+                    <ExternalLinkIcon className="size-3" aria-hidden="true" />
+                  </Button>
+                )}
+              </div>
+              <InputGroup>
+                <InputGroupInput
+                  id={inputId}
+                  type={showKey ? "text" : "password"}
+                  autoComplete="off"
+                  spellCheck={false}
+                  placeholder={configured ? t("provider.apiKeyKept") : t("provider.apiKeyPlaceholder")}
+                  value={apiKey}
+                  onChange={(event) => setApiKey(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && canSave) submit()
+                  }}
+                />
+                <InputGroupAddon align="inline-end">
+                  <InputGroupButton
+                    size="icon-xs"
+                    aria-label={t(showKey ? "provider.hideKey" : "provider.showKey")}
+                    onClick={() => setShowKey((value) => !value)}
+                  >
+                    {showKey ? <EyeIcon /> : <EyeOffIcon />}
+                  </InputGroupButton>
+                </InputGroupAddon>
+              </InputGroup>
+            </Field>
+            <ProviderBaseUrl
+              id={`${provider.id}-base-url`}
+              placeholder={providerRegion(provider, region)?.baseUrl ?? provider.baseUrl}
+              value={baseUrl}
+              onChange={setBaseUrl}
+              description={t("provider.baseUrlDescription")}
             />
-            <InputGroupAddon align="inline-end">
-              <InputGroupButton
-                size="icon-xs"
-                aria-label={t(showKey ? "provider.hideKey" : "provider.showKey")}
-                onClick={() => setShowKey((value) => !value)}
-              >
-                {showKey ? <EyeIcon /> : <EyeOffIcon />}
-              </InputGroupButton>
-            </InputGroupAddon>
-          </InputGroup>
-        </Field>
-        <ProviderBaseUrl
-          id={`${provider.id}-base-url`}
-          placeholder={providerRegion(provider, region)?.baseUrl ?? provider.baseUrl}
-          value={baseUrl}
-          onChange={setBaseUrl}
-          description={t("provider.baseUrlDescription")}
-        />
-      </ProviderConnectionSettings>
-      <ProviderActions
-        busy={busy}
-        operation={operation}
-        canTest={!canSave}
-        onTest={configured ? onTest : undefined}
-        onRemove={configured ? () => void persist(null) : undefined}
-        result={!canSave ? testResult : undefined}
-      >
-        <Button size="sm" disabled={!canSave} aria-busy={operation === "save"} onClick={submit}>
-          {operation === "save" && <Spinner data-icon="inline-start" aria-hidden="true" />}
-          {t("provider.saveButton")}
-        </Button>
-      </ProviderActions>
+          </ProviderConnectionSettings>
+          <ProviderActions
+            busy={busy}
+            operation={operation}
+            canTest={!canSave}
+            onTest={configured ? onTest : undefined}
+            onRemove={configured ? () => void persist(null) : undefined}
+            result={!canSave ? testResult : undefined}
+          >
+            <Button size="sm" disabled={!canSave} aria-busy={operation === "save"} onClick={submit}>
+              {operation === "save" && <Spinner data-icon="inline-start" aria-hidden="true" />}
+              {t("provider.saveButton")}
+            </Button>
+          </ProviderActions>
+        </>
+      )}
     </div>
   )
 }

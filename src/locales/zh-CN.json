@@ -572,6 +572,21 @@
     }
   },
   "provider": {
+    "subscription": {
+      "description": "使用你的 Claude Pro 或 Max 套餐。",
+      "signIn": "使用 Claude 登录",
+      "waiting": "等待浏览器…",
+      "signedIn": "已登录",
+      "active": "正在使用上方登录的 Claude 订阅。退出登录后可使用 API 密钥。",
+      "plan": {
+        "pro": "Pro",
+        "max": "Max",
+        "max_5x": "Max 5x",
+        "max_20x": "Max 20x",
+        "team": "Team",
+        "enterprise": "Enterprise"
+      }
+    },
     "managed": {
       "aliases": "模型别名",
       "aliasHint": "为账户模型设置显示名称，模型标识保持不变。",

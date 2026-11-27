@@ -22,7 +22,7 @@ Always answer the user in Chinese.
   Desktop's extensions page reduced. Model providers (DeepSeek, OpenRouter, Qwen, xAI;
   `src/lib/providers.ts`) are per-session gateways in the adapter's catalog mode: their
   models sit in every chat's model picker under their own group and only a chat that
-  selects one runs on it. Only Responses-API providers belong in the table; never Claude. Never write `~/.codex/config.toml`; a global provider switch is
+  selects one runs on it. Providers speak the Responses API, or Anthropic Messages, which the adapter translates for Codex. Anthropic runs on an API key or on the application's own Claude subscription sign-in; the adapter keeps and renews that login, and another application's Claude login is never read. Never write `~/.codex/config.toml`; a global provider switch is
   out of the question.
 - Open source under Apache-2.0. Not affiliated with OpenAI: no OpenAI or Codex
   branding that implies endorsement.
